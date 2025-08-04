@@ -42,10 +42,13 @@ typedef enum {
     APP_ERR_JERRY_EXCEPTION = -3,      // 运行期间抛出 JS 异常
     APP_ERR_ALREADY_RUNNING = -4,      // 当前已有 APP 在运行
     APP_ERR_JERRY_INIT_FAIL = -5,      // JerryScript 初始化失败
+    APP_ERR_LVGL_NOT_INITIALIZED = -6, // LVGL 未初始化
+    APP_ERR_UNKNOWN = -99               // 未知错误
 } AppRunResult_t;
 
 
 // 函数声明
+void appsys_stop_current_app();
 AppRunResult_t appsys_run_app(const ApplicationPackage_t* app);
 void appsys_register_functions(const AppSysFuncEntry* entry, const size_t funcs_count);
 

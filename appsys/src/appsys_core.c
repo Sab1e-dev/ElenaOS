@@ -8,13 +8,20 @@
 
 #include "appsys_core.h"
 #include "appsys_native_func.h"
+#include "appsys_port.h"
+// lv_bindings
 #include "lv_bindings.h"
 #include "lv_bindings_misc.h"
-#include "appsys_port.h"
+// std
 #include <string.h>
 #include <stdio.h>
+#include <stdatomic.h>
+
 // 全局状态记录是否已初始化 VM
 static bool js_vm_initialized = false;
+// 全局状态记录是否需要终止执行
+static atomic_bool should_terminate = false;
+
 /**
  * @brief 注册C函数到JS
  * @param entry 函数入口数组
@@ -32,12 +39,35 @@ void appsys_register_functions(const AppSysFuncEntry* entry,const size_t funcs_c
     jerry_value_free(global);
 }
 /**
- * @brief appsys_clear_current_app 清除当前运行的 JS 应用
+ * @brief VM 终止运行回调
  */
-static void appsys_clear_current_app() {
+static jerry_value_t appsys_vm_exec_stop_callback (void *user_p)
+{
+    (void)user_p; // 不使用参数
+    // printf("Checking");
+    if (should_terminate) {
+        printf("Script execution stopped by request.\n");
+        return jerry_string_sz("Script terminated by request");
+    }
+    
+    return jerry_undefined();
+}
+/**
+ * @biref 请求停止当前脚本运行
+ */
+void request_script_termination(void)
+{
+    atomic_store(&should_terminate, true);
+}
+/**
+ * @brief appsys_stop_current_app 关闭当前运行的 JS 应用
+ */
+void appsys_stop_current_app() {
     if (js_vm_initialized) {
-        jerry_cleanup();
+        request_script_termination();
+        // jerry_cleanup();
         js_vm_initialized = false;
+        printf("Current JS application stopped.\n");
     }
 }
 /**
@@ -75,13 +105,26 @@ AppRunResult_t appsys_run_app(const ApplicationPackage_t* app) {
     if (app == NULL || app->mainjs_str == NULL) {
         return APP_ERR_NULL_PACKAGE;
     }
-    // 清除前一个 JS 应用
-    appsys_clear_current_app();
+    if(!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP)){
+        printf("JerryScript VM does not support execution stop feature.\n");
+        return APP_ERR_JERRY_INIT_FAIL;
+    }
+    // 检查 LVGL 是否已初始化
+    if(lv_is_initialized() == false) {
+        printf("LVGL not initialized, please initialize it first.\n");
+        return APP_ERR_LVGL_NOT_INITIALIZED;
+    }
 
+    // 关闭前一个 JS 应用
+    appsys_stop_current_app();
+    
     // 初始化 JerryScript VM
     jerry_init(JERRY_INIT_EMPTY);
     js_vm_initialized = true;
 
+    // 初始化停止回调
+    jerry_halt_handler(16, appsys_vm_exec_stop_callback, NULL);
+    
     // 注册原生函数
     appsys_register_natives();
 
@@ -100,11 +143,12 @@ AppRunResult_t appsys_run_app(const ApplicationPackage_t* app) {
     jerry_value_free(global);
 
     // 执行主 JS 脚本
-    jerry_value_t result = jerry_eval(
+    jerry_value_t parsed_code = jerry_parse(
         (const jerry_char_t*)app->mainjs_str,
         strlen(app->mainjs_str),
         JERRY_PARSE_NO_OPTS
     );
+    jerry_value_t result = jerry_run (parsed_code);
 
     // 检查是否执行成功
     if (jerry_value_is_exception(result)) {
