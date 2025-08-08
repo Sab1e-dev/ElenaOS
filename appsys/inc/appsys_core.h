@@ -14,7 +14,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "lvgl/lvgl.h"
+#include "lvgl.h"
 #include "jerryscript.h"
 // 类型声明
 /**
@@ -43,13 +43,14 @@ typedef enum {
     APP_ERR_ALREADY_RUNNING = -4,      // 当前已有 APP 在运行
     APP_ERR_JERRY_INIT_FAIL = -5,      // JerryScript 初始化失败
     APP_ERR_LVGL_NOT_INITIALIZED = -6, // LVGL 未初始化
+    APP_NOT_RUNNING = -7,           // 没有在运行的应用
     APP_ERR_UNKNOWN = -99               // 未知错误
-} AppRunResult_t;
+} AppSysResult_t;
 
 
 // 函数声明
-void appsys_stop_current_app();
-AppRunResult_t appsys_run_app(const ApplicationPackage_t* app);
+AppSysResult_t appsys_stop_current_app();
+AppSysResult_t appsys_run_app(const ApplicationPackage_t* app);
 void appsys_register_functions(const AppSysFuncEntry* entry, const size_t funcs_count);
 
 #ifdef __cplusplus
