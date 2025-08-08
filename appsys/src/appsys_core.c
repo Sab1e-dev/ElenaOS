@@ -21,7 +21,7 @@
 static bool js_vm_initialized = false;
 // 全局状态记录是否需要终止执行
 static atomic_bool should_terminate = false;
-static atomic_bool app_terminated = true;
+static atomic_bool app_data_released = true;
 /**
  * @brief 注册C函数到JS
  * @param entry 函数入口数组
@@ -48,9 +48,10 @@ static jerry_value_t appsys_vm_exec_stop_callback(void *user_p)
     (void)user_p; // 不使用参数
     if (should_terminate)
     {
-        lv_obj_clean(lv_scr_act());
+        if (lv_is_initialized()){
+            lv_obj_clean(lv_scr_act());
+        }
         atomic_store(&should_terminate, false);
-        atomic_store(&app_terminated, true);
         printf("Script execution stopped by request.\n");
         return jerry_string_sz("Script terminated by request");
     }
@@ -72,12 +73,10 @@ AppSysResult_t appsys_stop_current_app()
     if (js_vm_initialized)
     {
         request_script_termination();
-        while (!app_terminated)
+        while (!app_data_released)
             ; // 自旋等待App结束
-        jerry_cleanup();
         js_vm_initialized = false;
         atomic_store(&should_terminate, false);
-
         printf("Current JS application stopped.\n");
         return APP_SUCCESS;
     }
@@ -159,21 +158,21 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
         return APP_ERR_JERRY_INIT_FAIL;
     }
     // 检查 LVGL 是否已初始化
-    if (lv_is_initialized() == false)
+    if (!lv_is_initialized())
     {
         printf("LVGL not initialized, please initialize it first.\n");
         return APP_ERR_LVGL_NOT_INITIALIZED;
     }
 
-    if (!app_terminated)
+    if (!app_data_released)
     {
         return APP_ERR_ALREADY_RUNNING;
     }
-
+    atomic_store(&app_data_released,false);
     // 初始化 JerryScript VM
     jerry_init(JERRY_INIT_EMPTY);
     js_vm_initialized = true;
-    atomic_store(&app_terminated, false);
+    
     // 初始化停止回调
     jerry_halt_handler(16, appsys_vm_exec_stop_callback, NULL);
     jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
@@ -202,7 +201,7 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
     if (!jerry_value_is_exception(parsed_code))
     {
         jerry_value_t result = jerry_run(parsed_code);
-        atomic_store(&app_terminated, true);
+        
         // 检查是否执行成功
         if (jerry_value_is_exception(result))
         {
@@ -210,7 +209,8 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
             appsys_js_exception_handler("JS Runtime", result);
             jerry_value_free(parsed_code);
             jerry_value_free(result);
-            appsys_stop_current_app();
+            jerry_cleanup();
+            atomic_store(&app_data_released,true);
             return APP_ERR_JERRY_EXCEPTION;
         }
         else
@@ -218,7 +218,8 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
             // 执行成功
             jerry_value_free(parsed_code);
             jerry_value_free(result);
-            appsys_stop_current_app();
+            jerry_cleanup();
+            atomic_store(&app_data_released,true);
             return APP_SUCCESS;
         }
     }
@@ -227,7 +228,8 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
         // 代码解析出错
         appsys_js_exception_handler("JS Parse", parsed_code);
         jerry_value_free(parsed_code);
-        appsys_stop_current_app();
+        jerry_cleanup();
+        atomic_store(&app_data_released,true);
         return APP_ERR_INVALID_JS;
     }
 }
