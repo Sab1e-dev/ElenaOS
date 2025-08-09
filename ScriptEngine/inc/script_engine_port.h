@@ -1,12 +1,12 @@
 ﻿
 /**
- * @file appsys_port.h
+ * @file script_engine_port.h
  * @brief 适配不同平台函数的头文件
  * @author Sab1e
  * @date 2025-07-30
  */
-#ifndef APPSYS_PORT_H
-#define APPSYS_PORT_H
+#ifndef SCRIPT_ENGINE_PORT_H
+#define SCRIPT_ENGINE_PORT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,4 +22,4 @@ extern "C" {
 }
 #endif
 
-#endif // APPSYS_PORT_H
+#endif // SCRIPT_ENGINE_PORT_H

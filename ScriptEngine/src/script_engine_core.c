@@ -1,14 +1,14 @@
 ﻿
 /**
- * @file appsys_core.c
- * @brief 应用程序系统核心功能实现
+ * @file script_engine_core.c
+ * @brief 脚本引擎核心功能实现
  * @author Sab1e
  * @date 2025-07-26
  */
 
-#include "appsys_core.h"
-#include "appsys_native_func.h"
-#include "appsys_port.h"
+#include "script_engine_core.h"
+#include "script_engine_native_func.h"
+#include "script_engine_port.h"
 // lv_bindings
 #include "lv_bindings.h"
 #include "lv_bindings_misc.h"
@@ -21,13 +21,13 @@
 static bool js_vm_initialized = false;
 // 全局状态记录是否需要终止执行
 static atomic_bool should_terminate = false;
-static atomic_bool app_data_released = true;
+static atomic_bool script_released = true;
 /**
  * @brief 注册C函数到JS
  * @param entry 函数入口数组
  * @param funcs_count 数组长度
  */
-void appsys_register_functions(const AppSysFuncEntry *entry, const size_t funcs_count)
+void script_engine_register_functions(const ScriptEngineFuncEntry *entry, const size_t funcs_count)
 {
     jerry_value_t global = jerry_current_realm();
     for (size_t i = 0; i < funcs_count; ++i)
@@ -43,7 +43,7 @@ void appsys_register_functions(const AppSysFuncEntry *entry, const size_t funcs_
 /**
  * @brief VM 终止运行回调
  */
-static jerry_value_t appsys_vm_exec_stop_callback(void *user_p)
+static jerry_value_t script_engine_vm_exec_stop_callback(void *user_p)
 {
     (void)user_p; // 不使用参数
     if (should_terminate)
@@ -66,26 +66,26 @@ void request_script_termination(void)
     atomic_store(&should_terminate, true);
 }
 /**
- * @brief appsys_stop_current_app 关闭当前运行的 JS 应用
+ * @brief script_engine_request_stop 关闭当前运行的 JS 应用
  */
-AppSysResult_t appsys_stop_current_app()
+ScriptEngineResult_t script_engine_request_stop()
 {
     if (js_vm_initialized)
     {
         request_script_termination();
-        while (!app_data_released)
-            ; // 自旋等待App结束
+        while (!script_released)
+            ; // 自旋等待脚本结束
         js_vm_initialized = false;
         atomic_store(&should_terminate, false);
-        printf("Current JS application stopped.\n");
-        return APP_SUCCESS;
+        printf("Current script stopped.\n");
+        return SE_SUCCESS;
     }
-    return APP_NOT_RUNNING;
+    return SE_ERR_SCRIPT_NOT_RUNNING;
 }
 /**
  * @brief 解析js错误变量并打印错误原因
  */
-static void appsys_js_exception_handler(char *tag, jerry_value_t result)
+static void script_engine_exception_handler(char *tag, jerry_value_t result)
 {
     printf("[%s] Error: ", tag);
     jerry_value_t value = jerry_exception_value(result, false);
@@ -115,11 +115,11 @@ static void appsys_js_exception_handler(char *tag, jerry_value_t result)
     jerry_value_free(value);
 }
 /**
- * @brief appsys_create_app_info 把 ApplicationPackage_t 转换成 JS 对象（供 JS 访问 app_info）
- * @param ApplicationPackage_t 结构体
+ * @brief script_engine_create_info 把 ScriptPackage_t 转换成 JS 对象（供 JS 访问 script_info）
+ * @param ScriptPackage_t 脚本包结构体
  * @return jerry_value_t 返回值说明
  */
-jerry_value_t appsys_create_app_info(const ApplicationPackage_t *app)
+jerry_value_t script_engine_create_info(const ScriptPackage_t *script_package)
 {
     jerry_value_t obj = jerry_object();
 
@@ -127,12 +127,12 @@ jerry_value_t appsys_create_app_info(const ApplicationPackage_t *app)
 
 #define SET_PROP(field)                                      \
     key = jerry_string_sz((const jerry_char_t *)#field);     \
-    val = jerry_string_sz((const jerry_char_t *)app->field); \
+    val = jerry_string_sz((const jerry_char_t *)script_package->field); \
     jerry_object_set(obj, key, val);                         \
     jerry_value_free(key);                                   \
     jerry_value_free(val);
 
-    SET_PROP(app_id);
+    SET_PROP(id);
     SET_PROP(name);
     SET_PROP(version);
     SET_PROP(author);
@@ -142,61 +142,61 @@ jerry_value_t appsys_create_app_info(const ApplicationPackage_t *app)
 }
 
 /**
- * @brief appsys_run_app 运行指定应用，如果当前已有应用在运行则自动清除
- * @param ApplicationPackage_t 应用包结构体
- * @return AppSysResult_t 返回运行结果枚举
+ * @brief script_engine_run 运行指定应用，如果当前已有应用在运行则自动清除
+ * @param ScriptPackage_t 应用包结构体
+ * @return ScriptEngineResult_t 返回运行结果枚举
  */
-AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
+ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 {
-    if (app == NULL || app->mainjs_str == NULL)
+    if (script_package == NULL || script_package->script_str == NULL)
     {
-        return APP_ERR_NULL_PACKAGE;
+        return SE_ERR_NULL_PACKAGE;
     }
     if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP))
     {
         printf("JerryScript VM does not support execution stop feature.\n");
-        return APP_ERR_JERRY_INIT_FAIL;
+        return SE_ERR_JERRY_INIT_FAIL;
     }
     // 检查 LVGL 是否已初始化
     if (!lv_is_initialized())
     {
         printf("LVGL not initialized, please initialize it first.\n");
-        return APP_ERR_LVGL_NOT_INITIALIZED;
+        return SE_ERR_LVGL_NOT_INITIALIZED;
     }
 
-    if (!app_data_released)
+    if (!script_released)
     {
-        return APP_ERR_ALREADY_RUNNING;
+        return SE_ERR_ALREADY_RUNNING;
     }
-    atomic_store(&app_data_released,false);
+    atomic_store(&script_released,false);
     // 初始化 JerryScript VM
     jerry_init(JERRY_INIT_EMPTY);
     js_vm_initialized = true;
     
     // 初始化停止回调
-    jerry_halt_handler(16, appsys_vm_exec_stop_callback, NULL);
+    jerry_halt_handler(16, script_engine_vm_exec_stop_callback, NULL);
     jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
     // 注册原生函数
-    appsys_register_natives();
+    script_engine_register_natives();
 
     // 初始化 LVGL 绑定
     lv_binding_init();
 
-    // 设置全局 app_info 变量
+    // 设置全局 script_info 变量
     jerry_value_t global = jerry_current_realm();
-    jerry_value_t app_info = appsys_create_app_info(app);
+    jerry_value_t script_info = script_engine_create_info(script_package);
 
-    jerry_value_t key = jerry_string_sz((const jerry_char_t *)"app_info");
-    jerry_object_set(global, key, app_info);
+    jerry_value_t key = jerry_string_sz((const jerry_char_t *)"script_info");
+    jerry_object_set(global, key, script_info);
 
     jerry_value_free(key);
-    jerry_value_free(app_info);
+    jerry_value_free(script_info);
     jerry_value_free(global);
 
     // 执行主 JS 脚本
     jerry_value_t parsed_code = jerry_parse(
-        (const jerry_char_t*)app->mainjs_str,
-        strlen(app->mainjs_str),
+        (const jerry_char_t*)script_package->script_str,
+        strlen(script_package->script_str),
         JERRY_PARSE_NO_OPTS);
     if (!jerry_value_is_exception(parsed_code))
     {
@@ -206,12 +206,12 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
         if (jerry_value_is_exception(result))
         {
             // 执行出错
-            appsys_js_exception_handler("JS Runtime", result);
+            script_engine_exception_handler("Script Runtime", result);
             jerry_value_free(parsed_code);
             jerry_value_free(result);
             jerry_cleanup();
-            atomic_store(&app_data_released,true);
-            return APP_ERR_JERRY_EXCEPTION;
+            atomic_store(&script_released,true);
+            return SE_ERR_JERRY_EXCEPTION;
         }
         else
         {
@@ -219,17 +219,17 @@ AppSysResult_t appsys_run_app(const ApplicationPackage_t *app)
             jerry_value_free(parsed_code);
             jerry_value_free(result);
             jerry_cleanup();
-            atomic_store(&app_data_released,true);
-            return APP_SUCCESS;
+            atomic_store(&script_released,true);
+            return SE_SUCCESS;
         }
     }
     else
     {
         // 代码解析出错
-        appsys_js_exception_handler("JS Parse", parsed_code);
+        script_engine_exception_handler("Script Parse", parsed_code);
         jerry_value_free(parsed_code);
         jerry_cleanup();
-        atomic_store(&app_data_released,true);
-        return APP_ERR_INVALID_JS;
+        atomic_store(&script_released,true);
+        return SE_ERR_INVALID_JS;
     }
 }
