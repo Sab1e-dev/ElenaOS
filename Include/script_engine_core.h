@@ -42,7 +42,7 @@ typedef struct {
 
 // 应用运行结果枚举
 typedef enum {
-    SE_SUCCESS = 0,                    // 启动成功
+    SE_OK = 0,                    // 启动成功
     SE_ERR_NULL_PACKAGE = -1,         // 传入的包指针为空
     SE_ERR_INVALID_JS = -2,           // JS 脚本无效（语法错误、空字符串等）
     SE_ERR_JERRY_EXCEPTION = -3,      // 运行期间抛出 JS 异常

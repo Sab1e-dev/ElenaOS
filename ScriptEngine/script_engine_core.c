@@ -78,7 +78,7 @@ ScriptEngineResult_t script_engine_request_stop()
         js_vm_initialized = false;
         atomic_store(&should_terminate, false);
         printf("Current script stopped.\n");
-        return SE_SUCCESS;
+        return SE_OK;
     }
     return SE_ERR_SCRIPT_NOT_RUNNING;
 }
@@ -220,7 +220,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
             jerry_value_free(result);
             jerry_cleanup();
             atomic_store(&script_released,true);
-            return SE_SUCCESS;
+            return SE_OK;
         }
     }
     else
