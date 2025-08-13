@@ -8,7 +8,6 @@
 
 #include "script_engine_core.h"
 #include "script_engine_native_func.h"
-#include "script_engine_port.h"
 // lv_bindings
 #include "lv_bindings.h"
 #include "lv_bindings_misc.h"
