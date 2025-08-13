@@ -20,11 +20,11 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef struct {
-    void *img_data;
-    lv_image_dsc_t *img_dsc;
+    void *bin_data;             // 指向存储 bin 文件数据的指针
+    lv_image_dsc_t *img_dsc;    // 指向图片描述符的指针
 } img_user_data_t;
 /* Public function prototypes --------------------------------*/
-void elena_os_img_set_src(lv_obj_t *img_obj, const char *image_path);
+void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path);
 #ifdef __cplusplus
 }
 #endif

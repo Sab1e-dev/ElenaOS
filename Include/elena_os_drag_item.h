@@ -28,8 +28,9 @@ typedef enum{
 } drag_dir_t;
 
 typedef struct {
-    lv_obj_t *drag_obj;
-    lv_obj_t *gesture_area;
+    lv_obj_t* drag_obj;
+    lv_obj_t* gesture_area;
+    lv_obj_t* touch_bar;
     lv_coord_t start_x;
     lv_coord_t start_y;
     lv_coord_t touch_start_x;
@@ -40,6 +41,8 @@ typedef struct {
 /* Public function prototypes --------------------------------*/
 drag_item_t *elena_os_drag_item_create(lv_obj_t *parent);
 void elena_os_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir);
+void elena_os_drag_item_hide_touch_bar(drag_item_t* drag_item);
+void elena_os_drag_item_show_touch_bar(drag_item_t* drag_item);
 #ifdef __cplusplus
 }
 #endif

@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mem_mgr.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 // Macros and Definitions
 #define LV_IMG_BIN_HEADER_SIZE 12 // Bytes
 #define LV_IMG_BIN_HEADER_WIDTH_LB 4
@@ -27,7 +30,6 @@ static inline uint16_t read_uint16_le(const void *ptr, const uint16_t offset)
     const uint8_t *p = (const uint8_t *)ptr;
     return ((uint16_t)p[offset + 1] << 8) | (uint16_t)p[offset];
 }
-
 /**
  * @brief 删除事件回调函数
  */
@@ -38,9 +40,9 @@ static void _img_delete_event_cb(lv_event_t *e)
 
     if (user_data)
     {
-        if (user_data->img_data)
+        if (user_data->bin_data)
         {
-            mem_mgr_free(user_data->img_data);
+            mem_mgr_free(user_data->bin_data);
         }
         if (user_data->img_dsc)
         {
@@ -50,84 +52,130 @@ static void _img_delete_event_cb(lv_event_t *e)
     }
 }
 /**
- * @brief 从 Flash 中打开图片，并加载到 PSRAM ，然后设置 lvgl 图像源
+ * @brief 从 Flash 中打开图片，并加载到 PSRAM ，然后设置 lvgl 图像源。
+ *        支持颜色格式：RGB565 RGB888 ARGB8888
+ * @param img_obj 要设置图像源的 Image 对象
+ * @param bin_path bin 文件的路径
+ * @note 只支持 LVGL 的 bin 文件
  */
-void elena_os_img_set_src(lv_obj_t *img_obj, const char *image_path)
+void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path)
 {
-    // 打开文件
-    FILE *file = fopen(image_path, "rb");
-    if (!file)
+    // 使用POSIX open打开文件（只读模式）
+    int fd = open(bin_path, O_RDONLY);
+    if (fd == -1)
     {
-        LV_LOG_ERROR("Failed to open file: %s\n", image_path);
+        LV_LOG_ERROR("Failed to open file: %s\n", bin_path);
         return;
     }
 
-    // 获取文件大小
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    // 获取文件大小（POSIX方式）
+    struct stat file_stat;
+    if (fstat(fd, &file_stat) == -1)
+    {
+        printf("Failed to get file size\n");
+        close(fd);
+        return;
+    }
+    off_t file_size = file_stat.st_size;
 
     if (file_size <= 0)
     {
         printf("Invalid file size\n");
-        fclose(file);
+        close(fd);
         return;
     }
 
     // 分配PSRAM内存
-    void *img_data = mem_mgr_alloc(file_size);
-    if (!img_data)
+    void *bin_data = mem_mgr_alloc(file_size);
+    if (!bin_data)
     {
         printf("Failed to allocate PSRAM memory for image\n");
-        fclose(file);
+        close(fd);
         return;
     }
 
-    // 读取文件内容到PSRAM
-    size_t bytes_read = fread(img_data, 1, file_size, file);
-    fclose(file);
+    // 读取文件内容到PSRAM（POSIX read）
+    ssize_t bytes_read = read(fd, bin_data, file_size);
+    close(fd); // 读取完成后立即关闭文件描述符
 
     if (bytes_read != file_size)
     {
-        printf("Failed to read complete file\n");
-        mem_mgr_free(img_data);
+        printf("Failed to read complete file (read %zd of %ld bytes)\n", bytes_read, file_size);
+        mem_mgr_free(bin_data);
         return;
     }
 
     // 创建LVGL图像对象
-    const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST uint8_t *p = (uint8_t *)img_data + LV_IMG_BIN_HEADER_SIZE;
+    const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST uint8_t *p = (uint8_t *)bin_data + LV_IMG_BIN_HEADER_SIZE;
 
-    // 动态分配图像描述符（确保长期有效）
+    // 动态分配图像描述符
     lv_image_dsc_t *img_dsc = (lv_image_dsc_t *)lv_mem_alloc(sizeof(lv_image_dsc_t));
     if (!img_dsc)
     {
         printf("Failed to allocate image descriptor\n");
-        mem_mgr_free(img_data);
+        mem_mgr_free(bin_data);
         return;
     }
 
-    uint32_t w = (uint32_t)read_uint16_le(img_data, LV_IMG_BIN_HEADER_WIDTH_LB);
-    uint32_t h = (uint32_t)read_uint16_le(img_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
-    uint32_t stride = (uint32_t)read_uint16_le(img_data, LV_IMG_BIN_HEADER_STRIDE_LB);
+    // 解析 bin 文件头中的数据
+    uint32_t w = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_WIDTH_LB);
+    uint32_t h = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
+    uint32_t stride = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_STRIDE_LB);
+
+    // 解析颜色格式
+    lv_color_format_t cf;
+    if (w == 0 || h == 0)
+    {
+        printf("Error: width or height is zero.");
+        mem_mgr_free(bin_data);
+        lv_mem_free(img_dsc);
+        return;
+    }
+    uint8_t r = stride / w;
+    switch (r)
+    {
+    case 2:
+        cf = LV_COLOR_FORMAT_RGB565;
+        break;
+    case 3:
+        cf = LV_COLOR_FORMAT_RGB888;
+        break;
+    case 4:
+        cf = LV_COLOR_FORMAT_ARGB8888;
+        break;
+    default:
+        printf("Unsupported color format\n");
+        mem_mgr_free(bin_data);
+        lv_mem_free(img_dsc);
+        return;
+    }
 
     // 初始化图像描述符
-    img_dsc->header.magic = LV_IMAGE_HEADER_MAGIC; // 必须设置
-    img_dsc->header.cf = LV_COLOR_FORMAT_RGB565;
+    img_dsc->header.magic = LV_IMAGE_HEADER_MAGIC;
+    img_dsc->header.cf = cf;
     img_dsc->header.w = w;
     img_dsc->header.h = h;
-    img_dsc->header.stride = stride; // RGB565每个像素2字节
+    img_dsc->header.stride = stride;
     img_dsc->data_size = file_size - LV_IMG_BIN_HEADER_SIZE;
-    img_dsc->data = (const uint8_t *)img_data + LV_IMG_BIN_HEADER_SIZE;
+    img_dsc->data = (const uint8_t *)bin_data + LV_IMG_BIN_HEADER_SIZE;
 
     // 创建用户数据结构
     typedef struct
     {
-        void *img_data;
+        void *bin_data;
         lv_image_dsc_t *img_dsc;
     } img_user_data_t;
 
     img_user_data_t *user_data = (img_user_data_t *)lv_mem_alloc(sizeof(img_user_data_t));
-    user_data->img_data = img_data;
+    if (!user_data)
+    {
+        printf("Failed to allocate user data\n");
+        mem_mgr_free(bin_data);
+        lv_mem_free(img_dsc);
+        return;
+    }
+
+    user_data->bin_data = bin_data;
     user_data->img_dsc = img_dsc;
 
     lv_img_set_src(img_obj, img_dsc);

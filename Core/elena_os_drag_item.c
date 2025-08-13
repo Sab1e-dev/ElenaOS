@@ -11,15 +11,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 // Macros and Definitions
-#define DEBUG_DRAG_ITEM
+// #define DEBUG_DRAG_ITEM
 #define GESTURE_AREA_HEIGHT 50
 #define DRAG_ITEM_DEFAULT_BG_COLOR 0x111111
 #define SCREEN_H lv_disp_get_ver_res(NULL)
 #define SCREEN_W lv_disp_get_hor_res(NULL)
+#define TOUCH_BAR_MARGIN 20
 // Static Variables
-static drag_item_t *active_drag_item = NULL;
+static drag_item_t *active_drag_item = NULL; // 当前正在拖拽的控件 同一时刻只能拖拽一个控件 否则会出现问题
 // Function Implementations
-static void drag_item_event_cb_pressed(lv_event_t *e)
+static void _drag_item_event_cb_pressed(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
 
@@ -42,7 +43,7 @@ static void drag_item_event_cb_pressed(lv_event_t *e)
     lv_obj_move_foreground(drag_item->gesture_area);
 }
 
-static void drag_item_event_cb_pressing(lv_event_t *e)
+static void _drag_item_event_cb_pressing(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
     if (!drag_item->dragging)
@@ -96,7 +97,7 @@ static void drag_item_event_cb_pressing(lv_event_t *e)
     }
 }
 
-static void drag_item_anim_completed_cb(lv_anim_t *a)
+static void _drag_item_anim_completed_cb(lv_anim_t *a)
 {
     drag_item_t *drag_item = (drag_item_t *)lv_anim_get_user_data(a);
 
@@ -165,7 +166,7 @@ static void drag_item_anim_completed_cb(lv_anim_t *a)
     }
 }
 
-static void drag_item_event_cb_released(lv_event_t *e)
+static void _drag_item_event_cb_released(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
     drag_item->dragging = false;
@@ -217,10 +218,58 @@ static void drag_item_event_cb_released(lv_event_t *e)
 
     lv_anim_set_time(&a, 250);
     lv_anim_set_user_data(&a, drag_item);
-    lv_anim_set_ready_cb(&a, drag_item_anim_completed_cb);
+    lv_anim_set_ready_cb(&a, _drag_item_anim_completed_cb);
     lv_anim_start(&a);
 }
 
+static void _update_touch_bar_position(drag_item_t *drag_item, drag_dir_t dir)
+{
+    if (!drag_item || !drag_item->touch_bar)
+        return;
+
+    switch (dir)
+    {
+    case DRAG_DIR_DOWN:
+        lv_obj_align(drag_item->touch_bar, LV_ALIGN_BOTTOM_MID, 0, -TOUCH_BAR_MARGIN); // 底部上方10px
+        break;
+    case DRAG_DIR_UP:
+        lv_obj_align(drag_item->touch_bar, LV_ALIGN_TOP_MID, 0, TOUCH_BAR_MARGIN); // 顶部下方10px
+        break;
+    case DRAG_DIR_LEFT:
+        lv_obj_align(drag_item->touch_bar, LV_ALIGN_LEFT_MID, TOUCH_BAR_MARGIN, 0); // 右侧10px
+        break;
+    case DRAG_DIR_RIGHT:
+        lv_obj_align(drag_item->touch_bar, LV_ALIGN_RIGHT_MID, -TOUCH_BAR_MARGIN, 0); // 左侧10px
+        break;
+    }
+}
+/**
+ * @brief 隐藏 TouchBar (小白条)
+ * @param drag_item 拖拽控件
+ */
+void elena_os_drag_item_hide_touch_bar(drag_item_t *drag_item)
+{
+    if (!drag_item || !drag_item->touch_bar)
+        return;
+
+    lv_obj_add_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
+}
+/**
+ * @brief 显示 TouchBar (小白条)
+ * @param drag_item 拖拽控件
+ */
+void elena_os_drag_item_show_touch_bar(drag_item_t *drag_item)
+{
+    if (!drag_item || !drag_item->touch_bar)
+        return;
+
+    lv_obj_clear_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
+}
+/**
+ * @brief 设置拖拽方向
+ * @param drag_item 拖拽控件
+ * @param dir 拖拽方向，例如 DRAG_DIR_DOWN 就是向下拖拽拉出 drag_obj
+ */
 void elena_os_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
 {
     drag_item->dir = dir;
@@ -230,49 +279,59 @@ void elena_os_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
     {
     case DRAG_DIR_UP:
     case DRAG_DIR_DOWN:
-        // 垂直方向：手势区域宽度为屏幕宽，高度为固定值
         lv_obj_set_size(drag_item->gesture_area, SCREEN_W, GESTURE_AREA_HEIGHT);
         break;
     case DRAG_DIR_LEFT:
     case DRAG_DIR_RIGHT:
-        // 水平方向：手势区域高度为屏幕高，宽度为固定值
         lv_obj_set_size(drag_item->gesture_area, GESTURE_AREA_HEIGHT, SCREEN_H);
         break;
     }
 
+    // 更新主对象位置
     switch (dir)
     {
     case DRAG_DIR_UP:
-        lv_obj_set_x(drag_item->drag_obj, 0);
-        lv_obj_set_x(drag_item->gesture_area, 0);
-        lv_obj_set_y(drag_item->drag_obj, SCREEN_H);
-        lv_obj_set_y(drag_item->gesture_area, SCREEN_H - GESTURE_AREA_HEIGHT);
+        lv_obj_set_pos(drag_item->drag_obj, 0, SCREEN_H);
+        lv_obj_set_pos(drag_item->gesture_area, 0, SCREEN_H - GESTURE_AREA_HEIGHT);
         break;
     case DRAG_DIR_DOWN:
-        lv_obj_set_x(drag_item->drag_obj, 0);
-        lv_obj_set_x(drag_item->gesture_area, 0);
-        lv_obj_set_y(drag_item->drag_obj, -SCREEN_H);
-        lv_obj_set_y(drag_item->gesture_area, 0);
+        lv_obj_set_pos(drag_item->drag_obj, 0, -SCREEN_H);
+        lv_obj_set_pos(drag_item->gesture_area, 0, 0);
         break;
     case DRAG_DIR_LEFT:
-        lv_obj_set_y(drag_item->drag_obj, 0);
-        lv_obj_set_y(drag_item->gesture_area, 0);
-        lv_obj_set_x(drag_item->drag_obj, SCREEN_W);
-        lv_obj_set_x(drag_item->gesture_area, SCREEN_W - GESTURE_AREA_HEIGHT);
+        lv_obj_set_pos(drag_item->drag_obj, SCREEN_W, 0);
+        lv_obj_set_pos(drag_item->gesture_area, SCREEN_W - GESTURE_AREA_HEIGHT, 0);
         break;
     case DRAG_DIR_RIGHT:
-        lv_obj_set_y(drag_item->drag_obj, 0);
-        lv_obj_set_y(drag_item->gesture_area, 0);
-        lv_obj_set_x(drag_item->drag_obj, -SCREEN_W);
-        lv_obj_set_x(drag_item->gesture_area, 0);
-        break;
-    default:
+        lv_obj_set_pos(drag_item->drag_obj, -SCREEN_W, 0);
+        lv_obj_set_pos(drag_item->gesture_area, 0, 0);
         break;
     }
+
+    // 更新touch_bar位置
+    _update_touch_bar_position(drag_item, dir);
 }
+/**
+ * @brief 删除 DragItem
+ * @param drag_item 拖拽控件
+ */
+void elena_os_drag_item_del(drag_item_t *drag_item)
+{
+    if (!drag_item)
+        return;
+    lv_obj_del(drag_item->drag_obj);
+    lv_obj_del(drag_item->gesture_area);
+    lv_mem_free(drag_item);
+}
+/**
+ * @brief 创建 DragItem
+ * @param parent 拖拽控件的父级对象
+ * @return 指向创建成功的 DragItem
+ * @note 不使用时需要使用 elena_os_drag_item_del 删除此控件，否则可能内存泄漏
+ */
 drag_item_t *elena_os_drag_item_create(lv_obj_t *parent)
 {
-    drag_item_t *drag_item = malloc(sizeof(drag_item_t));
+    drag_item_t *drag_item = lv_mem_alloc(sizeof(drag_item_t));
     if (!drag_item)
         return NULL;
     drag_item->dragging = false;
@@ -281,14 +340,24 @@ drag_item_t *elena_os_drag_item_create(lv_obj_t *parent)
     drag_item->drag_obj = lv_obj_create(parent);
     lv_obj_set_size(drag_item->drag_obj, SCREEN_W, SCREEN_H);
     lv_obj_set_style_bg_color(drag_item->drag_obj, lv_color_hex(DRAG_ITEM_DEFAULT_BG_COLOR), 0);
-    lv_obj_set_style_bg_opa(drag_item->drag_obj, LV_OPA_TRANSP, 0);
+    // lv_obj_set_style_bg_opa(drag_item->drag_obj, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(drag_item->drag_obj, 0, 0);
     lv_obj_set_style_shadow_width(drag_item->drag_obj, 0, 0);
     lv_obj_set_style_radius(drag_item->drag_obj, 0, 0);
+    lv_obj_set_style_pad_all(drag_item->drag_obj, 0, 0);
     // 默认是下拉栏
     lv_obj_set_y(drag_item->drag_obj, -SCREEN_H);
     lv_obj_move_foreground(drag_item->drag_obj);
-    
+
+    drag_item->touch_bar = lv_obj_create(drag_item->drag_obj);
+    lv_obj_set_size(drag_item->touch_bar, 80, 10);
+    lv_obj_set_style_radius(drag_item->touch_bar, 5, 0);
+    lv_obj_set_style_bg_color(drag_item->touch_bar, lv_color_hex(0xA6A6A6), 0);
+    lv_obj_set_style_border_width(drag_item->touch_bar, 0, 0);
+
+    // 默认设置为下拉模式（位于底部）
+    _update_touch_bar_position(drag_item, DRAG_DIR_DOWN);
+
     // 初始化 gesture_area
     drag_item->gesture_area = lv_obj_create(parent);
     lv_obj_set_size(drag_item->gesture_area, SCREEN_W, GESTURE_AREA_HEIGHT);
@@ -304,13 +373,12 @@ drag_item_t *elena_os_drag_item_create(lv_obj_t *parent)
     lv_obj_move_foreground(drag_item->gesture_area);
 
     // 把drag_item指针作为用户数据绑定给gesture_area
-    lv_obj_add_event_cb(drag_item->gesture_area, drag_item_event_cb_pressed, LV_EVENT_PRESSED, drag_item);
-    lv_obj_add_event_cb(drag_item->gesture_area, drag_item_event_cb_pressing, LV_EVENT_PRESSING, drag_item);
-    lv_obj_add_event_cb(drag_item->gesture_area, drag_item_event_cb_released, LV_EVENT_RELEASED, drag_item);
+    lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_pressed, LV_EVENT_PRESSED, drag_item);
+    lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_pressing, LV_EVENT_PRESSING, drag_item);
+    lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_released, LV_EVENT_RELEASED, drag_item);
 
     lv_obj_clear_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(drag_item->drag_obj, LV_OBJ_FLAG_SCROLLABLE);
-    // lv_obj_clear_flag(drag_item->blur_glass, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(drag_item->gesture_area, LV_OBJ_FLAG_SCROLLABLE);
 
     return drag_item;
