@@ -1,8 +1,8 @@
-/*
- * @file       elena_os_anim.h
- * @brief      动画库
- * @author     Sab1e
- * @date       2025-08-14
+/**
+ * @file elena_os_anim.h
+ * @brief 动画库
+ * @author Sab1e
+ * @date 2025-08-14
  */
 
 #ifndef ELENA_OS_ANIM_H
@@ -21,7 +21,6 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 /**
  * @brief 所有动画类型，可以继续添加。
- * 
  */
 typedef enum{
     EOS_ANIM_SCALE,
@@ -30,12 +29,10 @@ typedef enum{
 typedef struct eos_anim_t eos_anim_t;   // 预定义
 /**
  * @brief 回调函数的类型定义
- * 
  */
 typedef void (*eos_anim_cb_t)(eos_anim_t* a);
 /**
  * @brief ElenaOS 动画对象的结构体
- * 
  */
 struct eos_anim_t{
     lv_anim_timeline_t* anim_timeline;  /**< 动画的时间线指针 */
@@ -55,7 +52,6 @@ struct eos_anim_t{
 /* Public function prototypes --------------------------------*/
  /**
  * @brief 创建缩放动画对象
- * 
  * @param tar_obj 目标对象
  * @param w_start 起始宽度
  * @param w_end 结束宽度
@@ -70,14 +66,12 @@ eos_anim_t* eos_anim_scale_create(lv_obj_t* tar_obj,
                                 uint32_t duration);
 /**
  * @brief 开始播放动画
- * 
  * @param anim 由create函数创建的动画对象
  * @return 成功返回true，失败返回false
  */
 bool eos_anim_start(eos_anim_t* anim);
 /**
  * @brief 创建并立即播放缩放动画，无法设置回调
- * 
  * @note 动画完成后会自动删除
  */
 void eos_anim_scale_start(lv_obj_t* tar_obj,
@@ -86,7 +80,6 @@ void eos_anim_scale_start(lv_obj_t* tar_obj,
                                 uint32_t duration);
 /**
  * @brief 给动画设置播放完毕时的回调
- * 
  * @param anim 要设置的动画
  * @param user_cb 回调函数
  * @param user_data 用户数据指针（需要用户自行管理生命周期）
@@ -97,12 +90,10 @@ void eos_anim_set_cb(
     void *user_data);
 /**
  * @brief 获取动画对象的用户数据
- * 
  */
 void* eos_anim_get_user_data(eos_anim_t *anim);
 /**
  * @brief 删除动画对象
- * 
  * @param anim 动画对象指针
  * @note 如果动画正在运行会自动停止
  */

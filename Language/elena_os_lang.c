@@ -17,7 +17,6 @@ const char **current_lang = NULL;       // 当前语言指针，指向当前语�
 uint32_t EVENT_LANG_CHANGED = 0;        // LVGL 自定义事件：语言已更改
 /**
  * @brief 英文语言数组
- * 
  * @note 在此处新增字符串
  */
 const char *lang_en[STR_ID_MAX] = {
@@ -28,7 +27,6 @@ const char *lang_en[STR_ID_MAX] = {
     [STR_ID_MSG_LIST_ITEM_MARK_AS_READ] = "Mark as read"};
 /**
  * @brief 中文语言数组
- * 
  * @note 在此处新增字符串
  */
 const char *lang_zh[STR_ID_MAX] = {

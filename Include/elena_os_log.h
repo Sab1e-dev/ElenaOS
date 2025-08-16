@@ -1,8 +1,8 @@
-/*
- * @file       elena_os_log.h
- * @brief      Debug
- * @author     Sab1e
- * @date       2025-08-14
+/**
+ * @file elena_os_log.h
+ * @brief Debug
+ * @author Sab1e
+ * @date 2025-08-14
  */
 
 #ifndef ELENA_OS_LOG_H

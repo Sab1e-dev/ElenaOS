@@ -1,8 +1,8 @@
-/*
- * @file       elena_os_core.h
- * @brief      Elena OS 核心头文件
- * @author     Sab1e
- * @date       2025-08-10
+/**
+ * @file elena_os_core.h
+ * @brief Elena OS 核心头文件
+ * @author Sab1e
+ * @date 2025-08-10
  */
 
 #ifndef ELENA_OS_CORE_H
@@ -22,9 +22,18 @@ extern "C" {
 typedef enum {
     ELENA_OS_OK = 0,
     ELENA_OS_ERR_MEM = -1,
+    ELENA_OS_ERR_STACK_EMPTY = -2,
+    ELENA_OS_ERR_STACK_FULL = -3,
+    ELENA_OS_ERR_VAR_NOT_NULL = -4,
+    ELENA_OS_ERR_VAR_NULL = -5,
+    ELENA_OS_ERR_NOT_INITIALIZED = -6,
     ELENA_OS_ERR_UNKNOWN = -99,
 }ElenaOSResult_t;
 /* Public function prototypes --------------------------------*/
+/**
+ * @brief ElenaOS 入口函数
+ * @return ElenaOSResult_t 返回运行结果
+ */
 ElenaOSResult_t eos_run();
 #ifdef __cplusplus
 }

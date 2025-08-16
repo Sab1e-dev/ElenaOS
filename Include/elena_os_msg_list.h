@@ -1,8 +1,8 @@
-/*
- * @file       elena_os_msg_list.h
- * @brief      下拉消息列表
- * @author     Sab1e
- * @date       2025-08-13
+/**
+ * @file elena_os_msg_list.h
+ * @brief 下拉消息列表
+ * @author Sab1e
+ * @date 2025-08-13
  */
 
 #ifndef ELENA_OS_MSG_LIST_H
@@ -22,12 +22,11 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 /**
  * @brief 消息列表项结构体
- * 结构：
+ * 层级结构：
  * container{
  * row1[icon_area title_label   time_label]
  *      msg_label
  * }
- * 
  */
 typedef struct {
     lv_obj_t *container;
@@ -40,7 +39,7 @@ typedef struct {
 
 /**
  * @brief 消息列表结构体
- * 结构：
+ * 层级结构：
  * drag_obj{
  *      list{
  *          clear_all_btn
@@ -50,7 +49,6 @@ typedef struct {
  *      }
  *      no_msg_label
  * }
- * 
  */
 typedef struct {
     drag_item_t *drag_item;     /**< 拖拽对象指针 */
@@ -63,20 +61,17 @@ typedef struct {
 /* Public function prototypes --------------------------------*/
 /**
  * @brief 创建消息项
- * 
  * @param list 消息项的父消息列表
  * @return msg_list_item_t* 指向创建的消息项指针（动态内存分配）
  */
 msg_list_item_t *eos_msg_list_item_create(msg_list_t *list);
 /**
  * @brief 删除消息项
- * 
  * @param item 要删除的消息项指针
  */
 void eos_msg_list_item_delete(msg_list_item_t *item);
 /**
  * @brief 设置消息内容
- * 
  * @param item 目标消息项
  * @param msg 消息字符串
  */
@@ -84,7 +79,6 @@ void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg);
 
 /**
  * @brief 设置标题
- * 
  * @param item 目标消息项
  * @param title 消息标题（APP）字符串
  */
@@ -92,7 +86,6 @@ void eos_msg_list_item_set_title(msg_list_item_t *item, const char *title);
 
 /**
  * @brief 设置时间文本
- * 
  * @param item 目标消息项
  * @param time 消息接收时间字符串（例：“12:30”、“一小时前”）
  */
@@ -100,7 +93,6 @@ void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time);
 
 /**
  * @brief 设置图标
- * 
  * @param item 目标消息项
  * @param icon_dsc LVGL 图片描述符
  */
@@ -108,20 +100,17 @@ void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *i
 
 /**
  * @brief 设置图标
- * 
  * @param item 目标消息项
  * @param icon_obj LVGL 图片对象指针
  */
 void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj);
 /**
  * @brief 删除消息列表
- * 
  * @param list 目标列表
  */
 void eos_msg_list_delete(msg_list_t *list);
 /**
  * @brief 创建消息列表
- * 
  * @param parent 消息列表的父级对象指针
  * @return msg_list_t* 返回创建的消息列表指针（动态内存分配）
  */

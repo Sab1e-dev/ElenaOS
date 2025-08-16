@@ -7,6 +7,8 @@
  */
 
 #include "script_engine_core.h"
+
+// Includes
 #include "script_engine_native_func.h"
 // lv_bindings
 #include "lv_bindings.h"
@@ -16,10 +18,14 @@
 #include <stdio.h>
 #include <stdatomic.h>
 
+// Macros and Definitions
+
+// Variables
 static bool js_vm_initialized = false;          // 是否已初始化 VM 标志位
 static atomic_bool should_terminate = false;    // 请求终止脚本标志位
 static atomic_bool script_released = true;      // 脚本释放标志位
 
+// Function Implementations
 /**
  * @brief VM 终止运行回调
  */
@@ -116,6 +122,7 @@ jerry_value_t _script_engine_create_info(const ScriptPackage_t *script_package)
 
     return obj;
 }
+
 ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
@@ -203,6 +210,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
         return SE_ERR_INVALID_JS;
     }
 }
+
 void script_engine_register_functions(const ScriptEngineFuncEntry *entry, const size_t funcs_count)
 {
     jerry_value_t global = jerry_current_realm();

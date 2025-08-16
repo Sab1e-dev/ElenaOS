@@ -18,7 +18,6 @@
 // Function Implementations
 /**
  * @brief 动画播放时设置宽度的回调
- *
  */
 static void _set_width_cb(lv_anim_t *var, int32_t v)
 {
@@ -26,7 +25,6 @@ static void _set_width_cb(lv_anim_t *var, int32_t v)
 }
 /**
  * @brief 动画播放时设置高度的回调
- *
  */
 static void _set_height_cb(lv_anim_t *var, int32_t v)
 {
@@ -34,7 +32,6 @@ static void _set_height_cb(lv_anim_t *var, int32_t v)
 }
 /**
  * @brief 动画播放完毕回调，回调用户函数，自动清理资源
- *
  */
 static void _eos_anim_ready_cb(lv_anim_t *a)
 {
@@ -54,7 +51,6 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
 }
 /**
  * @brief 内部函数：初始化宽度动画
- *
  */
 static void _init_width_anim(lv_anim_t *a, lv_obj_t *obj,
                              int32_t start, int32_t end,
@@ -71,7 +67,6 @@ static void _init_width_anim(lv_anim_t *a, lv_obj_t *obj,
 }
 /**
  * @brief 内部函数：初始化高度动画
- *
  */
 static void _init_height_anim(lv_anim_t *a, lv_obj_t *obj,
                               int32_t start, int32_t end,

@@ -26,7 +26,6 @@ typedef enum{
 }ScriptType_t;
 /**
  * @brief 函数入口链接结构体
- * 
  */
 typedef struct {
     const char* name;
@@ -34,7 +33,6 @@ typedef struct {
 } ScriptEngineFuncEntry;
 /**
  * @brief 应用包描述结构体
- * 
  */
 typedef struct {
     const char* id;           // 应用唯一ID，例如 "com.mydev.clock"
@@ -46,7 +44,9 @@ typedef struct {
     const char* script_str;       // 主 JS 脚本字符串(UTF-8)
 } ScriptPackage_t;
 
-// 应用运行结果枚举
+/**
+ * @brief 脚本引擎运行结果
+ */
 typedef enum {
     SE_OK = 0,                    // 启动成功
     SE_ERR_NULL_PACKAGE = -1,         // 传入的包指针为空
@@ -62,14 +62,12 @@ typedef enum {
 /* Public function prototypes --------------------------------*/
 /**
  * @brief 关闭当前运行的 JS 应用
- * 
  * @return ScriptEngineResult_t 返回操作结果
  */
 ScriptEngineResult_t script_engine_request_stop();
 
 /**
  * @brief 运行指定应用，如果当前已有应用在运行则自动清除
- * 
  * @param script_package 脚本包
  * @return ScriptEngineResult_t 返回操作结果
  */
@@ -77,7 +75,6 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t* script_package);
 
 /**
  * @brief 注册C函数到JS
- * 
  * @param entry 函数入口数组
  * @param funcs_count 数组长度
  */

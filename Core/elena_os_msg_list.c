@@ -36,7 +36,8 @@ typedef struct
 static void _del_item_cb(msg_list_t *list)
 {
     uint8_t child_count = lv_obj_get_child_cnt(list->list);
-    if(child_count<=1){
+    if (child_count <= 1)
+    {
         // 显示无消息标签
         if (list->no_msg_label)
         {
@@ -48,15 +49,17 @@ static void _del_item_cb(msg_list_t *list)
             lv_obj_add_flag(list->clear_all_btn, LV_OBJ_FLAG_HIDDEN);
         }
     }
-    
 }
 
-static void _anim_timeline_end_cb(eos_anim_t *a) {
+static void _anim_timeline_end_cb(eos_anim_t *a)
+{
     btn_data_t *data = (btn_data_t *)eos_anim_get_user_data(a);
-    if (!data) return;
+    if (!data)
+        return;
 
     // 1. 删除容器（自动删除所有子对象）
-    if (data->detail_container) {
+    if (data->detail_container)
+    {
         lv_obj_del(data->detail_container);
     }
 
@@ -77,7 +80,7 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
     // 获取按钮的父容器（即详情页面container）
     lv_obj_t *container = lv_obj_get_parent(btn);
 
-    eos_anim_t *anim = eos_anim_scale_create(container,SCREEN_W,0,SCREEN_H,0,500);
+    eos_anim_t *anim = eos_anim_scale_create(container, SCREEN_W, 0, SCREEN_H, 0, 150);
     eos_anim_set_cb(anim, _anim_timeline_end_cb, data);
     eos_anim_start(anim);
 
@@ -174,18 +177,17 @@ static void _msg_list_item_pressed_cb(lv_event_t *e)
 
     // 为按钮添加点击事件，并将 item 作为用户数据传递
     lv_obj_add_event_cb(mark_as_read_btn, _mark_as_read_btn_click_cb, LV_EVENT_CLICKED, data);
-    
+
     // 添加动画
     eos_anim_scale_start(detail_container,
-                                0, SCREEN_W,
-                                0, SCREEN_H,
-                                150);
-    
+                         0, SCREEN_W,
+                         0, SCREEN_H,
+                         150);
 }
 
 msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 {
-    
+
     if (!list)
         return NULL;
 
@@ -264,22 +266,25 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     {
         lv_obj_clear_flag(list->clear_all_btn, LV_OBJ_FLAG_HIDDEN);
     }
-    
+
     return item;
 }
 
 void eos_msg_list_item_delete(msg_list_item_t *item)
 {
-    if (!item) return;
+    if (!item)
+        return;
 
     // 释放消息字符串
-    if (item->msg_str) {
+    if (item->msg_str)
+    {
         lv_mem_free(item->msg_str);
         item->msg_str = NULL;
     }
 
     // 直接删除容器（LVGL会自动删除子对象）
-    if (item->container) {
+    if (item->container)
+    {
         lv_obj_del(item->container);
     }
 
@@ -289,23 +294,31 @@ void eos_msg_list_item_delete(msg_list_item_t *item)
 
 void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
 {
-    if (!item) return;
+    if (!item)
+        return;
 
     // 释放旧消息
-    if (item->msg_str) {
+    if (item->msg_str)
+    {
         lv_mem_free(item->msg_str);
         item->msg_str = NULL;
     }
 
-    if (!msg || strlen(msg) == 0) {
+    if (!msg || strlen(msg) == 0)
+    {
         lv_label_set_text(item->msg_label, "");
-    } else {
+    }
+    else
+    {
         // 分配新内存并复制
         item->msg_str = lv_mem_alloc(strlen(msg) + 1);
-        if (item->msg_str) {
+        if (item->msg_str)
+        {
             strcpy(item->msg_str, msg);
             lv_label_set_text(item->msg_label, item->msg_str);
-        } else {
+        }
+        else
+        {
             lv_label_set_text(item->msg_label, "");
         }
     }

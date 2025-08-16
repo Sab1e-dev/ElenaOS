@@ -14,7 +14,11 @@
 #include "script_engine_core.h"
 /********************************** 原生函数定义 **********************************/
 /**
- * @brief 处理 JavaScript 的 print 调用，将所有参数转换为字符串并打印到标准输出。每个参数之间以空格分隔，末尾换行。适用于 JerryScript 引擎的原生函数绑定。
+ * @brief 处理 JavaScript 的 print 调用
+ * 
+ * 将所有参数转换为字符串并打印到标准输出。
+ * 每个参数之间以空格分隔，末尾换行。
+ * 适用于 JerryScript 引擎的原生函数绑定。
  * 
  * @param call_info_p 指向调用信息的指针，当前未使用，可忽略。类型为 const jerry_call_info_t*。
  * @param args_p 参数数组，包含所有传入的 JavaScript 参数。类型为 const jerry_value_t[]。
@@ -66,7 +70,6 @@ jerry_value_t js_print_handler(const jerry_call_info_t *call_info_p,
 }
 /**
  * @brief Native 延时
- * 
  */
 jerry_value_t js_delay_handler(const jerry_call_info_t *call_info_p,
                                const jerry_value_t args_p[],
@@ -79,7 +82,6 @@ jerry_value_t js_delay_handler(const jerry_call_info_t *call_info_p,
 
 /**
  * @brief 原生函数列表
- * 
  */
 const ScriptEngineFuncEntry script_engine_native_funcs[] = {
     {.name = "print",
@@ -91,7 +93,6 @@ const ScriptEngineFuncEntry script_engine_native_funcs[] = {
 
 /**
  * @brief 将原生函数注册到 JerryScript 全局对象中
- * 
  */
 void script_engine_register_natives()
 {

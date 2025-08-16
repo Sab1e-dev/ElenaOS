@@ -1,12 +1,12 @@
-﻿
 /**
- * @file script_engine_native_func.h
- * @brief 注册原生函数的头文件
+ * @file elena_os_event.h
+ * @brief 事件系统
  * @author Sab1e
- * @date 2025-07-26
+ * @date 2025-08-17
  */
-#ifndef SCRIPT_ENGINE_NATIVE_FUNC_H
-#define SCRIPT_ENGINE_NATIVE_FUNC_H
+
+#ifndef ELENA_OS_EVENT_H
+#define ELENA_OS_EVENT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,18 +15,15 @@ extern "C" {
 /* Includes ---------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
+
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-/**
- * @brief 注册 Native 函数
- */
-void script_engine_register_natives();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SCRIPT_ENGINE_NATIVE_FUNC_H
+#endif /* ELENA_OS_EVENT_H */
