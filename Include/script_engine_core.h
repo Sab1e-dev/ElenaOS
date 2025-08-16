@@ -16,7 +16,9 @@ extern "C" {
 #include <stdbool.h>
 #include "lvgl.h"
 #include "jerryscript.h"
-// 类型声明
+/* Public macros ----------------------------------------------*/
+
+/* Public typedefs --------------------------------------------*/
 typedef enum{
     SCRIPT_TYPE_UNKNOWN=0,
     SCRIPT_TYPE_APPLICATION=1,
@@ -24,12 +26,16 @@ typedef enum{
 }ScriptType_t;
 /**
  * @brief 函数入口链接结构体
+ * 
  */
 typedef struct {
     const char* name;
     jerry_external_handler_t handler;
 } ScriptEngineFuncEntry;
-// 应用包描述结构体
+/**
+ * @brief 应用包描述结构体
+ * 
+ */
 typedef struct {
     const char* id;           // 应用唯一ID，例如 "com.mydev.clock"
     const char* name;             // 应用显示名称，例如 "时钟"
@@ -53,9 +59,28 @@ typedef enum {
     SE_ERR_UNKNOWN = -99               // 未知错误
 } ScriptEngineResult_t;
 
-// 函数声明
+/* Public function prototypes --------------------------------*/
+/**
+ * @brief 关闭当前运行的 JS 应用
+ * 
+ * @return ScriptEngineResult_t 返回操作结果
+ */
 ScriptEngineResult_t script_engine_request_stop();
-ScriptEngineResult_t script_engine_run(const ScriptPackage_t* app);
+
+/**
+ * @brief 运行指定应用，如果当前已有应用在运行则自动清除
+ * 
+ * @param script_package 脚本包
+ * @return ScriptEngineResult_t 返回操作结果
+ */
+ScriptEngineResult_t script_engine_run(const ScriptPackage_t* script_package);
+
+/**
+ * @brief 注册C函数到JS
+ * 
+ * @param entry 函数入口数组
+ * @param funcs_count 数组长度
+ */
 void script_engine_register_functions(const ScriptEngineFuncEntry* entry, const size_t funcs_count);
 
 #ifdef __cplusplus

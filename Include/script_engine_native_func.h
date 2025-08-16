@@ -12,12 +12,18 @@
 extern "C" {
 #endif
 
+/* Includes ---------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
+/* Public macros ----------------------------------------------*/
 
-// 类型声明
+/* Public typedefs --------------------------------------------*/
 
-// 函数声明
+/* Public function prototypes --------------------------------*/
+/**
+ * @brief 注册 Native 函数
+ * 
+ */
 void script_engine_register_natives();
 
 #ifdef __cplusplus

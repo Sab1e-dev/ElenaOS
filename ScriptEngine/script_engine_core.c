@@ -16,33 +16,14 @@
 #include <stdio.h>
 #include <stdatomic.h>
 
-// 全局状态记录是否已初始化 VM
-static bool js_vm_initialized = false;
-// 全局状态记录是否需要终止执行
-static atomic_bool should_terminate = false;
-static atomic_bool script_released = true;
-/**
- * @brief 注册C函数到JS
- * @param entry 函数入口数组
- * @param funcs_count 数组长度
- */
-void script_engine_register_functions(const ScriptEngineFuncEntry *entry, const size_t funcs_count)
-{
-    jerry_value_t global = jerry_current_realm();
-    for (size_t i = 0; i < funcs_count; ++i)
-    {
-        jerry_value_t fn = jerry_function_external(entry[i].handler);
-        jerry_value_t name = jerry_string_sz(entry[i].name);
-        jerry_object_set(global, name, fn);
-        jerry_value_free(name);
-        jerry_value_free(fn);
-    }
-    jerry_value_free(global);
-}
+static bool js_vm_initialized = false;          // 是否已初始化 VM 标志位
+static atomic_bool should_terminate = false;    // 请求终止脚本标志位
+static atomic_bool script_released = true;      // 脚本释放标志位
+
 /**
  * @brief VM 终止运行回调
  */
-static jerry_value_t script_engine_vm_exec_stop_callback(void *user_p)
+static jerry_value_t _script_engine_vm_exec_stop_callback(void *user_p)
 {
     (void)user_p; // 不使用参数
     if (should_terminate)
@@ -58,20 +39,18 @@ static jerry_value_t script_engine_vm_exec_stop_callback(void *user_p)
     return jerry_undefined();
 }
 /**
- * @biref 请求停止当前脚本运行
+ * @brief 请求停止当前脚本运行
  */
-void request_script_termination(void)
+void _request_script_termination(void)
 {
     atomic_store(&should_terminate, true);
 }
-/**
- * @brief script_engine_request_stop 关闭当前运行的 JS 应用
- */
+
 ScriptEngineResult_t script_engine_request_stop()
 {
     if (js_vm_initialized)
     {
-        request_script_termination();
+        _request_script_termination();
         while (!script_released)
             ; // 自旋等待脚本结束
         js_vm_initialized = false;
@@ -84,7 +63,7 @@ ScriptEngineResult_t script_engine_request_stop()
 /**
  * @brief 解析js错误变量并打印错误原因
  */
-static void script_engine_exception_handler(char *tag, jerry_value_t result)
+static void _script_engine_exception_handler(char *tag, jerry_value_t result)
 {
     printf("[%s] Error: ", tag);
     jerry_value_t value = jerry_exception_value(result, false);
@@ -114,11 +93,9 @@ static void script_engine_exception_handler(char *tag, jerry_value_t result)
     jerry_value_free(value);
 }
 /**
- * @brief script_engine_create_info 把 ScriptPackage_t 转换成 JS 对象（供 JS 访问 script_info）
- * @param ScriptPackage_t 脚本包结构体
- * @return jerry_value_t 返回值说明
+ * @brief 把 ScriptPackage_t 转换成 JS 对象（供 JS 访问 script_info）
  */
-jerry_value_t script_engine_create_info(const ScriptPackage_t *script_package)
+jerry_value_t _script_engine_exception_handler(const ScriptPackage_t *script_package)
 {
     jerry_value_t obj = jerry_object();
 
@@ -139,12 +116,6 @@ jerry_value_t script_engine_create_info(const ScriptPackage_t *script_package)
 
     return obj;
 }
-
-/**
- * @brief script_engine_run 运行指定应用，如果当前已有应用在运行则自动清除
- * @param ScriptPackage_t 应用包结构体
- * @return ScriptEngineResult_t 返回运行结果枚举
- */
 ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
@@ -173,7 +144,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
     js_vm_initialized = true;
     
     // 初始化停止回调
-    jerry_halt_handler(16, script_engine_vm_exec_stop_callback, NULL);
+    jerry_halt_handler(16, _script_engine_vm_exec_stop_callback, NULL);
     jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
     // 注册原生函数
     script_engine_register_natives();
@@ -183,7 +154,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 
     // 设置全局 script_info 变量
     jerry_value_t global = jerry_current_realm();
-    jerry_value_t script_info = script_engine_create_info(script_package);
+    jerry_value_t script_info = _script_engine_exception_handler(script_package);
 
     jerry_value_t key = jerry_string_sz((const jerry_char_t *)"script_info");
     jerry_object_set(global, key, script_info);
@@ -205,7 +176,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
         if (jerry_value_is_exception(result))
         {
             // 执行出错
-            script_engine_exception_handler("Script Runtime", result);
+            _script_engine_exception_handler("Script Runtime", result);
             jerry_value_free(parsed_code);
             jerry_value_free(result);
             jerry_cleanup();
@@ -225,10 +196,23 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
     else
     {
         // 代码解析出错
-        script_engine_exception_handler("Script Parse", parsed_code);
+        _script_engine_exception_handler("Script Parse", parsed_code);
         jerry_value_free(parsed_code);
         jerry_cleanup();
         atomic_store(&script_released,true);
         return SE_ERR_INVALID_JS;
     }
+}
+void script_engine_register_functions(const ScriptEngineFuncEntry *entry, const size_t funcs_count)
+{
+    jerry_value_t global = jerry_current_realm();
+    for (size_t i = 0; i < funcs_count; ++i)
+    {
+        jerry_value_t fn = jerry_function_external(entry[i].handler);
+        jerry_value_t name = jerry_string_sz(entry[i].name);
+        jerry_object_set(global, name, fn);
+        jerry_value_free(name);
+        jerry_value_free(fn);
+    }
+    jerry_value_free(global);
 }

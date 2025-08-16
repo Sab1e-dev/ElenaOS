@@ -19,12 +19,30 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
+
+/**
+ * @brief 用户数据结构体
+ * 
+ * 用于清理 PSRAM 和动态分配的 img
+ * 
+ */
 typedef struct {
     void *bin_data;             // 指向存储 bin 文件数据的指针
     lv_image_dsc_t *img_dsc;    // 指向图片描述符的指针
 } img_user_data_t;
 /* Public function prototypes --------------------------------*/
-void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path);
+
+/**
+ * @brief 从 Flash 中打开图片，并加载到 PSRAM ，然后设置 lvgl 图像源。
+ *        支持颜色格式：RGB565 RGB888 ARGB8888
+ * 
+ * @param img_obj 要设置图像源的 Image 对象
+ * @param bin_path bin 文件的路径
+ * @note 只支持 LVGL 的 bin 文件
+ * 
+ * 当 lv_img_t 的对象删除时，自动释放 PSRAM
+ */
+void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path);
 #ifdef __cplusplus
 }
 #endif

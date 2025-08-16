@@ -10,6 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
+#include "elena_os_debug.h"
 // Macros and Definitions
 // #define DEBUG_DRAG_ITEM
 #define GESTURE_AREA_HEIGHT 50
@@ -17,7 +18,7 @@
 #define SCREEN_H lv_disp_get_ver_res(NULL)
 #define SCREEN_W lv_disp_get_hor_res(NULL)
 #define TOUCH_BAR_MARGIN 20
-// Static Variables
+// Variables
 static drag_item_t *active_drag_item = NULL; // 当前正在拖拽的控件 同一时刻只能拖拽一个控件 否则会出现问题
 // Function Implementations
 static void _drag_item_event_cb_pressed(lv_event_t *e)
@@ -243,34 +244,90 @@ static void _update_touch_bar_position(drag_item_t *drag_item, drag_dir_t dir)
         break;
     }
 }
-/**
- * @brief 隐藏 TouchBar (小白条)
- * @param drag_item 拖拽控件
- */
-void elena_os_drag_item_hide_touch_bar(drag_item_t *drag_item)
+
+void eos_drag_item_pull_back(drag_item_t *drag_item)
+{
+    if (!drag_item) return;
+    
+    // 检查当前是否在屏幕中
+    lv_coord_t cur_x = lv_obj_get_x(drag_item->drag_obj);
+    lv_coord_t cur_y = lv_obj_get_y(drag_item->drag_obj);
+    
+    // 禁用触摸交互
+    lv_obj_remove_flag(drag_item->gesture_area, LV_OBJ_FLAG_CLICKABLE);
+    
+    // 设置动画目标位置
+    lv_coord_t target_x = 0;
+    lv_coord_t target_y = 0;
+    
+    switch (drag_item->dir) {
+        case DRAG_DIR_UP:
+            target_y = SCREEN_H; // 向上拉回时完全隐藏
+            break;
+        case DRAG_DIR_DOWN:
+            target_y = -SCREEN_H; // 向下拉回时完全隐藏
+            break;
+        case DRAG_DIR_LEFT:
+            target_x = SCREEN_W; // 向左拉回时完全隐藏
+            break;
+        case DRAG_DIR_RIGHT:
+            target_x = -SCREEN_W; // 向右拉回时完全隐藏
+            break;
+    }
+    
+    // 创建动画
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, drag_item->drag_obj);
+    
+    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN) {
+        lv_anim_set_values(&a, cur_y, target_y);
+        lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
+    } else {
+        lv_anim_set_values(&a, cur_x, target_x);
+        lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
+    }
+    
+    lv_anim_set_time(&a, 250);
+    lv_anim_set_user_data(&a, drag_item);
+    lv_anim_set_ready_cb(&a, _drag_item_anim_completed_cb);
+    lv_anim_start(&a);
+    
+    // 同时移动gesture_area
+    lv_anim_t b;
+    lv_anim_init(&b);
+    lv_anim_set_var(&b, drag_item->gesture_area);
+    
+    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN) {
+        lv_anim_set_values(&b, cur_y, target_y);
+        lv_anim_set_exec_cb(&b, (lv_anim_exec_xcb_t)lv_obj_set_y);
+    } else {
+        lv_anim_set_values(&b, cur_x, target_x);
+        lv_anim_set_exec_cb(&b, (lv_anim_exec_xcb_t)lv_obj_set_x);
+    }
+    
+    lv_anim_set_time(&b, 250);
+    lv_anim_start(&b);
+    lv_obj_add_flag(drag_item->gesture_area, LV_OBJ_FLAG_CLICKABLE);
+}
+
+void eos_drag_item_hide_touch_bar(drag_item_t *drag_item)
 {
     if (!drag_item || !drag_item->touch_bar)
         return;
 
     lv_obj_add_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
 }
-/**
- * @brief 显示 TouchBar (小白条)
- * @param drag_item 拖拽控件
- */
-void elena_os_drag_item_show_touch_bar(drag_item_t *drag_item)
+
+void eos_drag_item_show_touch_bar(drag_item_t *drag_item)
 {
     if (!drag_item || !drag_item->touch_bar)
         return;
 
     lv_obj_clear_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
 }
-/**
- * @brief 设置拖拽方向
- * @param drag_item 拖拽控件
- * @param dir 拖拽方向，例如 DRAG_DIR_DOWN 就是向下拖拽拉出 drag_obj
- */
-void elena_os_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
+
+void eos_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
 {
     drag_item->dir = dir;
 
@@ -311,11 +368,8 @@ void elena_os_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
     // 更新touch_bar位置
     _update_touch_bar_position(drag_item, dir);
 }
-/**
- * @brief 删除 DragItem
- * @param drag_item 拖拽控件
- */
-void elena_os_drag_item_del(drag_item_t *drag_item)
+
+void eos_drag_item_del(drag_item_t *drag_item)
 {
     if (!drag_item)
         return;
@@ -323,13 +377,8 @@ void elena_os_drag_item_del(drag_item_t *drag_item)
     lv_obj_del(drag_item->gesture_area);
     lv_mem_free(drag_item);
 }
-/**
- * @brief 创建 DragItem
- * @param parent 拖拽控件的父级对象
- * @return 指向创建成功的 DragItem
- * @note 不使用时需要使用 elena_os_drag_item_del 删除此控件，否则可能内存泄漏
- */
-drag_item_t *elena_os_drag_item_create(lv_obj_t *parent)
+
+drag_item_t *eos_drag_item_create(lv_obj_t *parent)
 {
     drag_item_t *drag_item = lv_mem_alloc(sizeof(drag_item_t));
     if (!drag_item)

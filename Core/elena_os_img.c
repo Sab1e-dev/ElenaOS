@@ -14,24 +14,27 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include "elena_os_debug.h"
 // Macros and Definitions
 #define LV_IMG_BIN_HEADER_SIZE 12 // Bytes
 #define LV_IMG_BIN_HEADER_WIDTH_LB 4
 #define LV_IMG_BIN_HEADER_HEIGHT_LB 6
 #define LV_IMG_BIN_HEADER_STRIDE_LB 8
-// Static Variables
+// Variables
 
 // Function Implementations
 /**
  * @brief 指定偏移量的指针地址中读取 uint16_t 数据
+ * 
  */
-static inline uint16_t read_uint16_le(const void *ptr, const uint16_t offset)
+static inline uint16_t _read_uint16_le(const void *ptr, const uint16_t offset)
 {
     const uint8_t *p = (const uint8_t *)ptr;
     return ((uint16_t)p[offset + 1] << 8) | (uint16_t)p[offset];
 }
 /**
  * @brief 删除事件回调函数
+ * 
  */
 static void _img_delete_event_cb(lv_event_t *e)
 {
@@ -50,29 +53,24 @@ static void _img_delete_event_cb(lv_event_t *e)
         }
         lv_mem_free(user_data);
     }
+    EOS_LOG_D("Image deleted.");
 }
-/**
- * @brief 从 Flash 中打开图片，并加载到 PSRAM ，然后设置 lvgl 图像源。
- *        支持颜色格式：RGB565 RGB888 ARGB8888
- * @param img_obj 要设置图像源的 Image 对象
- * @param bin_path bin 文件的路径
- * @note 只支持 LVGL 的 bin 文件
- */
-void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path)
+
+void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
 {
-    // 使用POSIX open打开文件（只读模式）
+    // 使用 POSIX open 打开文件（只读模式）
     int fd = open(bin_path, O_RDONLY);
     if (fd == -1)
     {
-        LV_LOG_ERROR("Failed to open file: %s\n", bin_path);
+        EOS_LOG_E("Failed to open file: %s\n", bin_path);
         return;
     }
 
-    // 获取文件大小（POSIX方式）
+    // 获取文件大小
     struct stat file_stat;
     if (fstat(fd, &file_stat) == -1)
     {
-        printf("Failed to get file size\n");
+        EOS_LOG_E("Failed to get file size\n");
         close(fd);
         return;
     }
@@ -80,53 +78,53 @@ void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path)
 
     if (file_size <= 0)
     {
-        printf("Invalid file size\n");
+        EOS_LOG_E("Invalid file size\n");
         close(fd);
         return;
     }
 
-    // 分配PSRAM内存
+    // 分配 PSRAM 内存
     void *bin_data = mem_mgr_alloc(file_size);
     if (!bin_data)
     {
-        printf("Failed to allocate PSRAM memory for image\n");
+        EOS_LOG_E("Failed to allocate PSRAM memory for image\n");
         close(fd);
         return;
     }
 
-    // 读取文件内容到PSRAM（POSIX read）
+    // 读取文件内容到 PSRAM
     ssize_t bytes_read = read(fd, bin_data, file_size);
     close(fd); // 读取完成后立即关闭文件描述符
 
     if (bytes_read != file_size)
     {
-        printf("Failed to read complete file (read %zd of %ld bytes)\n", bytes_read, file_size);
+        EOS_LOG_E("Failed to read complete file (read %zd of %ld bytes)\n", bytes_read, file_size);
         mem_mgr_free(bin_data);
         return;
     }
 
-    // 创建LVGL图像对象
+    // 创建 LVGL 图像对象
     const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST uint8_t *p = (uint8_t *)bin_data + LV_IMG_BIN_HEADER_SIZE;
 
     // 动态分配图像描述符
     lv_image_dsc_t *img_dsc = (lv_image_dsc_t *)lv_mem_alloc(sizeof(lv_image_dsc_t));
     if (!img_dsc)
     {
-        printf("Failed to allocate image descriptor\n");
+        EOS_LOG_E("Failed to allocate image descriptor\n");
         mem_mgr_free(bin_data);
         return;
     }
 
     // 解析 bin 文件头中的数据
-    uint32_t w = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_WIDTH_LB);
-    uint32_t h = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
-    uint32_t stride = (uint32_t)read_uint16_le(bin_data, LV_IMG_BIN_HEADER_STRIDE_LB);
+    uint32_t w = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_WIDTH_LB);
+    uint32_t h = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
+    uint32_t stride = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_STRIDE_LB);
 
     // 解析颜色格式
     lv_color_format_t cf;
     if (w == 0 || h == 0)
     {
-        printf("Error: width or height is zero.");
+        EOS_LOG_E("width or height is zero.");
         mem_mgr_free(bin_data);
         lv_mem_free(img_dsc);
         return;
@@ -144,7 +142,7 @@ void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path)
         cf = LV_COLOR_FORMAT_ARGB8888;
         break;
     default:
-        printf("Unsupported color format\n");
+        EOS_LOG_E("Unsupported color format\n");
         mem_mgr_free(bin_data);
         lv_mem_free(img_dsc);
         return;
@@ -160,16 +158,10 @@ void elena_os_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     img_dsc->data = (const uint8_t *)bin_data + LV_IMG_BIN_HEADER_SIZE;
 
     // 创建用户数据结构
-    typedef struct
-    {
-        void *bin_data;
-        lv_image_dsc_t *img_dsc;
-    } img_user_data_t;
-
     img_user_data_t *user_data = (img_user_data_t *)lv_mem_alloc(sizeof(img_user_data_t));
     if (!user_data)
     {
-        printf("Failed to allocate user data\n");
+        EOS_LOG_E("Failed to allocate user data\n");
         mem_mgr_free(bin_data);
         lv_mem_free(img_dsc);
         return;

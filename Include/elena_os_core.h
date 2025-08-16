@@ -25,7 +25,7 @@ typedef enum {
     ELENA_OS_ERR_UNKNOWN = -99,
 }ElenaOSResult_t;
 /* Public function prototypes --------------------------------*/
-ElenaOSResult_t elena_os_run();
+ElenaOSResult_t eos_run();
 #ifdef __cplusplus
 }
 #endif
