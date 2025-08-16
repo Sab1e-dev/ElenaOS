@@ -10,7 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-#include "elena_os_debug.h"
+#include "elena_os_log.h"
 // Macros and Definitions
 // #define DEBUG_DRAG_ITEM
 #define GESTURE_AREA_HEIGHT 50

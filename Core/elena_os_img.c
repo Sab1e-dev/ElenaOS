@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "elena_os_debug.h"
+#include "elena_os_log.h"
 // Macros and Definitions
 #define LV_IMG_BIN_HEADER_SIZE 12 // Bytes
 #define LV_IMG_BIN_HEADER_WIDTH_LB 4

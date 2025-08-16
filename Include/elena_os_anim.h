@@ -100,6 +100,13 @@ void eos_anim_set_cb(
  * 
  */
 void* eos_anim_get_user_data(eos_anim_t *anim);
+/**
+ * @brief 删除动画对象
+ * 
+ * @param anim 动画对象指针
+ * @note 如果动画正在运行会自动停止
+ */
+void eos_anim_del(eos_anim_t* anim);
 #ifdef __cplusplus
 }
 #endif

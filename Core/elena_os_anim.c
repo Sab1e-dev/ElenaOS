@@ -87,6 +87,16 @@ static void _init_height_anim(lv_anim_t *a, lv_obj_t *obj,
     lv_anim_set_user_data(a, ctx);
 }
 
+void eos_anim_del(eos_anim_t* anim)
+{
+    if (!anim) return;
+    
+    if (anim->anim_timeline) {
+        lv_anim_timeline_delete(anim->anim_timeline);
+    }
+    lv_mem_free(anim);
+}
+
 eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
                                   int32_t w_start, int32_t w_end,
                                   int32_t h_start, int32_t h_end,

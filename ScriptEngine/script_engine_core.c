@@ -95,7 +95,7 @@ static void _script_engine_exception_handler(char *tag, jerry_value_t result)
 /**
  * @brief 把 ScriptPackage_t 转换成 JS 对象（供 JS 访问 script_info）
  */
-jerry_value_t _script_engine_exception_handler(const ScriptPackage_t *script_package)
+jerry_value_t _script_engine_create_info(const ScriptPackage_t *script_package)
 {
     jerry_value_t obj = jerry_object();
 
@@ -154,7 +154,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 
     // 设置全局 script_info 变量
     jerry_value_t global = jerry_current_realm();
-    jerry_value_t script_info = _script_engine_exception_handler(script_package);
+    jerry_value_t script_info = _script_engine_create_info(script_package);
 
     jerry_value_t key = jerry_string_sz((const jerry_char_t *)"script_info");
     jerry_object_set(global, key, script_info);

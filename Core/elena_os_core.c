@@ -23,7 +23,7 @@
 #include "elena_os_img.h"
 #include "elena_os_msg_list.h"
 #include "elena_os_lang.h"
-#include "elena_os_debug.h"
+#include "elena_os_log.h"
 // Macros and Definitions
 // 图片缓冲区大小
 // #define LV_FS_CACHE_SIZE  32*1024

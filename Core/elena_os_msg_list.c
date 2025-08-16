@@ -7,7 +7,6 @@
 
 /**
  * TODO:
- * 内存泄漏问题: 可能是创建detail_container时出现的
  * 滑动删除
  */
 
@@ -19,7 +18,7 @@
 #include <string.h>
 #include "elena_os_lang.h"
 #include "elena_os_anim.h"
-#include "elena_os_debug.h"
+#include "elena_os_log.h"
 #include "mem_mgr.h"
 // Macros and Definitions
 #define MSG_LIST_ITEM_MARGIN_BOTTOM 25
@@ -51,6 +50,7 @@ static void _del_item_cb(msg_list_t *list)
     }
     
 }
+
 static void _anim_timeline_end_cb(eos_anim_t *a) {
     btn_data_t *data = (btn_data_t *)eos_anim_get_user_data(a);
     if (!data) return;
@@ -63,6 +63,7 @@ static void _anim_timeline_end_cb(eos_anim_t *a) {
     // 释放数据内存
     lv_mem_free(data);
 }
+
 static void _mark_as_read_btn_click_cb(lv_event_t *e)
 {
     // 获取事件的目标对象（mark_as_read_btn）
@@ -76,8 +77,9 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
     // 获取按钮的父容器（即详情页面container）
     lv_obj_t *container = lv_obj_get_parent(btn);
 
-    eos_anim_t *anim = eos_anim_scale_start(container,SCREEN_W,0,SCREEN_H,0,500);
+    eos_anim_t *anim = eos_anim_scale_create(container,SCREEN_W,0,SCREEN_H,0,500);
     eos_anim_set_cb(anim, _anim_timeline_end_cb, data);
+    eos_anim_start(anim);
 
     // 删除消息项并更新UI状态
     if (data->item)
@@ -180,7 +182,7 @@ static void _msg_list_item_pressed_cb(lv_event_t *e)
                                 150);
     
 }
-// 创建消息列表项
+
 msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 {
     
@@ -248,10 +250,10 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_align_to(item->msg_label, row1, LV_ALIGN_BOTTOM_MID, 0, 0);
 
     // 设置忽略事件，避免影响 container 的 Clicked 事件
-    lv_obj_add_flag(item->icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(item->title_label, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(item->time_label, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(item->msg_label, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_clear_flag(item->icon_area, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(item->title_label, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(item->time_label, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(item->msg_label, LV_OBJ_FLAG_CLICKABLE);
 
     // 当添加新消息时处理UI状态
     if (list->no_msg_label)
@@ -266,7 +268,6 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     return item;
 }
 
-// 删除消息列表项
 void eos_msg_list_item_delete(msg_list_item_t *item)
 {
     if (!item) return;
@@ -286,8 +287,6 @@ void eos_msg_list_item_delete(msg_list_item_t *item)
     lv_mem_free(item);
 }
 
-
-// 设置消息内容
 void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
 {
     if (!item) return;
@@ -312,7 +311,6 @@ void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
     }
 }
 
-// 设置标题
 void eos_msg_list_item_set_title(msg_list_item_t *item, const char *title)
 {
     if (!item)
@@ -320,7 +318,6 @@ void eos_msg_list_item_set_title(msg_list_item_t *item, const char *title)
     lv_label_set_text(item->title_label, title ? title : "");
 }
 
-// 设置时间
 void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time)
 {
     if (!item)
@@ -328,7 +325,6 @@ void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time)
     lv_label_set_text(item->time_label, time ? time : "");
 }
 
-// 设置图标
 void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj)
 {
     if (!item || !icon_obj)
@@ -345,6 +341,7 @@ void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj)
     lv_obj_set_parent(icon_obj, item->icon_area);
     lv_obj_center(icon_obj);
 }
+
 void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *icon_dsc)
 {
     if (!item)
@@ -396,7 +393,7 @@ void eos_msg_list_clear_all(msg_list_t *list)
 
     lv_mem_free(children);
 }
-// 消息项动画完成回调
+
 static void _msg_list_item_anim_completed_cb(lv_anim_t *a)
 {
     msg_list_t *list = (msg_list_t *)lv_anim_get_user_data(a);
@@ -416,10 +413,12 @@ static void _msg_list_item_anim_completed_cb(lv_anim_t *a)
         _del_item_cb(list);
     }
 }
+
 static void _anime_exec_cb(void *var, int32_t v)
 {
     lv_obj_set_style_translate_x((lv_obj_t *)var, v, 0);
 }
+
 static void _trigger_msg_anims(msg_list_t *list)
 {
     static uint8_t anim_index = 0; // 静态变量记录当前动画序号
@@ -459,6 +458,7 @@ static void _trigger_msg_anims(msg_list_t *list)
 
     anim_index = 0;
 }
+
 static void _msg_list_clear_all_btn_cb(lv_event_t *e)
 {
     msg_list_t *list = (msg_list_t *)lv_event_get_user_data(e);
@@ -475,7 +475,7 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
     // 触发动画
     _trigger_msg_anims(list);
 }
-// 创建消息列表
+
 msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 {
     msg_list_t *list = lv_mem_alloc(sizeof(msg_list_t));
