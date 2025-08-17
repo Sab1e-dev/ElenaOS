@@ -12,10 +12,26 @@
 #include <stdlib.h>
 
 // Macros and Definitions
-
+// #define DEBUG_BLOCKER_VISIBLE
 // Variables
-
+static lv_obj_t *blocker;
 // Function Implementations
+
+void eos_anim_blocker_show(void){
+    blocker = lv_obj_create(lv_layer_top());
+    lv_obj_remove_style_all(blocker);   // 去掉样式，保持透明
+#ifdef DEBUG_BLOCKER_VISIBLE
+    lv_obj_set_style_bg_color(blocker,lv_color_hex(0xFF0000),0);
+    lv_obj_set_style_bg_opa(blocker,LV_OPA_40,0);
+#endif
+    lv_obj_set_size(blocker, LV_PCT(100), LV_PCT(100));
+    lv_obj_add_flag(blocker, LV_OBJ_FLAG_CLICKABLE);  // 吸收点击
+}
+
+void eos_anim_blocker_hide(void){
+    lv_obj_del(blocker);
+}
+
 /**
  * @brief 动画播放时设置宽度的回调
  */
@@ -48,6 +64,7 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
         lv_anim_timeline_delete(anim->anim_timeline);
         lv_free(anim);
     }
+    eos_anim_blocker_hide();
 }
 /**
  * @brief 内部函数：初始化宽度动画
@@ -130,6 +147,8 @@ bool eos_anim_start(eos_anim_t *anim)
 {
     if (!anim || !anim->anim_timeline)
         return false;
+
+    eos_anim_blocker_show();
 
     // 添加所有子动画到时间线
     switch (anim->type)

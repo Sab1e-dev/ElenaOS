@@ -27,6 +27,7 @@ typedef enum {
     ELENA_OS_ERR_VAR_NOT_NULL = -4,
     ELENA_OS_ERR_VAR_NULL = -5,
     ELENA_OS_ERR_NOT_INITIALIZED = -6,
+    ELENA_OS_ERR_ALREADY_INITIALIZED = -7,
     ELENA_OS_ERR_UNKNOWN = -99,
 }ElenaOSResult_t;
 /* Public function prototypes --------------------------------*/

@@ -26,7 +26,7 @@ extern "C" {
 /**
  * @brief 初始化导航栈
  * @param scr 要初始化的目标 screen
- * @note 此 scr 将会放在栈底，作为根页面（root）
+ * @note 此 scr 将会放在栈底，作为根页面（root screen），设置后无法修改。
  */
 ElenaOSResult_t eos_nav_init(lv_obj_t *scr);
 /**
@@ -35,7 +35,7 @@ ElenaOSResult_t eos_nav_init(lv_obj_t *scr);
  */
 lv_obj_t *eos_nav_scr_create(void);
 /**
- * @brief 安全清理栈当前的 screen 及上方的所有页面
+ * @brief 清理栈内除 root screen 的所有页面
  * @note 用于应用退出时清理
  */
 ElenaOSResult_t eos_nav_clear_stack(void);

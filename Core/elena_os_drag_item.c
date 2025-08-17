@@ -324,7 +324,7 @@ void eos_drag_item_show_touch_bar(drag_item_t *drag_item)
     if (!drag_item || !drag_item->touch_bar)
         return;
 
-    lv_obj_clear_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(drag_item->touch_bar, LV_OBJ_FLAG_HIDDEN);
 }
 
 void eos_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
@@ -426,9 +426,9 @@ drag_item_t *eos_drag_item_create(lv_obj_t *parent)
     lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_pressing, LV_EVENT_PRESSING, drag_item);
     lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_released, LV_EVENT_RELEASED, drag_item);
 
-    lv_obj_clear_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(drag_item->drag_obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(drag_item->gesture_area, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(drag_item->drag_obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(drag_item->gesture_area, LV_OBJ_FLAG_SCROLLABLE);
 
     return drag_item;
 }

@@ -20,6 +20,17 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
+
+typedef struct msg_list_t msg_list_t;   // 预定义
+
+/**
+ * @brief 滑动删除数据结构
+ */
+typedef struct {
+    int32_t start_x;
+    int32_t start_translate_x;
+    bool is_swiped;
+} swipe_data_t;
 /**
  * @brief 消息列表项结构体
  * 层级结构：
@@ -29,12 +40,17 @@ extern "C" {
  * }
  */
 typedef struct {
+    msg_list_t *msg_list;
     lv_obj_t *container;
     lv_obj_t *icon_area;
     lv_obj_t *title_label;
     lv_obj_t *msg_label;
     lv_obj_t *time_label;
     char *msg_str;     /**< 消息字符串 */
+    swipe_data_t swipe_data;
+    bool is_deleted;
+    bool is_pressed;       // 标记是否按下
+    lv_point_t press_pos; // 记录按下位置
 } msg_list_item_t;
 
 /**
@@ -50,13 +66,13 @@ typedef struct {
  *      no_msg_label
  * }
  */
-typedef struct {
+struct msg_list_t {
     drag_item_t *drag_item;     /**< 拖拽对象指针 */
     lv_obj_t *list;             /**< 列表对象指针 */
     lv_obj_t *clear_all_btn;    /**< 清除所有消息按钮指针 */
     lv_obj_t *no_msg_label;     /**< 无消息时的提示标签 */
     uint16_t animating_count;   /**< 一键清除按下后，动画中的消息数量 */ 
-} msg_list_t;
+};
 
 /* Public function prototypes --------------------------------*/
 /**

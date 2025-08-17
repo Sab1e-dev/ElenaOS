@@ -21,6 +21,13 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /**
+ * @brief 语言类型
+ */
+typedef enum{
+    LANG_EN,
+    LANG_ZH
+} language_id_t;
+/**
  * @brief 字符串索引
  * @note 此处可添加新的字符串索引
  */
@@ -30,14 +37,9 @@ typedef enum {
     STR_ID_MSG_LIST_CLEAR_ALL,
     STR_ID_MSG_LIST_NO_MSG,
     STR_ID_MSG_LIST_ITEM_MARK_AS_READ,
+    STR_ID_BASE_ITEM_BACK
 } string_id_t;
-/**
- * @brief 语言类型
- */
-typedef enum{
-    LANG_EN,
-    LANG_ZH
-} language_id_t;
+
 /* Public function prototypes --------------------------------*/
 extern const char** current_lang;
 /**
