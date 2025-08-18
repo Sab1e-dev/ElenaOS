@@ -28,8 +28,10 @@ typedef struct msg_list_t msg_list_t;   // 预定义
  */
 typedef struct {
     int32_t start_x;
+    int32_t start_y;
     int32_t start_translate_x;
     bool is_swiped;
+    bool is_vertical_scroll;
 } swipe_data_t;
 /**
  * @brief 消息列表项结构体
@@ -49,8 +51,8 @@ typedef struct {
     char *msg_str;     /**< 消息字符串 */
     swipe_data_t swipe_data;
     bool is_deleted;
-    bool is_pressed;       // 标记是否按下
-    lv_point_t press_pos; // 记录按下位置
+    bool is_pressed;
+    lv_point_t press_pos;
 } msg_list_item_t;
 
 /**

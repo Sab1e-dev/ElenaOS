@@ -9,7 +9,6 @@
  * TODO:
  * 上拉快捷控制台
  * 注册右往左滑回退
- * 中文显示
  * 应用列表
  */
 
@@ -32,7 +31,9 @@
 
 // Variables
 msg_list_t *my_list;
+LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 // Function Implementations
+#if 1
 static void _test_msg_list_cb(lv_event_t *e)
 {
     char *message = "Sab1e: No one's born being good at all things."
@@ -61,7 +62,8 @@ static void _test_msg_list_cb(lv_event_t *e)
     // eos_msg_list_item_set_icon_obj(item1, icon);
 }
 
-static void _test_msg_list(){
+static void _test_msg_list()
+{
     my_list = eos_msg_list_create(lv_scr_act());
 
     drag_item_t *drag_item1 = eos_drag_item_create(lv_scr_act());
@@ -69,13 +71,32 @@ static void _test_msg_list(){
     eos_drag_item_hide_touch_bar(drag_item1);
 }
 
-static void _test_nav_cb_1(lv_event_t *e){
+static void _test_nav_cb_1(lv_event_t *e)
+{
     lv_obj_t *scr1 = eos_nav_scr_create();
     lv_screen_load(scr1);
 
-    lv_obj_t *back_btn = eos_back_btn_create(scr1,false);
+    lv_obj_t *back_btn = eos_back_btn_create(scr1, false);
     lv_obj_center(back_btn);
 }
+
+static void _test_font(){
+    LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
+    const char *test_str = "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
+                          "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
+                          "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
+                          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+                          "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。霡霂淅沥，薜荔葳蕤。彳亍踟蹰，睥睨娉婷。觊觎饕餮，倥偬倜傥。菡萏猗傩，蘼芜菁菁。";
+
+    lv_obj_t *container = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(container,lv_pct(100),lv_pct(100));
+    lv_obj_t *font_label = lv_label_create(container);
+    lv_label_set_text(font_label, test_str);
+    lv_obj_set_width(font_label, lv_pct(100));
+    lv_label_set_long_mode(font_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(font_label, &eos_font_resource_han_rounded_30, LV_PART_MAIN);
+}
+#endif
 
 ElenaOSResult_t eos_run()
 {
@@ -83,12 +104,12 @@ ElenaOSResult_t eos_run()
     eos_nav_init(lv_scr_act());
     eos_lang_set(LANG_EN);
 
-    lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(),lv_palette_main(LV_PALETTE_BLUE),
-                                       lv_palette_main(LV_PALETTE_RED),
-                                       true,  /* 深色模式 */
-                                       LV_FONT_DEFAULT);
+    lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
+                                           lv_palette_main(LV_PALETTE_RED),
+                                           true, /* 深色模式 */
+                                           &eos_font_resource_han_rounded_30);
     lv_disp_set_theme(NULL, th);
-    
+
     lv_obj_t *scr = lv_scr_act();
 
     lv_display_t *disp = lv_disp_get_default();
@@ -110,10 +131,10 @@ ElenaOSResult_t eos_run()
     lv_obj_add_event_cb(btn, _test_msg_list_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_center(btn);
     lv_obj_t *btn_label = lv_label_create(btn);
-    lv_label_set_text(btn_label, "New scr");
-    lv_obj_set_style_text_font(btn_label,&lv_font_montserrat_48,0);
+    lv_label_set_text(btn_label, "你好");
     lv_obj_center(btn_label);
 
+    
     _test_msg_list();
 
     while (1)

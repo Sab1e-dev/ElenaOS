@@ -46,7 +46,6 @@ lv_obj_t *eos_back_btn_create(lv_obj_t *parent, bool show_text)
         btn_label = lv_label_create(btn);
     }
     lv_label_set_text(btn_label, LV_SYMBOL_LEFT);
-    lv_obj_set_style_text_font(btn_label, &lv_font_montserrat_24, 0);
     lv_obj_center(btn_label);
 
     return btn;
