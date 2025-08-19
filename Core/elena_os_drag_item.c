@@ -102,6 +102,10 @@ static void _drag_item_anim_completed_cb(lv_anim_t *a)
 {
     drag_item_t *drag_item = (drag_item_t *)lv_anim_get_user_data(a);
 
+    if(!drag_item){
+        return;
+    }
+
     switch (drag_item->dir)
     {
     case DRAG_DIR_UP:
@@ -247,65 +251,73 @@ static void _update_touch_bar_position(drag_item_t *drag_item, drag_dir_t dir)
 
 void eos_drag_item_pull_back(drag_item_t *drag_item)
 {
-    if (!drag_item) return;
-    
+    if (!drag_item)
+        return;
+
     // 检查当前是否在屏幕中
     lv_coord_t cur_x = lv_obj_get_x(drag_item->drag_obj);
     lv_coord_t cur_y = lv_obj_get_y(drag_item->drag_obj);
-    
+
     // 禁用触摸交互
     lv_obj_remove_flag(drag_item->gesture_area, LV_OBJ_FLAG_CLICKABLE);
-    
+
     // 设置动画目标位置
     lv_coord_t target_x = 0;
     lv_coord_t target_y = 0;
-    
-    switch (drag_item->dir) {
-        case DRAG_DIR_UP:
-            target_y = SCREEN_H; // 向上拉回时完全隐藏
-            break;
-        case DRAG_DIR_DOWN:
-            target_y = -SCREEN_H; // 向下拉回时完全隐藏
-            break;
-        case DRAG_DIR_LEFT:
-            target_x = SCREEN_W; // 向左拉回时完全隐藏
-            break;
-        case DRAG_DIR_RIGHT:
-            target_x = -SCREEN_W; // 向右拉回时完全隐藏
-            break;
+
+    switch (drag_item->dir)
+    {
+    case DRAG_DIR_UP:
+        target_y = SCREEN_H; // 向上拉回时完全隐藏
+        break;
+    case DRAG_DIR_DOWN:
+        target_y = -SCREEN_H; // 向下拉回时完全隐藏
+        break;
+    case DRAG_DIR_LEFT:
+        target_x = SCREEN_W; // 向左拉回时完全隐藏
+        break;
+    case DRAG_DIR_RIGHT:
+        target_x = -SCREEN_W; // 向右拉回时完全隐藏
+        break;
     }
-    
+
     // 创建动画
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, drag_item->drag_obj);
-    
-    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN) {
+
+    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN)
+    {
         lv_anim_set_values(&a, cur_y, target_y);
         lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    } else {
+    }
+    else
+    {
         lv_anim_set_values(&a, cur_x, target_x);
         lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
     }
-    
+
     lv_anim_set_time(&a, 250);
     lv_anim_set_user_data(&a, drag_item);
     lv_anim_set_ready_cb(&a, _drag_item_anim_completed_cb);
     lv_anim_start(&a);
-    
+
     // 同时移动gesture_area
     lv_anim_t b;
     lv_anim_init(&b);
     lv_anim_set_var(&b, drag_item->gesture_area);
-    
-    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN) {
+
+    if (drag_item->dir == DRAG_DIR_UP || drag_item->dir == DRAG_DIR_DOWN)
+    {
         lv_anim_set_values(&b, cur_y, target_y);
         lv_anim_set_exec_cb(&b, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    } else {
+    }
+    else
+    {
         lv_anim_set_values(&b, cur_x, target_x);
         lv_anim_set_exec_cb(&b, (lv_anim_exec_xcb_t)lv_obj_set_x);
     }
-    
+
     lv_anim_set_time(&b, 250);
     lv_anim_start(&b);
     lv_obj_add_flag(drag_item->gesture_area, LV_OBJ_FLAG_CLICKABLE);
@@ -329,6 +341,8 @@ void eos_drag_item_show_touch_bar(drag_item_t *drag_item)
 
 void eos_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
 {
+    if(!drag_item)return;
+
     drag_item->dir = dir;
 
     // 根据方向调整手势区域尺寸
@@ -381,7 +395,7 @@ void eos_drag_item_del(drag_item_t *drag_item)
 drag_item_t *eos_drag_item_create(lv_obj_t *parent)
 {
     drag_item_t *drag_item = lv_mem_alloc(sizeof(drag_item_t));
-    if (!drag_item)
+    if (!drag_item || !parent)
         return NULL;
     drag_item->dragging = false;
 

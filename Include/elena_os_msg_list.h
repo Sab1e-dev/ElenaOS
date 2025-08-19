@@ -44,6 +44,7 @@ typedef struct {
 typedef struct {
     msg_list_t *msg_list;
     lv_obj_t *container;
+    lv_obj_t *row1;
     lv_obj_t *icon_area;
     lv_obj_t *title_label;
     lv_obj_t *msg_label;

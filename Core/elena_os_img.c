@@ -10,10 +10,11 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-#include "mem_mgr.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <string.h>
+#include "mem_mgr.h"
 #include "elena_os_log.h"
 // Macros and Definitions
 #define LV_IMG_BIN_HEADER_SIZE 12 // Bytes
@@ -56,6 +57,7 @@ static void _img_delete_event_cb(lv_event_t *e)
 
 void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
 {
+    EOS_CHECK_PTR_RETURN(img_obj);
     // 使用 POSIX open 打开文件（只读模式）
     int fd = open(bin_path, O_RDONLY);
     if (fd == -1)
@@ -112,7 +114,8 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
         mem_mgr_free(bin_data);
         return;
     }
-
+    memset(img_dsc, 0, sizeof(lv_image_dsc_t)); // 必须清空
+    
     // 解析 bin 文件头中的数据
     uint32_t w = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_WIDTH_LB);
     uint32_t h = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
@@ -168,8 +171,8 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     user_data->bin_data = bin_data;
     user_data->img_dsc = img_dsc;
 
-    lv_img_set_src(img_obj, img_dsc);
-
+    lv_image_set_src(img_obj, img_dsc);
+    EOS_LOG_D("Image Set OK");
     // 设置用户数据和删除回调
     lv_obj_set_user_data(img_obj, user_data);
     lv_obj_add_event_cb(img_obj, _img_delete_event_cb, LV_EVENT_DELETE, NULL);

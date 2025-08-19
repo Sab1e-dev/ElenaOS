@@ -98,8 +98,13 @@ void* eos_anim_get_user_data(eos_anim_t *anim);
  * @note 如果动画正在运行会自动停止
  */
 void eos_anim_del(eos_anim_t* anim);
-
+/**
+ * @brief 添加透明阻碍层，禁止用户输入
+ */
 void eos_anim_blocker_show(void);
+/**
+ * @brief 移除透明阻碍层
+ */
 void eos_anim_blocker_hide(void);
 
 #ifdef __cplusplus

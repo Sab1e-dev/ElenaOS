@@ -32,7 +32,6 @@
 #define SWIPE_ANIM_DURATION 200        // 滑动动画持续时间
 
 #define COMMON_ANIM_DURATION 150
-
 /**
  * @brief 临时存储用户数据
  */
@@ -55,7 +54,7 @@ static void _msg_list_item_clicked_cb(lv_event_t *e);
  */
 static void _set_translate_x_cb(void *var, int32_t value)
 {
-    if(!var)return;
+    EOS_CHECK_PTR_RETURN(var);
     lv_obj_set_style_translate_x((lv_obj_t *)var, value, 0);
 }
 
@@ -64,7 +63,7 @@ static void _set_translate_x_cb(void *var, int32_t value)
  */
 static void _set_translate_y_cb(void *var, int32_t value)
 {
-    if(!var)return;
+    EOS_CHECK_PTR_RETURN(var);
     lv_obj_set_style_translate_y((lv_obj_t *)var, value, 0);
 }
 
@@ -72,6 +71,7 @@ static void _set_translate_y_cb(void *var, int32_t value)
 
 static void _del_item_cb(msg_list_t *list)
 {
+    EOS_CHECK_PTR_RETURN(list);
     uint8_t child_count = lv_obj_get_child_cnt(list->list);
     if (child_count <= 1)
     {
@@ -96,7 +96,7 @@ static void _del_item_cb(msg_list_t *list)
 static void _up_anim_completed_cb(lv_anim_t *a)
 {
     lv_obj_t *obj = (lv_obj_t *)a->var;
-    if(!obj)return;
+    EOS_CHECK_PTR_RETURN(obj);
     lv_obj_set_style_translate_y(obj, 0, 0); // 重置偏移
 }
 
@@ -107,9 +107,7 @@ static void _up_anim_completed_cb(lv_anim_t *a)
  */
 static void _animate_items_up(msg_list_t *msg_list, msg_list_item_t *deleted_item)
 {
-    if (!msg_list || !msg_list->list)
-        return;
-
+    EOS_CHECK_PTR_RETURN(msg_list && msg_list->list && deleted_item);
     // 获取被删除项的高度（包括外边距）
     lv_coord_t deleted_height = lv_obj_get_height(deleted_item->container) +
                                 lv_obj_get_style_margin_bottom(deleted_item->container, 0);
@@ -154,8 +152,7 @@ static void _animate_items_up(msg_list_t *msg_list, msg_list_item_t *deleted_ite
 static void _delete_anim_completed_cb(lv_anim_t *a)
 {
     msg_list_item_t *item = (msg_list_item_t *)lv_anim_get_user_data(a);
-    if (!item)
-        return;
+    EOS_CHECK_PTR_RETURN(item);
 
     // 获取列表
     msg_list_t *msg_list = item->msg_list;
@@ -182,11 +179,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
 {
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
-    if (!item || !item->container || item->is_deleted)
-    {
-        return;
-    }
-
+    EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
     // 获取释放位置
     lv_point_t release_pos;
     lv_indev_t *indev = lv_indev_get_act();
@@ -214,10 +207,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
             // 创建滑动删除动画
             lv_anim_t anim;
             lv_anim_init(&anim);
-            if (!item || !item->container)
-            {
-                return;
-            }
+            EOS_CHECK_PTR_RETURN(item && item->container);
             lv_anim_set_var(&anim, item_container);
             lv_anim_set_values(&anim, current_x,
                                (current_x > 0) ? SCREEN_W : -SCREEN_W);
@@ -233,10 +223,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
         // 复位消息项位置
         lv_anim_t anim;
         lv_anim_init(&anim);
-        if (!item || item->is_deleted || !item->container)
-        {
-            return;
-        }
+        EOS_CHECK_PTR_RETURN(item && !item->is_deleted && item->container);
         lv_anim_set_var(&anim, item_container);
         lv_anim_set_values(&anim, current_x, 0);
         lv_anim_set_time(&anim, SWIPE_ANIM_DURATION);
@@ -252,11 +239,7 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
 {
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
-    if (!item || !item->container || item->is_deleted)
-    {
-        return;
-    }
-
+    EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
     // 获取当前触摸点
     lv_indev_t *indev = lv_indev_get_act();
     lv_point_t point;
@@ -304,12 +287,9 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
  */
 static void _msg_list_item_pressed_cb(lv_event_t *e)
 {
-    EOS_LOG_D("_msg_list_item_pressed_cb");
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
-    if (!item || !item->container || item->is_deleted)
-        return;
-
+    EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
     // 初始化滑动数据
     memset(&item->swipe_data, 0, sizeof(swipe_data_t));
 
@@ -331,8 +311,7 @@ static void _msg_list_item_pressed_cb(lv_event_t *e)
 static void _mark_as_read_anim_end_cb(eos_anim_t *a)
 {
     btn_data_t *data = (btn_data_t *)eos_anim_get_user_data(a);
-    if (!data)
-        return;
+    EOS_CHECK_PTR_RETURN(data);
 
     // 1. 删除容器（自动删除所有子对象）
     if (data->detail_container)
@@ -354,11 +333,7 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
 
     // 获取按钮的用户数据（包含item和list）
     btn_data_t *data = (btn_data_t *)lv_event_get_user_data(e);
-    if (!data)
-        return;
-    if (data->item->is_deleted)
-        return;
-
+    EOS_CHECK_PTR_RETURN(data && !data->item->is_deleted && btn);
     // 获取按钮的父容器（即详情页面container）
     lv_obj_t *container = lv_obj_get_parent(btn);
 
@@ -383,12 +358,10 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
  */
 static void _msg_list_item_clicked_cb(lv_event_t *e)
 {
-    EOS_LOG_D("_msg_list_item_clicked_cb");
     // 获取被点击的消息项容器
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
-    if (!item || item->is_deleted || !item->container || detail_flag)
-        return;
+    EOS_CHECK_PTR_RETURN(item && !item->is_deleted && item->container && !detail_flag);
     // 如果已经打开一个详情页，就不能再打开了，即便按钮继续按下。
     detail_flag = true;
 
@@ -484,19 +457,16 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
 
 msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 {
-
-    if (!list)
-        return NULL;
-
     msg_list_item_t *item = lv_mem_alloc(sizeof(msg_list_item_t));
-    if (!item)
-        return NULL;
+    EOS_CHECK_PTR_RETURN_VAL(list, NULL);
+    EOS_CHECK_PTR_RETURN_VAL_FREE(item, NULL, item);
     memset(item, 0, sizeof(msg_list_item_t));
 
     item->msg_list = list;
     item->is_deleted = false;
     // 创建容器
     item->container = lv_btn_create(list->list);
+    EOS_CHECK_PTR_RETURN_VAL_FREE(item->container, NULL, item);
     lv_obj_set_size(item->container, lv_pct(100), LV_SIZE_CONTENT);
     // 垂直排布
     lv_obj_set_flex_flow(item->container, LV_FLEX_FLOW_COLUMN);
@@ -514,15 +484,15 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_add_event_cb(item->container, _msg_list_item_pressing_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(item->container, _msg_list_item_released_cb, LV_EVENT_RELEASED, NULL);
     // 第一行
-    lv_obj_t *row1 = lv_obj_create(item->container);
-    lv_obj_set_size(row1, lv_pct(100), 64);
-    lv_obj_set_style_bg_opa(row1, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(row1, 0, 0);
-    lv_obj_set_style_pad_all(row1, 5, 0);
-    lv_obj_remove_flag(row1, LV_OBJ_FLAG_SCROLLABLE);
+    item->row1 = lv_obj_create(item->container);
+    lv_obj_set_size(item->row1, lv_pct(100), 64);
+    lv_obj_set_style_bg_opa(item->row1, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(item->row1, 0, 0);
+    lv_obj_set_style_pad_all(item->row1, 5, 0);
+    lv_obj_remove_flag(item->row1, LV_OBJ_FLAG_SCROLLABLE);
 
     // 图标区域
-    item->icon_area = lv_obj_create(row1);
+    item->icon_area = lv_obj_create(item->row1);
     lv_obj_set_size(item->icon_area, 60, 60);
     lv_obj_set_style_bg_opa(item->icon_area, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(item->icon_area, 0, 0);
@@ -530,14 +500,14 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_remove_flag(item->icon_area, LV_OBJ_FLAG_SCROLLABLE);
 
     // 标题
-    item->title_label = lv_label_create(row1);
+    item->title_label = lv_label_create(item->row1);
 
     lv_obj_set_style_text_color(item->title_label, lv_color_white(), 0);
     lv_label_set_long_mode(item->title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_align_to(item->title_label, item->icon_area, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
 
     // 时间
-    item->time_label = lv_label_create(row1);
+    item->time_label = lv_label_create(item->row1);
 
     lv_obj_set_style_text_color(item->time_label, lv_color_white(), 0);
     lv_obj_align(item->time_label, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -549,10 +519,10 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_label_set_long_mode(item->msg_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(item->msg_label, lv_color_white(), 0);
     lv_obj_set_style_margin_ver(item->msg_label, 16, 0);
-    lv_obj_align_to(item->msg_label, row1, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align_to(item->msg_label, item->row1, LV_ALIGN_BOTTOM_MID, 0, 0);
 
     // 设置忽略事件，避免影响 container 的 Clicked 事件
-    lv_obj_add_flag(row1, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(item->row1, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->title_label, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->time_label, LV_OBJ_FLAG_EVENT_BUBBLE);
@@ -573,8 +543,7 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 
 void eos_msg_list_item_delete(msg_list_item_t *item)
 {
-    if (!item)
-        return;
+    EOS_CHECK_PTR_RETURN(item);
 
     // 清除容器用户数据
     if (item->container)
@@ -603,8 +572,7 @@ void eos_msg_list_item_delete(msg_list_item_t *item)
 
 void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
 {
-    if (!item)
-        return;
+    EOS_CHECK_PTR_RETURN(item);
 
     // 释放旧消息
     if (item->msg_str)
@@ -635,23 +603,19 @@ void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
 
 void eos_msg_list_item_set_title(msg_list_item_t *item, const char *title)
 {
-    if (!item)
-        return;
+    EOS_CHECK_PTR_RETURN(item);
     lv_label_set_text(item->title_label, title ? title : "");
 }
 
 void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time)
 {
-    if (!item)
-        return;
+    EOS_CHECK_PTR_RETURN(item);
     lv_label_set_text(item->time_label, time ? time : "");
 }
 
 void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj)
 {
-    if (!item || !icon_obj)
-        return;
-
+    EOS_CHECK_PTR_RETURN(item);
     // 移除原有图标对象
     lv_obj_t *old_icon = lv_obj_get_child(item->icon_area, 0);
     if (old_icon)
@@ -666,10 +630,7 @@ void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj)
 
 void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *icon_dsc)
 {
-    if (!item)
-        return;
-    if (!icon_dsc)
-        return;
+    EOS_CHECK_PTR_RETURN(item && icon_dsc);
     lv_obj_t *img = lv_img_create(item->icon_area);
     lv_img_set_src(item->icon_area, icon_dsc);
     lv_obj_center(img);
@@ -679,26 +640,25 @@ void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *i
     // lv_img_set_src(item->icon_img, icon_dsc ? icon_dsc : &lv_img_dsc_default);
 }
 
-void eos_msg_list_clear_all(msg_list_t *list)
+void eos_msg_list_clear_all(msg_list_t *msg_list)
 {
-    if (!list || !list->list)
-        return;
+    EOS_CHECK_PTR_RETURN(msg_list && msg_list->list);
 
     // 获取所有子对象
-    uint32_t child_count = lv_obj_get_child_cnt(list->list);
+    uint32_t child_count = lv_obj_get_child_cnt(msg_list->list);
     lv_obj_t **children = lv_mem_alloc(sizeof(lv_obj_t *) * child_count);
 
     // 保存子对象指针（避免动态删除影响遍历）
     for (uint32_t i = 0; i < child_count; i++)
     {
-        children[i] = lv_obj_get_child(list->list, i);
+        children[i] = lv_obj_get_child(msg_list->list, i);
     }
 
     // 删除子对象
     for (uint32_t i = 0; i < child_count; i++)
     {
         lv_obj_t *child = children[i];
-        if (child == list->clear_all_btn)
+        if (child == msg_list->clear_all_btn)
         {
             continue;
         }
@@ -724,7 +684,7 @@ void eos_msg_list_clear_all(msg_list_t *list)
 static void _msg_list_item_anim_end_cb(lv_anim_t *a)
 {
     msg_list_t *list = (msg_list_t *)lv_anim_get_user_data(a);
-
+    EOS_CHECK_PTR_RETURN(list);
     // 减少动画计数
     if (list->animating_count > 0)
     {
@@ -747,6 +707,7 @@ static void _msg_list_item_anim_end_cb(lv_anim_t *a)
  */
 static void _trigger_msg_anims(msg_list_t *list)
 {
+    EOS_CHECK_PTR_RETURN(list);
     static uint8_t anim_index = 0; // 静态变量记录当前动画序号
     lv_obj_t *parent = list->list;
     uint8_t child_count = lv_obj_get_child_cnt(parent);
@@ -791,7 +752,7 @@ static void _trigger_msg_anims(msg_list_t *list)
 static void _msg_list_clear_all_btn_cb(lv_event_t *e)
 {
     msg_list_t *list = (msg_list_t *)lv_event_get_user_data(e);
-
+    EOS_CHECK_PTR_RETURN(list);
     // 隐藏无消息标签
     if (list->no_msg_label)
     {
@@ -810,8 +771,7 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
 msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 {
     msg_list_t *list = lv_mem_alloc(sizeof(msg_list_t));
-    if (!list)
-        return NULL;
+    EOS_CHECK_PTR_RETURN_VAL_FREE(list, NULL, list);
 
     memset(list, 0, sizeof(msg_list_t));
 
