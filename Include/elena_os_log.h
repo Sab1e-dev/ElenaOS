@@ -46,7 +46,12 @@ extern "C" {
 #define EOS_COLOR_CYAN    ""
 #endif
 
+
 #define EOS_LOG_BASE(level, color, fmt, ...) \
+    printf("[%s] " fmt "\n", \
+           level, ##__VA_ARGS__)
+
+#define EOS_LOG_ALL(level, color, fmt, ...) \
     printf(color "[%s:%d %s()] %s: " fmt EOS_COLOR_RESET "\n", \
            __FILE__, __LINE__, __func__, level, ##__VA_ARGS__)
 
@@ -55,7 +60,7 @@ extern "C" {
 #define EOS_LOG_D(fmt, ...) EOS_LOG_BASE("DEBUG", EOS_COLOR_CYAN, fmt, ##__VA_ARGS__)
 #define EOS_LOG_I(fmt, ...) EOS_LOG_BASE("INFO",  EOS_COLOR_GREEN, fmt, ##__VA_ARGS__)
 #define EOS_LOG_W(fmt, ...) EOS_LOG_BASE("WARN",  EOS_COLOR_YELLOW, fmt, ##__VA_ARGS__)
-#define EOS_LOG_E(fmt, ...) EOS_LOG_BASE("ERROR", EOS_COLOR_RED, fmt, ##__VA_ARGS__)
+#define EOS_LOG_E(fmt, ...) EOS_LOG_ALL("ERROR", EOS_COLOR_RED, fmt, ##__VA_ARGS__)
 
 /************************** 内存检查 **************************/
 

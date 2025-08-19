@@ -31,7 +31,7 @@
 
 // Variables
 msg_list_t *my_list;
-LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
+// LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 // Function Implementations
 #if 1
 static void _test_msg_list_cb(lv_event_t *e)
@@ -104,11 +104,11 @@ ElenaOSResult_t eos_run()
     eos_nav_init(lv_scr_act());
     eos_lang_set(LANG_EN);
 
-    lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
-                                           lv_palette_main(LV_PALETTE_RED),
-                                           true, /* 深色模式 */
-                                           &eos_font_resource_han_rounded_30);
-    lv_disp_set_theme(NULL, th);
+    // lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
+    //                                        lv_palette_main(LV_PALETTE_RED),
+    //                                        true, /* 深色模式 */
+    //                                        &eos_font_resource_han_rounded_30);
+    // lv_disp_set_theme(NULL, th);
 
     lv_obj_t *scr = lv_scr_act();
 

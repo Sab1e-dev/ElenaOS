@@ -5,13 +5,6 @@
  * @date 2025-08-13
  */
 
-/**
- * TODO:
- * 滑动 Item 时有概率报内存错误
- * 图标有时候加载不出来
- * 访问指针前进行检查，尤其是动画回调会产生LVGL与用户输入线程的资源竞争问题
- */
-
 #include "elena_os_msg_list.h"
 
 // Includes
@@ -177,9 +170,11 @@ static void _delete_anim_completed_cb(lv_anim_t *a)
  */
 static void _msg_list_item_released_cb(lv_event_t *e)
 {
+    EOS_LOG_D("_msg_list_item_released_cb");
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
     EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
+
     // 获取释放位置
     lv_point_t release_pos;
     lv_indev_t *indev = lv_indev_get_act();
@@ -188,26 +183,31 @@ static void _msg_list_item_released_cb(lv_event_t *e)
     // 计算移动距离
     int32_t delta_x = release_pos.x - item->press_pos.x;
     int32_t delta_y = release_pos.y - item->press_pos.y;
-    int32_t distance = abs(delta_x);
+    int32_t abs_delta_x = abs(delta_x);
+    int32_t abs_delta_y = abs(delta_y);
 
-    // 判断是否为点击（移动距离小于阈值）
-    if (abs(delta_x) < 5 && abs(delta_y) < 5)
+    // 确定最终交互类型
+    swipe_type_t final_type = item->swipe_data.swipe_type;
+
+    // 如果没有滑动，判定为点击
+    if (final_type == SWIPE_UNKNOWN && abs_delta_x < 5 && abs_delta_y < 5)
     {
-        _msg_list_item_clicked_cb(e); // 处理点击
-        return;
+        final_type = SWIPE_CLICK;
     }
 
-    // 判断是否满足删除条件
+    // 根据类型处理释放事件
     int32_t current_x = lv_obj_get_style_translate_x(item_container, 0);
-    if (distance > SWIPE_THRESHOLD)
+
+    switch (final_type)
     {
-        if (!item->is_deleted)
+    case SWIPE_HORIZONTAL:
+        // 水平滑动释放处理
+        if (abs_delta_x > SWIPE_THRESHOLD)
         {
             item->is_deleted = true;
             // 创建滑动删除动画
             lv_anim_t anim;
             lv_anim_init(&anim);
-            EOS_CHECK_PTR_RETURN(item && item->container);
             lv_anim_set_var(&anim, item_container);
             lv_anim_set_values(&anim, current_x,
                                (current_x > 0) ? SCREEN_W : -SCREEN_W);
@@ -217,18 +217,35 @@ static void _msg_list_item_released_cb(lv_event_t *e)
             lv_anim_set_user_data(&anim, item);
             lv_anim_start(&anim);
         }
-    }
-    else
-    {
-        // 复位消息项位置
-        lv_anim_t anim;
-        lv_anim_init(&anim);
-        EOS_CHECK_PTR_RETURN(item && !item->is_deleted && item->container);
-        lv_anim_set_var(&anim, item_container);
-        lv_anim_set_values(&anim, current_x, 0);
-        lv_anim_set_time(&anim, SWIPE_ANIM_DURATION);
-        lv_anim_set_exec_cb(&anim, _set_translate_x_cb);
-        lv_anim_start(&anim);
+        else
+        {
+            // 复位消息项位置
+            lv_anim_t anim;
+            lv_anim_init(&anim);
+            lv_anim_set_var(&anim, item_container);
+            lv_anim_set_values(&anim, current_x, 0);
+            lv_anim_set_time(&anim, SWIPE_ANIM_DURATION);
+            lv_anim_set_exec_cb(&anim, _set_translate_x_cb);
+            lv_anim_start(&anim);
+        }
+        break;
+
+    case SWIPE_CLICK:
+        // 处理点击事件
+        _msg_list_item_clicked_cb(e);
+        break;
+
+    case SWIPE_VERTICAL:
+        // 垂直滑动由列表自动处理滚动，无需额外操作
+        break;
+
+    case SWIPE_UNKNOWN:
+        // 处理未知情况（可能是极小距离的移动）
+        if (abs_delta_x < 5 && abs_delta_y < 5)
+        {
+            _msg_list_item_clicked_cb(e);
+        }
+        break;
     }
 }
 
@@ -237,9 +254,11 @@ static void _msg_list_item_released_cb(lv_event_t *e)
  */
 static void _msg_list_item_pressing_cb(lv_event_t *e)
 {
+    EOS_LOG_D("_msg_list_item_pressing_cb");
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
     EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
+
     // 获取当前触摸点
     lv_indev_t *indev = lv_indev_get_act();
     lv_point_t point;
@@ -251,35 +270,45 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
     int32_t abs_delta_x = abs(delta_x);
     int32_t abs_delta_y = abs(delta_y);
 
-    // 如果尚未确定滑动方向
-    if (!item->swipe_data.is_swiped)
+    // 确定滑动类型
+    if (item->swipe_data.swipe_type == SWIPE_UNKNOWN)
     {
-        // 检查前5个像素的移动方向
+        // 检查是否达到滑动阈值
         if (abs_delta_x > 5 || abs_delta_y > 5)
         {
-            // 如果垂直移动大于水平移动，则标记为垂直滑动
-            if (abs_delta_y > abs_delta_x)
+            // 确定主要滑动方向
+            if (abs_delta_x > abs_delta_y)
             {
-                item->swipe_data.is_vertical_scroll = true;
+                item->swipe_data.swipe_type = SWIPE_HORIZONTAL;
             }
-            item->swipe_data.is_swiped = true;
+            else
+            {
+                item->swipe_data.swipe_type = SWIPE_VERTICAL;
+            }
         }
     }
 
-    // 如果是垂直滑动，则不处理水平移动
-    if (item->swipe_data.is_vertical_scroll)
+    // 处理水平滑动
+    if (item->swipe_data.swipe_type == SWIPE_HORIZONTAL)
     {
-        return;
-    }
+        // 阻止事件冒泡，避免触发列表垂直滚动
+        lv_event_stop_processing(e);
+        lv_obj_clear_flag(item->msg_list->list, LV_OBJ_FLAG_SCROLLABLE);
+        // 计算新的水平位置
+        int32_t new_x = item->swipe_data.start_translate_x + delta_x;
+        if (abs(new_x) > SCREEN_W * 0.8)
+        {
+            new_x = (new_x > 0) ? (int32_t)(SCREEN_W * 0.8) : (int32_t)(-SCREEN_W * 0.8);
+        }
 
-    // 设置新的水平位置
-    int32_t new_x = item->swipe_data.start_translate_x + delta_x;
-    if (abs(new_x) > SCREEN_W * 0.8)
+        // 应用水平偏移
+        lv_obj_set_style_translate_x(item_container, new_x, 0);
+    }
+    else if (item->swipe_data.swipe_type == SWIPE_VERTICAL)
     {
-        new_x = (new_x > 0) ? SCREEN_W * 0.8 : -SCREEN_W * 0.8;
+        lv_obj_add_flag(item->msg_list->list, LV_OBJ_FLAG_SCROLLABLE); // 允许滚动
     }
-
-    lv_obj_set_style_translate_x(item_container, new_x, 0);
+    // 垂直滑动由LVGL的列表组件自动处理
 }
 
 /**
@@ -287,20 +316,20 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
  */
 static void _msg_list_item_pressed_cb(lv_event_t *e)
 {
+    EOS_LOG_D("_msg_list_item_pressed_cb");
     lv_obj_t *item_container = lv_event_get_current_target(e);
     msg_list_item_t *item = (msg_list_item_t *)lv_obj_get_user_data(item_container);
     EOS_CHECK_PTR_RETURN(item && item->container && !item->is_deleted);
     // 初始化滑动数据
     memset(&item->swipe_data, 0, sizeof(swipe_data_t));
+    item->swipe_data.swipe_type = SWIPE_UNKNOWN;
 
     // 记录按下状态和位置
-    item->is_pressed = true;
     lv_indev_t *indev = lv_indev_get_act();
     lv_indev_get_point(indev, &item->press_pos);
     item->swipe_data.start_x = item->press_pos.x;
     item->swipe_data.start_y = item->press_pos.y;
     item->swipe_data.start_translate_x = lv_obj_get_style_translate_x(item_container, 0);
-    item->swipe_data.is_vertical_scroll = false;
 }
 
 /************************** 详情页相关回调 **************************/
@@ -367,11 +396,6 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
 
     // 获取当前屏幕
     lv_obj_t *scr = lv_scr_act();
-
-    if (item->swipe_data.is_swiped)
-    {
-        return; // 滑动触发的点击事件忽略
-    }
 
     // 创建详情页面容器
     lv_obj_t *detail_container = lv_obj_create(scr);
@@ -483,6 +507,8 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_add_event_cb(item->container, _msg_list_item_pressed_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(item->container, _msg_list_item_pressing_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(item->container, _msg_list_item_released_cb, LV_EVENT_RELEASED, NULL);
+    lv_obj_set_style_shadow_width(item->container,0,0);
+    lv_obj_remove_flag(item->container, LV_OBJ_FLAG_SCROLL_ON_FOCUS);   // 移除标志避免回抽问题
     // 第一行
     item->row1 = lv_obj_create(item->container);
     lv_obj_set_size(item->row1, lv_pct(100), 64);
@@ -777,7 +803,7 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 
     list->drag_item = eos_drag_item_create(parent);
     eos_drag_item_set_dir(list->drag_item, DRAG_DIR_DOWN);
-
+    
     list->list = lv_list_create(list->drag_item->drag_obj);
     lv_obj_set_size(list->list, LV_PCT(100), LV_PCT(88));
     lv_obj_center(list->list);

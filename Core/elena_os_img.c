@@ -115,48 +115,20 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
         return;
     }
     memset(img_dsc, 0, sizeof(lv_image_dsc_t)); // 必须清空
-    
-    // 解析 bin 文件头中的数据
-    uint32_t w = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_WIDTH_LB);
-    uint32_t h = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_HEIGHT_LB);
-    uint32_t stride = (uint32_t)_read_uint16_le(bin_data, LV_IMG_BIN_HEADER_STRIDE_LB);
 
-    // 解析颜色格式
-    lv_color_format_t cf;
-    if (w == 0 || h == 0)
+    memcpy(&img_dsc->header, bin_data, sizeof(lv_image_header_t));
+
+    if (img_dsc->header.magic != LV_IMAGE_HEADER_MAGIC)
     {
-        EOS_LOG_E("width or height is zero.");
-        mem_mgr_free(bin_data);
+        EOS_LOG_E("Invalid image magic\n");
         lv_mem_free(img_dsc);
-        return;
-    }
-    uint8_t r = stride / w;
-    switch (r)
-    {
-    case 2:
-        cf = LV_COLOR_FORMAT_RGB565;
-        break;
-    case 3:
-        cf = LV_COLOR_FORMAT_RGB888;
-        break;
-    case 4:
-        cf = LV_COLOR_FORMAT_ARGB8888;
-        break;
-    default:
-        EOS_LOG_E("Unsupported color format\n");
         mem_mgr_free(bin_data);
-        lv_mem_free(img_dsc);
         return;
     }
 
-    // 初始化图像描述符
-    img_dsc->header.magic = LV_IMAGE_HEADER_MAGIC;
-    img_dsc->header.cf = cf;
-    img_dsc->header.w = w;
-    img_dsc->header.h = h;
-    img_dsc->header.stride = stride;
-    img_dsc->data_size = file_size - LV_IMG_BIN_HEADER_SIZE;
-    img_dsc->data = (const uint8_t *)bin_data + LV_IMG_BIN_HEADER_SIZE;
+    // 直接赋值图像描述符头
+    img_dsc->data_size = file_size - sizeof(lv_image_header_t);
+    img_dsc->data = (const uint8_t *)bin_data + sizeof(lv_image_header_t);
 
     // 创建用户数据结构
     img_user_data_t *user_data = (img_user_data_t *)lv_mem_alloc(sizeof(img_user_data_t));
@@ -167,11 +139,12 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
         lv_mem_free(img_dsc);
         return;
     }
-
     user_data->bin_data = bin_data;
     user_data->img_dsc = img_dsc;
 
+    // 设置图像源
     lv_image_set_src(img_obj, img_dsc);
+
     EOS_LOG_D("Image Set OK");
     // 设置用户数据和删除回调
     lv_obj_set_user_data(img_obj, user_data);
