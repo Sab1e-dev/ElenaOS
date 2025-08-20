@@ -26,14 +26,6 @@
 
 // Function Implementations
 /**
- * @brief 指定偏移量的指针地址中读取 uint16_t 数据
- */
-static inline uint16_t _read_uint16_le(const void *ptr, const uint16_t offset)
-{
-    const uint8_t *p = (const uint8_t *)ptr;
-    return ((uint16_t)p[offset + 1] << 8) | (uint16_t)p[offset];
-}
-/**
  * @brief 删除事件回调函数
  */
 static void _img_delete_event_cb(lv_event_t *e)
