@@ -10,6 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 #include "elena_os_log.h"
 // Macros and Definitions
 #define NAV_STACK_SIZE 32
@@ -22,13 +23,38 @@ typedef struct
     int8_t top;
     bool initialized;
 } nav_stack_t;
+/**
+ * @brief 导航正忙，等待响应
+ */
+#define NAV_BUSY_WAIT() \
+    do { \
+        bool expected = false; \
+        while (!atomic_compare_exchange_weak(&nav_busy, &expected, true)) { \
+            expected = false; \
+            EOS_LOG_D("Waiting for nav stack to be available"); \
+            lv_timer_handler(); \
+        } \
+    } while(0)
+/**
+ * @brief 导航正忙，取消操作
+ */
+#define NAV_BUSY_CHECK() \
+    do { \
+        bool expected = false; \
+        if (!atomic_compare_exchange_strong(&nav_busy, &expected, true)) { \
+            EOS_LOG_D("Nav stack busy, operation rejected"); \
+            return ELENA_OS_ERR_BUSY; \
+        } \
+    } while(0)
 // Variables
 static nav_stack_t nav = {.top = -1, .initialized = false};
+static atomic_bool nav_busy = false; // 正在清除
 // Function Implementations
 static lv_obj_t *_nav_peek_prev(void);
 static bool _is_nav_stack_initialized(void);
 static bool _is_nav_stack_full(void);
 static bool _is_nav_stack_empty(void);
+ElenaOSResult_t eos_nav_back_clear(void);
 
 /**
  * @brief 检查导航栈是否已初始化
@@ -63,6 +89,17 @@ static lv_obj_t *_nav_peek_prev(void)
     return (nav.top > 0) ? nav.stack[nav.top - 1] : NULL;
 }
 
+static void _nav_gesture_back_cb(lv_event_t *e)
+{
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+    EOS_LOG_D("GESTURE: ");
+    if (dir == LV_DIR_LEFT)
+    {
+        EOS_LOG_D("LV_DIR_LEFT");
+        eos_nav_back_clear();
+    }
+}
+
 ElenaOSResult_t eos_nav_init(lv_obj_t *root_scr)
 {
     if (!root_scr)
@@ -84,13 +121,20 @@ ElenaOSResult_t eos_nav_init(lv_obj_t *root_scr)
 
     // 确保root screen是活动屏幕
     lv_scr_load(root_scr);
-
+    lv_obj_add_event_cb(root_scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized with root screen %p", root_scr);
     return ELENA_OS_OK;
 }
 
 lv_obj_t *eos_nav_scr_create(void)
 {
+    if (nav_busy)
+    {
+        EOS_LOG_E("Nav stack busy");
+        return NULL;
+    }
+    atomic_store(&nav_busy, true);
+
     if (!_is_nav_stack_initialized())
     {
         EOS_LOG_E("Nav stack not initialized");
@@ -123,11 +167,21 @@ lv_obj_t *eos_nav_scr_create(void)
 
     EOS_LOG_D("NAV PUSH: new screen at %p", scr);
     nav.stack[++nav.top] = scr;
+    lv_obj_add_event_cb(scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
+    EOS_MEM("Create new scr");
+    atomic_store(&nav_busy, false);
     return scr;
 }
 
 ElenaOSResult_t eos_nav_clear_stack(void)
 {
+    if (nav_busy)
+    {
+        EOS_LOG_E("Nav stack busy");
+        return ELENA_OS_ERR_BUSY;
+    }
+    atomic_store(&nav_busy, true);
+
     if (!_is_nav_stack_initialized())
     {
         EOS_LOG_E("Nav stack not initialized");
@@ -157,70 +211,74 @@ ElenaOSResult_t eos_nav_clear_stack(void)
 
     // 确保root screen是活动屏幕
     lv_scr_load(nav.stack[0]);
-
+    atomic_store(&nav_busy, false);
     return ELENA_OS_OK;
 }
 
 ElenaOSResult_t eos_nav_back_clear(void)
 {
-    if (!_is_nav_stack_initialized())
-    {
+    NAV_BUSY_CHECK();
+
+    if (!_is_nav_stack_initialized()) {
         EOS_LOG_E("Nav stack not initialized");
+        atomic_store(&nav_busy, false);
         return ELENA_OS_ERR_NOT_INITIALIZED;
     }
 
-    if (_is_nav_stack_empty())
-    {
+    if (_is_nav_stack_empty()) {
         EOS_LOG_E("Nav stack empty (cannot back from root screen)");
+        atomic_store(&nav_busy, false);
         return ELENA_OS_ERR_STACK_EMPTY;
     }
 
-    // 保存要删除的页面（不能是root screen）
-    lv_obj_t *scr_to_del = nav.stack[nav.top];
-
-    // 执行回退
-    ElenaOSResult_t ret = eos_nav_back();
-    if (ret != ELENA_OS_OK)
-    {
-        return ret;
+    // 直接执行回退逻辑
+    lv_obj_t *prev_scr = _nav_peek_prev();
+    if (!prev_scr) {
+        prev_scr = nav.stack[0];  // 回退到 root screen
     }
 
-    // 删除页面（确保不是root screen）
-    if (scr_to_del && nav.top >= 0)
-    { // nav.top >=0 确保不是root
+    // 保存要删除的页面
+    lv_obj_t *scr_to_del = nav.stack[nav.top];
+    nav.top--;  // 更新栈指针
+
+    // 加载前一个屏幕
+    lv_scr_load(prev_scr);
+
+    // 删除页面
+    if (scr_to_del) {
         lv_obj_del(scr_to_del);
         EOS_LOG_D("Deleted screen at %p", scr_to_del);
     }
 
+    EOS_MEM("Clear scr");
+    atomic_store(&nav_busy, false);
     return ELENA_OS_OK;
 }
 
 ElenaOSResult_t eos_nav_back(void)
 {
-    if (!_is_nav_stack_initialized())
-    {
+    NAV_BUSY_CHECK();
+
+    if (!_is_nav_stack_initialized()) {
         EOS_LOG_E("Nav stack not initialized");
+        atomic_store(&nav_busy, false);
         return ELENA_OS_ERR_NOT_INITIALIZED;
     }
 
-    if (_is_nav_stack_empty())
-    {
+    if (_is_nav_stack_empty()) {
         EOS_LOG_E("Already at root screen, cannot go back");
+        atomic_store(&nav_busy, false);
         return ELENA_OS_ERR_STACK_EMPTY;
     }
 
     lv_obj_t *prev_scr = _nav_peek_prev();
-    if (!prev_scr)
-    {
-        // 如果无法获取前一个屏幕，回到root screen
-        prev_scr = nav.stack[0];
+    if (!prev_scr) {
+        prev_scr = nav.stack[0];  // 回退到 root screen
     }
 
-    // 更新栈指针
-    nav.top--;
-
-    // 加载前一个屏幕
+    nav.top--;  // 更新栈指针
     lv_scr_load(prev_scr);
 
+    atomic_store(&nav_busy, false);
     return ELENA_OS_OK;
 }

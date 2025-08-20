@@ -24,6 +24,7 @@ extern "C" {
  * @brief 语言类型
  */
 typedef enum{
+    LANG_UNKNOWN=0,
     LANG_EN,
     LANG_ZH
 } language_id_t;
@@ -37,7 +38,8 @@ typedef enum {
     STR_ID_MSG_LIST_CLEAR_ALL,
     STR_ID_MSG_LIST_NO_MSG,
     STR_ID_MSG_LIST_ITEM_MARK_AS_READ,
-    STR_ID_BASE_ITEM_BACK
+    STR_ID_BASE_ITEM_BACK,
+    STR_ID_TEST_LANG_STR,
 } string_id_t;
 
 /* Public function prototypes --------------------------------*/
@@ -52,6 +54,9 @@ void eos_lang_init(void);
  * @warning 需要先初始化语言系统
  */
 void eos_lang_set(language_id_t lang);
+
+language_id_t eos_lang_get(void);
+
 /**
  * @brief 创建一个支持多语言的 LVGL label
  * @param parent label 的父级 LVGL 对象

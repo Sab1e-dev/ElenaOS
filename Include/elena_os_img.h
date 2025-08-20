@@ -36,7 +36,6 @@ typedef struct {
  * @param img_obj 要设置图像源的 Image 对象
  * @param bin_path bin 文件的路径
  * @warning 只支持 LVGL 的 bin 文件
- * @note 支持颜色格式：RGB565 RGB888 ARGB8888
  * @note 当 lv_img_t 的对象删除时，自动释放 PSRAM
  */
 void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path);

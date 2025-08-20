@@ -27,8 +27,8 @@
 
 // Variables
 static bool js_vm_initialized = false;          // 是否已初始化 VM 标志位
-static atomic_bool should_terminate = false;    // 请求终止脚本标志位
-static atomic_bool script_released = true;      // 脚本释放标志位
+static atomic_bool should_terminate = ATOMIC_VAR_INIT(false);    // 请求终止脚本标志位
+static atomic_bool script_released = ATOMIC_VAR_INIT(true);      // 脚本释放标志位
 
 // Function Implementations
 /**
@@ -62,7 +62,7 @@ ScriptEngineResult_t script_engine_request_stop()
     if (js_vm_initialized)
     {
         _request_script_termination();
-        while (!script_released)
+        while (atomic_load(&script_released) == false)
             ; // 自旋等待脚本结束
         js_vm_initialized = false;
         atomic_store(&should_terminate, false);
@@ -146,7 +146,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
         return SE_ERR_LVGL_NOT_INITIALIZED;
     }
 
-    if (!script_released)
+    if (atomic_load(&script_released) == false)
     {
         return SE_ERR_ALREADY_RUNNING;
     }

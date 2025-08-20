@@ -79,7 +79,7 @@ static void _init_width_anim(lv_anim_t *a, lv_obj_t *obj,
     lv_anim_set_custom_exec_cb(a, _set_width_cb);
     lv_anim_set_path_cb(a, lv_anim_path_ease_out);
     lv_anim_set_duration(a, duration);
-    lv_anim_set_ready_cb(a, _eos_anim_ready_cb);
+    lv_anim_set_completed_cb(a, _eos_anim_ready_cb);
     lv_anim_set_user_data(a, ctx);
 }
 /**
@@ -95,7 +95,7 @@ static void _init_height_anim(lv_anim_t *a, lv_obj_t *obj,
     lv_anim_set_custom_exec_cb(a, _set_height_cb);
     lv_anim_set_path_cb(a, lv_anim_path_ease_out);
     lv_anim_set_duration(a, duration);
-    lv_anim_set_ready_cb(a, _eos_anim_ready_cb);
+    lv_anim_set_completed_cb(a, _eos_anim_ready_cb);
     lv_anim_set_user_data(a, ctx);
 }
 

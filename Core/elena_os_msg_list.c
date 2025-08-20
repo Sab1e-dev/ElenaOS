@@ -236,6 +236,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
         break;
 
     case SWIPE_VERTICAL:
+
         // 垂直滑动由列表自动处理滚动，无需额外操作
         break;
 
@@ -247,6 +248,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
         }
         break;
     }
+    lv_obj_add_flag(item->msg_list->list, LV_OBJ_FLAG_SCROLLABLE); // 允许滚动
 }
 
 /**
@@ -303,10 +305,6 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
 
         // 应用水平偏移
         lv_obj_set_style_translate_x(item_container, new_x, 0);
-    }
-    else if (item->swipe_data.swipe_type == SWIPE_VERTICAL)
-    {
-        lv_obj_add_flag(item->msg_list->list, LV_OBJ_FLAG_SCROLLABLE); // 允许滚动
     }
     // 垂直滑动由LVGL的列表组件自动处理
 }
@@ -507,8 +505,8 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_add_event_cb(item->container, _msg_list_item_pressed_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(item->container, _msg_list_item_pressing_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(item->container, _msg_list_item_released_cb, LV_EVENT_RELEASED, NULL);
-    lv_obj_set_style_shadow_width(item->container,0,0);
-    lv_obj_remove_flag(item->container, LV_OBJ_FLAG_SCROLL_ON_FOCUS);   // 移除标志避免回抽问题
+    lv_obj_set_style_shadow_width(item->container, 0, 0);
+    lv_obj_remove_flag(item->container, LV_OBJ_FLAG_SCROLL_ON_FOCUS); // 移除标志避免回抽问题
     // 第一行
     item->row1 = lv_obj_create(item->container);
     lv_obj_set_size(item->row1, lv_pct(100), 64);
@@ -516,7 +514,7 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_set_style_border_width(item->row1, 0, 0);
     lv_obj_set_style_pad_all(item->row1, 5, 0);
     lv_obj_remove_flag(item->row1, LV_OBJ_FLAG_SCROLLABLE);
-
+    lv_obj_set_flex_align(item->row1, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_BETWEEN);
     // 图标区域
     item->icon_area = lv_obj_create(item->row1);
     lv_obj_set_size(item->icon_area, 60, 60);
@@ -527,20 +525,18 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 
     // 标题
     item->title_label = lv_label_create(item->row1);
-
     lv_obj_set_style_text_color(item->title_label, lv_color_white(), 0);
     lv_label_set_long_mode(item->title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_align_to(item->title_label, item->icon_area, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
 
     // 时间
     item->time_label = lv_label_create(item->row1);
-
     lv_obj_set_style_text_color(item->time_label, lv_color_white(), 0);
-    lv_obj_align(item->time_label, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(item->time_label, LV_TEXT_ALIGN_RIGHT, 0, 0);
+    lv_obj_set_height(item->time_label, LV_SIZE_CONTENT);
 
     // 消息内容
     item->msg_label = lv_label_create(item->container);
-
     lv_obj_set_width(item->msg_label, lv_pct(100));
     lv_label_set_long_mode(item->msg_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(item->msg_label, lv_color_white(), 0);
@@ -761,7 +757,7 @@ static void _trigger_msg_anims(msg_list_t *list)
             lv_anim_set_time(&anim, 120);
             lv_anim_set_exec_cb(&anim, _set_translate_x_cb);
             lv_anim_set_user_data(&anim, list);
-            lv_anim_set_ready_cb(&anim, _msg_list_item_anim_end_cb);
+            lv_anim_set_completed_cb(&anim, _msg_list_item_anim_end_cb);
             lv_anim_start(&anim);
 
             list->animating_count++;
@@ -803,7 +799,7 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 
     list->drag_item = eos_drag_item_create(parent);
     eos_drag_item_set_dir(list->drag_item, DRAG_DIR_DOWN);
-    
+
     list->list = lv_list_create(list->drag_item->drag_obj);
     lv_obj_set_size(list->list, LV_PCT(100), LV_PCT(88));
     lv_obj_center(list->list);

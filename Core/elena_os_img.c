@@ -21,6 +21,7 @@
 #define LV_IMG_BIN_HEADER_WIDTH_LB 4
 #define LV_IMG_BIN_HEADER_HEIGHT_LB 6
 #define LV_IMG_BIN_HEADER_STRIDE_LB 8
+#define IMG_DELETE_CB_ID 10000
 // Variables
 
 // Function Implementations
@@ -37,27 +38,35 @@ static inline uint16_t _read_uint16_le(const void *ptr, const uint16_t offset)
  */
 static void _img_delete_event_cb(lv_event_t *e)
 {
+    EOS_LOG_D("Try delete image");
     lv_obj_t *img_obj = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(img_obj);
     img_user_data_t *user_data = (img_user_data_t *)lv_obj_get_user_data(img_obj);
-
-    if (user_data)
+    EOS_CHECK_PTR_RETURN(user_data);
+    if (user_data->bin_data)
     {
-        if (user_data->bin_data)
-        {
-            mem_mgr_free(user_data->bin_data);
-        }
-        if (user_data->img_dsc)
-        {
-            lv_mem_free(user_data->img_dsc);
-        }
-        lv_mem_free(user_data);
+        mem_mgr_free(user_data->bin_data);
+        user_data->bin_data = NULL;
     }
+    if (user_data->img_dsc)
+    {
+        lv_mem_free(user_data->img_dsc);
+        user_data->img_dsc = NULL;
+    }
+    lv_mem_free(user_data);
+    lv_obj_set_user_data(img_obj, NULL);
     EOS_LOG_D("Image deleted.");
 }
 
 void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
 {
     EOS_CHECK_PTR_RETURN(img_obj);
+
+    // 如果已经有图像删除回调，就移除它，避免回调堆积
+    if(lv_obj_remove_event_cb_with_user_data(img_obj, _img_delete_event_cb, (void*)(uintptr_t)IMG_DELETE_CB_ID)){
+        EOS_LOG_I("Old callback removed!");
+    }
+
     // 使用 POSIX open 打开文件（只读模式）
     int fd = open(bin_path, O_RDONLY);
     if (fd == -1)
@@ -148,5 +157,5 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     EOS_LOG_D("Image Set OK");
     // 设置用户数据和删除回调
     lv_obj_set_user_data(img_obj, user_data);
-    lv_obj_add_event_cb(img_obj, _img_delete_event_cb, LV_EVENT_DELETE, NULL);
+    lv_obj_add_event_cb(img_obj, _img_delete_event_cb, LV_EVENT_DELETE, (void*)(uintptr_t)IMG_DELETE_CB_ID);
 }

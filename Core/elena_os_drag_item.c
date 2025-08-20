@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "elena_os_log.h"
+#include "elena_os_event.h"
 // Macros and Definitions
 // #define DEBUG_DRAG_ITEM
 #define GESTURE_AREA_HEIGHT 50
@@ -20,11 +21,14 @@
 #define TOUCH_BAR_MARGIN 20
 // Variables
 static drag_item_t *active_drag_item = NULL; // 当前正在拖拽的控件 同一时刻只能拖拽一个控件 否则会出现问题
+extern uint32_t EOS_EVENT_DRAG_ITEM_TOUCH_UNLOCK;
+extern uint32_t EOS_EVENT_DRAG_ITEM_TOUCH_LOCK;
 // Function Implementations
 static void _drag_item_event_cb_pressed(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
-
+    EOS_CHECK_PTR_RETURN(drag_item);
+    eos_event_broadcast(EOS_EVENT_DRAG_ITEM_TOUCH_LOCK, NULL);
     if (active_drag_item != NULL && active_drag_item != drag_item)
     {
         return;
@@ -47,6 +51,7 @@ static void _drag_item_event_cb_pressed(lv_event_t *e)
 static void _drag_item_event_cb_pressing(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(drag_item);
     if (!drag_item->dragging)
         return;
 
@@ -98,13 +103,16 @@ static void _drag_item_event_cb_pressing(lv_event_t *e)
     }
 }
 
+static void _drag_item_timer_cb(lv_timer_t * timer)
+{
+    EOS_LOG_D("Timer Callback");
+    eos_event_broadcast(EOS_EVENT_DRAG_ITEM_TOUCH_UNLOCK, NULL);
+}
+
 static void _drag_item_anim_completed_cb(lv_anim_t *a)
 {
     drag_item_t *drag_item = (drag_item_t *)lv_anim_get_user_data(a);
-
-    if(!drag_item){
-        return;
-    }
+    EOS_CHECK_PTR_RETURN(drag_item);
 
     switch (drag_item->dir)
     {
@@ -169,11 +177,16 @@ static void _drag_item_anim_completed_cb(lv_anim_t *a)
     {
         active_drag_item = NULL; // 释放活动实例
     }
+    // 避免操作过快
+    lv_timer_t * t = lv_timer_create(_drag_item_timer_cb, 50, NULL);
+    lv_timer_set_repeat_count(t, 1);  // 只触发一次
+    
 }
 
 static void _drag_item_event_cb_released(lv_event_t *e)
 {
     drag_item_t *drag_item = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(drag_item);
     drag_item->dragging = false;
 
     if (active_drag_item != NULL && active_drag_item != drag_item)
@@ -221,7 +234,7 @@ static void _drag_item_event_cb_released(lv_event_t *e)
         lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
     }
 
-    lv_anim_set_time(&a, 250);
+    lv_anim_set_time(&a, 120);
     lv_anim_set_user_data(&a, drag_item);
     lv_anim_set_ready_cb(&a, _drag_item_anim_completed_cb);
     lv_anim_start(&a);
@@ -229,9 +242,7 @@ static void _drag_item_event_cb_released(lv_event_t *e)
 
 static void _update_touch_bar_position(drag_item_t *drag_item, drag_dir_t dir)
 {
-    if (!drag_item || !drag_item->touch_bar)
-        return;
-
+    EOS_CHECK_PTR_RETURN(drag_item && drag_item->touch_bar);
     switch (dir)
     {
     case DRAG_DIR_DOWN:
@@ -248,6 +259,28 @@ static void _update_touch_bar_position(drag_item_t *drag_item, drag_dir_t dir)
         break;
     }
 }
+
+static void _drag_item_touch_lock(lv_event_t *e)
+{
+    drag_item_t *drag_item = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(drag_item);
+
+    if (active_drag_item != NULL && active_drag_item == drag_item)
+    {
+        // 如果是自己就直接返回
+        return;
+    }
+    lv_obj_add_flag(drag_item->gesture_area, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void _drag_item_touch_unlock(lv_event_t *e)
+{
+    drag_item_t *drag_item = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(drag_item);
+
+    lv_obj_remove_flag(drag_item->gesture_area, LV_OBJ_FLAG_HIDDEN);
+}
+
 
 void eos_drag_item_pull_back(drag_item_t *drag_item)
 {
@@ -341,7 +374,8 @@ void eos_drag_item_show_touch_bar(drag_item_t *drag_item)
 
 void eos_drag_item_set_dir(drag_item_t *drag_item, const drag_dir_t dir)
 {
-    if(!drag_item)return;
+    if (!drag_item)
+        return;
 
     drag_item->dir = dir;
 
@@ -439,6 +473,8 @@ drag_item_t *eos_drag_item_create(lv_obj_t *parent)
     lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_pressed, LV_EVENT_PRESSED, drag_item);
     lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_pressing, LV_EVENT_PRESSING, drag_item);
     lv_obj_add_event_cb(drag_item->gesture_area, _drag_item_event_cb_released, LV_EVENT_RELEASED, drag_item);
+    eos_event_add_cb(drag_item->gesture_area, _drag_item_touch_lock, EOS_EVENT_DRAG_ITEM_TOUCH_LOCK, drag_item);
+    eos_event_add_cb(drag_item->gesture_area, _drag_item_touch_unlock, EOS_EVENT_DRAG_ITEM_TOUCH_UNLOCK, drag_item);
 
     lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(drag_item->drag_obj, LV_OBJ_FLAG_SCROLLABLE);
