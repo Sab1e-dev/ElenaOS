@@ -9,6 +9,7 @@
 /**
  * TODO:
  * 当加载脚本时，创建一个 screen 并加载，作为脚本的基本screen
+ * 状态机管理脚本运行
  */
 
 #include "script_engine_core.h"
@@ -69,7 +70,7 @@ ScriptEngineResult_t script_engine_request_stop()
         printf("Current script stopped.\n");
         return SE_OK;
     }
-    return SE_ERR_SCRIPT_NOT_RUNNING;
+    return -SE_ERR_SCRIPT_NOT_RUNNING;
 }
 /**
  * @brief 解析js错误变量并打印错误原因
@@ -132,23 +133,23 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
     {
-        return SE_ERR_NULL_PACKAGE;
+        return -SE_ERR_NULL_PACKAGE;
     }
     if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP))
     {
         printf("JerryScript VM does not support execution stop feature.\n");
-        return SE_ERR_JERRY_INIT_FAIL;
+        return -SE_ERR_JERRY_INIT_FAIL;
     }
     // 检查 LVGL 是否已初始化
     if (!lv_is_initialized())
     {
         printf("LVGL not initialized, please initialize it first.\n");
-        return SE_ERR_LVGL_NOT_INITIALIZED;
+        return -SE_ERR_LVGL_NOT_INITIALIZED;
     }
 
     if (atomic_load(&script_released) == false)
     {
-        return SE_ERR_ALREADY_RUNNING;
+        return -SE_ERR_ALREADY_RUNNING;
     }
     atomic_store(&script_released,false);
     // 初始化 JerryScript VM
@@ -193,7 +194,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
             jerry_value_free(result);
             jerry_cleanup();
             atomic_store(&script_released,true);
-            return SE_ERR_JERRY_EXCEPTION;
+            return -SE_ERR_JERRY_EXCEPTION;
         }
         else
         {
@@ -212,7 +213,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
         jerry_value_free(parsed_code);
         jerry_cleanup();
         atomic_store(&script_released,true);
-        return SE_ERR_INVALID_JS;
+        return -SE_ERR_INVALID_JS;
     }
 }
 

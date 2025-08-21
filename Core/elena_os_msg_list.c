@@ -14,7 +14,6 @@
 #include "elena_os_lang.h"
 #include "elena_os_anim.h"
 #include "elena_os_log.h"
-#include "mem_mgr.h"
 // Macros and Definitions
 #define MSG_LIST_ITEM_MARGIN_BOTTOM 25
 #define SCREEN_W lv_disp_get_hor_res(NULL)

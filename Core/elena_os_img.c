@@ -14,8 +14,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
-#include "mem_mgr.h"
 #include "elena_os_log.h"
+#include "elena_os_port.h"
 // Macros and Definitions
 #define LV_IMG_BIN_HEADER_SIZE 12 // Bytes
 #define LV_IMG_BIN_HEADER_WIDTH_LB 4
@@ -39,7 +39,7 @@ static void _img_delete_event_cb(lv_event_t *e)
 
     if (user_data->bin_data)
     {
-        mem_mgr_free(user_data->bin_data);
+        eos_free(user_data->bin_data);
         user_data->bin_data = NULL;
     }
     if (user_data->img_dsc)
@@ -86,23 +86,23 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
         return;
     }
 
-    // 分配 PSRAM 内存
-    void *bin_data = mem_mgr_alloc(file_size);
+    // 分配内存
+    void *bin_data = eos_alloc(file_size);
     if (!bin_data)
     {
-        EOS_LOG_E("Failed to allocate PSRAM memory for image\n");
+        EOS_LOG_E("Failed to allocate memory for image\n");
         close(fd);
         return;
     }
 
-    // 读取文件内容到 PSRAM
+    // 读取文件内容到内存
     ssize_t bytes_read = read(fd, bin_data, file_size);
     close(fd); // 读取完成后立即关闭文件描述符
 
     if (bytes_read != file_size)
     {
         EOS_LOG_E("Failed to read complete file (read %zd of %ld bytes)\n", bytes_read, file_size);
-        mem_mgr_free(bin_data);
+        eos_free(bin_data);
         return;
     }
 
@@ -111,7 +111,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (!img_dsc)
     {
         EOS_LOG_E("Failed to allocate image descriptor\n");
-        mem_mgr_free(bin_data);
+        eos_free(bin_data);
         return;
     }
     memset(img_dsc, 0, sizeof(lv_image_dsc_t));
@@ -122,7 +122,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     {
         EOS_LOG_E("Invalid image magic\n");
         lv_mem_free(img_dsc);
-        mem_mgr_free(bin_data);
+        eos_free(bin_data);
         return;
     }
 
@@ -135,7 +135,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (!user_data)
     {
         EOS_LOG_E("Failed to allocate user data\n");
-        mem_mgr_free(bin_data);
+        eos_free(bin_data);
         lv_mem_free(img_dsc);
         return;
     }

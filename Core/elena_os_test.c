@@ -8,6 +8,7 @@
 /**
  * TODO:
  * 新增上拉快捷控制台（先做设置App）
+ * 系统配置项
  * 新增应用列表
  */
 
@@ -26,6 +27,7 @@
 #include "elena_os_nav.h"
 #include "elena_os_base_item.h"
 #include "elena_os_event.h"
+#include "elena_os_port.h"
 // Macros and Definitions
 // #define DEBUG_USE_ZH_FONT
 LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
@@ -237,6 +239,10 @@ static void _test_image()
     lv_obj_add_event_cb(ta, _test_image_input_cb, LV_EVENT_ALL, kb);
 }
 
+static void _test_app_list(){
+    
+}
+
 void eos_test_start(void)
 {
     eos_event_init();
@@ -289,6 +295,6 @@ void eos_test_start(void)
     while (1)
     {
         uint32_t d = lv_timer_handler();
-        rt_thread_mdelay(d);
+        eos_delay(d);
     }
 }

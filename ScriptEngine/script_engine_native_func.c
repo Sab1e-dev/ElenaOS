@@ -12,6 +12,7 @@
 #include <string.h>
 #include "lvgl.h"
 #include "script_engine_core.h"
+#include "elena_os_port.h"
 /********************************** 原生函数定义 **********************************/
 /**
  * @brief 处理 JavaScript 的 print 调用
@@ -75,7 +76,7 @@ jerry_value_t js_delay_handler(const jerry_call_info_t *call_info_p,
                                const jerry_value_t args_p[],
                                const jerry_length_t args_count)
 {
-    rt_thread_mdelay(args_p[0]);
+    eos_delay(args_p[0]);
 }
 
 /********************************** 注册原生函数 **********************************/

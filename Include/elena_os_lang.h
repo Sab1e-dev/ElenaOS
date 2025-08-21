@@ -33,6 +33,7 @@ typedef enum{
  * @note 此处可添加新的字符串索引
  */
 typedef enum {
+    STR_ID_LANGUAGE,
     STR_ID_OK,
     STR_ID_CANCEL,
     STR_ID_MSG_LIST_CLEAR_ALL,
@@ -54,9 +55,16 @@ void eos_lang_init(void);
  * @warning 需要先初始化语言系统
  */
 void eos_lang_set(language_id_t lang);
-
+/**
+ * @brief 获取当前语言类型
+ * @return language_id_t 语言类型
+ */
 language_id_t eos_lang_get(void);
-
+/**
+ * @brief 获取当前语言字符串
+ * @return char* 语言字符串（例如：简体中文）
+ */
+char *eos_lang_get_language_str(void);
 /**
  * @brief 创建一个支持多语言的 LVGL label
  * @param parent label 的父级 LVGL 对象

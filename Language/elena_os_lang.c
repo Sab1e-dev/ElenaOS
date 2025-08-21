@@ -21,6 +21,7 @@
  * @note 在此处新增字符串
  */
 const char *lang_en[SYS_STR_ID_MAX] = {
+    [STR_ID_LANGUAGE] = "English",
     [STR_ID_OK] = "OK",
     [STR_ID_CANCEL] = "Cancel",
     [STR_ID_MSG_LIST_CLEAR_ALL] = "Clear all",
@@ -36,6 +37,7 @@ const char *lang_en[SYS_STR_ID_MAX] = {
  * @note 在此处新增字符串
  */
 const char *lang_zh[SYS_STR_ID_MAX] = {
+    [STR_ID_LANGUAGE] = "简体中文",
     [STR_ID_OK] = "确定",
     [STR_ID_CANCEL] = "取消",
     [STR_ID_MSG_LIST_CLEAR_ALL] = "全部清除",
@@ -94,6 +96,10 @@ language_id_t eos_lang_get(void)
     {
         return LANG_UNKNOWN;
     }
+}
+
+char *eos_lang_get_language_str(void){
+    return current_lang[STR_ID_LANGUAGE];
 }
 
 static void lang_event_cb(lv_event_t *e)

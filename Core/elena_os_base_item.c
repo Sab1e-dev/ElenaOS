@@ -23,7 +23,7 @@
 static void _nav_back_cb(lv_event_t *e)
 {
     EOS_LOG_D("NAV back");
-    if (eos_nav_back_clear() != ELENA_OS_OK)
+    if (eos_nav_back_clear() != EOS_OK)
     {
         EOS_LOG_E("BACK ERR");
     }

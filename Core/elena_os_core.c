@@ -10,8 +10,11 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-#include "elena_os_swipe_panel.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
 #include "lvgl.h"
+#include "cJSON.h"
 #include "elena_os_img.h"
 #include "elena_os_msg_list.h"
 #include "elena_os_lang.h"
@@ -20,14 +23,18 @@
 #include "elena_os_base_item.h"
 #include "elena_os_event.h"
 #include "elena_os_test.h"
+#include "elena_os_version.h"
+#include "elena_os_port.h"
+#include "elena_os_swipe_panel.h"
+#include "elena_os_sys.h"
 // Macros and Definitions
 
 // Variables
 
 // Function Implementations
 
-
 ElenaOSResult_t eos_run()
 {
+    eos_sys_init();
     eos_test_start();
 }

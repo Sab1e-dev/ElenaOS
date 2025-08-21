@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 #include "elena_os_log.h"
+#include "elena_os_core.h"
 // Macros and Definitions
 #define NAV_STACK_SIZE 32
 /**
@@ -26,26 +27,30 @@ typedef struct
 /**
  * @brief 导航正忙，等待响应
  */
-#define NAV_BUSY_WAIT() \
-    do { \
-        bool expected = false; \
-        while (!atomic_compare_exchange_weak(&nav_busy, &expected, true)) { \
-            expected = false; \
-            EOS_LOG_D("Waiting for nav stack to be available"); \
-            lv_timer_handler(); \
-        } \
-    } while(0)
+#define NAV_BUSY_WAIT()                                                   \
+    do                                                                    \
+    {                                                                     \
+        bool expected = false;                                            \
+        while (!atomic_compare_exchange_weak(&nav_busy, &expected, true)) \
+        {                                                                 \
+            expected = false;                                             \
+            EOS_LOG_D("Waiting for nav stack to be available");           \
+            lv_timer_handler();                                           \
+        }                                                                 \
+    } while (0)
 /**
  * @brief 导航正忙，取消操作
  */
-#define NAV_BUSY_CHECK() \
-    do { \
-        bool expected = false; \
-        if (!atomic_compare_exchange_strong(&nav_busy, &expected, true)) { \
-            EOS_LOG_D("Nav stack busy, operation rejected"); \
-            return ELENA_OS_ERR_BUSY; \
-        } \
-    } while(0)
+#define NAV_BUSY_CHECK()                                                 \
+    do                                                                   \
+    {                                                                    \
+        bool expected = false;                                           \
+        if (!atomic_compare_exchange_strong(&nav_busy, &expected, true)) \
+        {                                                                \
+            EOS_LOG_D("Nav stack busy, operation rejected");             \
+            return -EOS_ERR_BUSY;                                        \
+        }                                                                \
+    } while (0)
 // Variables
 static nav_stack_t nav = {.top = -1, .initialized = false};
 static atomic_bool nav_busy = false; // 正在清除
@@ -105,13 +110,13 @@ ElenaOSResult_t eos_nav_init(lv_obj_t *root_scr)
     if (!root_scr)
     {
         EOS_LOG_E("Root screen is NULL");
-        return ELENA_OS_ERR_VAR_NULL;
+        return -EOS_ERR_VAR_NULL;
     }
 
     if (_is_nav_stack_initialized())
     {
         EOS_LOG_E("Nav stack already initialized");
-        return ELENA_OS_ERR_ALREADY_INITIALIZED;
+        return -EOS_ERR_ALREADY_INITIALIZED;
     }
 
     // 设置root screen并初始化栈
@@ -123,7 +128,7 @@ ElenaOSResult_t eos_nav_init(lv_obj_t *root_scr)
     lv_scr_load(root_scr);
     lv_obj_add_event_cb(root_scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized with root screen %p", root_scr);
-    return ELENA_OS_OK;
+    return EOS_OK;
 }
 
 lv_obj_t *eos_nav_scr_create(void)
@@ -178,20 +183,20 @@ ElenaOSResult_t eos_nav_clear_stack(void)
     if (nav_busy)
     {
         EOS_LOG_E("Nav stack busy");
-        return ELENA_OS_ERR_BUSY;
+        return -EOS_ERR_BUSY;
     }
     atomic_store(&nav_busy, true);
 
     if (!_is_nav_stack_initialized())
     {
         EOS_LOG_E("Nav stack not initialized");
-        return ELENA_OS_ERR_NOT_INITIALIZED;
+        return -EOS_ERR_NOT_INITIALIZED;
     }
 
     if (_is_nav_stack_empty())
     {
         EOS_LOG_D("Nav stack already empty (only root screen remains)");
-        return ELENA_OS_OK;
+        return EOS_OK;
     }
 
     // 从栈顶向下清理，跳过栈底(root screen)
@@ -212,73 +217,80 @@ ElenaOSResult_t eos_nav_clear_stack(void)
     // 确保root screen是活动屏幕
     lv_scr_load(nav.stack[0]);
     atomic_store(&nav_busy, false);
-    return ELENA_OS_OK;
+    return EOS_OK;
 }
 
 ElenaOSResult_t eos_nav_back_clear(void)
 {
     NAV_BUSY_CHECK();
 
-    if (!_is_nav_stack_initialized()) {
+    if (!_is_nav_stack_initialized())
+    {
         EOS_LOG_E("Nav stack not initialized");
         atomic_store(&nav_busy, false);
-        return ELENA_OS_ERR_NOT_INITIALIZED;
+        return -EOS_ERR_NOT_INITIALIZED;
     }
 
-    if (_is_nav_stack_empty()) {
+    if (_is_nav_stack_empty())
+    {
         EOS_LOG_E("Nav stack empty (cannot back from root screen)");
         atomic_store(&nav_busy, false);
-        return ELENA_OS_ERR_STACK_EMPTY;
+        return -EOS_ERR_STACK_EMPTY;
     }
 
     // 直接执行回退逻辑
     lv_obj_t *prev_scr = _nav_peek_prev();
-    if (!prev_scr) {
-        prev_scr = nav.stack[0];  // 回退到 root screen
+    if (!prev_scr)
+    {
+        prev_scr = nav.stack[0]; // 回退到 root screen
     }
 
     // 保存要删除的页面
     lv_obj_t *scr_to_del = nav.stack[nav.top];
-    nav.top--;  // 更新栈指针
+    nav.top--; // 更新栈指针
 
     // 加载前一个屏幕
     lv_scr_load(prev_scr);
 
     // 删除页面
-    if (scr_to_del) {
+    if (scr_to_del)
+    {
         lv_obj_del(scr_to_del);
         EOS_LOG_D("Deleted screen at %p", scr_to_del);
     }
 
     EOS_MEM("Clear scr");
     atomic_store(&nav_busy, false);
-    return ELENA_OS_OK;
+    return EOS_OK;
 }
 
 ElenaOSResult_t eos_nav_back(void)
 {
     NAV_BUSY_CHECK();
 
-    if (!_is_nav_stack_initialized()) {
+    if (!_is_nav_stack_initialized())
+    {
         EOS_LOG_E("Nav stack not initialized");
         atomic_store(&nav_busy, false);
-        return ELENA_OS_ERR_NOT_INITIALIZED;
+        return -EOS_ERR_NOT_INITIALIZED;
     }
 
-    if (_is_nav_stack_empty()) {
+    if (_is_nav_stack_empty())
+    {
         EOS_LOG_E("Already at root screen, cannot go back");
         atomic_store(&nav_busy, false);
-        return ELENA_OS_ERR_STACK_EMPTY;
+        return -EOS_ERR_STACK_EMPTY;
     }
 
     lv_obj_t *prev_scr = _nav_peek_prev();
-    if (!prev_scr) {
-        prev_scr = nav.stack[0];  // 回退到 root screen
+    if (!prev_scr)
+    {
+        prev_scr = nav.stack[0]; // 回退到 root screen
     }
 
-    nav.top--;  // 更新栈指针
+    nav.top--; // 更新栈指针
     lv_scr_load(prev_scr);
 
     atomic_store(&nav_busy, false);
-    return ELENA_OS_OK;
+    return EOS_OK;
 }

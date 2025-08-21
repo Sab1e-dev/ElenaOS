@@ -20,16 +20,18 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef enum {
-    ELENA_OS_OK = 0,
-    ELENA_OS_ERR_MEM = -1,
-    ELENA_OS_ERR_STACK_EMPTY = -2,
-    ELENA_OS_ERR_STACK_FULL = -3,
-    ELENA_OS_ERR_VAR_NOT_NULL = -4,
-    ELENA_OS_ERR_VAR_NULL = -5,
-    ELENA_OS_ERR_NOT_INITIALIZED = -6,
-    ELENA_OS_ERR_ALREADY_INITIALIZED = -7,
-    ELENA_OS_ERR_BUSY = -8,
-    ELENA_OS_ERR_UNKNOWN = -99,
+    EOS_OK = 0,
+    EOS_ERR_MEM,
+    EOS_ERR_STACK_EMPTY,
+    EOS_ERR_STACK_FULL,
+    EOS_ERR_VAR_NOT_NULL,
+    EOS_ERR_VAR_NULL,
+    EOS_ERR_NOT_INITIALIZED,
+    EOS_ERR_ALREADY_INITIALIZED,
+    EOS_ERR_BUSY,
+    EOS_ERR_FILE_ERROR,
+    EOS_ERR_JSON_ERROR,
+    EOS_ERR_UNKNOWN,
 }ElenaOSResult_t;
 /* Public function prototypes --------------------------------*/
 /**
