@@ -16,7 +16,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include "lvgl.h"
-#include "elena_os_drag_item.h"
+#include "elena_os_swipe_panel.h"
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
@@ -67,7 +67,7 @@ typedef struct {
 /**
  * @brief 消息列表结构体
  * 层级结构：
- * drag_obj{
+ * swipe_obj{
  *      list{
  *          clear_all_btn
  *          msg_item
@@ -78,7 +78,7 @@ typedef struct {
  * }
  */
 struct msg_list_t {
-    drag_item_t *drag_item;     /**< 拖拽对象指针 */
+    swipe_panel_t *swipe_panel;     /**< 拖拽对象指针 */
     lv_obj_t *list;             /**< 列表对象指针 */
     lv_obj_t *clear_all_btn;    /**< 清除所有消息按钮指针 */
     lv_obj_t *no_msg_label;     /**< 无消息时的提示标签 */

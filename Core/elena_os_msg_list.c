@@ -340,7 +340,7 @@ static void _mark_as_read_anim_end_cb(eos_anim_t *a)
     btn_data_t *data = (btn_data_t *)eos_anim_get_user_data(a);
     EOS_CHECK_PTR_RETURN(data);
 
-    // 1. 删除容器（自动删除所有子对象）
+    // 删除容器（自动删除所有子对象）
     if (data->detail_container)
     {
         lv_obj_del(data->detail_container);
@@ -718,7 +718,7 @@ static void _msg_list_item_anim_end_cb(lv_anim_t *a)
     {
         // 直接清除所有内容
         eos_msg_list_clear_all(list);
-        eos_drag_item_pull_back(list->drag_item);
+        eos_swipe_panel_pull_back(list->swipe_panel);
         _del_item_cb(list);
     }
 }
@@ -788,7 +788,39 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
     _trigger_msg_anims(list);
 }
 
-/************************** List 创建 **************************/
+/************************** List相关函数 **************************/
+
+void eos_msg_list_delete(msg_list_t *list)
+{
+    EOS_CHECK_PTR_RETURN(list);
+
+    // 清除所有消息项
+    eos_msg_list_clear_all(list);
+
+    // 删除无消息标签
+    if (list->no_msg_label) {
+        lv_obj_del(list->no_msg_label);
+        list->no_msg_label = NULL;
+    }
+
+    // 删除滑动面板（会自动删除内部所有对象）
+    if (list->swipe_panel) {
+        eos_swipe_panel_delete(list->swipe_panel);
+        list->swipe_panel = NULL;
+    }
+
+    // 释放列表结构体
+    lv_mem_free(list);
+}
+
+static void _msg_list_deleted_cb(lv_event_t *e)
+{
+    msg_list_t *list = (msg_list_t *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(list);
+    
+    // 调用清理函数
+    eos_msg_list_delete(list);
+}
 
 msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 {
@@ -797,10 +829,10 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 
     memset(list, 0, sizeof(msg_list_t));
 
-    list->drag_item = eos_drag_item_create(parent);
-    eos_drag_item_set_dir(list->drag_item, DRAG_DIR_DOWN);
+    list->swipe_panel = eos_swipe_panel_create(parent);
+    eos_swipe_panel_set_dir(list->swipe_panel, SWIPE_DIR_DOWN);
 
-    list->list = lv_list_create(list->drag_item->drag_obj);
+    list->list = lv_list_create(list->swipe_panel->swipe_obj);
     lv_obj_set_size(list->list, LV_PCT(100), LV_PCT(88));
     lv_obj_center(list->list);
     lv_obj_set_style_bg_opa(list->list, LV_OPA_TRANSP, 0);
@@ -809,7 +841,7 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
     lv_obj_align(list->list, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_user_data(list->list, list);
     lv_obj_set_scroll_dir(list->list, LV_DIR_VER);
-
+    lv_obj_add_event_cb(list->list, _msg_list_deleted_cb, LV_EVENT_DELETE, list);
     // 创建清除所有按钮
     list->clear_all_btn = lv_btn_create(list->list);
     lv_obj_set_size(list->clear_all_btn, lv_pct(100), 80);
@@ -833,7 +865,7 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
     lv_obj_add_event_cb(list->clear_all_btn, _msg_list_clear_all_btn_cb, LV_EVENT_CLICKED, list);
 
     // 创建无消息标签
-    list->no_msg_label = eos_lang_label_create(list->drag_item->drag_obj, STR_ID_MSG_LIST_NO_MSG);
+    list->no_msg_label = eos_lang_label_create(list->swipe_panel->swipe_obj, STR_ID_MSG_LIST_NO_MSG);
 
     lv_obj_set_style_text_color(list->no_msg_label, lv_color_hex(0xA6A6A6), 0);
     lv_obj_center(list->no_msg_label);

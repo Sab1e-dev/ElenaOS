@@ -10,7 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-#include "elena_os_drag_item.h"
+#include "elena_os_swipe_panel.h"
 #include "lvgl.h"
 #include "elena_os_img.h"
 #include "elena_os_msg_list.h"

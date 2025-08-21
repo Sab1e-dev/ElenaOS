@@ -68,6 +68,7 @@ extern "C" {
     do { \
         printf("[MEM] %s\n", tag); \
         msh_exec("list_mem", 8); \
+        msh_exec("list_memheap", 12); \
     } while(0)
 
 /************************** 指针检查 **************************/    

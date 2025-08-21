@@ -16,13 +16,6 @@
 
 // Macros and Definitions
 #define SYS_STR_ID_MAX 128 // 最大字符串ID数量
-
-// 语言标签用户数据结构体
-typedef struct
-{
-    uint32_t str_id;
-} lang_label_data_t;
-
 /**
  * @brief 英文语言数组
  * @note 在此处新增字符串
@@ -54,7 +47,7 @@ const char *lang_zh[SYS_STR_ID_MAX] = {
 };
 
 const char **current_lang = NULL;    // 当前语言指针
-static uint8_t lang_initialized = 0; // 语言系统初始化标志
+static bool lang_initialized = false; // 语言系统初始化标志
 
 // 函数声明
 static void lang_event_cb(lv_event_t *e);
@@ -65,7 +58,7 @@ void eos_lang_init(void)
     if (!lang_initialized)
     {
         current_lang = lang_en; // 默认英语
-        lang_initialized = 1;
+        lang_initialized = true;
     }
 }
 
@@ -108,14 +101,13 @@ static void lang_event_cb(lv_event_t *e)
     lv_obj_t *label = lv_event_get_target(e);
 
     // 从用户数据中获取str_id
-    lang_label_data_t *data = lv_obj_get_user_data(label);
-    if (!data)
+    uint32_t id = (uint32_t)lv_event_get_user_data(e);
+    if (!id)
     {
-        EOS_LOG_E("No lang data for label");
+        EOS_LOG_E("No id for label");
         return;
     }
 
-    uint32_t id = data->str_id;
 
     if (id < SYS_STR_ID_MAX && current_lang && current_lang[id])
     {
@@ -144,20 +136,8 @@ lv_obj_t *eos_lang_label_create(lv_obj_t *parent, uint32_t str_id)
         lv_label_set_text(label, current_lang[str_id]);
     }
 
-    // 创建并设置用户数据
-    lang_label_data_t *label_data = lv_mem_alloc(sizeof(lang_label_data_t));
-    if (label_data)
-    {
-        label_data->str_id = str_id;
-        lv_obj_set_user_data(label, label_data);
-    }
-    else
-    {
-        EOS_LOG_E("Failed to allocate label data");
-    }
-
     // 使用事件系统注册回调
-    eos_event_add_cb(label, lang_event_cb, LV_EVENT_REFRESH, NULL);
+    eos_event_add_cb(label, lang_event_cb, LV_EVENT_REFRESH, (void*)str_id);
 
     return label;
 }

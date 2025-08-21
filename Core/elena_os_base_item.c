@@ -30,7 +30,7 @@ static void _nav_back_cb(lv_event_t *e)
 }
 lv_obj_t *eos_back_btn_create(lv_obj_t *parent, bool show_text)
 {
-    lv_obj_t *btn = lv_btn_create(parent);
+    lv_obj_t *btn = lv_button_create(parent);
     lv_obj_add_event_cb(btn, _nav_back_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_set_style_border_width(btn, 0, 0);
     lv_obj_set_style_shadow_width(btn, 0, 0);

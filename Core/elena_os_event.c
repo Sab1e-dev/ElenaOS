@@ -26,8 +26,8 @@ typedef struct _event_node_t
 // Variables
 static event_node_t *event_list_head = NULL; // 事件链表头
 /************************** 事件定义 **************************/
-uint32_t EOS_EVENT_DRAG_ITEM_TOUCH_LOCK = 0;
-uint32_t EOS_EVENT_DRAG_ITEM_TOUCH_UNLOCK = 0;
+uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK = 0;
+uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK = 0;
 uint32_t EOS_EVENT_SYS_BACK = 0;
 // Function Implementations
 /**
@@ -56,8 +56,8 @@ static void _obj_delete_cb(lv_event_t *e)
 
 void eos_event_init(void)
 {
-    EOS_EVENT_DRAG_ITEM_TOUCH_LOCK = lv_event_register_id();
-    EOS_EVENT_DRAG_ITEM_TOUCH_UNLOCK = lv_event_register_id();
+    EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK = lv_event_register_id();
+    EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK = lv_event_register_id();
 }
 
 void eos_event_add_cb(lv_obj_t *obj, lv_event_cb_t cb, lv_event_code_t event, void *user_data)

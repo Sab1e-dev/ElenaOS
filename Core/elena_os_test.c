@@ -9,9 +9,6 @@
  * TODO:
  * 新增上拉快捷控制台（先做设置App）
  * 新增应用列表
- * 内存泄漏测试
- * Navigation 似乎存在内存泄漏
- * PSRAM 写满测试
  */
 
 #include "elena_os_test.h"
@@ -20,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "elena_os_drag_item.h"
+#include "elena_os_swipe_panel.h"
 #include "lvgl.h"
 #include "elena_os_img.h"
 #include "elena_os_msg_list.h"
@@ -33,7 +30,6 @@
 // #define DEBUG_USE_ZH_FONT
 LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 // Variables
-msg_list_t *msg_list;          // 消息列表对象
 static lv_obj_t * img = NULL;  // 全局图片对象
 static lv_obj_t * ta = NULL;   // 全局文本输入框对象
 // Function Implementations
@@ -46,6 +42,8 @@ void _create_new_scr()
 
 static void _test_msg_list_cb(lv_event_t *e)
 {
+    msg_list_t *msg_list = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(msg_list);
     char *message = "Sab1e: No one's born being good at all things."
                     "You become good at things through hard work. "
                     "You're not a varsity athlete the first time "
@@ -63,9 +61,9 @@ static void _test_msg_list_cb(lv_event_t *e)
     eos_msg_list_item_set_icon_obj(item, icon);
 
     msg_list_item_t *item1 = eos_msg_list_item_create(msg_list);
-    eos_msg_list_item_set_title(item1, "WeChat");
+    eos_msg_list_item_set_title(item1, "QQ");
     eos_msg_list_item_set_msg(item1, message);
-    eos_msg_list_item_set_time(item1, "12:30");
+    eos_msg_list_item_set_time(item1, "21:00");
 
     // lv_obj_t *icon1 = lv_img_create(lv_scr_act());
     // eos_img_set_src(icon1, "/wx.bin");
@@ -75,13 +73,13 @@ static void _test_msg_list_cb(lv_event_t *e)
 static void _test_msg_list()
 {
     _create_new_scr();
-    msg_list = eos_msg_list_create(lv_scr_act());
-
+    msg_list_t *msg_list = eos_msg_list_create(lv_scr_act());
+    EOS_CHECK_PTR_RETURN(msg_list);
     lv_obj_t *btn = lv_button_create(lv_scr_act());
     lv_obj_center(btn);
     lv_obj_t *btn_label = lv_label_create(btn);
     lv_label_set_text(btn_label,LV_SYMBOL_PLUS" Add new message");
-    lv_obj_add_event_cb(btn,_test_msg_list_cb,LV_EVENT_CLICKED,NULL);
+    lv_obj_add_event_cb(btn,_test_msg_list_cb,LV_EVENT_CLICKED,msg_list);
 }
 
 static void _test_nav_cb_1(lv_event_t *e)
@@ -140,7 +138,7 @@ static void _test_lang(lv_event_t *e)
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -20);
 }
 
-static void ta_event_cb(lv_event_t *e)
+static void _test_vkb_event_cb(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t *ta = lv_event_get_target(e);
@@ -181,7 +179,7 @@ static void _test_vkb()
     lv_ime_pinyin_set_keyboard(pinyin_ime, kb);
     lv_keyboard_set_textarea(kb, ta1);
 
-    lv_obj_add_event_cb(ta1, ta_event_cb, LV_EVENT_ALL, kb);
+    lv_obj_add_event_cb(ta1, _test_vkb_event_cb, LV_EVENT_ALL, kb);
 
     /*Get the cand_panel, and adjust its size and position*/
     lv_obj_t *cand_panel = lv_ime_pinyin_get_cand_panel(pinyin_ime);
