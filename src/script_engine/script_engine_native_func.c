@@ -92,7 +92,7 @@ jerry_value_t js_delay_handler(const jerry_call_info_t *call_info_p,
 /**
  * @brief 原生函数列表
  */
-const ScriptEngineFuncEntry script_engine_native_funcs[] = {
+const script_engine_func_entry_t script_engine_native_funcs[] = {
     {.name = "print",
      .handler = js_print_handler},
     {.name = "delay",
@@ -105,5 +105,5 @@ const ScriptEngineFuncEntry script_engine_native_funcs[] = {
  */
 void script_engine_register_natives()
 {
-    script_engine_register_functions(script_engine_native_funcs, sizeof(script_engine_native_funcs) / sizeof(ScriptEngineFuncEntry));
+    script_engine_register_functions(script_engine_native_funcs, sizeof(script_engine_native_funcs) / sizeof(script_engine_func_entry_t));
 }

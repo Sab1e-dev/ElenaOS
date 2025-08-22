@@ -21,17 +21,29 @@ extern "C"
 #include "elena_os_watch_face.h"
 #include "script_engine_core.h"
 /* Public macros ----------------------------------------------*/
-#define EOS_PKG_APP_MAGIC "EAPK"
-#define EOS_PKG_WATCHFACE_MAGIC "EWPK"
+#define EOS_PKG_APP_MAGIC           "EAPK"
+#define EOS_PKG_WATCHFACE_MAGIC     "EWPK"
+#define EOS_PKG_READ_BLOCK          512
+#define EOS_PKG_NAME_LEN_MAX        256     // 最后一个字节强制为"\0"，因此名称长度最大255字节
+#define EOS_PKG_VERSION_LEN_MAX     256     // 同上
+
+
+#define EOS_PKG_MAGIC_OFFSET        0
+#define EOS_PKG_NAME_OFFSET         EOS_PKG_MAGIC_OFFSET + 4
+#define EOS_PKG_VERSION_OFFSET      EOS_PKG_NAME_OFFSET + EOS_PKG_NAME_LEN_MAX
+#define EOS_PKG_FILE_COUNT_OFFSET   EOS_PKG_VERSION_OFFSET + EOS_PKG_VERSION_LEN_MAX
+#define EOS_PKG_RESERVED_OFFSET     EOS_PKG_FILE_COUNT_OFFSET + 4
+#define EOS_PKG_TABLE_OFFSET        EOS_PKG_RESERVED_OFFSET + 4
+
 /**
  * @brief 定义软件包的文件头
  */
 typedef struct
 {
     char magic[4];         // Magic Number
-    uint32_t version;      // 0x0001 包结构的版本
+    char pkg_name[EOS_PKG_NAME_LEN_MAX];       // 软件包名
+    char pkg_version[EOS_PKG_VERSION_LEN_MAX];         // 软件版本
     uint32_t file_count;   // 文件数量
-    uint32_t table_offset; // 文件表在包中的偏移
     uint32_t reserved;     // 保留字段，方便将来扩展
 } eos_pkg_header_t;
 
@@ -50,6 +62,7 @@ typedef struct
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
+
 /**
  * @brief 解包 EAPK/EWPK 文件（例如：app.eapk, watchface.ewpk）
  * @param pkg_path 包文件路径
@@ -57,7 +70,7 @@ typedef struct
  * @param pkg_type 包类型(SCRIPT_TYPE_APPLICATION/SCRIPT_TYPE_WATCHFACE)
  * @return eos_result_t 执行结果
  */
-eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, const ScriptType_t pkg_type);
+eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, const script_pkg_type_t pkg_type);
 #ifdef __cplusplus
 }
 #endif

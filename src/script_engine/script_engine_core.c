@@ -58,7 +58,7 @@ void _request_script_termination(void)
     atomic_store(&should_terminate, true);
 }
 
-ScriptEngineResult_t script_engine_request_stop()
+script_engine_result_t script_engine_request_stop()
 {
     if (js_vm_initialized)
     {
@@ -105,9 +105,9 @@ static void _script_engine_exception_handler(char *tag, jerry_value_t result)
     jerry_value_free(value);
 }
 /**
- * @brief 把 ScriptPackage_t 转换成 JS 对象（供 JS 访问 script_info）
+ * @brief 把 script_pkg_t 转换成 JS 对象（供 JS 访问 script_info）
  */
-jerry_value_t _script_engine_create_info(const ScriptPackage_t *script_package)
+jerry_value_t _script_engine_create_info(const script_pkg_t *script_package)
 {
     jerry_value_t obj = jerry_object();
 
@@ -129,7 +129,7 @@ jerry_value_t _script_engine_create_info(const ScriptPackage_t *script_package)
     return obj;
 }
 
-ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
+script_engine_result_t script_engine_run(const script_pkg_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
     {
@@ -217,7 +217,7 @@ ScriptEngineResult_t script_engine_run(const ScriptPackage_t *script_package)
     }
 }
 
-void script_engine_register_functions(const ScriptEngineFuncEntry *entry, const size_t funcs_count)
+void script_engine_register_functions(const script_engine_func_entry_t *entry, const size_t funcs_count)
 {
     jerry_value_t global = jerry_current_realm();
     for (size_t i = 0; i < funcs_count; ++i)
