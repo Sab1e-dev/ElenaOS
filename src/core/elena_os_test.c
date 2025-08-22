@@ -29,8 +29,10 @@
 #include "elena_os_event.h"
 #include "elena_os_port.h"
 // Macros and Definitions
-// #define DEBUG_USE_ZH_FONT
+// #define TEST_USE_ZH_FONT
+#ifdef TEST_USE_ZH_FONT
 LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
+#endif
 // Variables
 static lv_obj_t * img = NULL;  // 全局图片对象
 static lv_obj_t * ta = NULL;   // 全局文本输入框对象
@@ -110,7 +112,9 @@ static void _test_font()
     lv_label_set_text(font_label, test_str);
     lv_obj_set_width(font_label, lv_pct(100));
     lv_label_set_long_mode(font_label, LV_LABEL_LONG_WRAP);
+    #ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(font_label, &eos_font_resource_han_rounded_30, LV_PART_MAIN);
+    #endif
 }
 
 static void _test_lang_cb(lv_event_t *e)
@@ -131,7 +135,9 @@ static void _test_lang(lv_event_t *e)
     
     lv_obj_t *label = eos_lang_label_create(lv_scr_act(), STR_ID_TEST_LANG_STR);
     lv_obj_set_width(label, lv_pct(100));
+    #ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(label, &eos_font_resource_han_rounded_30, LV_PART_MAIN);
+    #endif
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_t *btn = lv_button_create(lv_scr_act());
     lv_obj_t *btn_label = lv_label_create(btn);
@@ -166,13 +172,17 @@ static void _test_vkb()
 {
     _create_new_scr();
     lv_obj_t *pinyin_ime = lv_ime_pinyin_create(lv_screen_active());
+    #ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(pinyin_ime, &eos_font_resource_han_rounded_30, 0);
+    #endif
     // lv_ime_pinyin_set_dict(pinyin_ime, your_dict); // Use a custom dictionary. If it is not set, the built-in dictionary will be used.
 
     /* ta1 */
     lv_obj_t *ta1 = lv_textarea_create(lv_screen_active());
     lv_textarea_set_one_line(ta1, true);
+    #ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(ta1, &eos_font_resource_han_rounded_30, 0);
+    #endif
     lv_obj_align(ta1, LV_ALIGN_TOP_LEFT, 0, 0);
     lv_obj_set_width(ta1,lv_pct(100));
 

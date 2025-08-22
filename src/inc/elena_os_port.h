@@ -18,7 +18,6 @@ extern "C" {
 #include <stddef.h>
 #include "mem_mgr.h"
 #include "rtthread.h"
-#include "elena_os_core.h"
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
@@ -31,12 +30,12 @@ extern "C" {
  * @return void* 分配成功则返回内存地址，否则返回 NULL
  * @note 主要用于图片内存分配
  */
-void *eos_alloc(size_t size);
+void *eos_mem_alloc(size_t size);
 /**
  * @brief 释放目标内存
  * @param ptr 目标指针
  */
-void eos_free(void *ptr);
+void eos_mem_free(void *ptr);
 /**
  * @brief 延时指定时间（非阻塞）
  * @param ms 毫秒数

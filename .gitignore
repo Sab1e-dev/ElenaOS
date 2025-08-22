@@ -1,3 +1,5 @@
 # Scons files
 SConstruct
 SConscript
+# Temporary files
+temp

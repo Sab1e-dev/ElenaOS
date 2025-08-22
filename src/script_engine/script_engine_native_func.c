@@ -5,6 +5,8 @@
  * @author Sab1e
  * @date 2025-07-26
  */
+
+// Includes
 #include "script_engine_native_func.h"
 #include "jerryscript.h"
 #include <stdio.h>
@@ -13,6 +15,12 @@
 #include "lvgl.h"
 #include "script_engine_core.h"
 #include "elena_os_port.h"
+
+// Macros and Definitions
+
+// Variables
+
+// Function Implementations
 /********************************** 原生函数定义 **********************************/
 /**
  * @brief 处理 JavaScript 的 print 调用

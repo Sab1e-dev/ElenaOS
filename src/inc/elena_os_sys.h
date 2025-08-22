@@ -45,7 +45,7 @@ void eos_sys_init();
  * @param value 要添加的设置项值（字符串）
  * @return 返回结果
  */
-ElenaOSResult_t eos_sys_add_config_item(const char *key, const char *value);
+eos_result_t eos_sys_add_config_item(const char *key, const char *value);
 #ifdef __cplusplus
 }
 #endif

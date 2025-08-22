@@ -10,7 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "elena_os_log.h"
 // Macros and Definitions
 
 // Variables
@@ -36,7 +36,7 @@ bool eos_is_file(const char *path)
     return false;
 }
 
-ElenaOSResult_t eos_mkdir_if_not_exist(const char *path, mode_t mode)
+eos_result_t eos_mkdir_if_not_exist(const char *path, mode_t mode)
 {
     if (!eos_is_dir(path))
     {
@@ -56,7 +56,7 @@ ElenaOSResult_t eos_mkdir_if_not_exist(const char *path, mode_t mode)
     return EOS_OK;
 }
 
-ElenaOSResult_t eos_create_file_if_not_exist(const char *path, const char *default_content) {
+eos_result_t eos_create_file_if_not_exist(const char *path, const char *default_content) {
     if (!eos_is_file(path)) {
         int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd == -EOS_ERR_FILE_ERROR) {
@@ -80,36 +80,27 @@ ElenaOSResult_t eos_create_file_if_not_exist(const char *path, const char *defau
     return EOS_OK;
 }
 
-int list_dir(const char *path) {
-    DIR *dir = opendir(path);
-    if (!dir) {
-        perror("opendir failed");
-        return -1;
-    }
+eos_result_t eos_create_dir_recursive(const char *path)
+{
+    char tmp[256];
+    char *p = NULL;
+    size_t len;
 
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        // 跳过 . 和 ..
-        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
-            continue;
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    len = strlen(tmp);
+    if (tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
 
-        printf("Found: %s", entry->d_name);
-
-        // 如果需要区分文件和目录，可以用 stat
-        char fullpath[256];
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
-
-        struct stat st;
-        if (stat(fullpath, &st) == 0) {
-            if (S_ISDIR(st.st_mode))
-                printf(" [DIR]");
-            else if (S_ISREG(st.st_mode))
-                printf(" [FILE]");
+    for (p = tmp + 1; *p; p++)
+    {
+        if (*p == '/')
+        {
+            *p = 0;
+            mkdir(tmp, 0755); // POSIX 创建目录
+            *p = '/';
         }
-
-        printf("\n");
     }
-
-    closedir(dir);
-    return 0;
+    mkdir(tmp, 0755); // 创建最后一级目录
+    return EOS_OK;
 }
+

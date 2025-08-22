@@ -10,7 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
-#include "elena_os_event.h" // 包含事件系统头文件
+#include "elena_os_event.h"
 #include "elena_os_log.h"
 #include "lvgl.h"
 

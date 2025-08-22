@@ -1,12 +1,12 @@
 /**
- * @file elena_os_app.h
- * @brief 应用系统
+ * @file elena_os_watch_face.h
+ * @brief 表盘
  * @author Sab1e
- * @date 2025-08-21
+ * @date 2025-08-22
  */
 
-#ifndef ELENA_OS_APP_H
-#define ELENA_OS_APP_H
+#ifndef ELENA_OS_WATCH_FACE_H
+#define ELENA_OS_WATCH_FACE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,7 +17,9 @@ extern "C" {
 #include <stdbool.h>
 
 /* Public macros ----------------------------------------------*/
-
+#define EOS_WATCHFACE_DIR EOS_SYS_DIR "wf/"
+#define EOS_WATCHFACE_INSTALLED_DIR EOS_WATCHFACE_DIR "faces/"
+#define EOS_WATCHFACE_DATA_DIR EOS_WATCHFACE_DIR "wf_data/"
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
@@ -26,4 +28,4 @@ extern "C" {
 }
 #endif
 
-#endif /* ELENA_OS_APP_H */
+#endif /* ELENA_OS_WATCH_FACE_H */

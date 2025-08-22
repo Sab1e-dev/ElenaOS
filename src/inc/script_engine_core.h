@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+/* Includes ---------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
 #include "lvgl.h"
@@ -22,7 +23,7 @@ extern "C" {
 typedef enum{
     SCRIPT_TYPE_UNKNOWN=0,
     SCRIPT_TYPE_APPLICATION=1,
-    SCRIPT_TYPE_WATCH_FACE=2
+    SCRIPT_TYPE_WATCHFACE=2
 }ScriptType_t;
 /**
  * @brief 函数入口链接结构体

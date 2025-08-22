@@ -21,6 +21,7 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 typedef enum {
     EOS_OK = 0,
+    EOS_FAILED,
     EOS_ERR_MEM,
     EOS_ERR_STACK_EMPTY,
     EOS_ERR_STACK_FULL,
@@ -31,14 +32,15 @@ typedef enum {
     EOS_ERR_BUSY,
     EOS_ERR_FILE_ERROR,
     EOS_ERR_JSON_ERROR,
+    EOS_ERR_VALUE_MISMATCH,
     EOS_ERR_UNKNOWN,
-}ElenaOSResult_t;
+} eos_result_t;
 /* Public function prototypes --------------------------------*/
 /**
  * @brief ElenaOS 入口函数
- * @return ElenaOSResult_t 返回运行结果
+ * @return eos_result_t 返回运行结果
  */
-ElenaOSResult_t eos_run();
+eos_result_t eos_run();
 #ifdef __cplusplus
 }
 #endif

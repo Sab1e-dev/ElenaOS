@@ -33,7 +33,7 @@
 
 // Function Implementations
 
-ElenaOSResult_t eos_run()
+eos_result_t eos_run()
 {
     eos_sys_init();
     eos_test_start();

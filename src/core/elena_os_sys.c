@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "lvgl.h"
 #include "cJSON.h"
 #include "elena_os_img.h"
@@ -25,13 +27,15 @@
 #include "elena_os_version.h"
 #include "elena_os_port.h"
 #include "elena_os_swipe_panel.h"
-
+#include "elena_os_app.h"
+#include "elena_os_watch_face.h"
+#include "elena_os_misc.h"
 // Macros and Definitions
 #define EOS_SYS_DEFAULT_LANG_STR "English"
 // Variables
 
 // Function Implementations
-ElenaOSResult_t _create_default_cfg_json(const char *path)
+eos_result_t _create_default_cfg_json(const char *path)
 {
     // 创建 JSON 对象
     cJSON *root = cJSON_CreateObject();
@@ -50,7 +54,7 @@ ElenaOSResult_t _create_default_cfg_json(const char *path)
     }
 
     // 写入文件
-    ElenaOSResult_t ret = eos_create_file_if_not_exist(path, json_str);
+    eos_result_t ret = eos_create_file_if_not_exist(path, json_str);
     
     // 释放内存
     cJSON_free(json_str);
@@ -64,9 +68,14 @@ void eos_sys_init()
     // 判断系统文件是否存在
     eos_mkdir_if_not_exist(EOS_SYS_DIR, 0755);
     eos_mkdir_if_not_exist(EOS_SYS_CONFIG_DIR, 0755);
+
     eos_mkdir_if_not_exist(EOS_APP_DIR, 0755);
-    eos_mkdir_if_not_exist(EOS_APP_PACKAGE_DIR, 0755);
+    eos_mkdir_if_not_exist(EOS_APP_INSTALLED_DIR, 0755);
     eos_mkdir_if_not_exist(EOS_APP_DATA_DIR, 0755);
+
+    eos_mkdir_if_not_exist(EOS_WATCHFACE_DIR, 0755);
+    eos_mkdir_if_not_exist(EOS_WATCHFACE_INSTALLED_DIR, 0755);
+    eos_mkdir_if_not_exist(EOS_WATCHFACE_DATA_DIR, 0755);
     // 如果系统文件不存在则创建
     if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
     {
@@ -89,7 +98,7 @@ void eos_sys_factory_reset()
     // eos_cpu_reset();
 }
 
-ElenaOSResult_t eos_sys_add_config_item(const char *key, const char *value)
+eos_result_t eos_sys_add_config_item(const char *key, const char *value)
 {
     if (!key || !value)
     {

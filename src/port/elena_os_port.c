@@ -17,12 +17,12 @@
 
 // Function Implementations
 
-void *eos_alloc(size_t size)
+void *eos_mem_alloc(size_t size)
 {
     return mem_mgr_alloc(size);
 }
 
-void eos_free(void *ptr)
+void eos_mem_free(void *ptr)
 {
     mem_mgr_free(ptr);
 }

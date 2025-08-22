@@ -59,7 +59,7 @@ static lv_obj_t *_nav_peek_prev(void);
 static bool _is_nav_stack_initialized(void);
 static bool _is_nav_stack_full(void);
 static bool _is_nav_stack_empty(void);
-ElenaOSResult_t eos_nav_back_clear(void);
+eos_result_t eos_nav_back_clear(void);
 
 /**
  * @brief 检查导航栈是否已初始化
@@ -105,7 +105,7 @@ static void _nav_gesture_back_cb(lv_event_t *e)
     }
 }
 
-ElenaOSResult_t eos_nav_init(lv_obj_t *root_scr)
+eos_result_t eos_nav_init(lv_obj_t *root_scr)
 {
     if (!root_scr)
     {
@@ -178,7 +178,7 @@ lv_obj_t *eos_nav_scr_create(void)
     return scr;
 }
 
-ElenaOSResult_t eos_nav_clear_stack(void)
+eos_result_t eos_nav_clear_stack(void)
 {
     if (nav_busy)
     {
@@ -220,7 +220,7 @@ ElenaOSResult_t eos_nav_clear_stack(void)
     return EOS_OK;
 }
 
-ElenaOSResult_t eos_nav_back_clear(void)
+eos_result_t eos_nav_back_clear(void)
 {
     NAV_BUSY_CHECK();
 
@@ -264,7 +264,7 @@ ElenaOSResult_t eos_nav_back_clear(void)
     return EOS_OK;
 }
 
-ElenaOSResult_t eos_nav_back(void)
+eos_result_t eos_nav_back(void)
 {
     NAV_BUSY_CHECK();
 
