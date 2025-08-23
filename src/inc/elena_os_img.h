@@ -16,7 +16,9 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include "lvgl.h"
+#include "elena_os_sys.h"
 /* Public macros ----------------------------------------------*/
+#define EOS_IMG_APP EOS_SYS_RES_IMG_DIR "app.bin"
 
 /* Public typedefs --------------------------------------------*/
 

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "elena_os_log.h"
+#include "elena_os_port.h"
 // Macros and Definitions
 
 // Variables
@@ -56,18 +57,23 @@ eos_result_t eos_mkdir_if_not_exist(const char *path, mode_t mode)
     return EOS_OK;
 }
 
-eos_result_t eos_create_file_if_not_exist(const char *path, const char *default_content) {
-    if (!eos_is_file(path)) {
+eos_result_t eos_create_file_if_not_exist(const char *path, const char *default_content)
+{
+    if (!eos_is_file(path))
+    {
         int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (fd == -EOS_ERR_FILE_ERROR) {
+        if (fd == -EOS_ERR_FILE_ERROR)
+        {
             EOS_LOG_E("open %s failed, errno=%d", path, errno);
             return -EOS_ERR_FILE_ERROR;
         }
 
-        if (default_content) {
+        if (default_content)
+        {
             ssize_t len = strlen(default_content);
             ssize_t written = write(fd, default_content, len);
-            if (written != len) {
+            if (written != len)
+            {
                 EOS_LOG_E("write %s failed, written=%zd, errno=%d", path, written, errno);
                 close(fd);
                 return -EOS_ERR_FILE_ERROR;
@@ -104,3 +110,109 @@ eos_result_t eos_create_dir_recursive(const char *path)
     return EOS_OK;
 }
 
+eos_result_t eos_rm_recursive(const char *path)
+{
+    struct stat st;
+    if (stat(path, &st) != 0)
+    {
+        EOS_LOG_E("stat failed: %s, errno=%d\n", path, errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    if (S_ISDIR(st.st_mode))
+    {
+        DIR *dir = opendir(path);
+        if (!dir)
+        {
+            EOS_LOG_E("opendir failed: %s, errno=%d\n", path, errno);
+            return -EOS_ERR_FILE_ERROR;
+        }
+
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            // 忽略 “.” 和 “..”
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+
+            char full_path[256];
+            snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+            if (eos_rm_recursive(full_path) != EOS_OK)
+            {
+                closedir(dir);
+                return -EOS_ERR_FILE_ERROR;
+            }
+        }
+        closedir(dir);
+
+        // 删除空目录
+        if (rmdir(path) != 0)
+        {
+            EOS_LOG_E("rmdir failed: %s, errno=%d\n", path, errno);
+            return -EOS_ERR_FILE_ERROR;
+        }
+    }
+    else
+    {
+        // 删除文件
+        if (unlink(path) != 0)
+        {
+            EOS_LOG_E("unlink failed: %s, errno=%d\n", path, errno);
+            return -EOS_ERR_FILE_ERROR;
+        }
+    }
+    return EOS_OK;
+}
+
+bool eos_is_valid_filename(const char *name)
+{
+    if (!name || name[0] == '\0')
+    {
+        EOS_LOG_E("Filename NULL");
+        return false; // 空名不行
+    }
+
+    const char *invalid_chars = "/\\:*?\"<>|";
+
+    for (const char *p = name; *p; p++)
+    {
+        // 控制字符不允许
+        if ((unsigned char)*p < 32)
+        {
+            EOS_LOG_E("Filename control char");
+            return false;
+        }
+        // 特殊字符不允许
+        if (strchr(invalid_chars, *p))
+        {
+            EOS_LOG_E("Filename invalid char");
+            return false;
+        }
+    }
+    return true; // 合法
+}
+
+char *eos_read_file(const char *filename)
+{
+    FILE *fp = fopen(filename, "rb");
+    if (!fp)
+    {
+        perror("fopen");
+        return NULL;
+    }
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    rewind(fp);
+
+    char *data = (char *)eos_mem_alloc(size + 1);
+    if (!data)
+    {
+        fclose(fp);
+        return NULL;
+    }
+    fread(data, 1, size, fp);
+    data[size] = '\0'; // 记得结尾加0
+    fclose(fp);
+    return data;
+}

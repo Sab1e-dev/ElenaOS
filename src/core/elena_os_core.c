@@ -27,6 +27,7 @@
 #include "elena_os_port.h"
 #include "elena_os_swipe_panel.h"
 #include "elena_os_sys.h"
+#include "elena_os_app.h"
 // Macros and Definitions
 
 // Variables
@@ -35,6 +36,7 @@
 
 eos_result_t eos_run()
 {
+    eos_app_init();
     eos_sys_init();
     eos_test_start();
 }

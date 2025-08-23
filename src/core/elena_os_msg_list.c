@@ -14,6 +14,7 @@
 #include "elena_os_lang.h"
 #include "elena_os_anim.h"
 #include "elena_os_log.h"
+#include "elena_os_img.h"
 // Macros and Definitions
 #define MSG_LIST_ITEM_MARGIN_BOTTOM 25
 #define SCREEN_W lv_disp_get_hor_res(NULL)
@@ -410,19 +411,14 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
     );
 
     // 添加图标区域（复制原消息项的图标）
-    lv_obj_t *icon_area = lv_obj_create(detail_container);
-    lv_obj_set_size(icon_area, 80, 80);
-    lv_obj_set_style_bg_opa(icon_area, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(icon_area, 0, 0);
-
-    // 复制原消息项的图标
-    lv_obj_t *original_icon = lv_obj_get_child(item->icon_area, 0);
+    lv_obj_t *original_icon = item->icon;
     if (original_icon)
     {
-        lv_obj_t *new_icon = lv_img_create(icon_area);
-        lv_img_set_src(new_icon, lv_img_get_src(original_icon));
-        lv_obj_center(new_icon);
-        lv_obj_remove_flag(new_icon, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_t *icon = lv_image_create(detail_container);
+        lv_obj_set_size(icon, 80, 80);
+        lv_obj_set_style_border_width(icon, 0, 0);
+        lv_img_set_src(icon, lv_img_get_src(original_icon));
+        lv_obj_remove_flag(icon, LV_OBJ_FLAG_SCROLLABLE);
     }
 
     // 添加标题（复制原消息项的标题）
@@ -515,18 +511,19 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     lv_obj_remove_flag(item->row1, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_align(item->row1, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_BETWEEN);
     // 图标区域
-    item->icon_area = lv_obj_create(item->row1);
-    lv_obj_set_size(item->icon_area, 60, 60);
-    lv_obj_set_style_bg_opa(item->icon_area, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(item->icon_area, 0, 0);
-    lv_obj_set_flex_align(item->icon_area, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_remove_flag(item->icon_area, LV_OBJ_FLAG_SCROLLABLE);
+    item->icon = lv_image_create(item->row1);
+    lv_obj_set_size(item->icon, 64, 64);
+    lv_obj_set_style_bg_opa(item->icon, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(item->icon, 0, 0);
+    lv_obj_set_flex_align(item->icon, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(item->icon, LV_OBJ_FLAG_SCROLLABLE);
+    eos_img_set_src(item->icon, EOS_IMG_APP);
 
     // 标题
     item->title_label = lv_label_create(item->row1);
     lv_obj_set_style_text_color(item->title_label, lv_color_white(), 0);
     lv_label_set_long_mode(item->title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_align_to(item->title_label, item->icon_area, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
+    lv_obj_align_to(item->title_label, item->icon, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
 
     // 时间
     item->time_label = lv_label_create(item->row1);
@@ -544,7 +541,7 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 
     // 设置忽略事件，避免影响 container 的 Clicked 事件
     lv_obj_add_flag(item->row1, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(item->icon_area, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(item->icon, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->title_label, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->time_label, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(item->msg_label, LV_OBJ_FLAG_EVENT_BUBBLE);
@@ -634,31 +631,10 @@ void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time)
     lv_label_set_text(item->time_label, time ? time : "");
 }
 
-void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj)
+void eos_msg_list_item_icon_set_src(msg_list_item_t *item, const char *src)
 {
-    EOS_CHECK_PTR_RETURN(item);
-    // 移除原有图标对象
-    lv_obj_t *old_icon = lv_obj_get_child(item->icon_area, 0);
-    if (old_icon)
-    {
-        lv_obj_del(old_icon);
-    }
-
-    // 将新图标添加到容器中
-    lv_obj_set_parent(icon_obj, item->icon_area);
-    lv_obj_center(icon_obj);
-}
-
-void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *icon_dsc)
-{
-    EOS_CHECK_PTR_RETURN(item && icon_dsc);
-    lv_obj_t *img = lv_img_create(item->icon_area);
-    lv_img_set_src(item->icon_area, icon_dsc);
-    lv_obj_center(img);
-    /**
-     * TODO: 设置默认图标
-     */
-    // lv_img_set_src(item->icon_img, icon_dsc ? icon_dsc : &lv_img_dsc_default);
+    EOS_CHECK_PTR_RETURN(item && src);
+    eos_img_set_src(item->icon, src);
 }
 
 void eos_msg_list_clear_all(msg_list_t *msg_list)
@@ -797,13 +773,15 @@ void eos_msg_list_delete(msg_list_t *list)
     eos_msg_list_clear_all(list);
 
     // 删除无消息标签
-    if (list->no_msg_label) {
+    if (list->no_msg_label)
+    {
         lv_obj_del(list->no_msg_label);
         list->no_msg_label = NULL;
     }
 
     // 删除滑动面板（会自动删除内部所有对象）
-    if (list->swipe_panel) {
+    if (list->swipe_panel)
+    {
         eos_swipe_panel_delete(list->swipe_panel);
         list->swipe_panel = NULL;
     }
@@ -816,7 +794,7 @@ static void _msg_list_deleted_cb(lv_event_t *e)
 {
     msg_list_t *list = (msg_list_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(list);
-    
+
     // 调用清理函数
     eos_msg_list_delete(list);
 }
@@ -825,7 +803,7 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 {
     msg_list_t *list = lv_mem_alloc(sizeof(msg_list_t));
     EOS_CHECK_PTR_RETURN_VAL_FREE(list, NULL, list);
-
+    detail_flag = false;
     memset(list, 0, sizeof(msg_list_t));
 
     list->swipe_panel = eos_swipe_panel_create(parent);

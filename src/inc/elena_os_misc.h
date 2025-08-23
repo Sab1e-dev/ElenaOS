@@ -56,6 +56,20 @@ eos_result_t eos_create_file_if_not_exist(const char *path, const char *default_
  * @return eos_result_t 创建结果
  */
 eos_result_t eos_create_dir_recursive(const char *path);
+
+/**
+ * @brief 递归删除目录
+ * @param path 目标目录
+ * @return eos_result_t 删除结果 
+ */
+eos_result_t eos_rm_recursive(const char *path);
+/**
+ * @brief 是否为有效的文件名
+ * @param name 文件名称
+ * @return eos_result_t 判断结果
+ */
+bool eos_is_valid_filename(const char *name);
+char *eos_read_file(const char *filename);
 #ifdef __cplusplus
 }
 #endif

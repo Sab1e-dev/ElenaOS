@@ -28,6 +28,7 @@
 #include "elena_os_base_item.h"
 #include "elena_os_event.h"
 #include "elena_os_port.h"
+#include "elena_os_app_list.h"
 // Macros and Definitions
 // #define TEST_USE_ZH_FONT
 #ifdef TEST_USE_ZH_FONT
@@ -60,18 +61,12 @@ static void _test_msg_list_cb(lv_event_t *e)
     eos_msg_list_item_set_msg(item, message);
     eos_msg_list_item_set_time(item, "12:30");
 
-    lv_obj_t *icon = lv_img_create(lv_scr_act());
-    eos_img_set_src(icon, "/wx.bin");
-    eos_msg_list_item_set_icon_obj(item, icon);
+    eos_msg_list_item_icon_set_src(item,  "/wx.bin");
 
     msg_list_item_t *item1 = eos_msg_list_item_create(msg_list);
     eos_msg_list_item_set_title(item1, "QQ");
     eos_msg_list_item_set_msg(item1, message);
     eos_msg_list_item_set_time(item1, "21:00");
-
-    // lv_obj_t *icon1 = lv_img_create(lv_scr_act());
-    // eos_img_set_src(icon1, "/wx.bin");
-    // eos_msg_list_item_set_icon_obj(item1, icon);
 }
 
 static void _test_msg_list()
@@ -229,7 +224,7 @@ static void _test_image()
 {
     _create_new_scr();
     // 创建图片对象但不设置源
-    img = lv_img_create(lv_scr_act());
+    img = lv_image_create(lv_scr_act());
     lv_obj_center(img);
     lv_obj_move_background(img);
     
@@ -250,7 +245,7 @@ static void _test_image()
 }
 
 static void _test_app_list(){
-    
+    eos_app_list_create();
 }
 
 void eos_test_start(void)
@@ -273,7 +268,7 @@ void eos_test_start(void)
 
     // lv_display_set_render_mode(disp, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // lv_obj_t *img = lv_img_create(lv_scr_act());
+    // lv_obj_t *img = lv_image_create(lv_scr_act());
     // eos_img_set_src(img, "/bg.bin");
     // lv_obj_center(img);
     // lv_obj_move_background(img);
@@ -301,6 +296,9 @@ void eos_test_start(void)
     // 测试图像显示
     btn = lv_list_add_button(test_list, LV_SYMBOL_IMAGE, "Image");
     lv_obj_add_event_cb(btn, _test_image, LV_EVENT_CLICKED, NULL);
+    // 测试应用列表
+    btn = lv_list_add_button(test_list, LV_SYMBOL_DRIVE, "App List");
+    lv_obj_add_event_cb(btn, _test_app_list, LV_EVENT_CLICKED, NULL);
 
     while (1)
     {

@@ -21,7 +21,7 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-
+void eos_app_list_create();
 #ifdef __cplusplus
 }
 #endif

@@ -1,8 +1,13 @@
 /**
  * @file elena_os_sys.c
- * @brief 系统
+ * @brief 系统设置
  * @author Sab1e
  * @date 2025-08-21
+ */
+
+/**
+ * TODO:
+ * 应用列表详情页
  */
 
 #include "elena_os_sys.h"
@@ -76,6 +81,9 @@ void eos_sys_init()
     eos_mkdir_if_not_exist(EOS_WATCHFACE_DIR, 0755);
     eos_mkdir_if_not_exist(EOS_WATCHFACE_INSTALLED_DIR, 0755);
     eos_mkdir_if_not_exist(EOS_WATCHFACE_DATA_DIR, 0755);
+
+    eos_mkdir_if_not_exist(EOS_SYS_RES_DIR, 0755);
+    eos_mkdir_if_not_exist(EOS_SYS_RES_IMG_DIR, 0755);
     // 如果系统文件不存在则创建
     if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
     {
@@ -191,4 +199,115 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
 
     EOS_LOG_I("Successfully added new config item: %s=%s", key, value);
     return EOS_OK;
+}
+
+
+static void _sys_app_list_btn_cb(lv_event_t *e)
+{
+    const char *app_id = (const char *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(app_id);
+
+    // 创建新的页面用于绘制应用详情页
+    lv_obj_t *scr = eos_nav_scr_create();
+    lv_screen_load(scr);
+
+    // 获取清单文件
+    char manifest_path[PATH_MAX];
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
+             app_id);
+    char *manifest_json = eos_read_file(manifest_path);
+    if (!manifest_json)
+    {
+        EOS_LOG_E("Read manifest.json failed");
+        return;
+    }
+    // 获取根节点
+    cJSON *root = cJSON_Parse(manifest_json);
+    eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+    if (!root)
+    {
+        EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
+        return;
+    }
+
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
+    if (!cJSON_IsString(name) || name->valuestring == NULL)
+    {
+        EOS_LOG_E("Get \"name\" failed");
+        cJSON_Delete(root);
+        return;
+    }
+    EOS_LOG_I("name = %s\n", name->valuestring);
+
+    lv_obj_t *label = lv_label_create(scr);
+    lv_label_set_text(label, name->valuestring);
+    lv_obj_center(label);
+    cJSON_Delete(root);
+}
+/**
+ * @brief 系统设置中的应用列表
+ */
+void eos_sys_app_list_create()
+{
+    // 创建新的页面用于绘制应用列表
+    lv_obj_t *scr = eos_nav_scr_create();
+    lv_screen_load(scr);
+
+    lv_obj_t *app_list = lv_list_create(scr);
+    lv_obj_set_size(app_list, lv_pct(100), lv_pct(100));
+
+    size_t app_list_size = eos_app_list_size();
+    for (size_t i = 0; i < app_list_size; i++)
+    {
+        char icon_path[PATH_MAX];
+        snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+                 eos_app_list_get_id(i));
+        if (!eos_is_file(icon_path))
+        {
+            memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
+        }
+        EOS_LOG_D("Icon: %s", icon_path);
+
+        // 获取清单文件
+        char manifest_path[PATH_MAX];
+        snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
+                 eos_app_list_get_id(i));
+        char *manifest_json = eos_read_file(manifest_path);
+        if (!manifest_json)
+        {
+            EOS_LOG_E("Read manifest.json failed");
+            return;
+        }
+        // 获取根节点
+        cJSON *root = cJSON_Parse(manifest_json);
+        eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+        if (!root)
+        {
+            EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
+            return;
+        }
+
+        cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
+        if (!cJSON_IsString(name) || name->valuestring == NULL)
+        {
+            EOS_LOG_E("Get \"name\" failed");
+            cJSON_Delete(root);
+            return;
+        }
+        EOS_LOG_I("name = %s\n", name->valuestring);
+
+        // lv_obj_t *label = lv_label_create(scr);
+        // lv_label_set_text(label, name->valuestring);
+        // lv_obj_center(label);
+        lv_obj_t *btn = eos_list_add_button(app_list, icon_path, name->valuestring);
+        lv_obj_add_event_cb(btn, _sys_app_list_btn_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
+        cJSON_Delete(root);
+    }
+}
+
+/**
+ * @brief 系统设置页面
+ */
+void eos_sys_create(){
+
 }

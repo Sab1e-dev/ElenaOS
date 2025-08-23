@@ -46,7 +46,7 @@ typedef struct {
  * @brief 消息列表项结构体
  * 层级结构：
  * container{
- * row1[icon_area title_label   time_label]
+ * row1[icon title_label   time_label]
  *      msg_label
  * }
  */
@@ -54,11 +54,11 @@ typedef struct {
     msg_list_t *msg_list;
     lv_obj_t *container;
     lv_obj_t *row1;
-    lv_obj_t *icon_area;
+    lv_obj_t *icon;
     lv_obj_t *title_label;
     lv_obj_t *msg_label;
     lv_obj_t *time_label;
-    char *msg_str;     /**< 消息字符串 */
+    const char *msg_str;     /**< 消息字符串 */
     swipe_data_t swipe_data;
     bool is_deleted;
     lv_point_t press_pos;
@@ -117,20 +117,12 @@ void eos_msg_list_item_set_title(msg_list_item_t *item, const char *title);
  * @param time 消息接收时间字符串（例：“12:30”、“一小时前”）
  */
 void eos_msg_list_item_set_time(msg_list_item_t *item, const char *time);
-
 /**
  * @brief 设置图标
  * @param item 目标消息项
- * @param icon_dsc LVGL 图片描述符
+ * @param src 图像源
  */
-void eos_msg_list_item_set_icon_dsc(msg_list_item_t *item, const lv_img_dsc_t *icon_dsc);
-
-/**
- * @brief 设置图标
- * @param item 目标消息项
- * @param icon_obj LVGL 图片对象指针
- */
-void eos_msg_list_item_set_icon_obj(msg_list_item_t *item, lv_obj_t *icon_obj);
+void eos_msg_list_item_icon_set_src(msg_list_item_t *item, const char *src);
 /**
  * @brief 删除消息列表
  * @param list 目标列表

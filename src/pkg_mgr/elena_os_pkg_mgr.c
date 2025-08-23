@@ -14,7 +14,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
-#include <ftw.h>
 #include "elena_os_misc.h"
 #include "elena_os_port.h"
 #include "elena_os_log.h"
@@ -23,6 +22,86 @@
 // Variables
 
 // Function Implementations
+
+eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
+{
+    // 打开包文件
+    int fd = open(pkg_path, O_RDONLY);
+    if (fd < 0)
+    {
+        EOS_LOG_E("Failed to open package file: %s", pkg_path);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 初始化包头结构体
+    memset(header, 0, sizeof(eos_pkg_header_t));
+
+    // 读取magic
+    if (lseek(fd, EOS_PKG_MAGIC_OFFSET, SEEK_SET) == -1 ||
+        read(fd, header->magic, 4) != 4)
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read magic number");
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 读取pkg_name
+    if (lseek(fd, EOS_PKG_NAME_OFFSET, SEEK_SET) == -1 ||
+        read(fd, header->pkg_name, EOS_PKG_NAME_LEN_MAX) != EOS_PKG_NAME_LEN_MAX)
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read package name");
+        return -EOS_ERR_FILE_ERROR;
+    }
+    header->pkg_name[EOS_PKG_NAME_LEN_MAX - 1] = '\0';
+
+    // 读取pkg_id
+    if (lseek(fd, EOS_PKG_ID_OFFSET, SEEK_SET) == -1 ||
+        read(fd, header->pkg_id, EOS_PKG_ID_LEN_MAX) != EOS_PKG_ID_LEN_MAX)
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read package name");
+        return -EOS_ERR_FILE_ERROR;
+    }
+    header->pkg_id[EOS_PKG_ID_LEN_MAX - 1] = '\0';
+
+    // 读取pkg_version
+    if (lseek(fd, EOS_PKG_VERSION_OFFSET, SEEK_SET) == -1 ||
+        read(fd, header->pkg_version, EOS_PKG_VERSION_LEN_MAX) != EOS_PKG_VERSION_LEN_MAX)
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read package version");
+        return -EOS_ERR_FILE_ERROR;
+    }
+    header->pkg_version[EOS_PKG_VERSION_LEN_MAX - 1] = '\0';
+
+    // 读取file_count
+    if (lseek(fd, EOS_PKG_FILE_COUNT_OFFSET, SEEK_SET) == -1 ||
+        read(fd, &header->file_count, sizeof(uint32_t)) != sizeof(uint32_t))
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read file count");
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 读取reserved字段
+    if (lseek(fd, EOS_PKG_RESERVED_OFFSET, SEEK_SET) == -1 ||
+        read(fd, &header->reserved, sizeof(uint32_t)) != sizeof(uint32_t))
+    {
+        close(fd);
+        EOS_LOG_E("Failed to read reserved field");
+        return -EOS_ERR_FILE_ERROR;
+    }
+    close(fd);
+    EOS_LOG_D("[PKG_MGR]====================\n"
+              "Magic: %s | Pkg Name: %s | Pkg Version: %s\n"
+              "File Count: %d | Table Offset: %d\n"
+              "=============================",
+              header->magic, header->pkg_name,
+              header->pkg_version, header->file_count,
+              EOS_PKG_HEADER_LENGTH);
+    return EOS_OK;
+}
 
 eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, const script_pkg_type_t pkg_type)
 {
@@ -36,60 +115,12 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
     // 读取包头
     eos_pkg_header_t header;
-    memset(&header, 0, sizeof(header));
-
-    // 读取magic
-    if (lseek(fd, EOS_PKG_MAGIC_OFFSET, SEEK_SET) == -1 ||
-        read(fd, header.magic, 4) != 4)
+    if (eos_pkg_read_header(pkg_path, &header) != EOS_OK)
     {
-        close(fd);
-        EOS_LOG_E("Failed to read magic number");
-        return -EOS_ERR_FILE_ERROR;
+        EOS_LOG_E("Failed to read header");
+        return -EOS_FAILED;
     }
 
-    // 读取pkg_name
-    if (lseek(fd, EOS_PKG_NAME_OFFSET, SEEK_SET) == -1 ||
-        read(fd, header.pkg_name, EOS_PKG_NAME_LEN_MAX) != EOS_PKG_NAME_LEN_MAX)
-    {
-        close(fd);
-        EOS_LOG_E("Failed to read package name");
-        return -EOS_ERR_FILE_ERROR;
-    }
-    header.pkg_name[EOS_PKG_NAME_LEN_MAX-1] = '\0';
-
-    // 读取pkg_version
-    if (lseek(fd, EOS_PKG_VERSION_OFFSET, SEEK_SET) == -1 ||
-        read(fd, header.pkg_version, EOS_PKG_VERSION_LEN_MAX) != EOS_PKG_VERSION_LEN_MAX)
-    {
-        close(fd);
-        EOS_LOG_E("Failed to read package version");
-        return -EOS_ERR_FILE_ERROR;
-    }
-    header.pkg_version[EOS_PKG_VERSION_LEN_MAX-1] = '\0';
-
-    // 读取file_count
-    if (lseek(fd, EOS_PKG_FILE_COUNT_OFFSET, SEEK_SET) == -1 ||
-        read(fd, &header.file_count, sizeof(uint32_t)) != sizeof(uint32_t))
-    {
-        close(fd);
-        EOS_LOG_E("Failed to read file count");
-        return -EOS_ERR_FILE_ERROR;
-    }
-
-    // 读取reserved (虽然不使用，但为了完整性)
-    if (lseek(fd, EOS_PKG_RESERVED_OFFSET, SEEK_SET) == -1 ||
-        read(fd, &header.reserved, sizeof(uint32_t)) != sizeof(uint32_t))
-    {
-        close(fd);
-        EOS_LOG_E("Failed to read reserved field");
-        return -EOS_ERR_FILE_ERROR;
-    }
-
-    EOS_LOG_D("[PKG_MGR]====================\n"
-        "Magic: %s | Pkg Name: %s | Pkg Version: %s\n"
-        "File Count: %d | Table Offset: %d"
-        ,header.magic,header.pkg_name,header.pkg_version
-        ,header.file_count, EOS_PKG_HEADER_LENGTH);
     // 校验魔数
     script_pkg_type_t unpack_type = SCRIPT_TYPE_UNKNOWN;
     if (memcmp(header.magic, EOS_PKG_APP_MAGIC, 4) == 0)
@@ -117,14 +148,16 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
     // 获取文件大小
     off_t file_size = lseek(fd, 0, SEEK_END);
-    if (file_size == -1) {
+    if (file_size == -1)
+    {
         close(fd);
         EOS_LOG_E("Failed to get file size");
         return -EOS_ERR_FILE_ERROR;
     }
 
     // 定位到文件表位置 (紧接在文件头之后)
-    if (lseek(fd, EOS_PKG_TABLE_OFFSET, SEEK_SET) == -1) {
+    if (lseek(fd, EOS_PKG_TABLE_OFFSET, SEEK_SET) == -1)
+    {
         close(fd);
         EOS_LOG_E("Failed to seek to file table at offset %u", EOS_PKG_TABLE_OFFSET);
         return -EOS_ERR_FILE_ERROR;
@@ -143,14 +176,16 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
     {
         // 读取文件名长度
         uint32_t name_len;
-        if (read(fd, &name_len, sizeof(uint32_t)) != sizeof(uint32_t)) {
+        if (read(fd, &name_len, sizeof(uint32_t)) != sizeof(uint32_t))
+        {
             close(fd);
             EOS_LOG_E("Failed to read name length for entry %u", i);
             return -EOS_ERR_FILE_ERROR;
         }
-        
+
         // 检查文件名长度是否合理
-        if (name_len > PATH_MAX) {
+        if (name_len > PATH_MAX)
+        {
             close(fd);
             EOS_LOG_E("Name length %u too long for entry %u", name_len, i);
             return -EOS_ERR_FILE_ERROR;
@@ -158,14 +193,16 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
         // 动态分配内存
         char *name = (char *)malloc(name_len + 1);
-        if (!name) {
+        if (!name)
+        {
             close(fd);
             EOS_LOG_E("Memory allocation failed for entry %u", i);
             return -EOS_ERR_MEM;
         }
-        
+
         // 读取文件名
-        if (read(fd, name, name_len) != name_len) {
+        if (read(fd, name, name_len) != name_len)
+        {
             free(name);
             close(fd);
             EOS_LOG_E("Failed to read name for entry %u", i);
@@ -204,17 +241,19 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         else
         {
             // 验证文件偏移量和大小
-            if (offset < EOS_PKG_TABLE_OFFSET || offset >= file_size) {
+            if (offset < EOS_PKG_TABLE_OFFSET || offset >= file_size)
+            {
                 free(name);
                 close(fd);
                 EOS_LOG_E("Invalid file offset: %u for %s", offset, name);
                 return -EOS_ERR_FILE_ERROR;
             }
-            
-            if (offset + size > file_size) {
+
+            if (offset + size > file_size)
+            {
                 free(name);
                 close(fd);
-                EOS_LOG_E("File size overflow: %u+%u=%u for %s", 
+                EOS_LOG_E("File size overflow: %u+%u=%u for %s",
                           offset, size, offset + size, name);
                 return -EOS_ERR_FILE_ERROR;
             }
@@ -246,7 +285,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
             // 保存当前位置，稍后返回
             off_t current_pos = lseek(fd, 0, SEEK_CUR);
-            
+
             // 定位到文件数据
             if (lseek(fd, offset, SEEK_SET) == -1)
             {
@@ -285,9 +324,10 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
             fclose(out_fp);
             EOS_LOG_D("Created file: %s (size: %u bytes)", full_path, size);
-            
+
             // 返回到文件表位置继续读取下一个条目
-            if (lseek(fd, current_pos, SEEK_SET) == -1) {
+            if (lseek(fd, current_pos, SEEK_SET) == -1)
+            {
                 free(name);
                 close(fd);
                 EOS_LOG_E("Failed to return to file table");

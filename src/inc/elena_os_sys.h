@@ -30,6 +30,9 @@ extern "C" {
 #define EOS_SYS_CONFIG_DIR EOS_SYS_DIR "config/"
 #define EOS_SYS_CONFIG_FILE_PATH EOS_SYS_CONFIG_DIR "cfg.json"
 
+#define EOS_SYS_RES_DIR EOS_SYS_DIR "res/"
+#define EOS_SYS_RES_IMG_DIR EOS_SYS_RES_DIR "img/"
+
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/

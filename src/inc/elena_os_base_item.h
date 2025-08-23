@@ -29,6 +29,7 @@ extern "C" {
  * @return lv_obj_t* 创建成功则返回 btn 对象，否则返回 NULL
  */
 lv_obj_t *eos_back_btn_create(lv_obj_t *parent, bool show_text);
+lv_obj_t * eos_list_add_button(lv_obj_t * list, const void * icon, const char * txt);
 #ifdef __cplusplus
 }
 #endif
