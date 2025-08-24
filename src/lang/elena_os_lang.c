@@ -28,7 +28,8 @@ const char *lang_en[SYS_STR_ID_MAX] = {
     [STR_ID_MSG_LIST_NO_MSG] = "No notifications",
     [STR_ID_MSG_LIST_ITEM_MARK_AS_READ] = "Mark as read",
     [STR_ID_BASE_ITEM_BACK] = LV_SYMBOL_LEFT "Back",
-    [STR_ID_TEST_LANG_STR] = "On a late-summer afternoon, the wind set the chimes on the balcony jingling, like some unintentional signal."
+    [STR_ID_TEST_LANG_STR] = "On a late-summer afternoon, the wind set the chimes on the balcony jingling, like some unintentional signal.",
+    [STR_ID_SCRIPT_RUN_ERR] = "The script encountered a fatal error during runtime",
     // 在此添加新的字符串ID和英文翻译
 };
 
@@ -44,11 +45,12 @@ const char *lang_zh[SYS_STR_ID_MAX] = {
     [STR_ID_MSG_LIST_NO_MSG] = "没有消息",
     [STR_ID_MSG_LIST_ITEM_MARK_AS_READ] = "标记为已读",
     [STR_ID_BASE_ITEM_BACK] = LV_SYMBOL_LEFT "返回",
-    [STR_ID_TEST_LANG_STR] = "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。"
+    [STR_ID_TEST_LANG_STR] = "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。",
+    [STR_ID_SCRIPT_RUN_ERR] = "脚本在运行时遇到了致命错误"
     // 在此添加新的字符串ID和中文翻译
 };
 
-const char **current_lang = NULL;    // 当前语言指针
+const char **current_lang = NULL;     // 当前语言指针
 static bool lang_initialized = false; // 语言系统初始化标志
 
 // 函数声明
@@ -98,7 +100,8 @@ language_id_t eos_lang_get(void)
     }
 }
 
-char *eos_lang_get_language_str(void){
+char *eos_lang_get_language_str(void)
+{
     return current_lang[STR_ID_LANGUAGE];
 }
 
@@ -113,7 +116,6 @@ static void lang_event_cb(lv_event_t *e)
         EOS_LOG_E("No id for label");
         return;
     }
-
 
     if (id < SYS_STR_ID_MAX && current_lang && current_lang[id])
     {
@@ -143,7 +145,7 @@ lv_obj_t *eos_lang_label_create(lv_obj_t *parent, uint32_t str_id)
     }
 
     // 使用事件系统注册回调
-    eos_event_add_cb(label, lang_event_cb, LV_EVENT_REFRESH, (void*)str_id);
+    eos_event_add_cb(label, lang_event_cb, LV_EVENT_REFRESH, (void *)str_id);
 
     return label;
 }

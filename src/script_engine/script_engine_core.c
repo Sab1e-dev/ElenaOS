@@ -15,22 +15,24 @@
 #include "script_engine_core.h"
 
 // Includes
-#include "script_engine_native_func.h"
-// lv_bindings
-#include "lv_bindings.h"
-#include "lv_bindings_misc.h"
-// std
 #include <string.h>
 #include <stdio.h>
 #include <stdatomic.h>
-
+#include "lvgl.h"
+#include "lv_bindings.h"
+#include "lv_bindings_misc.h"
+#include "elena_os_port.h"
+#include "script_engine_nav.h"
+#include "script_engine_native_func.h"
+#include "elena_os_log.h"
 // Macros and Definitions
 
 // Variables
-static bool js_vm_initialized = false;          // 是否已初始化 VM 标志位
-static atomic_bool should_terminate = ATOMIC_VAR_INIT(false);    // 请求终止脚本标志位
-static atomic_bool script_released = ATOMIC_VAR_INIT(true);      // 脚本释放标志位
-
+static bool js_vm_initialized = false;                        // 是否已初始化 VM 标志位
+static atomic_bool should_terminate = ATOMIC_VAR_INIT(false); // 请求终止脚本标志位
+static script_state_t script_state = SCRIPT_STATE_STOPPED;
+static bool is_terminated_by_req = false;
+extern atomic_bool timer_handler_lock;
 // Function Implementations
 /**
  * @brief VM 终止运行回调
@@ -40,11 +42,13 @@ static jerry_value_t _script_engine_vm_exec_stop_callback(void *user_p)
     (void)user_p; // 不使用参数
     if (should_terminate)
     {
-        if (lv_is_initialized()){
+        if (lv_is_initialized())
+        {
             lv_obj_clean(lv_scr_act());
         }
         atomic_store(&should_terminate, false);
-        printf("Script execution stopped by request.\n");
+        is_terminated_by_req = true;
+        EOS_LOG_D("Script execution stopped by request.\n");
         return jerry_string_sz("Script terminated by request");
     }
 
@@ -58,16 +62,26 @@ void _request_script_termination(void)
     atomic_store(&should_terminate, true);
 }
 
-script_engine_result_t script_engine_request_stop()
+script_state_t script_engine_get_state(void)
+{
+    return script_state;
+}
+
+bool script_engine_request_ready(void)
+{
+    if (script_state != SCRIPT_STATE_STOPPED)
+    {
+        return false;
+    }
+    script_state = SCRIPT_STATE_READY;
+    return true;
+}
+
+script_engine_result_t script_engine_request_stop(void)
 {
     if (js_vm_initialized)
     {
         _request_script_termination();
-        while (atomic_load(&script_released) == false)
-            ; // 自旋等待脚本结束
-        js_vm_initialized = false;
-        atomic_store(&should_terminate, false);
-        printf("Current script stopped.\n");
         return SE_OK;
     }
     return -SE_ERR_SCRIPT_NOT_RUNNING;
@@ -113,11 +127,11 @@ jerry_value_t _script_engine_create_info(const script_pkg_t *script_package)
 
     jerry_value_t key, val;
 
-#define SET_PROP(field)                                      \
-    key = jerry_string_sz((const jerry_char_t *)#field);     \
+#define SET_PROP(field)                                                 \
+    key = jerry_string_sz((const jerry_char_t *)#field);                \
     val = jerry_string_sz((const jerry_char_t *)script_package->field); \
-    jerry_object_set(obj, key, val);                         \
-    jerry_value_free(key);                                   \
+    jerry_object_set(obj, key, val);                                    \
+    jerry_value_free(key);                                              \
     jerry_value_free(val);
 
     SET_PROP(id);
@@ -129,7 +143,7 @@ jerry_value_t _script_engine_create_info(const script_pkg_t *script_package)
     return obj;
 }
 
-script_engine_result_t script_engine_run(const script_pkg_t *script_package)
+script_engine_result_t script_engine_run(script_pkg_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
     {
@@ -137,25 +151,27 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
     }
     if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP))
     {
-        printf("JerryScript VM does not support execution stop feature.\n");
+        EOS_LOG_E("JerryScript VM does not support execution stop feature.\n");
         return -SE_ERR_JERRY_INIT_FAIL;
     }
     // 检查 LVGL 是否已初始化
     if (!lv_is_initialized())
     {
-        printf("LVGL not initialized, please initialize it first.\n");
-        return -SE_ERR_LVGL_NOT_INITIALIZED;
+        EOS_LOG_E("LVGL not initialized, please initialize it first.\n");
+        return -SE_ERR_NOT_INITIALIZED;
     }
 
-    if (atomic_load(&script_released) == false)
+    if (script_state == SCRIPT_STATE_RUNNING)
     {
         return -SE_ERR_ALREADY_RUNNING;
     }
-    atomic_store(&script_released,false);
+    script_state = SCRIPT_STATE_RUNNING;
+    atomic_store(&should_terminate, false);
+    is_terminated_by_req=false;
     // 初始化 JerryScript VM
     jerry_init(JERRY_INIT_EMPTY);
     js_vm_initialized = true;
-    
+
     // 初始化停止回调
     jerry_halt_handler(16, _script_engine_vm_exec_stop_callback, NULL);
     jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
@@ -178,22 +194,27 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
 
     // 执行主 JS 脚本
     jerry_value_t parsed_code = jerry_parse(
-        (const jerry_char_t*)script_package->script_str,
+        (const jerry_char_t *)script_package->script_str,
         strlen(script_package->script_str),
         JERRY_PARSE_NO_OPTS);
+    // 清理脚本字符串
+    eos_mem_free((void *)script_package->script_str);
+    script_package->script_str = NULL;
     if (!jerry_value_is_exception(parsed_code))
     {
+        script_engine_nav_init(lv_screen_active());
         jerry_value_t result = jerry_run(parsed_code);
-        
+        script_engine_nav_clean_up();
         // 检查是否执行成功
-        if (jerry_value_is_exception(result))
+        if (jerry_value_is_exception(result) && !is_terminated_by_req)
         {
             // 执行出错
             _script_engine_exception_handler("Script Runtime", result);
             jerry_value_free(parsed_code);
             jerry_value_free(result);
             jerry_cleanup();
-            atomic_store(&script_released,true);
+            script_state = SCRIPT_STATE_STOPPED;
+            js_vm_initialized = false;
             return -SE_ERR_JERRY_EXCEPTION;
         }
         else
@@ -202,7 +223,8 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
             jerry_value_free(parsed_code);
             jerry_value_free(result);
             jerry_cleanup();
-            atomic_store(&script_released,true);
+            script_state = SCRIPT_STATE_STOPPED;
+            js_vm_initialized = false;
             return SE_OK;
         }
     }
@@ -212,7 +234,8 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
         _script_engine_exception_handler("Script Parse", parsed_code);
         jerry_value_free(parsed_code);
         jerry_cleanup();
-        atomic_store(&script_released,true);
+        script_state = SCRIPT_STATE_STOPPED;
+        js_vm_initialized = false;
         return -SE_ERR_INVALID_JS;
     }
 }

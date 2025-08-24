@@ -216,3 +216,30 @@ char *eos_read_file(const char *filename)
     fclose(fp);
     return data;
 }
+
+const char *eos_strdup(const char *s) {
+    if (!s) return NULL;
+    size_t len = strlen(s) + 1;
+    char *copy = eos_mem_alloc(len);
+    if (copy) {
+        memcpy(copy, s, len);
+    }
+    return copy;
+}
+
+void eos_pkg_free(script_pkg_t *pkg) {
+    EOS_CHECK_PTR_RETURN(pkg);
+
+    if (pkg->id)           eos_mem_free((void *)pkg->id);
+    if (pkg->name)         eos_mem_free((void *)pkg->name);
+    if (pkg->version)      eos_mem_free((void *)pkg->version);
+    if (pkg->author)       eos_mem_free((void *)pkg->author);
+    if (pkg->description)  eos_mem_free((void *)pkg->description);
+    if (pkg->script_str)   eos_mem_free((void *)pkg->script_str);
+    pkg->id = NULL;
+    pkg->name = NULL;
+    pkg->version = NULL;
+    pkg->author = NULL;
+    pkg->description = NULL;
+    pkg->script_str = NULL;
+}

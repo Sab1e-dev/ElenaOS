@@ -7,8 +7,6 @@
 
 /**
  * TODO:
- * 解析应用的 manifest
- * 调用 Script Engine
  * 应用列表需要支持系统应用（c应用）
  */
 
@@ -18,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lvgl.h"
+#include "cJSON.h"
 #include "elena_os_nav.h"
 #include "elena_os_log.h"
 #include "elena_os_app.h"
@@ -26,20 +25,22 @@
 #include "elena_os_img.h"
 #include "elena_os_port.h"
 #include "elena_os_anim.h"
-#include "cJSON.h"
+#include "script_engine_core.h"
 // Macros and Definitions
 
 // Variables
+extern script_pkg_t *script_pkg_ptr;      // 脚本包指针
+
 // Function Implementations
 
 static void _app_list_btn_cb(lv_event_t *e)
 {
+    if(script_engine_get_state()!=SCRIPT_STATE_STOPPED){
+        EOS_LOG_E("Another script running");
+        return;
+    }
     const char *app_id = (const char *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(app_id);
-
-    // 创建新的页面用于绘制应用详情页
-    lv_obj_t *scr = eos_nav_scr_create();
-    lv_screen_load(scr);
 
     // 获取清单文件
     char manifest_path[PATH_MAX];
@@ -59,7 +60,14 @@ static void _app_list_btn_cb(lv_event_t *e)
         EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
         return;
     }
-
+    // 读取脚本包相关信息
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(root, "id");
+    if (!cJSON_IsString(id) || id->valuestring == NULL)
+    {
+        EOS_LOG_E("Get \"id\" failed");
+        cJSON_Delete(root);
+        return;
+    }
     cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
     if (!cJSON_IsString(name) || name->valuestring == NULL)
     {
@@ -67,12 +75,54 @@ static void _app_list_btn_cb(lv_event_t *e)
         cJSON_Delete(root);
         return;
     }
-    EOS_LOG_I("name = %s\n", name->valuestring);
+    cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
+    if (!cJSON_IsString(version) || version->valuestring == NULL)
+    {
+        EOS_LOG_E("Get \"version\" failed");
+        cJSON_Delete(root);
+        return;
+    }
+    cJSON *author = cJSON_GetObjectItemCaseSensitive(root, "author");
+    if (!cJSON_IsString(author) || author->valuestring == NULL)
+    {
+        EOS_LOG_E("Get \"author\" failed");
+        cJSON_Delete(root);
+        return;
+    }
+    cJSON *description = cJSON_GetObjectItemCaseSensitive(root, "description");
+    if (!cJSON_IsString(description) || description->valuestring == NULL)
+    {
+        EOS_LOG_E("Get \"description\" failed");
+        cJSON_Delete(root);
+        return;
+    }
+    EOS_LOG_D("App Info:\n"
+              "id=%s | name=%s | version=%s |\n"
+              "author:%s | description:%s",
+              id->valuestring, name->valuestring, version->valuestring,
+              author->valuestring, description->valuestring);
+    char script_path[PATH_MAX];
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
+             app_id);
+    if(!eos_is_file(script_path)){
+        EOS_LOG_E("Can't find script: %s",script_path);
+        cJSON_Delete(root);
+        return;
+    }
 
-    lv_obj_t *label = lv_label_create(scr);
-    lv_label_set_text(label, name->valuestring);
-    lv_obj_center(label);
+    script_pkg_ptr = eos_mem_alloc(sizeof(script_pkg_t));
+    EOS_CHECK_PTR_RETURN(script_pkg_ptr);
+    script_pkg_ptr->id = eos_strdup(id->valuestring);
+    script_pkg_ptr->name = eos_strdup(name->valuestring);
+    script_pkg_ptr->version = eos_strdup(version->valuestring);
+    script_pkg_ptr->author = eos_strdup(author->valuestring);
+    script_pkg_ptr->description = eos_strdup(description->valuestring);
+    script_pkg_ptr->script_str = eos_read_file(script_path);
     cJSON_Delete(root);
+    if(!script_engine_request_ready()){
+        EOS_LOG_E("Request ready failed");
+        return;
+    }
 }
 
 void eos_app_list_create()

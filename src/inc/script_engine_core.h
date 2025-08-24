@@ -20,6 +20,17 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
+/**
+ * @brief 脚本运行状态
+ */
+typedef enum{
+    SCRIPT_STATE_STOPPED,
+    SCRIPT_STATE_READY,
+    SCRIPT_STATE_RUNNING
+} script_state_t;
+/**
+ * @brief 脚本包类型
+ */
 typedef enum{
     SCRIPT_TYPE_UNKNOWN=0,
     SCRIPT_TYPE_APPLICATION=1,
@@ -55,8 +66,13 @@ typedef enum {
     SE_ERR_JERRY_EXCEPTION,      // 运行期间抛出 JS 异常
     SE_ERR_ALREADY_RUNNING,      // 当前已有 APP 在运行
     SE_ERR_JERRY_INIT_FAIL,      // JerryScript 初始化失败
-    SE_ERR_LVGL_NOT_INITIALIZED, // LVGL 未初始化
+    SE_ERR_NOT_INITIALIZED,      // 未初始化
     SE_ERR_SCRIPT_NOT_RUNNING,   // 没有在运行的应用
+    SE_ERR_BUSY,                 // 正忙
+    SE_ERR_VAR_NULL,             // 值为空
+    SE_ERR_ALREADY_INITIALIZED,  // 已经初始化
+    SE_ERR_STACK_EMPTY,          // 栈空
+    SE_ERR_MALLOC,
     SE_ERR_UNKNOWN               // 未知错误
 } script_engine_result_t;
 
@@ -65,14 +81,27 @@ typedef enum {
  * @brief 关闭当前运行的 JS 应用
  * @return script_engine_result_t 返回操作结果
  */
-script_engine_result_t script_engine_request_stop();
+script_engine_result_t script_engine_request_stop(void);
 
 /**
  * @brief 运行指定应用，如果当前已有应用在运行则自动清除
  * @param script_package 脚本包
  * @return script_engine_result_t 返回操作结果
  */
-script_engine_result_t script_engine_run(const script_pkg_t* script_package);
+script_engine_result_t script_engine_run(script_pkg_t* script_package);
+
+/**
+ * @brief 获取脚本引擎当前状态
+ * @return script_state_t 状态
+ */
+script_state_t script_engine_get_state(void);
+
+/**
+ * @brief 请求脚本就绪
+ * @return true 请求成功：脚本已就绪
+ * @return false 请求失败：脚本运行中或在此之前已经就绪
+ */
+bool script_engine_request_ready(void);
 
 /**
  * @brief 注册C函数到JS

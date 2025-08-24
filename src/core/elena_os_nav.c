@@ -13,6 +13,8 @@
 #include <stdatomic.h>
 #include "elena_os_log.h"
 #include "elena_os_core.h"
+#include "script_engine_core.h"
+#include "script_engine_nav.h"
 // Macros and Definitions
 #define NAV_STACK_SIZE 32
 /**
@@ -59,7 +61,7 @@ static lv_obj_t *_nav_peek_prev(void);
 static bool _is_nav_stack_initialized(void);
 static bool _is_nav_stack_full(void);
 static bool _is_nav_stack_empty(void);
-eos_result_t eos_nav_back_clear(void);
+eos_result_t eos_nav_back_clean(void);
 
 /**
  * @brief 检查导航栈是否已初始化
@@ -101,7 +103,17 @@ static void _nav_gesture_back_cb(lv_event_t *e)
     if (dir == LV_DIR_LEFT)
     {
         EOS_LOG_D("LV_DIR_LEFT");
-        eos_nav_back_clear();
+        if (nav.top == 0)
+        {
+            EOS_LOG_D("root scr");
+            return;
+        }
+        if (is_script_nav_stack_initialized())
+        {
+            EOS_LOG_D("ignore gesture");
+            return;
+        }
+        eos_nav_back_clean();
     }
 }
 
@@ -220,7 +232,7 @@ eos_result_t eos_nav_clear_stack(void)
     return EOS_OK;
 }
 
-eos_result_t eos_nav_back_clear(void)
+eos_result_t eos_nav_back_clean(void)
 {
     NAV_BUSY_CHECK();
 
@@ -237,7 +249,11 @@ eos_result_t eos_nav_back_clear(void)
         atomic_store(&nav_busy, false);
         return -EOS_ERR_STACK_EMPTY;
     }
-
+    if (nav.top == 0)
+    {
+        EOS_LOG_E("Root screen");
+        return -EOS_FAILED;
+    }
     // 直接执行回退逻辑
     lv_obj_t *prev_scr = _nav_peek_prev();
     if (!prev_scr)

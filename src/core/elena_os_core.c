@@ -28,10 +28,11 @@
 #include "elena_os_swipe_panel.h"
 #include "elena_os_sys.h"
 #include "elena_os_app.h"
+#include "script_engine_core.h"
 // Macros and Definitions
 
 // Variables
-
+script_pkg_t *script_pkg_ptr;      // 脚本包指针
 // Function Implementations
 
 eos_result_t eos_run()

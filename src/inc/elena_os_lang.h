@@ -41,7 +41,8 @@ typedef enum {
     STR_ID_MSG_LIST_ITEM_MARK_AS_READ,
     STR_ID_BASE_ITEM_BACK,
     STR_ID_TEST_LANG_STR,
-} string_id_t;
+    STR_ID_SCRIPT_RUN_ERR,
+} lang_string_id_t;
 
 /* Public function prototypes --------------------------------*/
 extern const char** current_lang;

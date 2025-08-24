@@ -21,7 +21,7 @@ extern "C" {
 #include <fcntl.h>
 #include <dirent.h>
 #include "elena_os_core.h"
-
+#include "script_engine_core.h"
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
@@ -70,6 +70,8 @@ eos_result_t eos_rm_recursive(const char *path);
  */
 bool eos_is_valid_filename(const char *name);
 char *eos_read_file(const char *filename);
+const char *eos_strdup(const char *s);
+void eos_pkg_free(script_pkg_t *pkg);
 #ifdef __cplusplus
 }
 #endif

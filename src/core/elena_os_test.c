@@ -29,14 +29,19 @@
 #include "elena_os_event.h"
 #include "elena_os_port.h"
 #include "elena_os_app_list.h"
+#include "elena_os_core.h"
+#include "script_engine_core.h"
+#include "script_engine_nav.h"
+#include "elena_os_misc.h"
 // Macros and Definitions
 // #define TEST_USE_ZH_FONT
 #ifdef TEST_USE_ZH_FONT
 LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 #endif
 // Variables
-static lv_obj_t * img = NULL;  // 全局图片对象
-static lv_obj_t * ta = NULL;   // 全局文本输入框对象
+static lv_obj_t *img = NULL;         // 全局图片对象
+static lv_obj_t *ta = NULL;          // 全局文本输入框对象
+extern script_pkg_t *script_pkg_ptr; // 脚本包指针
 // Function Implementations
 
 void _create_new_scr()
@@ -61,7 +66,7 @@ static void _test_msg_list_cb(lv_event_t *e)
     eos_msg_list_item_set_msg(item, message);
     eos_msg_list_item_set_time(item, "12:30");
 
-    eos_msg_list_item_icon_set_src(item,  "/wx.bin");
+    eos_msg_list_item_icon_set_src(item, "/wx.bin");
 
     msg_list_item_t *item1 = eos_msg_list_item_create(msg_list);
     eos_msg_list_item_set_title(item1, "QQ");
@@ -77,8 +82,8 @@ static void _test_msg_list()
     lv_obj_t *btn = lv_button_create(lv_scr_act());
     lv_obj_center(btn);
     lv_obj_t *btn_label = lv_label_create(btn);
-    lv_label_set_text(btn_label,LV_SYMBOL_PLUS" Add new message");
-    lv_obj_add_event_cb(btn,_test_msg_list_cb,LV_EVENT_CLICKED,msg_list);
+    lv_label_set_text(btn_label, LV_SYMBOL_PLUS " Add new message");
+    lv_obj_add_event_cb(btn, _test_msg_list_cb, LV_EVENT_CLICKED, msg_list);
 }
 
 static void _test_nav_cb_1(lv_event_t *e)
@@ -93,7 +98,7 @@ static void _test_nav_cb_1(lv_event_t *e)
 static void _test_font()
 {
     _create_new_scr();
-    
+
     const char *test_str = /* 中文符号测试 */ "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
                                               /* 英文符号测试 */ "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
                                               /* 希腊字母测试 */ "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
@@ -107,9 +112,9 @@ static void _test_font()
     lv_label_set_text(font_label, test_str);
     lv_obj_set_width(font_label, lv_pct(100));
     lv_label_set_long_mode(font_label, LV_LABEL_LONG_WRAP);
-    #ifdef TEST_USE_ZH_FONT
+#ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(font_label, &eos_font_resource_han_rounded_30, LV_PART_MAIN);
-    #endif
+#endif
 }
 
 static void _test_lang_cb(lv_event_t *e)
@@ -127,12 +132,12 @@ static void _test_lang_cb(lv_event_t *e)
 static void _test_lang(lv_event_t *e)
 {
     _create_new_scr();
-    
+
     lv_obj_t *label = eos_lang_label_create(lv_scr_act(), STR_ID_TEST_LANG_STR);
     lv_obj_set_width(label, lv_pct(100));
-    #ifdef TEST_USE_ZH_FONT
+#ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(label, &eos_font_resource_han_rounded_30, LV_PART_MAIN);
-    #endif
+#endif
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_t *btn = lv_button_create(lv_scr_act());
     lv_obj_t *btn_label = lv_label_create(btn);
@@ -167,19 +172,19 @@ static void _test_vkb()
 {
     _create_new_scr();
     lv_obj_t *pinyin_ime = lv_ime_pinyin_create(lv_screen_active());
-    #ifdef TEST_USE_ZH_FONT
+#ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(pinyin_ime, &eos_font_resource_han_rounded_30, 0);
-    #endif
+#endif
     // lv_ime_pinyin_set_dict(pinyin_ime, your_dict); // Use a custom dictionary. If it is not set, the built-in dictionary will be used.
 
     /* ta1 */
     lv_obj_t *ta1 = lv_textarea_create(lv_screen_active());
     lv_textarea_set_one_line(ta1, true);
-    #ifdef TEST_USE_ZH_FONT
+#ifdef TEST_USE_ZH_FONT
     lv_obj_set_style_text_font(ta1, &eos_font_resource_han_rounded_30, 0);
-    #endif
+#endif
     lv_obj_align(ta1, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_set_width(ta1,lv_pct(100));
+    lv_obj_set_width(ta1, lv_pct(100));
 
     /*Create a keyboard and add it to ime_pinyin*/
     lv_obj_t *kb = lv_keyboard_create(lv_screen_active());
@@ -197,24 +202,27 @@ static void _test_vkb()
 static void _test_image_input_cb(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * kb = lv_event_get_user_data(e);
-    
-    if(code == LV_EVENT_CLICKED) {
+    lv_obj_t *kb = lv_event_get_user_data(e);
+
+    if (code == LV_EVENT_CLICKED)
+    {
         // 点击文本框时显示键盘
         lv_obj_remove_flag(kb, LV_OBJ_FLAG_HIDDEN);
     }
-    else if(code == LV_EVENT_READY || code == LV_EVENT_DEFOCUSED) {
+    else if (code == LV_EVENT_READY || code == LV_EVENT_DEFOCUSED)
+    {
         // 按下确认键或失去焦点时处理
-        const char * path = lv_textarea_get_text(ta);
-        
-        if(strlen(path) > 0) {
+        const char *path = lv_textarea_get_text(ta);
+
+        if (strlen(path) > 0)
+        {
             // 设置图片源
             eos_img_set_src(img, path);
-            
+
             // 清除文本框内容
             lv_textarea_set_text(ta, "");
         }
-        
+
         // 隐藏键盘
         lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
     }
@@ -227,24 +235,25 @@ static void _test_image()
     img = lv_image_create(lv_scr_act());
     lv_obj_center(img);
     lv_obj_move_background(img);
-    
+
     // 创建文本输入框
     ta = lv_textarea_create(lv_scr_act());
     lv_obj_set_size(ta, LV_HOR_RES - 40, 80);
     lv_obj_align(ta, LV_ALIGN_TOP_MID, 0, 20);
     lv_textarea_set_placeholder_text(ta, "Input image path here.(e.g. /flower.bin)");
     lv_textarea_set_one_line(ta, true);
-    
+
     // 添加键盘
-    lv_obj_t * kb = lv_keyboard_create(lv_scr_act());
+    lv_obj_t *kb = lv_keyboard_create(lv_scr_act());
     lv_keyboard_set_textarea(kb, ta);
-    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);  // 默认隐藏键盘
-    
+    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN); // 默认隐藏键盘
+
     // 添加事件回调
     lv_obj_add_event_cb(ta, _test_image_input_cb, LV_EVENT_ALL, kb);
 }
 
-static void _test_app_list(){
+static void _test_app_list()
+{
     eos_app_list_create();
 }
 
@@ -255,7 +264,7 @@ void eos_test_start(void)
     eos_nav_init(lv_scr_act());
     eos_lang_set(LANG_EN);
 #ifdef DEBUG_USE_ZH_FONT
-    
+
     lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
                                            lv_palette_main(LV_PALETTE_RED),
                                            true, /* 深色模式 */
@@ -303,6 +312,27 @@ void eos_test_start(void)
     while (1)
     {
         uint32_t d = lv_timer_handler();
+        if (script_engine_get_state()==SCRIPT_STATE_READY)
+        {
+            script_engine_result_t ret = script_engine_run(script_pkg_ptr);
+            eos_pkg_free(script_pkg_ptr);
+            if (ret != SE_OK)
+            {
+                EOS_LOG_E("Script encounter a fatal error");
+                lv_obj_t *mbox = lv_msgbox_create(NULL);
+                lv_obj_set_width(mbox,lv_pct(80));
+                lv_msgbox_add_title(mbox, "Scrip Runtime");
+
+                lv_msgbox_add_text(mbox, current_lang[STR_ID_SCRIPT_RUN_ERR]);
+                lv_msgbox_add_close_button(mbox);
+            }
+            if (lv_scr_act() == scr)
+            {
+                EOS_LOG_D("Script run complete, back to previous scr");
+                eos_nav_back_clean();
+            }
+            EOS_LOG_D("Script OK");
+        }
         eos_delay(d);
     }
 }

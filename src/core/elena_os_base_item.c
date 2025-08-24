@@ -24,7 +24,7 @@
 static void _back_btn_cb(lv_event_t *e)
 {
     EOS_LOG_D("NAV back");
-    if (eos_nav_back_clear() != EOS_OK)
+    if (eos_nav_back_clean() != EOS_OK)
     {
         EOS_LOG_E("BACK ERR");
     }
@@ -59,9 +59,9 @@ lv_obj_t *eos_list_add_button(lv_obj_t *list, const void *icon, const char *txt)
     lv_obj_class_init_obj(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj,
-                      LV_FLEX_ALIGN_START,
-                      LV_FLEX_ALIGN_CENTER,
-                      LV_FLEX_ALIGN_CENTER);
+                          LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
     if (icon)
     {
         lv_obj_t *img = lv_image_create(obj);

@@ -15,7 +15,7 @@
 #include "lvgl.h"
 #include "script_engine_core.h"
 #include "elena_os_port.h"
-
+#include "script_engine_nav.h"
 // Macros and Definitions
 
 // Variables
@@ -86,6 +86,52 @@ jerry_value_t js_delay_handler(const jerry_call_info_t *call_info_p,
 {
     eos_delay(args_p[0]);
 }
+/**
+ * @brief 在脚本专用的导航栈上创建新的 screen
+ * @param void 无参数
+ * @return lv_obj_t* 返回 LVGL 对象指针
+ */
+static jerry_value_t js_nav_scr_create(const jerry_call_info_t* call_info_p,
+    const jerry_value_t args[],
+    const jerry_length_t argc) {
+    // 调用底层函数
+    lv_obj_t* ret_value = script_engine_nav_scr_create();
+
+    // 处理返回值
+    jerry_value_t js_result;
+    // 包装为LVGL对象
+    js_result = jerry_object();
+    jerry_value_t ptr = jerry_number((double)(uintptr_t)ret_value);
+    jerry_value_t cls = jerry_string_sz("lv_obj");
+    jerry_object_set(js_result, jerry_string_sz("__ptr"), ptr);
+    jerry_object_set(js_result, jerry_string_sz("__class"), cls);
+    jerry_value_free(ptr);
+    jerry_value_free(cls);
+
+    return js_result;
+}
+/**
+ * @brief 在导航栈上返回上一级
+ * @param void 无参数
+ * @return boolean 是否返回成功
+ */
+static jerry_value_t js_nav_back(const jerry_call_info_t* call_info_p,
+    const jerry_value_t args[],
+    const jerry_length_t argc) {
+    // 调用底层函数
+    script_engine_result_t ret = script_engine_nav_back_clean();
+
+    jerry_value_t js_result;
+
+    if(ret==SE_OK){
+        js_result = jerry_boolean(true);
+    }else{
+        js_result = jerry_boolean(false);
+    }
+    
+    return js_result;
+}
+
 
 /********************************** 注册原生函数 **********************************/
 
@@ -97,7 +143,10 @@ const script_engine_func_entry_t script_engine_native_funcs[] = {
      .handler = js_print_handler},
     {.name = "delay",
      .handler = js_delay_handler},
-
+    {.name = "nav_scr_create",
+     .handler = js_nav_scr_create},
+    {.name = "nav_back",
+     .handler = js_nav_back},
 };
 
 /**

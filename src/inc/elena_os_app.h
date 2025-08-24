@@ -25,6 +25,7 @@ extern "C" {
 #define EOS_APP_DATA_DIR EOS_APP_DIR "app_data/"
 #define EOS_APP_ICON_FILE_NAME  "icon.bin"
 #define EOS_APP_MANIFEST_FILE_NAME "manifest.json"
+#define EOS_APP_SCRIPT_ENTRY_FILE_NAME "main.js"
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
