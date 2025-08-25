@@ -8,6 +8,7 @@
 /**
  * TODO:
  * 应用列表需要支持系统应用（c应用）
+ * 广播通知应用安装与卸载
  */
 
 #include "elena_os_app_list.h"
@@ -29,13 +30,14 @@
 // Macros and Definitions
 
 // Variables
-extern script_pkg_t *script_pkg_ptr;      // 脚本包指针
+extern script_pkg_t *script_pkg_ptr; // 脚本包指针
 
 // Function Implementations
 
 static void _app_list_btn_cb(lv_event_t *e)
 {
-    if(script_engine_get_state()!=SCRIPT_STATE_STOPPED){
+    if (script_engine_get_state() != SCRIPT_STATE_STOPPED)
+    {
         EOS_LOG_E("Another script running");
         return;
     }
@@ -104,8 +106,9 @@ static void _app_list_btn_cb(lv_event_t *e)
     char script_path[PATH_MAX];
     snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
              app_id);
-    if(!eos_is_file(script_path)){
-        EOS_LOG_E("Can't find script: %s",script_path);
+    if (!eos_is_file(script_path))
+    {
+        EOS_LOG_E("Can't find script: %s", script_path);
         cJSON_Delete(root);
         return;
     }
@@ -114,12 +117,14 @@ static void _app_list_btn_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(script_pkg_ptr);
     script_pkg_ptr->id = eos_strdup(id->valuestring);
     script_pkg_ptr->name = eos_strdup(name->valuestring);
+    script_pkg_ptr->type = SCRIPT_TYPE_APPLICATION;
     script_pkg_ptr->version = eos_strdup(version->valuestring);
     script_pkg_ptr->author = eos_strdup(author->valuestring);
     script_pkg_ptr->description = eos_strdup(description->valuestring);
     script_pkg_ptr->script_str = eos_read_file(script_path);
     cJSON_Delete(root);
-    if(!script_engine_request_ready()){
+    if (!script_engine_request_ready())
+    {
         EOS_LOG_E("Request ready failed");
         return;
     }
@@ -130,8 +135,6 @@ void eos_app_list_create()
     // 创建新的页面用于绘制应用列表
     lv_obj_t *scr = eos_nav_scr_create();
     lv_screen_load(scr);
-    // lv_obj_t *app_list = lv_list_create(scr);
-    // lv_obj_set_size(app_list, lv_pct(100), lv_pct(100));
 
     size_t app_list_size = eos_app_list_size();
 
@@ -139,7 +142,6 @@ void eos_app_list_create()
     lv_obj_set_style_pad_all(cont, 20, 0);
     lv_obj_set_style_pad_column(cont, 20, 0); // 列间距
     lv_obj_set_size(cont, lv_pct(100), lv_pct(100));
-    // lv_obj_set_style_margin_top(cont,20,0);
     lv_obj_set_scroll_dir(cont, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_OFF);
     lv_obj_center(cont);
@@ -165,7 +167,7 @@ void eos_app_list_create()
         lv_obj_remove_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICKABLE);
         eos_img_set_src(app_icon, icon_path);
-        lv_image_set_scale(app_icon, 400);
+        eos_img_set_size(app_icon, 100, 100);
         lv_obj_center(app_icon);
         lv_obj_add_event_cb(app_icon, _app_list_btn_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
     }

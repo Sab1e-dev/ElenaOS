@@ -1,11 +1,11 @@
 /**
- * @file elena_os_app.c
- * @brief 应用系统
+ * @file elena_os_watchface.c
+ * @brief 表盘
  * @author Sab1e
- * @date 2025-08-21
+ * @date 2025-08-22
  */
 
-#include "elena_os_app.h"
+#include "elena_os_watchface.h"
 
 // Includes
 #include <stdio.h>
@@ -20,44 +20,44 @@
 #include "elena_os_pkg_mgr.h"
 #include "script_engine_core.h"
 // Macros and Definitions
-#define EOS_APP_LIST_DEFAULT_CAPACITY 1
+#define EOS_WATCHFACE_LIST_DEFAULT_CAPACITY 1
 /**
  * @brief 应用结构体
  */
-typedef script_pkg_t eos_app_t;
+typedef script_pkg_t eos_watchface_t;
 
 typedef struct
 {
     char **data;
     size_t size;
     size_t capacity;
-} eos_app_list_t;
-static eos_app_list_t app_list;
-static bool app_list_initialized = false;
+} eos_watchface_list_t;
+static eos_watchface_list_t watchface_list;
+static bool watchface_list_initialized = false;
 // Variables
 
 // Function Implementations
 
-size_t eos_app_list_size(void)
+size_t eos_watchface_list_size(void)
 {
-    return app_list.size;
+    return watchface_list.size;
 }
 
-const char *eos_app_list_get_id(size_t index)
+const char *eos_watchface_list_get_id(size_t index)
 {
-    if (index >= app_list.size)
+    if (index >= watchface_list.size)
     {
         EOS_LOG_E("Index out of bounds: %zu", index);
         return NULL;
     }
-    return app_list.data[index];
+    return watchface_list.data[index];
 }
 
-bool eos_app_list_contains(const char *app_id)
+bool eos_watchface_list_contains(const char *watchface_id)
 {
-    for (size_t i = 0; i < app_list.size; i++)
+    for (size_t i = 0; i < watchface_list.size; i++)
     {
-        if (strcmp(app_list.data[i], app_id) == 0)
+        if (strcmp(watchface_list.data[i], watchface_id) == 0)
         {
             return true;
         }
@@ -65,14 +65,14 @@ bool eos_app_list_contains(const char *app_id)
     return false;
 }
 
-void _eos_app_list_init(eos_app_list_t *list, size_t capacity)
+void _eos_watchface_list_init(eos_watchface_list_t *list, size_t capacity)
 {
     list->data = malloc(capacity * sizeof(char *));
     list->size = 0;
     list->capacity = capacity;
 }
 
-void _eos_app_list_add(eos_app_list_t *list, const char *id)
+void _eos_watchface_list_add(eos_watchface_list_t *list, const char *id)
 {
     if (list->size == list->capacity)
     {
@@ -83,7 +83,7 @@ void _eos_app_list_add(eos_app_list_t *list, const char *id)
     list->size++;
 }
 
-void _eos_app_list_free(eos_app_list_t *list)
+void _eos_watchface_list_free(eos_watchface_list_t *list)
 {
     for (size_t i = 0; i < list->size; i++)
     {
@@ -92,16 +92,16 @@ void _eos_app_list_free(eos_app_list_t *list)
     free(list->data);
 }
 
-eos_result_t _eos_app_list_get_installed(void)
+eos_result_t _eos_watchface_list_get_installed()
 {
     DIR *dir;
     struct dirent *entry;
 
     // 打开应用程序安装目录
-    dir = opendir(EOS_APP_INSTALLED_DIR);
+    dir = opendir(EOS_WATCHFACE_INSTALLED_DIR);
     if (!dir)
     {
-        EOS_LOG_E("Failed to open app directory: %s", EOS_APP_INSTALLED_DIR);
+        EOS_LOG_E("Failed to open watchface directory: %s", EOS_WATCHFACE_INSTALLED_DIR);
         return EOS_FAILED;
     }
 
@@ -116,35 +116,35 @@ eos_result_t _eos_app_list_get_installed(void)
 
         // 构建完整路径
         char full_path[PATH_MAX];
-        snprintf(full_path, sizeof(full_path), EOS_APP_INSTALLED_DIR "%s", entry->d_name);
+        snprintf(full_path, sizeof(full_path), EOS_WATCHFACE_INSTALLED_DIR "%s", entry->d_name);
 
         // 检查是否为目录
         if (eos_is_dir(full_path))
         {
-            EOS_LOG_D("Found installed app: %s", entry->d_name);
+            EOS_LOG_D("Found installed watchface: %s", entry->d_name);
             // 添加到应用程序列表
-            _eos_app_list_add(&app_list, entry->d_name);
+            _eos_watchface_list_add(&watchface_list, entry->d_name);
         }
     }
 
     closedir(dir);
-    EOS_LOG_I("Loaded %zu installed apps", app_list.size);
+    EOS_LOG_I("Loaded %zu installed watchfaces", watchface_list.size);
     return EOS_OK;
 }
 
-eos_result_t _eos_app_list_refresh()
+eos_result_t _eos_watchface_list_refresh()
 {
-    memcpy(&app_list, 0, sizeof(app_list));
-    _eos_app_list_init(&app_list, EOS_APP_LIST_DEFAULT_CAPACITY);
-    if (_eos_app_list_get_installed() != EOS_OK)
+    memcpy(&watchface_list, 0, sizeof(watchface_list));
+    _eos_watchface_list_init(&watchface_list, EOS_WATCHFACE_LIST_DEFAULT_CAPACITY);
+    if (_eos_watchface_list_get_installed() != EOS_OK)
     {
-        EOS_LOG_E("Get installed app failed");
+        EOS_LOG_E("Get installed watchface failed");
         return EOS_FAILED;
     }
     return EOS_OK;
 }
 
-eos_result_t eos_app_install(const char *eapk_path)
+eos_result_t eos_watchface_install(const char *eapk_path)
 {
     EOS_CHECK_PTR_RETURN_VAL(eapk_path, EOS_ERR_VAR_NULL);
     // 获取软件包头
@@ -161,10 +161,10 @@ eos_result_t eos_app_install(const char *eapk_path)
     }
     // 拼接路径
     char path[PATH_MAX];
-    snprintf(path, sizeof(path), EOS_APP_INSTALLED_DIR "%s", header.pkg_id);
+    snprintf(path, sizeof(path), EOS_WATCHFACE_INSTALLED_DIR "%s", header.pkg_id);
     char data_path[PATH_MAX];
-    snprintf(data_path, sizeof(data_path), EOS_APP_DATA_DIR "%s", header.pkg_id);
-    EOS_LOG_D("APP_PATH: %s", path);
+    snprintf(data_path, sizeof(data_path), EOS_WATCHFACE_DATA_DIR "%s", header.pkg_id);
+    EOS_LOG_D("WATCHFACE_PATH: %s", path);
     // 检查应用是否存在
     if (eos_is_dir(path))
     {
@@ -200,29 +200,29 @@ eos_result_t eos_app_install(const char *eapk_path)
         }
     }
     // 安装应用程序
-    script_pkg_type_t type = SCRIPT_TYPE_APPLICATION;
+    script_pkg_type_t type = SCRIPT_TYPE_WATCHFACE;
     eos_result_t ret = eos_pkg_mgr_unpack(eapk_path, path, type);
     if (ret != EOS_OK)
     {
-        EOS_LOG_E("App unpack failed. Code: %d", ret);
+        EOS_LOG_E("Watchface unpack failed. Code: %d", ret);
         eos_rm_recursive(path);
         return EOS_FAILED;
     }
-    _eos_app_list_refresh();
-    EOS_LOG_D("App installed successfully: %s", header.pkg_name);
+    _eos_watchface_list_refresh();
+    EOS_LOG_D("Watchface installed successfully: %s", header.pkg_name);
     return EOS_OK;
 }
 
-eos_result_t eos_app_uninstall(const char *app_id)
+eos_result_t eos_watchface_uninstall(const char *watchface_id)
 {
     // 卸载应用程序
     char path[PATH_MAX];
-    snprintf(path, sizeof(path), EOS_APP_INSTALLED_DIR "%s", app_id);
+    snprintf(path, sizeof(path), EOS_WATCHFACE_INSTALLED_DIR "%s", watchface_id);
     char data_path[PATH_MAX];
-    snprintf(data_path, sizeof(data_path), EOS_APP_DATA_DIR "%s", app_id);
+    snprintf(data_path, sizeof(data_path), EOS_WATCHFACE_DATA_DIR "%s", watchface_id);
     if (!eos_is_dir(path))
     {
-        EOS_LOG_E("App does not esist: %s", app_id);
+        EOS_LOG_E("Watchface does not esist: %s", watchface_id);
         return EOS_FAILED;
     }
 
@@ -244,14 +244,14 @@ eos_result_t eos_app_uninstall(const char *app_id)
         EOS_LOG_E("Uninstall failed, code: %d", ret);
         return EOS_FAILED;
     }
-    _eos_app_list_refresh();
-    EOS_LOG_D("App uninstalled successfully: %s", app_id);
+    _eos_watchface_list_refresh();
+    EOS_LOG_D("Watchface uninstalled successfully: %s", watchface_id);
     return EOS_OK;
 }
 
-eos_result_t eos_app_init(void)
+eos_result_t eos_watchface_init(void)
 {
     // 初始化 从文件系统中读取应用列表
-    _eos_app_list_refresh();
+    _eos_watchface_list_refresh();
     return EOS_OK;
 }

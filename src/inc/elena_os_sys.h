@@ -33,6 +33,9 @@ extern "C" {
 #define EOS_SYS_RES_DIR EOS_SYS_DIR "res/"
 #define EOS_SYS_RES_IMG_DIR EOS_SYS_RES_DIR "img/"
 
+#define EOS_SYS_CFG_KEY_VERSION "version"
+#define EOS_SYS_CFG_KEY_LANGUAGE "language"
+#define EOS_SYS_CFG_KEY_WATCHFACE_ID "wf_id"
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
@@ -42,6 +45,48 @@ extern "C" {
  */
 void eos_sys_init();
 
+/**
+ * @brief 设置布尔类型的配置项
+ * @param key 配置项的键
+ * @param value 布尔值
+ * @return 操作结果
+ */
+eos_result_t eos_sys_cfg_set_bool(const char *key, bool value);
+/**
+ * @brief 设置字符串类型的配置项
+ * @param key 配置项的键
+ * @param value 字符串值
+ * @return 操作结果
+ */
+eos_result_t eos_sys_cfg_set_string(const char *key, const char *value);
+/**
+ * @brief 设置数字类型的配置项
+ * @param key 配置项的键
+ * @param value 数字值
+ * @return 操作结果
+ */
+eos_result_t eos_sys_cfg_set_number(const char *key, double value);
+/**
+ * @brief 获取布尔类型的配置项
+ * @param key 配置项的键
+ * @param default_value 默认值（当配置项不存在或类型不匹配时返回）
+ * @return 获取到的布尔值或默认值
+ */
+bool eos_sys_cfg_get_bool(const char *key, bool default_value);
+/**
+ * @brief 获取字符串类型的配置项
+ * @param key 配置项的键
+ * @param default_value 默认值（当配置项不存在或类型不匹配时返回）
+ * @return 获取到的字符串值或默认值（需要调用者释放返回的字符串内存）
+ */
+char *eos_sys_cfg_get_string(const char *key, const char *default_value);
+/**
+ * @brief 获取数字类型的配置项
+ * @param key 配置项的键
+ * @param default_value 默认值（当配置项不存在或类型不匹配时返回）
+ * @return 获取到的数字值或默认值
+ */
+double eos_sys_cfg_get_number(const char *key, double default_value);
 /**
  * @brief 添加新的设置项到系统配置文件
  * @param key 要添加的设置项键名（字符串）

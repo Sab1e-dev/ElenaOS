@@ -34,6 +34,13 @@ typedef struct {
 /* Public function prototypes --------------------------------*/
 
 /**
+ * @brief 将图像缩放到指定分辨率
+ * @param img_obj 目标图像对象
+ * @param w 目标宽度（px）
+ * @param h 目标高度（px）
+ */
+void eos_img_set_size(lv_obj_t *img_obj, const uint32_t w, const uint32_t h);
+/**
  * @brief 从 Flash 中打开图片，并加载到内存，然后设置 lvgl 图像源。
  * @param img_obj 要设置图像源的 Image 对象
  * @param bin_path bin 文件的路径

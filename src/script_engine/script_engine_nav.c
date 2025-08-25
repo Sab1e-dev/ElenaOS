@@ -58,7 +58,7 @@ typedef struct
 // Variables
 static script_nav_stack_t script_nav = {.top = -1, .initialized = false};
 static atomic_bool script_nav_busy = false; // 正在清除
-
+extern script_pkg_t *script_pkg_ptr;
 // Function Implementations
 static lv_obj_t *_script_nav_peek_prev(void);
 bool is_script_nav_stack_initialized(void);
@@ -176,7 +176,11 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
         EOS_LOG_E("Base screen is NULL");
         return -SE_ERR_VAR_NULL;
     }
-
+    if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    {
+        EOS_LOG_E("Watchface can't use nav");
+        return -SE_FAILED;
+    }
     if (is_script_nav_stack_initialized())
     {
         script_engine_nav_clean_up();

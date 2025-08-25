@@ -8,8 +8,6 @@
 /**
  * TODO:
  * 新增上拉快捷控制台（先做设置App）
- * 系统配置项
- * 新增应用列表
  */
 
 #include "elena_os_test.h"
@@ -33,6 +31,7 @@
 #include "script_engine_core.h"
 #include "script_engine_nav.h"
 #include "elena_os_misc.h"
+#include "elena_os_watchface_list.h"
 // Macros and Definitions
 // #define TEST_USE_ZH_FONT
 #ifdef TEST_USE_ZH_FONT
@@ -257,20 +256,27 @@ static void _test_app_list()
     eos_app_list_create();
 }
 
+static void _test_watchface_list(){
+    eos_watchface_list_create();
+}
+
 void eos_test_start(void)
 {
-    eos_event_init();
-    eos_lang_init();
-    eos_nav_init(lv_scr_act());
-    eos_lang_set(LANG_EN);
 #ifdef DEBUG_USE_ZH_FONT
 
     lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
                                            lv_palette_main(LV_PALETTE_RED),
                                            true, /* 深色模式 */
                                            &eos_font_resource_han_rounded_30);
-    lv_disp_set_theme(NULL, th);
+    
+#else
+    lv_theme_t *th = lv_theme_default_init(lv_disp_get_default(), lv_palette_main(LV_PALETTE_BLUE),
+                                           lv_palette_main(LV_PALETTE_RED),
+                                           true, /* 深色模式 */
+                                           &lv_font_montserrat_24);
 #endif
+    lv_disp_set_theme(NULL, th);
+
     lv_obj_t *scr = lv_scr_act();
 
     // lv_display_t *disp = lv_disp_get_default();
@@ -308,6 +314,9 @@ void eos_test_start(void)
     // 测试应用列表
     btn = lv_list_add_button(test_list, LV_SYMBOL_DRIVE, "App List");
     lv_obj_add_event_cb(btn, _test_app_list, LV_EVENT_CLICKED, NULL);
+    // 测试应用列表
+    btn = lv_list_add_button(test_list, LV_SYMBOL_LIST, "Watchface List");
+    lv_obj_add_event_cb(btn, _test_watchface_list, LV_EVENT_CLICKED, NULL);
 
     while (1)
     {
@@ -316,6 +325,7 @@ void eos_test_start(void)
         {
             script_engine_result_t ret = script_engine_run(script_pkg_ptr);
             eos_pkg_free(script_pkg_ptr);
+            script_pkg_ptr = NULL;
             if (ret != SE_OK)
             {
                 EOS_LOG_E("Script encounter a fatal error");

@@ -29,16 +29,41 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-
+/**
+ * @brief 获取当前已安装的应用数量，即列表大小
+ * @return size_t 列表大小
+ */
 size_t eos_app_list_size(void);
-
+/**
+ * @brief 根据索引值获取应用的 id
+ * @param index 索引值（0基）
+ * @return const char* id 字符串
+ */
 const char* eos_app_list_get_id(size_t index);
-
+/**
+ * @brief 判断指定 id 字符串的代码是否存在于应用列表中
+ * @param app_id id 字符串
+ * @return true 
+ * @return false 
+ */
 bool eos_app_list_contains(const char* app_id);
-
+/**
+ * @brief 安装应用
+ * @param eapk_path eapk 安装包路径
+ * @return eos_result_t 安装结果
+ */
 eos_result_t eos_app_install(const char *eapk_path);
+/**
+ * @brief 卸载应用
+ * @param app_id 应用 id
+ * @return eos_result_t 卸载结果
+ */
 eos_result_t eos_app_uninstall(const char *app_id);
-eos_result_t eos_app_init();
+/**
+ * @brief 初始化应用系统
+ * @return eos_result_t 初始化结果
+ */
+eos_result_t eos_app_init(void);
 #ifdef __cplusplus
 }
 #endif

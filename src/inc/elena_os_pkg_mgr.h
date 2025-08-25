@@ -18,7 +18,7 @@ extern "C"
 #include <stdbool.h>
 #include "elena_os_core.h"
 #include "elena_os_app.h"
-#include "elena_os_watch_face.h"
+#include "elena_os_watchface.h"
 #include "script_engine_core.h"
 /* Public macros ----------------------------------------------*/
 #define EOS_PKG_APP_MAGIC           "EAPK"

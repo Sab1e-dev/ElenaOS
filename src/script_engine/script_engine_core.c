@@ -6,12 +6,6 @@
  * @date 2025-07-26
  */
 
-/**
- * TODO:
- * 当加载脚本时，创建一个 screen 并加载，作为脚本的基本screen
- * 状态机管理脚本运行
- */
-
 #include "script_engine_core.h"
 
 // Includes
@@ -28,11 +22,9 @@
 // Macros and Definitions
 
 // Variables
-static bool js_vm_initialized = false;                        // 是否已初始化 VM 标志位
 static atomic_bool should_terminate = ATOMIC_VAR_INIT(false); // 请求终止脚本标志位
 static script_state_t script_state = SCRIPT_STATE_STOPPED;
 static bool is_terminated_by_req = false;
-extern atomic_bool timer_handler_lock;
 // Function Implementations
 /**
  * @brief VM 终止运行回调
@@ -42,10 +34,6 @@ static jerry_value_t _script_engine_vm_exec_stop_callback(void *user_p)
     (void)user_p; // 不使用参数
     if (should_terminate)
     {
-        if (lv_is_initialized())
-        {
-            lv_obj_clean(lv_scr_act());
-        }
         atomic_store(&should_terminate, false);
         is_terminated_by_req = true;
         EOS_LOG_D("Script execution stopped by request.\n");
@@ -79,7 +67,7 @@ bool script_engine_request_ready(void)
 
 script_engine_result_t script_engine_request_stop(void)
 {
-    if (js_vm_initialized)
+    if (script_state == SCRIPT_STATE_RUNNING)
     {
         _request_script_termination();
         return SE_OK;
@@ -167,10 +155,9 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
     }
     script_state = SCRIPT_STATE_RUNNING;
     atomic_store(&should_terminate, false);
-    is_terminated_by_req=false;
+    is_terminated_by_req = false;
     // 初始化 JerryScript VM
     jerry_init(JERRY_INIT_EMPTY);
-    js_vm_initialized = true;
 
     // 初始化停止回调
     jerry_halt_handler(16, _script_engine_vm_exec_stop_callback, NULL);
@@ -202,9 +189,7 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
     script_package->script_str = NULL;
     if (!jerry_value_is_exception(parsed_code))
     {
-        script_engine_nav_init(lv_screen_active());
         jerry_value_t result = jerry_run(parsed_code);
-        script_engine_nav_clean_up();
         // 检查是否执行成功
         if (jerry_value_is_exception(result) && !is_terminated_by_req)
         {
@@ -214,7 +199,6 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
             jerry_value_free(result);
             jerry_cleanup();
             script_state = SCRIPT_STATE_STOPPED;
-            js_vm_initialized = false;
             return -SE_ERR_JERRY_EXCEPTION;
         }
         else
@@ -224,7 +208,6 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
             jerry_value_free(result);
             jerry_cleanup();
             script_state = SCRIPT_STATE_STOPPED;
-            js_vm_initialized = false;
             return SE_OK;
         }
     }
@@ -235,7 +218,6 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
         jerry_value_free(parsed_code);
         jerry_cleanup();
         script_state = SCRIPT_STATE_STOPPED;
-        js_vm_initialized = false;
         return -SE_ERR_INVALID_JS;
     }
 }

@@ -33,38 +33,552 @@
 #include "elena_os_port.h"
 #include "elena_os_swipe_panel.h"
 #include "elena_os_app.h"
-#include "elena_os_watch_face.h"
+#include "elena_os_watchface.h"
 #include "elena_os_misc.h"
 // Macros and Definitions
 #define EOS_SYS_DEFAULT_LANG_STR "English"
+#define EOS_SYS_DEFAULT_WATCHFACE_ID_STR "cn.sab1e.clock"
 // Variables
 
 // Function Implementations
+
+eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
+{
+    if (!key)
+    {
+        EOS_LOG_E("Invalid parameter: key is NULL");
+        return -EOS_ERR_VAR_NULL;
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_E("Config file does not exist");
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 读取现有配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = eos_mem_alloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return -EOS_ERR_MEM;
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        eos_mem_free(file_content);
+        return -EOS_ERR_FILE_ERROR;
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    eos_mem_free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    // 更新或添加布尔值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (item)
+    {
+        cJSON_SetBoolValue(item, value);
+    }
+    else
+    {
+        cJSON_AddBoolToObject(root, key, value);
+    }
+
+    // 写回文件
+    char *new_json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (!new_json)
+    {
+        EOS_LOG_E("Failed to generate JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    fd = open(EOS_SYS_CONFIG_FILE_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for writing, errno=%d", errno);
+        cJSON_free(new_json);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    ssize_t written = write(fd, new_json, strlen(new_json));
+    cJSON_free(new_json);
+    close(fd);
+
+    if (written != (ssize_t)strlen(new_json))
+    {
+        EOS_LOG_E("Failed to write config file, written=%zd, errno=%d", written, errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    EOS_LOG_I("Successfully set config item: %s=%s", key, value ? "true" : "false");
+    return EOS_OK;
+}
+
+eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
+{
+    if (!key || !value)
+    {
+        EOS_LOG_E("Invalid parameters: key or value is NULL");
+        return -EOS_ERR_VAR_NULL;
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_E("Config file does not exist");
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 读取现有配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = eos_mem_alloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return -EOS_ERR_MEM;
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        eos_mem_free(file_content);
+        return -EOS_ERR_FILE_ERROR;
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    eos_mem_free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    // 更新或添加字符串值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (item)
+    {
+        cJSON_SetValuestring(item, value);
+    }
+    else
+    {
+        cJSON_AddStringToObject(root, key, value);
+    }
+
+    // 写回文件
+    char *new_json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (!new_json)
+    {
+        EOS_LOG_E("Failed to generate JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    fd = open(EOS_SYS_CONFIG_FILE_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for writing, errno=%d", errno);
+        cJSON_free(new_json);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    ssize_t written = write(fd, new_json, strlen(new_json));
+    cJSON_free(new_json);
+    close(fd);
+
+    if (written != (ssize_t)strlen(new_json))
+    {
+        EOS_LOG_E("Failed to write config file, written=%zd, errno=%d", written, errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    EOS_LOG_I("Successfully set config item: %s=%s", key, value);
+    return EOS_OK;
+}
+
+eos_result_t eos_sys_cfg_set_number(const char *key, double value)
+{
+    if (!key)
+    {
+        EOS_LOG_E("Invalid parameter: key is NULL");
+        return -EOS_ERR_VAR_NULL;
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_E("Config file does not exist");
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    // 读取现有配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = eos_mem_alloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return -EOS_ERR_MEM;
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        eos_mem_free(file_content);
+        return -EOS_ERR_FILE_ERROR;
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    eos_mem_free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    // 更新或添加数字值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (item)
+    {
+        cJSON_SetNumberValue(item, value);
+    }
+    else
+    {
+        cJSON_AddNumberToObject(root, key, value);
+    }
+
+    // 写回文件
+    char *new_json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (!new_json)
+    {
+        EOS_LOG_E("Failed to generate JSON");
+        return -EOS_ERR_JSON_ERROR;
+    }
+
+    fd = open(EOS_SYS_CONFIG_FILE_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for writing, errno=%d", errno);
+        cJSON_free(new_json);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    ssize_t written = write(fd, new_json, strlen(new_json));
+    cJSON_free(new_json);
+    close(fd);
+
+    if (written != (ssize_t)strlen(new_json))
+    {
+        EOS_LOG_E("Failed to write config file, written=%zd, errno=%d", written, errno);
+        return -EOS_ERR_FILE_ERROR;
+    }
+
+    EOS_LOG_I("Successfully set config item: %s=%f", key, value);
+    return EOS_OK;
+}
+
+bool eos_sys_cfg_get_bool(const char *key, bool default_value)
+{
+    if (!key)
+    {
+        EOS_LOG_E("Invalid parameter: key is NULL");
+        return default_value;
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_W("Config file does not exist, returning default value for key '%s'", key);
+        return default_value;
+    }
+
+    // 读取配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return default_value;
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = malloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return default_value;
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        free(file_content);
+        return default_value;
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return default_value;
+    }
+
+    // 获取布尔值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (!item || !cJSON_IsBool(item))
+    {
+        if (!item) {
+            EOS_LOG_D("Key '%s' not found in config, returning default", key);
+        } else {
+            EOS_LOG_W("Value for key '%s' is not a boolean, returning default", key);
+        }
+        cJSON_Delete(root);
+        return default_value;
+    }
+
+    bool result = cJSON_IsTrue(item);
+    cJSON_Delete(root);
+
+    EOS_LOG_D("Successfully got boolean config item: %s=%s", key, result ? "true" : "false");
+    return result;
+}
+
+char *eos_sys_cfg_get_string(const char *key, const char *default_value)
+{
+    if (!key)
+    {
+        EOS_LOG_E("Invalid parameter: key is NULL");
+        return strdup(default_value);
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_W("Config file does not exist, returning default value for key '%s'", key);
+        return strdup(default_value);
+    }
+
+    // 读取配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return strdup(default_value);
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = malloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return strdup(default_value);
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        free(file_content);
+        return strdup(default_value);
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return strdup(default_value);
+    }
+
+    // 获取字符串值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (!item || !cJSON_IsString(item))
+    {
+        if (!item) {
+            EOS_LOG_D("Key '%s' not found in config, returning default", key);
+        } else {
+            EOS_LOG_W("Value for key '%s' is not a string, returning default", key);
+        }
+        cJSON_Delete(root);
+        return strdup(default_value);
+    }
+
+    char *result = strdup(item->valuestring);
+    cJSON_Delete(root);
+
+    if (!result)
+    {
+        EOS_LOG_E("Failed to duplicate string, returning default");
+        return strdup(default_value);
+    }
+
+    EOS_LOG_D("Successfully got string config item: %s=%s", key, result);
+    return result;
+}
+
+double eos_sys_cfg_get_number(const char *key, double default_value)
+{
+    if (!key)
+    {
+        EOS_LOG_E("Invalid parameter: key is NULL");
+        return default_value;
+    }
+
+    // 检查配置文件是否存在
+    if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
+    {
+        EOS_LOG_W("Config file does not exist, returning default value for key '%s'", key);
+        return default_value;
+    }
+
+    // 读取配置文件内容
+    int fd = open(EOS_SYS_CONFIG_FILE_PATH, O_RDONLY);
+    if (fd == -1)
+    {
+        EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
+        return default_value;
+    }
+
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+
+    char *file_content = malloc(fsize + 1);
+    if (!file_content)
+    {
+        EOS_LOG_E("Memory allocation failed");
+        close(fd);
+        return default_value;
+    }
+
+    ssize_t read_size = read(fd, file_content, fsize);
+    close(fd);
+    if (read_size != fsize)
+    {
+        EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
+        free(file_content);
+        return default_value;
+    }
+    file_content[fsize] = '\0';
+
+    // 解析JSON
+    cJSON *root = cJSON_Parse(file_content);
+    free(file_content);
+    if (!root)
+    {
+        EOS_LOG_E("Failed to parse JSON");
+        return default_value;
+    }
+
+    // 获取数字值
+    cJSON *item = cJSON_GetObjectItem(root, key);
+    if (!item || !cJSON_IsNumber(item))
+    {
+        if (!item) {
+            EOS_LOG_D("Key '%s' not found in config, returning default", key);
+        } else {
+            EOS_LOG_W("Value for key '%s' is not a number, returning default", key);
+        }
+        cJSON_Delete(root);
+        return default_value;
+    }
+
+    double result = item->valuedouble;
+    cJSON_Delete(root);
+
+    EOS_LOG_D("Successfully got number config item: %s=%f", key, result);
+    return result;
+}
+
 eos_result_t _create_default_cfg_json(const char *path)
 {
     // 创建 JSON 对象
     cJSON *root = cJSON_CreateObject();
-    if (!root) {
+    if (!root)
+    {
         return -EOS_ERR_JSON_ERROR;
     }
 
-    cJSON_AddStringToObject(root, "version", ELENA_OS_VERSION_FULL);
-    cJSON_AddStringToObject(root, "language", EOS_SYS_DEFAULT_LANG_STR);
-
+    cJSON_AddStringToObject(root, EOS_SYS_CFG_KEY_VERSION, ELENA_OS_VERSION_FULL);
+    cJSON_AddStringToObject(root, EOS_SYS_CFG_KEY_LANGUAGE, EOS_SYS_DEFAULT_LANG_STR);
+    cJSON_AddStringToObject(root, EOS_SYS_CFG_KEY_WATCHFACE_ID, EOS_SYS_DEFAULT_WATCHFACE_ID_STR);
     // 转换为字符串
     char *json_str = cJSON_PrintUnformatted(root);
-    if (!json_str) {
+    if (!json_str)
+    {
         cJSON_Delete(root);
         return -EOS_ERR_JSON_ERROR;
     }
 
     // 写入文件
     eos_result_t ret = eos_create_file_if_not_exist(path, json_str);
-    
+
     // 释放内存
     cJSON_free(json_str);
     cJSON_Delete(root);
-    
+
     return ret;
 }
 
@@ -132,7 +646,7 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = malloc(fsize + 1);
+    char *file_content = eos_mem_alloc(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -145,14 +659,14 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        free(file_content);
+        eos_mem_free(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    free(file_content);
+    eos_mem_free(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -200,7 +714,6 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     EOS_LOG_I("Successfully added new config item: %s=%s", key, value);
     return EOS_OK;
 }
-
 
 static void _sys_app_list_btn_cb(lv_event_t *e)
 {
@@ -308,6 +821,6 @@ void eos_sys_app_list_create()
 /**
  * @brief 系统设置页面
  */
-void eos_sys_create(){
-
+void eos_sys_create()
+{
 }

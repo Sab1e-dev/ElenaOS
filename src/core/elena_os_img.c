@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include "lvgl.h"
 #include "elena_os_log.h"
 #include "elena_os_port.h"
 // Macros and Definitions
@@ -49,6 +50,34 @@ static void _img_delete_event_cb(lv_event_t *e)
     }
     lv_mem_free(user_data);
     EOS_LOG_D("Image deleted.");
+}
+
+void eos_img_set_size(lv_obj_t *img_obj, const uint32_t w, const uint32_t h)
+{
+    const void *src = lv_img_get_src(img_obj);
+
+    if (src == NULL)
+    {
+        EOS_LOG_E("Image src is NULL");
+        return;
+    }
+
+    // 检查 src 类型
+    lv_image_src_t src_type = lv_img_src_get_type(src);
+    if (src_type != LV_IMAGE_SRC_VARIABLE)
+    {
+        EOS_LOG_E("Image src not a variable");
+        return;
+    }
+    // 内存里的图片描述符
+    const lv_image_dsc_t *dsc = (const lv_image_dsc_t *)src;
+    if (dsc->header.w == 0 || dsc->header.h == 0)
+    {
+        EOS_LOG_E("Image width or height is 0");
+        return;
+    }
+    lv_image_set_scale_x(img_obj, (uint32_t)((w* 256) / dsc->header.w) );
+    lv_image_set_scale_y(img_obj, (uint32_t)((h* 256) / dsc->header.h) );
 }
 
 void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)

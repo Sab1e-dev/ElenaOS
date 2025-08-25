@@ -31,7 +31,7 @@
 typedef struct
 {
     msg_list_item_t *item;
-    lv_obj_t *detail_container; // TODO: 放在 msg_list_item_t 内
+    lv_obj_t *detail_container;
 } btn_data_t;
 
 // Variables
