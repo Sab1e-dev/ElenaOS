@@ -62,7 +62,7 @@ static bool _is_nav_stack_initialized(void);
 static bool _is_nav_stack_full(void);
 static bool _is_nav_stack_empty(void);
 eos_result_t eos_nav_back_clean(void);
-
+extern lv_style_t style_screen;
 /**
  * @brief 检查导航栈是否已初始化
  */
@@ -138,6 +138,7 @@ eos_result_t eos_nav_init(lv_obj_t *root_scr)
 
     // 确保root screen是活动屏幕
     lv_scr_load(root_scr);
+    lv_obj_add_style(root_scr, &style_screen, 0);
     lv_obj_add_event_cb(root_scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized with root screen %p", root_scr);
     return EOS_OK;
@@ -170,7 +171,7 @@ lv_obj_t *eos_nav_scr_create(void)
         EOS_LOG_E("Create screen failed.");
         return NULL;
     }
-
+    lv_obj_add_style(scr, &style_screen, 0);
     // 确保新屏幕与栈中已有屏幕地址不同
     for (int i = 0; i <= nav.top; i++)
     {

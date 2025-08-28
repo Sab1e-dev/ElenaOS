@@ -1,12 +1,12 @@
 /**
- * @file elena_os_app_list.h
- * @brief 应用列表页面
+ * @file elena_os_theme.h
+ * @brief 主题色
  * @author Sab1e
- * @date 2025-08-21
+ * @date 2025-08-27
  */
 
-#ifndef ELENA_OS_APP_LIST_H
-#define ELENA_OS_APP_LIST_H
+#ifndef ELENA_OS_THEME_H
+#define ELENA_OS_THEME_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,13 +17,14 @@ extern "C" {
 #include <stdbool.h>
 #include "lvgl.h"
 /* Public macros ----------------------------------------------*/
-
+#define EOS_THEME_PRIMARY_COLOR   lv_color_hex(0x0066ff)
+#define EOS_THEME_SECONDARY_COLOR lv_color_hex(0x1d204a)
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-void eos_app_list_create(void);
+void eos_theme_set(lv_color_t primary_color, lv_color_t secondary_color, const lv_font_t *font);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ELENA_OS_APP_LIST_H */
+#endif /* ELENA_OS_THEME_H */

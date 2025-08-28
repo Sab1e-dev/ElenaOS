@@ -10,6 +10,7 @@
 // Includes
 #include <stdio.h>
 #include <stdlib.h>
+#include "lvgl.h"
 #include "elena_os_log.h"
 // Macros and Definitions
 /**
@@ -26,9 +27,7 @@ typedef struct _event_node_t
 // Variables
 static event_node_t *event_list_head = NULL; // 事件链表头
 /************************** 事件定义 **************************/
-uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK = 0;
-uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK = 0;
-uint32_t EOS_EVENT_SYS_BACK = 0;
+static uint32_t event_list[EOS_EVENT_MAX_NUMBER] = {0};
 // Function Implementations
 /**
  * @brief 对象删除回调
@@ -45,7 +44,7 @@ static void _obj_delete_cb(lv_event_t *e)
         {
             event_node_t *tmp = *curr;
             *curr = (*curr)->next;
-            lv_mem_free(tmp);
+            lv_free(tmp);
         }
         else
         {
@@ -56,8 +55,15 @@ static void _obj_delete_cb(lv_event_t *e)
 
 void eos_event_init(void)
 {
-    EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK = lv_event_register_id();
-    EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK = lv_event_register_id();
+    for (uint32_t i = 0; i < EOS_EVENT_MAX_NUMBER; i++)
+    {
+        event_list[i] = lv_event_register_id();
+    }
+}
+
+uint32_t eos_event_get_code(eos_event_t e)
+{
+    return event_list[e];
 }
 
 void eos_event_add_cb(lv_obj_t *obj, lv_event_cb_t cb, lv_event_code_t event, void *user_data)
@@ -69,7 +75,7 @@ void eos_event_add_cb(lv_obj_t *obj, lv_event_cb_t cb, lv_event_code_t event, vo
     }
 
     // 创建新节点
-    event_node_t *new_node = lv_mem_alloc(sizeof(event_node_t));
+    event_node_t *new_node = lv_malloc(sizeof(event_node_t));
     if (!new_node)
     {
         EOS_LOG_E("Failed to allocate event node");
@@ -107,7 +113,7 @@ void eos_event_remove_cb(lv_obj_t *obj, lv_event_code_t event, lv_event_cb_t cb)
             // 从LVGL中移除回调
             lv_obj_remove_event_cb(obj, cb);
 
-            lv_mem_free(tmp);
+            lv_free(tmp);
             return;
         }
         curr = &(*curr)->next;

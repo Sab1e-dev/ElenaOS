@@ -205,7 +205,7 @@ char *eos_read_file(const char *filename)
     long size = ftell(fp);
     rewind(fp);
 
-    char *data = (char *)eos_mem_alloc(size + 1);
+    char *data = (char *)eos_malloc(size + 1);
     if (!data)
     {
         fclose(fp);

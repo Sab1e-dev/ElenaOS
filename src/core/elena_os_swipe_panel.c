@@ -16,19 +16,15 @@
 // #define DEBUG_SWIPE_PANEL
 #define GESTURE_AREA_HEIGHT 50
 #define SWIPE_PANEL_DEFAULT_BG_COLOR 0x111111
-#define SCREEN_H lv_disp_get_ver_res(NULL)
-#define SCREEN_W lv_disp_get_hor_res(NULL)
 #define TOUCH_BAR_MARGIN 20
 // Variables
 static swipe_panel_t *active_swipe_panel = NULL; // 当前正在拖拽的控件 同一时刻只能拖拽一个控件 否则会出现问题
-extern uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK;
-extern uint32_t EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK;
 // Function Implementations
 static void _swipe_panel_event_cb_pressed(lv_event_t *e)
 {
     swipe_panel_t *swipe_panel = lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(swipe_panel);
-    eos_event_broadcast(EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK, NULL);
+    eos_event_broadcast(eos_event_get_code(EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK), NULL);
     if (active_swipe_panel != NULL && active_swipe_panel != swipe_panel)
     {
         return;
@@ -77,16 +73,16 @@ static void _swipe_panel_event_cb_pressing(lv_event_t *e)
     switch (swipe_panel->dir)
     {
     case SWIPE_DIR_UP:
-        new_pos = LV_CLAMP(0, new_pos, SCREEN_H);
+        new_pos = LV_CLAMP(0, new_pos, lv_display_get_vertical_resolution(NULL));
         break;
     case SWIPE_DIR_DOWN:
-        new_pos = LV_CLAMP(-SCREEN_H, new_pos, 0);
+        new_pos = LV_CLAMP(-lv_display_get_vertical_resolution(NULL), new_pos, 0);
         break;
     case SWIPE_DIR_LEFT:
-        new_pos = LV_CLAMP(0, new_pos, SCREEN_W);
+        new_pos = LV_CLAMP(0, new_pos, lv_display_get_horizontal_resolution(NULL));
         break;
     case SWIPE_DIR_RIGHT:
-        new_pos = LV_CLAMP(-SCREEN_W, new_pos, 0);
+        new_pos = LV_CLAMP(-lv_display_get_horizontal_resolution(NULL), new_pos, 0);
         break;
     }
 
@@ -106,7 +102,7 @@ static void _swipe_panel_event_cb_pressing(lv_event_t *e)
 static void _swipe_panel_timer_cb(lv_timer_t * timer)
 {
     EOS_LOG_D("Timer Callback");
-    eos_event_broadcast(EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK, NULL);
+    eos_event_broadcast(eos_event_get_code(EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK), NULL);
 }
 
 static void _swipe_panel_anim_completed_cb(lv_anim_t *a)
@@ -120,13 +116,13 @@ static void _swipe_panel_anim_completed_cb(lv_anim_t *a)
     {
         lv_coord_t y = lv_obj_get_y(swipe_panel->swipe_obj);
         // 当面板移动到屏幕一半高度以下时，手势区域在底部
-        if (y < SCREEN_H / 2)
+        if (y < lv_display_get_vertical_resolution(NULL) / 2)
         {
             lv_obj_set_y(swipe_panel->touch_area, 0);
         }
         else
         {
-            lv_obj_set_y(swipe_panel->touch_area, SCREEN_H - GESTURE_AREA_HEIGHT);
+            lv_obj_set_y(swipe_panel->touch_area, lv_display_get_vertical_resolution(NULL) - GESTURE_AREA_HEIGHT);
         }
     }
     break;
@@ -134,9 +130,9 @@ static void _swipe_panel_anim_completed_cb(lv_anim_t *a)
     {
         lv_coord_t y = lv_obj_get_y(swipe_panel->swipe_obj);
         // 当面板移动到屏幕一半高度以上时，手势区域在顶部
-        if (y > -SCREEN_H / 2)
+        if (y > -lv_display_get_vertical_resolution(NULL) / 2)
         {
-            lv_obj_set_y(swipe_panel->touch_area, SCREEN_H - GESTURE_AREA_HEIGHT);
+            lv_obj_set_y(swipe_panel->touch_area, lv_display_get_vertical_resolution(NULL) - GESTURE_AREA_HEIGHT);
         }
         else
         {
@@ -148,13 +144,13 @@ static void _swipe_panel_anim_completed_cb(lv_anim_t *a)
     {
         lv_coord_t x = lv_obj_get_x(swipe_panel->swipe_obj);
         // 当面板移动到屏幕一半宽度以下时，手势区域在右侧
-        if (x < SCREEN_W / 2)
+        if (x < lv_display_get_horizontal_resolution(NULL) / 2)
         {
             lv_obj_set_x(swipe_panel->touch_area, 0);
         }
         else
         {
-            lv_obj_set_x(swipe_panel->touch_area, SCREEN_W - GESTURE_AREA_HEIGHT);
+            lv_obj_set_x(swipe_panel->touch_area, lv_display_get_horizontal_resolution(NULL) - GESTURE_AREA_HEIGHT);
         }
     }
     break;
@@ -162,9 +158,9 @@ static void _swipe_panel_anim_completed_cb(lv_anim_t *a)
     {
         lv_coord_t x = lv_obj_get_x(swipe_panel->swipe_obj);
         // 当面板移动到屏幕一半宽度以上时，手势区域在左侧
-        if (x > -SCREEN_W / 2)
+        if (x > -lv_display_get_horizontal_resolution(NULL) / 2)
         {
-            lv_obj_set_x(swipe_panel->touch_area, SCREEN_W - GESTURE_AREA_HEIGHT);
+            lv_obj_set_x(swipe_panel->touch_area, lv_display_get_horizontal_resolution(NULL) - GESTURE_AREA_HEIGHT);
         }
         else
         {
@@ -202,20 +198,20 @@ static void _swipe_panel_event_cb_released(lv_event_t *e)
     switch (swipe_panel->dir)
     {
     case SWIPE_DIR_UP:
-        // UP方向：当面板位置小于屏幕一半高度时，完全显示（0），否则隐藏（SCREEN_H）
-        target_y = (cur_y < SCREEN_H / 2) ? 0 : SCREEN_H;
+        // UP方向：当面板位置小于屏幕一半高度时，完全显示（0），否则隐藏（lv_display_get_vertical_resolution(NULL)）
+        target_y = (cur_y < lv_display_get_vertical_resolution(NULL) / 2) ? 0 : lv_display_get_vertical_resolution(NULL);
         break;
     case SWIPE_DIR_DOWN:
-        // DOWN方向：当面板位置大于屏幕一半高度的负值时，完全显示（0），否则隐藏（-SCREEN_H）
-        target_y = (cur_y > -SCREEN_H / 2) ? 0 : -SCREEN_H;
+        // DOWN方向：当面板位置大于屏幕一半高度的负值时，完全显示（0），否则隐藏（-lv_display_get_vertical_resolution(NULL)）
+        target_y = (cur_y > -lv_display_get_vertical_resolution(NULL) / 2) ? 0 : -lv_display_get_vertical_resolution(NULL);
         break;
     case SWIPE_DIR_LEFT:
-        // LEFT方向：当面板位置小于屏幕一半宽度时，完全显示（0），否则隐藏（SCREEN_W）
-        target_x = (cur_x < SCREEN_W / 2) ? 0 : SCREEN_W;
+        // LEFT方向：当面板位置小于屏幕一半宽度时，完全显示（0），否则隐藏（lv_display_get_horizontal_resolution(NULL)）
+        target_x = (cur_x < lv_display_get_horizontal_resolution(NULL) / 2) ? 0 : lv_display_get_horizontal_resolution(NULL);
         break;
     case SWIPE_DIR_RIGHT:
-        // RIGHT方向：当面板位置大于屏幕一半宽度的负值时，完全显示（0），否则隐藏（-SCREEN_W）
-        target_x = (cur_x > -SCREEN_W / 2) ? 0 : -SCREEN_W;
+        // RIGHT方向：当面板位置大于屏幕一半宽度的负值时，完全显示（0），否则隐藏（-lv_display_get_horizontal_resolution(NULL)）
+        target_x = (cur_x > -lv_display_get_horizontal_resolution(NULL) / 2) ? 0 : -lv_display_get_horizontal_resolution(NULL);
         break;
     }
 
@@ -301,16 +297,16 @@ void eos_swipe_panel_pull_back(swipe_panel_t *swipe_panel)
     switch (swipe_panel->dir)
     {
     case SWIPE_DIR_UP:
-        target_y = SCREEN_H; // 向上拉回时完全隐藏
+        target_y = lv_display_get_vertical_resolution(NULL); // 向上拉回时完全隐藏
         break;
     case SWIPE_DIR_DOWN:
-        target_y = -SCREEN_H; // 向下拉回时完全隐藏
+        target_y = -lv_display_get_vertical_resolution(NULL); // 向下拉回时完全隐藏
         break;
     case SWIPE_DIR_LEFT:
-        target_x = SCREEN_W; // 向左拉回时完全隐藏
+        target_x = lv_display_get_horizontal_resolution(NULL); // 向左拉回时完全隐藏
         break;
     case SWIPE_DIR_RIGHT:
-        target_x = -SCREEN_W; // 向右拉回时完全隐藏
+        target_x = -lv_display_get_horizontal_resolution(NULL); // 向右拉回时完全隐藏
         break;
     }
 
@@ -384,11 +380,11 @@ void eos_swipe_panel_set_dir(swipe_panel_t *swipe_panel, const swipe_dir_t dir)
     {
     case SWIPE_DIR_UP:
     case SWIPE_DIR_DOWN:
-        lv_obj_set_size(swipe_panel->touch_area, SCREEN_W, GESTURE_AREA_HEIGHT);
+        lv_obj_set_size(swipe_panel->touch_area, lv_display_get_horizontal_resolution(NULL), GESTURE_AREA_HEIGHT);
         break;
     case SWIPE_DIR_LEFT:
     case SWIPE_DIR_RIGHT:
-        lv_obj_set_size(swipe_panel->touch_area, GESTURE_AREA_HEIGHT, SCREEN_H);
+        lv_obj_set_size(swipe_panel->touch_area, GESTURE_AREA_HEIGHT, lv_display_get_vertical_resolution(NULL));
         break;
     }
 
@@ -396,19 +392,19 @@ void eos_swipe_panel_set_dir(swipe_panel_t *swipe_panel, const swipe_dir_t dir)
     switch (dir)
     {
     case SWIPE_DIR_UP:
-        lv_obj_set_pos(swipe_panel->swipe_obj, 0, SCREEN_H);
-        lv_obj_set_pos(swipe_panel->touch_area, 0, SCREEN_H - GESTURE_AREA_HEIGHT);
+        lv_obj_set_pos(swipe_panel->swipe_obj, 0, lv_display_get_vertical_resolution(NULL));
+        lv_obj_set_pos(swipe_panel->touch_area, 0, lv_display_get_vertical_resolution(NULL) - GESTURE_AREA_HEIGHT);
         break;
     case SWIPE_DIR_DOWN:
-        lv_obj_set_pos(swipe_panel->swipe_obj, 0, -SCREEN_H);
+        lv_obj_set_pos(swipe_panel->swipe_obj, 0, -lv_display_get_vertical_resolution(NULL));
         lv_obj_set_pos(swipe_panel->touch_area, 0, 0);
         break;
     case SWIPE_DIR_LEFT:
-        lv_obj_set_pos(swipe_panel->swipe_obj, SCREEN_W, 0);
-        lv_obj_set_pos(swipe_panel->touch_area, SCREEN_W - GESTURE_AREA_HEIGHT, 0);
+        lv_obj_set_pos(swipe_panel->swipe_obj, lv_display_get_horizontal_resolution(NULL), 0);
+        lv_obj_set_pos(swipe_panel->touch_area, lv_display_get_horizontal_resolution(NULL) - GESTURE_AREA_HEIGHT, 0);
         break;
     case SWIPE_DIR_RIGHT:
-        lv_obj_set_pos(swipe_panel->swipe_obj, -SCREEN_W, 0);
+        lv_obj_set_pos(swipe_panel->swipe_obj, -lv_display_get_horizontal_resolution(NULL), 0);
         lv_obj_set_pos(swipe_panel->touch_area, 0, 0);
         break;
     }
@@ -423,19 +419,19 @@ void eos_swipe_panel_delete(swipe_panel_t *swipe_panel)
         return;
     lv_obj_del(swipe_panel->swipe_obj);
     lv_obj_del(swipe_panel->touch_area);
-    lv_mem_free(swipe_panel);
+    lv_free(swipe_panel);
 }
 
 swipe_panel_t *eos_swipe_panel_create(lv_obj_t *parent)
 {
-    swipe_panel_t *swipe_panel = lv_mem_alloc(sizeof(swipe_panel_t));
+    swipe_panel_t *swipe_panel = lv_malloc(sizeof(swipe_panel_t));
     if (!swipe_panel || !parent)
         return NULL;
     swipe_panel->swiping = false;
 
     // 初始化 swipe_obj
     swipe_panel->swipe_obj = lv_obj_create(parent);
-    lv_obj_set_size(swipe_panel->swipe_obj, SCREEN_W, SCREEN_H);
+    lv_obj_set_size(swipe_panel->swipe_obj, lv_display_get_horizontal_resolution(NULL), lv_display_get_vertical_resolution(NULL));
     lv_obj_set_style_bg_color(swipe_panel->swipe_obj, lv_color_hex(SWIPE_PANEL_DEFAULT_BG_COLOR), 0);
     // lv_obj_set_style_bg_opa(swipe_panel->swipe_obj, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(swipe_panel->swipe_obj, 0, 0);
@@ -443,7 +439,7 @@ swipe_panel_t *eos_swipe_panel_create(lv_obj_t *parent)
     lv_obj_set_style_radius(swipe_panel->swipe_obj, 0, 0);
     lv_obj_set_style_pad_all(swipe_panel->swipe_obj, 0, 0);
     // 默认是下拉栏
-    lv_obj_set_y(swipe_panel->swipe_obj, -SCREEN_H);
+    lv_obj_set_y(swipe_panel->swipe_obj, -lv_display_get_vertical_resolution(NULL));
     lv_obj_move_foreground(swipe_panel->swipe_obj);
 
     swipe_panel->handle_bar = lv_obj_create(swipe_panel->swipe_obj);
@@ -457,7 +453,7 @@ swipe_panel_t *eos_swipe_panel_create(lv_obj_t *parent)
 
     // 初始化 touch_area
     swipe_panel->touch_area = lv_obj_create(parent);
-    lv_obj_set_size(swipe_panel->touch_area, SCREEN_W, GESTURE_AREA_HEIGHT);
+    lv_obj_set_size(swipe_panel->touch_area, lv_display_get_horizontal_resolution(NULL), GESTURE_AREA_HEIGHT);
 #ifdef DEBUG_SWIPE_PANEL
     lv_obj_set_style_bg_color(swipe_panel->touch_area, lv_color_hex(0xFF0000), 0);
     lv_obj_set_style_bg_opa(swipe_panel->touch_area, LV_OPA_80, 0);
@@ -473,8 +469,8 @@ swipe_panel_t *eos_swipe_panel_create(lv_obj_t *parent)
     lv_obj_add_event_cb(swipe_panel->touch_area, _swipe_panel_event_cb_pressed, LV_EVENT_PRESSED, swipe_panel);
     lv_obj_add_event_cb(swipe_panel->touch_area, _swipe_panel_event_cb_pressing, LV_EVENT_PRESSING, swipe_panel);
     lv_obj_add_event_cb(swipe_panel->touch_area, _swipe_panel_event_cb_released, LV_EVENT_RELEASED, swipe_panel);
-    eos_event_add_cb(swipe_panel->touch_area, _swipe_panel_touch_lock, EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK, swipe_panel);
-    eos_event_add_cb(swipe_panel->touch_area, _swipe_panel_touch_unlock, EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK, swipe_panel);
+    eos_event_add_cb(swipe_panel->touch_area, _swipe_panel_touch_lock, eos_event_get_code(EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK), swipe_panel);
+    eos_event_add_cb(swipe_panel->touch_area, _swipe_panel_touch_unlock, eos_event_get_code(EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK), swipe_panel);
 
     lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(swipe_panel->swipe_obj, LV_OBJ_FLAG_SCROLLABLE);

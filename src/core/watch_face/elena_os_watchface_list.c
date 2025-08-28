@@ -5,6 +5,11 @@
  * @date 2025-08-25
  */
 
+/**
+ * TODO:
+ * 图片按下不灵敏，原因未知
+ */
+
 #include "elena_os_watchface_list.h"
 
 // Includes
@@ -27,6 +32,7 @@
 
 // Variables
 extern script_pkg_t *script_pkg_ptr; // 脚本包指针
+extern lv_group_t *encoder_group;
 // Function Implementations
 
 static void _watchface_list_btn_cb(lv_event_t *e)
@@ -49,8 +55,8 @@ void eos_watchface_list_create(void)
 
     size_t watchface_list_size = eos_watchface_list_size();
 
-    lv_obj_t *cont = lv_obj_create(scr);
-    lv_obj_set_style_pad_all(cont, 20, 0);
+    lv_obj_t *cont = lv_list_create(scr);
+    lv_obj_set_style_pad_all(cont, 24, 0);
     lv_obj_set_size(cont, lv_pct(100), lv_pct(100));
     lv_obj_set_style_border_width(cont, 0, 0);
     lv_obj_set_scroll_dir(cont, LV_DIR_HOR);
@@ -72,12 +78,13 @@ void eos_watchface_list_create(void)
         lv_obj_set_style_pad_gap(item, 20, 0); // snapshot 和 label 的间距
         lv_obj_set_style_border_width(item, 0, 0);
         lv_obj_set_style_shadow_width(item, 0, 0);
+        lv_obj_set_style_bg_opa(item,LV_OPA_TRANSP,0);
         lv_obj_clear_flag(item, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_align(item,
                               LV_FLEX_ALIGN_START,   // 主轴(水平方向)居中
                               LV_FLEX_ALIGN_CENTER,  // 交叉轴(垂直方向)居中
                               LV_FLEX_ALIGN_CENTER); // 内容居中
-
+        
         char icon_path[PATH_MAX];
         snprintf(icon_path, sizeof(icon_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_SNAPSHOT_FILE_NAME,
                  eos_watchface_list_get_id(i));
@@ -93,13 +100,18 @@ void eos_watchface_list_create(void)
         lv_obj_set_style_margin_all(watchface_snapshot, 0, 0);
         lv_obj_center(watchface_snapshot);
         lv_obj_set_style_pad_all(watchface_snapshot, 0, 0);
-        lv_obj_remove_flag(watchface_snapshot, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        // lv_obj_remove_flag(watchface_snapshot, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_obj_add_flag(watchface_snapshot, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(watchface_snapshot, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         eos_img_set_src(watchface_snapshot, icon_path);
         eos_img_set_size(watchface_snapshot, 268, 310);
         lv_obj_center(watchface_snapshot);
         lv_obj_add_event_cb(watchface_snapshot, _watchface_list_btn_cb, LV_EVENT_CLICKED, (void *)eos_watchface_list_get_id(i));
         lv_obj_set_style_clip_corner(watchface_snapshot, false, 0);
+        if (encoder_group)
+        {
+            lv_group_add_obj(encoder_group, watchface_snapshot);
+        }
         // 显示名称
         char manifest_path[PATH_MAX];
         snprintf(manifest_path, sizeof(manifest_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,

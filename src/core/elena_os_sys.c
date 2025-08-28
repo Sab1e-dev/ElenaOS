@@ -8,6 +8,7 @@
 /**
  * TODO:
  * 应用列表详情页
+ * 主题设置
  */
 
 #include "elena_os_sys.h"
@@ -68,7 +69,7 @@ eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_mem_alloc(fsize + 1);
+    char *file_content = eos_malloc(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -163,7 +164,7 @@ eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_mem_alloc(fsize + 1);
+    char *file_content = eos_malloc(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -258,7 +259,7 @@ eos_result_t eos_sys_cfg_set_number(const char *key, double value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_mem_alloc(fsize + 1);
+    char *file_content = eos_malloc(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -646,7 +647,7 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_mem_alloc(fsize + 1);
+    char *file_content = eos_malloc(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -821,6 +822,18 @@ void eos_sys_app_list_create()
 /**
  * @brief 系统设置页面
  */
-void eos_sys_create()
+void eos_sys_settings_create(void)
 {
+    lv_obj_t *scr = eos_nav_scr_create();
+    lv_screen_load(scr);
+
+    lv_obj_t *settings_list = lv_list_create(scr);
+    lv_obj_set_size(settings_list, lv_pct(100), lv_pct(100));
+
+    lv_obj_t *btn;
+    lv_list_add_text(settings_list, "[ElenaOS Test List]");
+    // 测试导航功能
+    // btn = lv_list_add_button(settings_list, LV_SYMBOL_HOME, "Navigation");
+    // lv_obj_add_event_cb(btn, _test_nav_cb_1, LV_EVENT_CLICKED, NULL);
+
 }

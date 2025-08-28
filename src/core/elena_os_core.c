@@ -5,6 +5,13 @@
  * @date 2025-08-10
  */
 
+/**
+ * TODO:
+ * 编码器索引
+ * screen 切换渐变（LVGL自带）
+ * 
+ */
+
 #include "elena_os_core.h"
 
 // Includes
@@ -32,37 +39,117 @@
 #include "elena_os_watchface.h"
 #include "elena_os_misc.h"
 #include "elena_os_watchface_list.h"
+#include "elena_os_app_list.h"
+#include "script_engine_nav.h"
+#include "elena_os_theme.h"
 // Macros and Definitions
-
+typedef enum
+{
+    ENTRY_NULL = 0,
+    ENTRY_APP_LIST,
+    ENTRY_WATCHFACE_LIST,
+} screen_entry_t;
 // Variables
-script_pkg_t *script_pkg_ptr; // 当前运行的脚本包指针
+script_pkg_t *script_pkg_ptr = NULL; // 当前运行的脚本包指针
+lv_group_t *encoder_group;
+lv_obj_t *root_scr;
+screen_entry_t next_screen_type;
+static eos_side_btn_state_t side_btn_state = SIDE_BTN_RELEASED;
 // Function Implementations
 
 static void _watchface_long_pressed_cb(lv_event_t *e)
 {
-    // 彻底删除当前运行的脚本表盘
     script_engine_request_stop();
-    // 创建表盘选择页面
-    eos_watchface_list_create();
+    next_screen_type = ENTRY_WATCHFACE_LIST;
+}
+
+static lv_indev_t *_get_key_indev()
+{
+    lv_indev_t *indev = lv_indev_get_next(NULL);
+    while (indev)
+    {
+        if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD)
+        {
+            return indev;
+        }
+        indev = lv_indev_get_next(indev);
+    }
+    EOS_LOG_W("Not found input device: key");
+}
+
+void eos_side_btn_handler(eos_side_btn_state_t state)
+{
+    static bool side_btn_processing = false;
+    if (side_btn_processing)
+        return;
+    side_btn_processing = true;
+    switch (state)
+    {
+    case SIDE_BTN_CLICKED:
+        lv_obj_t *scr = lv_screen_active();
+        if (scr == root_scr)
+        {
+            script_engine_request_stop();
+            next_screen_type = ENTRY_APP_LIST;
+            side_btn_state = SIDE_BTN_RELEASED;
+        }
+        else
+        {
+            side_btn_state = SIDE_BTN_CLICKED;
+        }
+    default:
+        break;
+    }
+    side_btn_processing = false;
 }
 
 eos_result_t eos_run()
 {
-    lv_obj_t *root_scr = lv_screen_active();
+    /************************** 变量初始化 **************************/
+    root_scr = lv_screen_active();
+    script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
+    memcpy(script_pkg_ptr,0,sizeof(script_pkg_t));
+    /************************** 系统组件初始化 **************************/
+    eos_event_init();
+    // eos_theme_init();
+    eos_theme_set(lv_palette_main(LV_PALETTE_BLUE),
+                  lv_palette_main(LV_PALETTE_RED),
+                  &lv_font_montserrat_30);
     eos_app_init();
     eos_watchface_init();
     eos_sys_init();
-    eos_event_init();
     eos_lang_init();
     // 加载导航
     eos_nav_init(root_scr);
     eos_lang_set(LANG_EN);
-    script_pkg_ptr = eos_mem_alloc(sizeof(script_pkg_t));
+
+    lv_indev_t *indev = _get_key_indev();
+    if (indev)
+    {
+        encoder_group = lv_indev_get_group(indev);
+        lv_group_add_obj(encoder_group, root_scr);
+    }
+    else
+    {
+        EOS_LOG_W("Input device not found");
+    }
+    eos_app_header_create(root_scr);
+    if (eos_watchface_list_size() == 0)
+    {
+        EOS_LOG_E("Watchface not found");
+        while (1)
+        {
+            if (eos_watchface_list_size() > 0)
+                break;
+            eos_delay(5000);
+        }
+    }
+    /************************** 系统启动 **************************/
     // 加载表盘
     while (1)
     {
         // JSON中获取表盘id
-        char *wf_id=eos_sys_cfg_get_string(EOS_SYS_CFG_KEY_WATCHFACE_ID, "cn.sab1e.clock");
+        char *wf_id = eos_sys_cfg_get_string(EOS_SYS_CFG_KEY_WATCHFACE_ID, "cn.sab1e.clock");
         if (!wf_id)
         {
             EOS_LOG_E("NULL wf_id");
@@ -138,7 +225,7 @@ eos_result_t eos_run()
             return -EOS_FAILED;
         }
 
-        script_pkg_ptr = eos_mem_alloc(sizeof(script_pkg_t));
+        script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
         if (!script_pkg_ptr)
         {
             EOS_LOG_E("memory alloc failed");
@@ -146,7 +233,7 @@ eos_result_t eos_run()
         }
         script_pkg_ptr->id = eos_strdup(id->valuestring);
         script_pkg_ptr->name = eos_strdup(name->valuestring);
-        script_pkg_ptr->type = SCRIPT_TYPE_APPLICATION;
+        script_pkg_ptr->type = SCRIPT_TYPE_WATCHFACE;
         script_pkg_ptr->version = eos_strdup(version->valuestring);
         script_pkg_ptr->author = eos_strdup(author->valuestring);
         script_pkg_ptr->description = eos_strdup(description->valuestring);
@@ -171,19 +258,58 @@ eos_result_t eos_run()
         if (ret != SE_OK)
         {
             EOS_LOG_E("Script encounter a fatal error");
+            while(1);
         }
-        // 无限循环
-        // 直到长按表盘或打开应用列表，此时脚本已结束
-        // 清理表盘数据
-        // 加载表盘脚本
+
+        switch (next_screen_type)
+        {
+        case ENTRY_APP_LIST:
+            eos_app_list_create();
+            break;
+        case ENTRY_WATCHFACE_LIST:
+            eos_watchface_list_create();
+            break;
+        default:
+            EOS_LOG_W("Entry not found");
+            break;
+        }
         while (1)
         {
             uint32_t d = lv_timer_handler();
             eos_delay(d);
-            if(lv_screen_active() == root_scr){
+            if (script_engine_get_state() == SCRIPT_STATE_READY)
+            {
+                script_engine_nav_init(lv_screen_active());
+                script_engine_result_t ret = script_engine_run(script_pkg_ptr);
+                eos_pkg_free(script_pkg_ptr);
+                script_pkg_ptr = NULL;
+                if (ret != SE_OK)
+                {
+                    EOS_LOG_E("Script encounter a fatal error");
+                    lv_obj_t *mbox = lv_msgbox_create(NULL);
+                    lv_obj_set_width(mbox, lv_pct(80));
+                    lv_msgbox_add_title(mbox, "Scrip Runtime");
+
+                    lv_msgbox_add_text(mbox, current_lang[STR_ID_SCRIPT_RUN_ERR]);
+                    lv_msgbox_add_close_button(mbox);
+                }
+                script_engine_nav_clean_up();
+                EOS_LOG_D("Script OK");
+            }
+            if (lv_screen_active() == root_scr)
+            {
                 // 判断有没有回到表盘页面，如果回到了，就退出刷新
                 break;
             }
+            if (side_btn_state == SIDE_BTN_CLICKED)
+            {
+                side_btn_state = SIDE_BTN_RELEASED;
+                if (lv_screen_active() != root_scr)
+                {
+                    eos_nav_back_clean();
+                }
+            }
         }
+        next_screen_type = ENTRY_NULL; // 立即清理状态
     }
 }

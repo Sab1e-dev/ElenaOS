@@ -35,12 +35,21 @@ typedef enum {
     EOS_ERR_VALUE_MISMATCH,
     EOS_ERR_UNKNOWN,
 } eos_result_t;
+
+typedef enum{
+    SIDE_BTN_CLICKED,
+    SIDE_BTN_PRESSED,
+    SIDE_BTN_LONG_PRESSED,
+    SIDE_BTN_RELEASED,
+    SIDE_BTN_DOUBLE_CLICKED
+} eos_side_btn_state_t;
 /* Public function prototypes --------------------------------*/
 /**
  * @brief ElenaOS 入口函数
  * @return eos_result_t 返回运行结果
  */
 eos_result_t eos_run();
+void eos_side_btn_handler(eos_side_btn_state_t state);
 #ifdef __cplusplus
 }
 #endif

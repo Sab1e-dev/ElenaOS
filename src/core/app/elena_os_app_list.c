@@ -27,14 +27,15 @@
 #include "elena_os_port.h"
 #include "elena_os_anim.h"
 #include "script_engine_core.h"
+#include "elena_os_sys.h"
 // Macros and Definitions
 
 // Variables
 extern script_pkg_t *script_pkg_ptr; // 脚本包指针
-
+extern lv_group_t *encoder_group;
 // Function Implementations
 
-static void _app_list_btn_cb(lv_event_t *e)
+static void _app_list_icon_clicked_cb(lv_event_t *e)
 {
     if (script_engine_get_state() != SCRIPT_STATE_STOPPED)
     {
@@ -113,7 +114,7 @@ static void _app_list_btn_cb(lv_event_t *e)
         return;
     }
 
-    script_pkg_ptr = eos_mem_alloc(sizeof(script_pkg_t));
+    script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
     EOS_CHECK_PTR_RETURN(script_pkg_ptr);
     script_pkg_ptr->id = eos_strdup(id->valuestring);
     script_pkg_ptr->name = eos_strdup(name->valuestring);
@@ -130,17 +131,23 @@ static void _app_list_btn_cb(lv_event_t *e)
     }
 }
 
-void eos_app_list_create()
+static void _app_list_settings_cb(lv_event_t *e)
+{
+    eos_sys_settings_create();
+}
+
+void eos_app_list_create(void)
 {
     // 创建新的页面用于绘制应用列表
     lv_obj_t *scr = eos_nav_scr_create();
     lv_screen_load(scr);
-
+    eos_app_header_create(scr);
     size_t app_list_size = eos_app_list_size();
 
-    lv_obj_t *cont = lv_obj_create(scr);
+    lv_obj_t *cont = lv_list_create(scr);
     lv_obj_set_style_pad_all(cont, 20, 0);
     lv_obj_set_style_pad_column(cont, 20, 0); // 列间距
+    lv_obj_set_style_pad_row(cont, 20, 0);
     lv_obj_set_size(cont, lv_pct(100), lv_pct(100));
     lv_obj_set_scroll_dir(cont, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_OFF);
@@ -150,6 +157,25 @@ void eos_app_list_create()
                           LV_FLEX_ALIGN_START,  // 主轴(水平方向)居中
                           LV_FLEX_ALIGN_START,  // 交叉轴(垂直方向)居中
                           LV_FLEX_ALIGN_START); // 内容居中
+    // 系统设置
+    char icon_path[PATH_MAX];
+    memcpy(icon_path, EOS_IMG_SETTINGS, sizeof(EOS_IMG_SETTINGS));
+    lv_obj_t *settings_icon = lv_image_create(cont);
+    lv_obj_set_size(settings_icon, 100, 100);
+    lv_obj_set_style_shadow_width(settings_icon, 0, 0);
+    lv_obj_set_style_margin_all(settings_icon, 0, 0);
+    lv_obj_set_style_pad_all(settings_icon, 0, 0);
+    lv_obj_remove_flag(settings_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_flag(settings_icon, LV_OBJ_FLAG_CLICKABLE);
+    eos_img_set_src(settings_icon, icon_path);
+    eos_img_set_size(settings_icon, 100, 100);
+    lv_obj_center(settings_icon);
+    lv_obj_add_event_cb(settings_icon, _app_list_settings_cb, LV_EVENT_CLICKED, NULL);
+    if (encoder_group)
+    {
+        lv_group_add_obj(encoder_group, settings_icon);
+    }
+    // 脚本应用
     for (size_t i = 0; i < app_list_size; i++)
     {
         char icon_path[PATH_MAX];
@@ -164,11 +190,16 @@ void eos_app_list_create()
         lv_obj_set_style_shadow_width(app_icon, 0, 0);
         lv_obj_set_style_margin_all(app_icon, 0, 0);
         lv_obj_set_style_pad_all(app_icon, 0, 0);
-        lv_obj_remove_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        // lv_obj_remove_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         eos_img_set_src(app_icon, icon_path);
         eos_img_set_size(app_icon, 100, 100);
         lv_obj_center(app_icon);
-        lv_obj_add_event_cb(app_icon, _app_list_btn_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
+        lv_obj_add_event_cb(app_icon, _app_list_icon_clicked_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
+        if (encoder_group)
+        {
+            lv_group_add_obj(encoder_group, app_icon);
+        }
     }
 }

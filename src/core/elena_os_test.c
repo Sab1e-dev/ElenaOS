@@ -90,7 +90,6 @@ static void _test_nav_cb_1(lv_event_t *e)
     _create_new_scr();
 
     lv_obj_t *back_btn = eos_back_btn_create(lv_scr_act(), true);
-    lv_obj_set_style_text_color(back_btn, lv_color_black(), 0);
     lv_obj_center(back_btn);
 }
 
@@ -323,6 +322,7 @@ void eos_test_start(void)
         uint32_t d = lv_timer_handler();
         if (script_engine_get_state()==SCRIPT_STATE_READY)
         {
+            script_engine_nav_init(scr);
             script_engine_result_t ret = script_engine_run(script_pkg_ptr);
             eos_pkg_free(script_pkg_ptr);
             script_pkg_ptr = NULL;
@@ -336,11 +336,7 @@ void eos_test_start(void)
                 lv_msgbox_add_text(mbox, current_lang[STR_ID_SCRIPT_RUN_ERR]);
                 lv_msgbox_add_close_button(mbox);
             }
-            if (lv_scr_act() == scr)
-            {
-                EOS_LOG_D("Script run complete, back to previous scr");
-                eos_nav_back_clean();
-            }
+            script_engine_nav_clean_up();
             EOS_LOG_D("Script OK");
         }
         eos_delay(d);

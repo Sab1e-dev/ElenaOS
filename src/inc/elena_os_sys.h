@@ -43,8 +43,7 @@ extern "C" {
 /**
  * @brief 系统第一次运行时初始化
  */
-void eos_sys_init();
-
+void eos_sys_init(void);
 /**
  * @brief 设置布尔类型的配置项
  * @param key 配置项的键
@@ -94,6 +93,7 @@ double eos_sys_cfg_get_number(const char *key, double default_value);
  * @return 返回结果
  */
 eos_result_t eos_sys_add_config_item(const char *key, const char *value);
+void eos_sys_settings_create(void);
 #ifdef __cplusplus
 }
 #endif

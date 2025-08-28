@@ -13,6 +13,7 @@
 #include <stdatomic.h>
 
 #include "elena_os_log.h"
+#include "elena_os_base_item.h"
 // Macros and Definitions
 #define NAV_STACK_SIZE 32
 
@@ -66,7 +67,7 @@ static bool _is_script_nav_stack_full(void);
 static bool _is_script_nav_stack_empty(void);
 script_engine_result_t script_engine_nav_back_clean(void);
 static script_engine_result_t _script_engine_nav_clear_stack(void);
-
+extern lv_style_t style_screen;
 /**
  * @brief 检查导航栈是否已初始化
  */
@@ -202,6 +203,10 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
 
     // 加载root_scr（脚本的根页面）
     lv_scr_load(root_scr);
+    lv_obj_add_style(root_scr, &style_screen, 0);
+    if(script_pkg_ptr->type==SCRIPT_TYPE_APPLICATION){
+        eos_app_header_create(root_scr);
+    }
     lv_obj_add_event_cb(root_scr, _script_nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized: base_scr=%p, root_scr=%p", base_scr, root_scr);
     return SE_OK;
@@ -237,7 +242,10 @@ lv_obj_t *script_engine_nav_scr_create(void)
         EOS_LOG_E("Create screen failed.");
         return NULL;
     }
-
+    lv_obj_add_style(scr, &style_screen, 0);
+    if(script_pkg_ptr->type==SCRIPT_TYPE_APPLICATION){
+        eos_app_header_create(scr);
+    }
     // 确保新屏幕与栈中已有屏幕地址不同
     for (int i = 0; i <= script_nav.top; i++)
     {

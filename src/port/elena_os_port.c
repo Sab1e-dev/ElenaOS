@@ -17,7 +17,7 @@
 
 // Function Implementations
 
-void *eos_mem_alloc(size_t size)
+void *eos_malloc(size_t size)
 {
     return mem_mgr_alloc(size);
 }
@@ -35,4 +35,8 @@ void eos_delay(uint32_t ms)
 void eos_cpu_reset()
 {
     // rt_hw_cpu_reset();
+}
+
+uint64_t eos_get_timestamp(void){
+    return 0;
 }

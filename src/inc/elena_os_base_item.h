@@ -19,7 +19,13 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
-
+typedef struct{
+    lv_obj_t *container;
+    lv_obj_t *clock_label;
+    lv_obj_t *title_label;
+    lv_obj_t *back_btn;
+    lv_timer_t *clock_timer;
+}eos_app_header_t;
 /* Public function prototypes --------------------------------*/
 
 /**
@@ -30,6 +36,7 @@ extern "C" {
  */
 lv_obj_t *eos_back_btn_create(lv_obj_t *parent, bool show_text);
 lv_obj_t * eos_list_add_button(lv_obj_t * list, const void * icon, const char * txt);
+eos_app_header_t *eos_app_header_create(lv_obj_t *scr);
 #ifdef __cplusplus
 }
 #endif

@@ -106,7 +106,7 @@ void eos_anim_del(eos_anim_t* anim)
     if (anim->anim_timeline) {
         lv_anim_timeline_delete(anim->anim_timeline);
     }
-    lv_mem_free(anim);
+    lv_free(anim);
 }
 
 eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
@@ -117,7 +117,7 @@ eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
     if (!tar_obj || duration == 0)
         return NULL;
 
-    eos_anim_t *anim = lv_mem_alloc(sizeof(eos_anim_t));
+    eos_anim_t *anim = lv_malloc(sizeof(eos_anim_t));
     if (!anim)
         return NULL;
 
@@ -130,7 +130,7 @@ eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
     anim->anim_timeline = lv_anim_timeline_create();
     if (!anim->anim_timeline)
     {
-        lv_mem_free(anim);
+        lv_free(anim);
         return NULL;
     }
 

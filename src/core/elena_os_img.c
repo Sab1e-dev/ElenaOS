@@ -45,10 +45,10 @@ static void _img_delete_event_cb(lv_event_t *e)
     }
     if (user_data->img_dsc)
     {
-        lv_mem_free(user_data->img_dsc);
+        lv_free(user_data->img_dsc);
         user_data->img_dsc = NULL;
     }
-    lv_mem_free(user_data);
+    lv_free(user_data);
     EOS_LOG_D("Image deleted.");
 }
 
@@ -116,7 +116,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     }
 
     // 分配内存
-    void *bin_data = eos_mem_alloc(file_size);
+    void *bin_data = eos_malloc(file_size);
     if (!bin_data)
     {
         EOS_LOG_E("Failed to allocate memory for image\n");
@@ -136,7 +136,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     }
 
     // 动态分配图像描述符
-    lv_image_dsc_t *img_dsc = (lv_image_dsc_t *)lv_mem_alloc(sizeof(lv_image_dsc_t));
+    lv_image_dsc_t *img_dsc = (lv_image_dsc_t *)lv_malloc(sizeof(lv_image_dsc_t));
     if (!img_dsc)
     {
         EOS_LOG_E("Failed to allocate image descriptor\n");
@@ -150,7 +150,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (img_dsc->header.magic != LV_IMAGE_HEADER_MAGIC)
     {
         EOS_LOG_E("Invalid image magic\n");
-        lv_mem_free(img_dsc);
+        lv_free(img_dsc);
         eos_mem_free(bin_data);
         return;
     }
@@ -160,12 +160,12 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     img_dsc->data = (const uint8_t *)bin_data + sizeof(lv_image_header_t);
 
     // 创建用户数据结构
-    img_user_data_t *user_data = (img_user_data_t *)lv_mem_alloc(sizeof(img_user_data_t));
+    img_user_data_t *user_data = (img_user_data_t *)lv_malloc(sizeof(img_user_data_t));
     if (!user_data)
     {
         EOS_LOG_E("Failed to allocate user data\n");
         eos_mem_free(bin_data);
-        lv_mem_free(img_dsc);
+        lv_free(img_dsc);
         return;
     }
     user_data->bin_data = bin_data;

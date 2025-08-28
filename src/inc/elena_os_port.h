@@ -30,7 +30,7 @@ extern "C" {
  * @return void* 分配成功则返回内存地址，否则返回 NULL
  * @note 主要用于图片内存分配
  */
-void *eos_mem_alloc(size_t size);
+void *eos_malloc(size_t size);
 /**
  * @brief 释放目标内存
  * @param ptr 目标指针
@@ -45,6 +45,7 @@ void eos_delay(uint32_t ms);
  * @brief 系统重置
  */
 void eos_cpu_reset();
+uint64_t eos_get_timestamp(void);
 
 #ifdef __cplusplus
 }

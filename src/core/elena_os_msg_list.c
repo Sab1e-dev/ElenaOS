@@ -17,11 +17,9 @@
 #include "elena_os_img.h"
 // Macros and Definitions
 #define MSG_LIST_ITEM_MARGIN_BOTTOM 25
-#define SCREEN_W lv_disp_get_hor_res(NULL)
-#define SCREEN_H lv_disp_get_ver_res(NULL)
 
 // 滑动删除相关的宏定义
-#define SWIPE_THRESHOLD (SCREEN_W / 2) // 触发删除的滑动距离阈值
+#define SWIPE_THRESHOLD (lv_display_get_horizontal_resolution(NULL) / 2) // 触发删除的滑动距离阈值
 #define SWIPE_ANIM_DURATION 200        // 滑动动画持续时间
 
 #define COMMON_ANIM_DURATION 150
@@ -210,7 +208,7 @@ static void _msg_list_item_released_cb(lv_event_t *e)
             lv_anim_init(&anim);
             lv_anim_set_var(&anim, item_container);
             lv_anim_set_values(&anim, current_x,
-                               (current_x > 0) ? SCREEN_W : -SCREEN_W);
+                               (current_x > 0) ? lv_display_get_horizontal_resolution(NULL) : -lv_display_get_horizontal_resolution(NULL));
             lv_anim_set_time(&anim, SWIPE_ANIM_DURATION);
             lv_anim_set_exec_cb(&anim, _set_translate_x_cb);
             lv_anim_set_completed_cb(&anim, _delete_anim_completed_cb);
@@ -298,9 +296,9 @@ static void _msg_list_item_pressing_cb(lv_event_t *e)
         lv_obj_clear_flag(item->msg_list->list, LV_OBJ_FLAG_SCROLLABLE);
         // 计算新的水平位置
         int32_t new_x = item->swipe_data.start_translate_x + delta_x;
-        if (abs(new_x) > SCREEN_W * 0.8)
+        if (abs(new_x) > lv_display_get_horizontal_resolution(NULL) * 0.8)
         {
-            new_x = (new_x > 0) ? (int32_t)(SCREEN_W * 0.8) : (int32_t)(-SCREEN_W * 0.8);
+            new_x = (new_x > 0) ? (int32_t)(lv_display_get_horizontal_resolution(NULL) * 0.8) : (int32_t)(-lv_display_get_horizontal_resolution(NULL) * 0.8);
         }
 
         // 应用水平偏移
@@ -347,7 +345,7 @@ static void _mark_as_read_anim_end_cb(eos_anim_t *a)
     }
 
     // 释放数据内存
-    lv_mem_free(data);
+    lv_free(data);
 }
 
 /**
@@ -364,7 +362,7 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
     // 获取按钮的父容器（即详情页面container）
     lv_obj_t *container = lv_obj_get_parent(btn);
 
-    eos_anim_t *anim = eos_anim_scale_create(container, SCREEN_W, 0, SCREEN_H, 0, COMMON_ANIM_DURATION);
+    eos_anim_t *anim = eos_anim_scale_create(container, lv_display_get_horizontal_resolution(NULL), 0, lv_display_get_vertical_resolution(NULL), 0, COMMON_ANIM_DURATION);
     eos_anim_set_cb(anim, _mark_as_read_anim_end_cb, data);
     eos_anim_start(anim);
 
@@ -425,14 +423,12 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
     lv_obj_t *title_label = lv_label_create(detail_container);
     lv_label_set_text(title_label, lv_label_get_text(item->title_label));
 
-    lv_obj_set_style_text_color(title_label, lv_color_white(), 0);
     lv_obj_set_style_margin_top(title_label, 5, 0);
 
     // 添加消息内容（复制原消息项的内容）
     lv_obj_t *msg_label = lv_label_create(detail_container);
     lv_label_set_text(msg_label, item->msg_str);
 
-    lv_obj_set_style_text_color(msg_label, lv_color_white(), 0);
     lv_obj_set_width(msg_label, lv_pct(90));
     lv_label_set_long_mode(msg_label, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_margin_top(msg_label, 10, 0);
@@ -453,10 +449,9 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
     // 添加按钮标签
     lv_obj_t *btn_label = eos_lang_label_create(mark_as_read_btn, STR_ID_MSG_LIST_ITEM_MARK_AS_READ);
 
-    lv_obj_set_style_text_color(btn_label, lv_color_white(), 0);
     lv_obj_center(btn_label);
 
-    btn_data_t *data = lv_mem_alloc(sizeof(btn_data_t));
+    btn_data_t *data = lv_malloc(sizeof(btn_data_t));
     data->item = item;
     data->detail_container = detail_container;
 
@@ -465,8 +460,8 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
 
     // 添加动画
     eos_anim_scale_start(detail_container,
-                         0, SCREEN_W,
-                         0, SCREEN_H,
+                         0, lv_display_get_horizontal_resolution(NULL),
+                         0, lv_display_get_vertical_resolution(NULL),
                          COMMON_ANIM_DURATION);
 }
 
@@ -474,7 +469,7 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
 
 msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 {
-    msg_list_item_t *item = lv_mem_alloc(sizeof(msg_list_item_t));
+    msg_list_item_t *item = lv_malloc(sizeof(msg_list_item_t));
     EOS_CHECK_PTR_RETURN_VAL(list, NULL);
     EOS_CHECK_PTR_RETURN_VAL_FREE(item, NULL, item);
     memset(item, 0, sizeof(msg_list_item_t));
@@ -521,13 +516,11 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
 
     // 标题
     item->title_label = lv_label_create(item->row1);
-    lv_obj_set_style_text_color(item->title_label, lv_color_white(), 0);
     lv_label_set_long_mode(item->title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_align_to(item->title_label, item->icon, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
 
     // 时间
     item->time_label = lv_label_create(item->row1);
-    lv_obj_set_style_text_color(item->time_label, lv_color_white(), 0);
     lv_obj_align(item->time_label, LV_TEXT_ALIGN_RIGHT, 0, 0);
     lv_obj_set_height(item->time_label, LV_SIZE_CONTENT);
 
@@ -535,7 +528,6 @@ msg_list_item_t *eos_msg_list_item_create(msg_list_t *list)
     item->msg_label = lv_label_create(item->container);
     lv_obj_set_width(item->msg_label, lv_pct(100));
     lv_label_set_long_mode(item->msg_label, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_color(item->msg_label, lv_color_white(), 0);
     lv_obj_set_style_margin_ver(item->msg_label, 16, 0);
     lv_obj_align_to(item->msg_label, item->row1, LV_ALIGN_BOTTOM_MID, 0, 0);
 
@@ -572,7 +564,7 @@ void eos_msg_list_item_delete(msg_list_item_t *item)
     // 释放消息字符串
     if (item->msg_str)
     {
-        lv_mem_free(item->msg_str);
+        lv_free(item->msg_str);
         item->msg_str = NULL;
     }
 
@@ -585,7 +577,7 @@ void eos_msg_list_item_delete(msg_list_item_t *item)
     }
 
     // 释放结构体
-    lv_mem_free(item);
+    lv_free(item);
 }
 
 void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
@@ -595,7 +587,7 @@ void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
     // 释放旧消息
     if (item->msg_str)
     {
-        lv_mem_free(item->msg_str);
+        lv_free(item->msg_str);
         item->msg_str = NULL;
     }
 
@@ -606,7 +598,7 @@ void eos_msg_list_item_set_msg(msg_list_item_t *item, const char *msg)
     else
     {
         // 分配新内存并复制
-        item->msg_str = lv_mem_alloc(strlen(msg) + 1);
+        item->msg_str = lv_malloc(strlen(msg) + 1);
         if (item->msg_str)
         {
             strcpy(item->msg_str, msg);
@@ -643,7 +635,7 @@ void eos_msg_list_clear_all(msg_list_t *msg_list)
 
     // 获取所有子对象
     uint32_t child_count = lv_obj_get_child_cnt(msg_list->list);
-    lv_obj_t **children = lv_mem_alloc(sizeof(lv_obj_t *) * child_count);
+    lv_obj_t **children = lv_malloc(sizeof(lv_obj_t *) * child_count);
 
     // 保存子对象指针（避免动态删除影响遍历）
     for (uint32_t i = 0; i < child_count; i++)
@@ -670,7 +662,7 @@ void eos_msg_list_clear_all(msg_list_t *msg_list)
         }
     }
 
-    lv_mem_free(children);
+    lv_free(children);
 }
 
 /************************** 清除按钮相关回调 **************************/
@@ -728,7 +720,7 @@ static void _trigger_msg_anims(msg_list_t *list)
             lv_anim_t anim;
             lv_anim_init(&anim);
             lv_anim_set_var(&anim, item->container);
-            lv_anim_set_values(&anim, lv_obj_get_x(item->container), SCREEN_W);
+            lv_anim_set_values(&anim, lv_obj_get_x(item->container), lv_display_get_horizontal_resolution(NULL));
             lv_anim_set_time(&anim, 120);
             lv_anim_set_exec_cb(&anim, _set_translate_x_cb);
             lv_anim_set_user_data(&anim, list);
@@ -787,7 +779,7 @@ void eos_msg_list_delete(msg_list_t *list)
     }
 
     // 释放列表结构体
-    lv_mem_free(list);
+    lv_free(list);
 }
 
 static void _msg_list_deleted_cb(lv_event_t *e)
@@ -801,7 +793,8 @@ static void _msg_list_deleted_cb(lv_event_t *e)
 
 msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 {
-    msg_list_t *list = lv_mem_alloc(sizeof(msg_list_t));
+    EOS_CHECK_PTR_RETURN_VAL(parent, NULL);
+    msg_list_t *list = lv_malloc(sizeof(msg_list_t));
     EOS_CHECK_PTR_RETURN_VAL_FREE(list, NULL, list);
     detail_flag = false;
     memset(list, 0, sizeof(msg_list_t));
@@ -836,7 +829,6 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
 
     lv_obj_t *clear_all_label = eos_lang_label_create(list->clear_all_btn, STR_ID_MSG_LIST_CLEAR_ALL);
 
-    lv_obj_set_style_text_color(clear_all_label, lv_color_white(), 0);
     lv_obj_center(clear_all_label);
 
     lv_obj_add_event_cb(list->clear_all_btn, _msg_list_clear_all_btn_cb, LV_EVENT_CLICKED, list);
@@ -844,7 +836,6 @@ msg_list_t *eos_msg_list_create(lv_obj_t *parent)
     // 创建无消息标签
     list->no_msg_label = eos_lang_label_create(list->swipe_panel->swipe_obj, STR_ID_MSG_LIST_NO_MSG);
 
-    lv_obj_set_style_text_color(list->no_msg_label, lv_color_hex(0xA6A6A6), 0);
     lv_obj_center(list->no_msg_label);
 
     return list;

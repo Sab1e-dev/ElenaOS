@@ -19,7 +19,8 @@ extern "C" {
 #include "elena_os_sys.h"
 /* Public macros ----------------------------------------------*/
 #define EOS_IMG_APP EOS_SYS_RES_IMG_DIR "app.bin"
-
+#define EOS_IMG_SETTINGS EOS_SYS_RES_IMG_DIR "settings.bin"
+#define EOS_IMG_APP_HEADER_BG EOS_SYS_RES_IMG_DIR "app_header.bin"
 /* Public typedefs --------------------------------------------*/
 
 /**

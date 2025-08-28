@@ -1,12 +1,12 @@
 /**
- * @file elena_os_app_list.h
- * @brief 应用列表页面
+ * @file elena_os_clock.h
+ * @brief 时钟服务
  * @author Sab1e
- * @date 2025-08-21
+ * @date 2025-08-28
  */
 
-#ifndef ELENA_OS_APP_LIST_H
-#define ELENA_OS_APP_LIST_H
+#ifndef ELENA_OS_CLOCK_H
+#define ELENA_OS_CLOCK_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,15 +15,15 @@ extern "C" {
 /* Includes ---------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
-#include "lvgl.h"
+
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-void eos_app_list_create(void);
+char *eos_colck_get_time_str(bool show_sec);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ELENA_OS_APP_LIST_H */
+#endif /* ELENA_OS_CLOCK_H */

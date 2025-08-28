@@ -27,6 +27,7 @@
 #include "elena_os_watchface.h"
 #include "elena_os_misc.h"
 #include "elena_os_log.h"
+#include "elena_os_clock.h"
 // Macros and Definitions
 
 // Variables
@@ -36,7 +37,7 @@ extern script_pkg_t *script_pkg_ptr;
 /********************************** 错误处理 **********************************/
 static jerry_value_t throw_error(const char *message)
 {
-    EOS_LOG_E("%s",message);
+    EOS_LOG_E("%s", message);
     jerry_value_t error_obj = jerry_error_sz(JERRY_ERROR_TYPE, (const jerry_char_t *)message);
     return jerry_throw_value(error_obj, true);
 }
@@ -48,11 +49,26 @@ static bool config_write_to_file(cJSON *root)
     if (!json_str)
         return false;
     char config_file_path[PATH_MAX];
-    snprintf(config_file_path, sizeof(config_file_path), EOS_APP_DATA_DIR "%s/config.json",
-             script_pkg_ptr->id);
+    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    {
+        snprintf(config_file_path, sizeof(config_file_path), EOS_APP_DATA_DIR "%s/config.json",
+                 script_pkg_ptr->id);
+    }
+    else if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    {
+        snprintf(config_file_path, sizeof(config_file_path), EOS_WATCHFACE_DATA_DIR "%s/config.json",
+                 script_pkg_ptr->id);
+    }
+    else
+    {
+        EOS_LOG_E("Unknown script type");
+        return false;
+    }
+    EOS_LOG_D("Writing file: %s", config_file_path);
     FILE *fp = fopen(config_file_path, "w");
     if (!fp)
     {
+        EOS_LOG_E("Open file failed");
         free(json_str);
         return false;
     }
@@ -66,9 +82,22 @@ static bool config_write_to_file(cJSON *root)
 static cJSON *config_load_from_file(void)
 {
     char config_file_path[PATH_MAX];
-    snprintf(config_file_path, sizeof(config_file_path), EOS_APP_DATA_DIR "%s/config.json",
-             script_pkg_ptr->id);
-
+    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    {
+        snprintf(config_file_path, sizeof(config_file_path), EOS_APP_DATA_DIR "%s/config.json",
+                 script_pkg_ptr->id);
+    }
+    else if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    {
+        snprintf(config_file_path, sizeof(config_file_path), EOS_WATCHFACE_DATA_DIR "%s/config.json",
+                 script_pkg_ptr->id);
+    }
+    else
+    {
+        EOS_LOG_E("Unknown script type");
+        return NULL;
+    }
+    EOS_LOG_D("Load from file: %s", config_file_path);
     if (!eos_is_file(config_file_path))
     {
         return cJSON_CreateObject();
@@ -76,7 +105,10 @@ static cJSON *config_load_from_file(void)
 
     FILE *fp = fopen(config_file_path, "rb");
     if (!fp)
+    {
+        EOS_LOG_E("Open file failed");
         return cJSON_CreateObject();
+    }
 
     fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
@@ -170,7 +202,8 @@ static jerry_value_t js_nav_scr_create(const jerry_call_info_t *call_info_p,
                                        const jerry_value_t args[],
                                        const jerry_length_t argc)
 {
-    if(script_pkg_ptr->type==SCRIPT_TYPE_WATCHFACE){
+    if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    {
         return throw_error("Watchface can't create screen");
     }
     // 调用底层函数
@@ -198,7 +231,8 @@ static jerry_value_t js_nav_back(const jerry_call_info_t *call_info_p,
                                  const jerry_value_t args[],
                                  const jerry_length_t argc)
 {
-    if(script_pkg_ptr->type==SCRIPT_TYPE_WATCHFACE){
+    if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    {
         return throw_error("Using navigation in the watchface is prohibited");
     }
     // 调用底层函数
@@ -328,10 +362,13 @@ static jerry_value_t js_config_set_str(const jerry_call_info_t *call_info_p,
     // JSON 写入
     cJSON *root = config_load_from_file();
     cJSON *item = cJSON_GetObjectItem(root, key);
-    
-    if (item) {
+
+    if (item)
+    {
         cJSON_ReplaceItemInObject(root, key, cJSON_CreateString(value));
-    } else {
+    }
+    else
+    {
         cJSON_AddItemToObject(root, key, cJSON_CreateString(value));
     }
     config_write_to_file(root);
@@ -362,11 +399,18 @@ static jerry_value_t js_config_set_boolean(const jerry_call_info_t *call_info_p,
 
     // JSON 写入
     cJSON *root = config_load_from_file();
+    if (!root)
+    {
+        return throw_error("Can't load config");
+    }
     cJSON *item = cJSON_GetObjectItem(root, key);
-    
-    if (item) {
+
+    if (item)
+    {
         cJSON_ReplaceItemInObject(root, key, cJSON_CreateBool(value));
-    } else {
+    }
+    else
+    {
         cJSON_AddItemToObject(root, key, cJSON_CreateBool(value));
     }
     config_write_to_file(root);
@@ -396,11 +440,20 @@ static jerry_value_t js_config_set_number(const jerry_call_info_t *call_info_p,
 
     // JSON 写入
     cJSON *root = config_load_from_file();
+    if (!root)
+    {
+        return throw_error("Can't load config");
+    }
     cJSON *item = cJSON_GetObjectItem(root, key);
-    
-    if (item) {
+
+    if (item)
+    {
+        EOS_LOG_D("Replace item");
         cJSON_ReplaceItemInObject(root, key, cJSON_CreateNumber(value));
-    } else {
+    }
+    else
+    {
+        EOS_LOG_D("Create item");
         cJSON_AddItemToObject(root, key, cJSON_CreateNumber(value));
     }
     config_write_to_file(root);
@@ -427,12 +480,20 @@ static jerry_value_t js_config_get_str(const jerry_call_info_t *call_info_p,
     key[key_len] = '\0';
 
     cJSON *root = config_load_from_file();
+    if (!root)
+    {
+        return throw_error("Can't load config");
+    }
     cJSON *item = cJSON_GetObjectItem(root, key);
 
     jerry_value_t ret = jerry_undefined();
     if (item && cJSON_IsString(item))
     {
         ret = jerry_string_sz(item->valuestring);
+    }
+    else
+    {
+        EOS_LOG_E("Can't get item");
     }
 
     cJSON_Delete(root);
@@ -456,12 +517,20 @@ static jerry_value_t js_config_get_boolean(const jerry_call_info_t *call_info_p,
     key[key_len] = '\0';
 
     cJSON *root = config_load_from_file();
+    if (!root)
+    {
+        return throw_error("Can't load config");
+    }
     cJSON *item = cJSON_GetObjectItem(root, key);
 
     jerry_value_t ret = jerry_boolean(false);
     if (item && cJSON_IsBool(item))
     {
         ret = item->valueint ? jerry_boolean(true) : jerry_boolean(false);
+    }
+    else
+    {
+        EOS_LOG_E("Can't get item");
     }
 
     cJSON_Delete(root);
@@ -485,6 +554,10 @@ static jerry_value_t js_config_get_number(const jerry_call_info_t *call_info_p,
     key[key_len] = '\0';
 
     cJSON *root = config_load_from_file();
+    if (!root)
+    {
+        return throw_error("Can't load config");
+    }
     cJSON *item = cJSON_GetObjectItem(root, key);
 
     jerry_value_t ret = jerry_number(0);
@@ -492,11 +565,44 @@ static jerry_value_t js_config_get_number(const jerry_call_info_t *call_info_p,
     {
         ret = jerry_number(item->valuedouble);
     }
+    else
+    {
+        EOS_LOG_E("Can't get item");
+    }
 
     cJSON_Delete(root);
     free(key);
     return ret;
 }
+
+// 获取时间字符串
+static jerry_value_t js_eos_clock_get_time_str(const jerry_call_info_t *call_info_p,
+                                           const jerry_value_t args[],
+                                           const jerry_length_t argc)
+{
+    if (argc < 1)
+    {
+        return throw_error("Insufficient arguments");
+    }
+    bool arg_v = false;
+    if (!jerry_value_is_undefined(args[0]))
+    {
+        if (jerry_value_is_boolean(args[0]))
+        {
+            arg_v = jerry_value_to_boolean(args[0]);
+        }
+        else if (jerry_value_is_number(args[0]))
+        {
+            arg_v = (jerry_value_as_number(args[0]) != 0);
+        }
+        else
+        {
+            return throw_error("Argument 0 must be boolean or number for bool");
+        }
+    }
+    return jerry_string_sz(eos_colck_get_time_str(arg_v));
+}
+
 /********************************** 注册原生函数 **********************************/
 
 /**
@@ -525,6 +631,8 @@ const script_engine_func_entry_t script_engine_native_funcs[] = {
      .handler = js_config_get_boolean},
     {.name = "config_get_number",
      .handler = js_config_get_number},
+    {.name = "eos_clock_get_time_str",
+     .handler = js_eos_clock_get_time_str},
 };
 
 /**
