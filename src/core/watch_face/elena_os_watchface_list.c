@@ -52,7 +52,6 @@ void eos_watchface_list_create(void)
     // 创建新的页面用于绘制应用列表
     lv_obj_t *scr = eos_nav_scr_create();
     lv_screen_load(scr);
-
     size_t watchface_list_size = eos_watchface_list_size();
 
     lv_obj_t *cont = lv_list_create(scr);

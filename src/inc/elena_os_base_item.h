@@ -36,7 +36,14 @@ typedef struct{
  */
 lv_obj_t *eos_back_btn_create(lv_obj_t *parent, bool show_text);
 lv_obj_t * eos_list_add_button(lv_obj_t * list, const void * icon, const char * txt);
-eos_app_header_t *eos_app_header_create(lv_obj_t *scr);
+void eos_app_header_set_title(const char *title);
+void eos_app_header_hide(void);
+void eos_app_header_show(void);
+void eos_app_header_init(void);
+void eos_screen_bind_header(lv_obj_t *scr, const char *title);
+lv_obj_t *eos_list_add_placeholder(lv_obj_t *list, uint32_t height);
+lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt);
+lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_color, const void *icon, const char *txt);
 #ifdef __cplusplus
 }
 #endif

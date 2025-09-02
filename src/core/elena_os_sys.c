@@ -9,6 +9,7 @@
  * TODO:
  * 应用列表详情页
  * 主题设置
+ * 打开设置页面时会分配16KB内存，原因未知
  */
 
 #include "elena_os_sys.h"
@@ -385,9 +386,12 @@ bool eos_sys_cfg_get_bool(const char *key, bool default_value)
     cJSON *item = cJSON_GetObjectItem(root, key);
     if (!item || !cJSON_IsBool(item))
     {
-        if (!item) {
+        if (!item)
+        {
             EOS_LOG_D("Key '%s' not found in config, returning default", key);
-        } else {
+        }
+        else
+        {
             EOS_LOG_W("Value for key '%s' is not a boolean, returning default", key);
         }
         cJSON_Delete(root);
@@ -458,9 +462,12 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     cJSON *item = cJSON_GetObjectItem(root, key);
     if (!item || !cJSON_IsString(item))
     {
-        if (!item) {
+        if (!item)
+        {
             EOS_LOG_D("Key '%s' not found in config, returning default", key);
-        } else {
+        }
+        else
+        {
             EOS_LOG_W("Value for key '%s' is not a string, returning default", key);
         }
         cJSON_Delete(root);
@@ -537,9 +544,12 @@ double eos_sys_cfg_get_number(const char *key, double default_value)
     cJSON *item = cJSON_GetObjectItem(root, key);
     if (!item || !cJSON_IsNumber(item))
     {
-        if (!item) {
+        if (!item)
+        {
             EOS_LOG_D("Key '%s' not found in config, returning default", key);
-        } else {
+        }
+        else
+        {
             EOS_LOG_W("Value for key '%s' is not a number, returning default", key);
         }
         cJSON_Delete(root);
@@ -819,21 +829,58 @@ void eos_sys_app_list_create()
     }
 }
 
+static void _sys_screen_bluetooth(lv_event_t *e)
+{
+    lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_BLUETOOTH]);
+    lv_screen_load(scr);
+
+    lv_obj_t *list = lv_list_create(scr);
+    lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_all(list, 0, 0);
+    lv_obj_center(list);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+
+    // 占位符
+    eos_list_add_placeholder(list, 110);
+
+    eos_list_add_switch(list,"123");
+
+
+}
+
+static void _sys_screen_display(lv_event_t *e)
+{
+    lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
+    lv_screen_load(scr);
+    
+}
+
 /**
  * @brief 系统设置页面
  */
 void eos_sys_settings_create(void)
 {
     lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS]);
     lv_screen_load(scr);
 
     lv_obj_t *settings_list = lv_list_create(scr);
     lv_obj_set_size(settings_list, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_all(settings_list, 0, 0);
+    lv_obj_center(settings_list);
+    lv_obj_set_scrollbar_mode(settings_list, LV_SCROLLBAR_MODE_OFF);
+
+    // 占位符
+    eos_list_add_placeholder(settings_list, 110);
 
     lv_obj_t *btn;
-    lv_list_add_text(settings_list, "[ElenaOS Test List]");
-    // 测试导航功能
-    // btn = lv_list_add_button(settings_list, LV_SYMBOL_HOME, "Navigation");
-    // lv_obj_add_event_cb(btn, _test_nav_cb_1, LV_EVENT_CLICKED, NULL);
-
+    // 蓝牙设置
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0xFF0000), LV_SYMBOL_BLUETOOTH, current_lang[STR_ID_SETTINGS_BLUETOOTH]);
+    lv_obj_add_event_cb(btn, _sys_screen_bluetooth, LV_EVENT_CLICKED, NULL);
+    // 显示设置
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x0000FF), LV_SYMBOL_IMAGE, current_lang[STR_ID_SETTINGS_DISPLAY]);
+    lv_obj_add_event_cb(btn, _sys_screen_display, LV_EVENT_CLICKED, NULL);
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x0000FF), LV_SYMBOL_IMAGE, "1234567890abcdefghijklmn");
 }

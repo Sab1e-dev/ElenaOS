@@ -22,7 +22,7 @@
  */
 typedef struct
 {
-    lv_obj_t *stack[NAV_STACK_SIZE]; // [0]: base_scr, [1]: root_scr, [2+]: other screens
+    lv_obj_t *stack[NAV_STACK_SIZE]; /**< [0]: base_scr, [1]: root_scr, [2+]: other screens*/
     int8_t top;
     bool initialized;
 } script_nav_stack_t;
@@ -202,10 +202,17 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
     script_nav.initialized = true;
 
     // 加载root_scr（脚本的根页面）
-    lv_scr_load(root_scr);
+    // lv_scr_load(root_scr);
+    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    {
+        eos_screen_bind_header(root_scr, script_pkg_ptr->name);
+    }
+    lv_screen_load_anim(root_scr, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 0, false);
     lv_obj_add_style(root_scr, &style_screen, 0);
-    if(script_pkg_ptr->type==SCRIPT_TYPE_APPLICATION){
-        eos_app_header_create(root_scr);
+    uint32_t start = lv_tick_get();
+    while(lv_tick_elaps(start) < 200) {
+        lv_timer_handler();
+        lv_tick_inc(1);
     }
     lv_obj_add_event_cb(root_scr, _script_nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized: base_scr=%p, root_scr=%p", base_scr, root_scr);
@@ -243,8 +250,9 @@ lv_obj_t *script_engine_nav_scr_create(void)
         return NULL;
     }
     lv_obj_add_style(scr, &style_screen, 0);
-    if(script_pkg_ptr->type==SCRIPT_TYPE_APPLICATION){
-        eos_app_header_create(scr);
+    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    {
+        eos_screen_bind_header(scr, script_pkg_ptr->name);
     }
     // 确保新屏幕与栈中已有屏幕地址不同
     for (int i = 0; i <= script_nav.top; i++)
@@ -311,15 +319,15 @@ script_engine_result_t script_engine_nav_back_clean(void)
     lv_obj_t *scr_to_del = script_nav.stack[script_nav.top];
     script_nav.top--; // 更新栈指针
 
-    // 加载前一个屏幕
-    lv_scr_load(prev_scr);
-
     // 删除页面
     if (scr_to_del)
     {
         lv_obj_del(scr_to_del);
         EOS_LOG_D("Deleted screen at %p", scr_to_del);
     }
+
+    // 加载前一个屏幕
+    lv_scr_load(prev_scr);
 
     EOS_MEM("Clear scr");
     atomic_store(&script_nav_busy, false);

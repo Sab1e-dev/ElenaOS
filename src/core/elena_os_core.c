@@ -133,7 +133,7 @@ eos_result_t eos_run()
     {
         EOS_LOG_W("Input device not found");
     }
-    eos_app_header_create(root_scr);
+
     if (eos_watchface_list_size() == 0)
     {
         EOS_LOG_E("Watchface not found");
@@ -144,6 +144,9 @@ eos_result_t eos_run()
             eos_delay(5000);
         }
     }
+    /************************** 基础部件初始化 **************************/
+    eos_app_header_init();
+    
     /************************** 系统启动 **************************/
     // 加载表盘
     while (1)

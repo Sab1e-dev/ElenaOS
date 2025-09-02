@@ -42,6 +42,10 @@ typedef enum {
     STR_ID_BASE_ITEM_BACK,
     STR_ID_TEST_LANG_STR,
     STR_ID_SCRIPT_RUN_ERR,
+    STR_ID_SETTINGS,
+    STR_ID_SETTINGS_BLUETOOTH,
+    STR_ID_SETTINGS_BLUETOOTH_ENABLE,
+    STR_ID_SETTINGS_DISPLAY,
 } lang_string_id_t;
 
 /* Public function prototypes --------------------------------*/

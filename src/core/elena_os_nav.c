@@ -266,15 +266,15 @@ eos_result_t eos_nav_back_clean(void)
     lv_obj_t *scr_to_del = nav.stack[nav.top];
     nav.top--; // 更新栈指针
 
-    // 加载前一个屏幕
-    lv_scr_load(prev_scr);
-
     // 删除页面
     if (scr_to_del)
     {
         lv_obj_del(scr_to_del);
         EOS_LOG_D("Deleted screen at %p", scr_to_del);
     }
+
+    // 加载前一个屏幕
+    lv_scr_load(prev_scr);
 
     EOS_MEM("Clear scr");
     atomic_store(&nav_busy, false);

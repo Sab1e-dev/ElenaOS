@@ -58,15 +58,16 @@ char *eos_colck_get_time_str(bool show_sec)
     clock.sec = 0;
     static char buf[TIME_STR_MAX];
     if(show_sec){
-        snprintf(buf, sizeof(buf), "%d:%d:%d",
+        snprintf(buf, sizeof(buf), "%02d:%02d:%02d",
              clock.hour, clock.min, clock.sec);
     }else{
-        snprintf(buf, sizeof(buf), "%d:%d",
+        snprintf(buf, sizeof(buf), "%02d:%02d",
              clock.hour, clock.min);
     }
     
     return buf;
 }
+
 
 void eos_clock_calibrate_time(uint64_t timestamp_ms)
 {
