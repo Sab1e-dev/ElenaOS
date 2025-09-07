@@ -27,7 +27,7 @@
 #include "elena_os_watchface.h"
 #include "elena_os_misc.h"
 #include "elena_os_log.h"
-#include "elena_os_clock.h"
+#include "elena_os_port.h"
 // Macros and Definitions
 
 // Variables
@@ -575,32 +575,47 @@ static jerry_value_t js_config_get_number(const jerry_call_info_t *call_info_p,
     return ret;
 }
 
-// 获取时间字符串
-static jerry_value_t js_eos_clock_get_time_str(const jerry_call_info_t *call_info_p,
-                                           const jerry_value_t args[],
-                                           const jerry_length_t argc)
+// 返回时间对象给 JS
+static jerry_value_t js_eos_time_get(const jerry_call_info_t *call_info_p,
+                                     const jerry_value_t args[],
+                                     const jerry_length_t argc)
 {
-    if (argc < 1)
-    {
-        return throw_error("Insufficient arguments");
-    }
-    bool arg_v = false;
-    if (!jerry_value_is_undefined(args[0]))
-    {
-        if (jerry_value_is_boolean(args[0]))
-        {
-            arg_v = jerry_value_to_boolean(args[0]);
-        }
-        else if (jerry_value_is_number(args[0]))
-        {
-            arg_v = (jerry_value_as_number(args[0]) != 0);
-        }
-        else
-        {
-            return throw_error("Argument 0 must be boolean or number for bool");
-        }
-    }
-    return jerry_string_sz(eos_colck_get_time_str(arg_v));
+    eos_datetime_t dt = eos_time_get();
+
+    // 创建 JS 对象
+    jerry_value_t obj = jerry_object();
+
+    jerry_value_t val;
+
+    val = jerry_number(dt.year);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"year"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.month);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"month"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.day);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"day"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.hour);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"hour"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.minute);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"minute"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.second);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"second"), val));
+    jerry_value_free(val);
+
+    val = jerry_number(dt.day_of_week);
+    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"day_of_week"), val));
+    jerry_value_free(val);
+
+    return obj;
 }
 
 /********************************** 注册原生函数 **********************************/
@@ -631,8 +646,8 @@ const script_engine_func_entry_t script_engine_native_funcs[] = {
      .handler = js_config_get_boolean},
     {.name = "config_get_number",
      .handler = js_config_get_number},
-    {.name = "eos_clock_get_time_str",
-     .handler = js_eos_clock_get_time_str},
+    {.name = "eos_time_get",
+     .handler = js_eos_time_get},
 };
 
 /**

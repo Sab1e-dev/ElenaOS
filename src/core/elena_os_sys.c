@@ -857,6 +857,13 @@ static void _sys_screen_display(lv_event_t *e)
     
 }
 
+static void _sys_screen_notification(lv_event_t *e)
+{
+    lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
+    lv_screen_load(scr);
+    
+}
 /**
  * @brief 系统设置页面
  */
@@ -877,10 +884,12 @@ void eos_sys_settings_create(void)
 
     lv_obj_t *btn;
     // 蓝牙设置
-    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0xFF0000), LV_SYMBOL_BLUETOOTH, current_lang[STR_ID_SETTINGS_BLUETOOTH]);
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x3988ff), LV_SYMBOL_BLUETOOTH, current_lang[STR_ID_SETTINGS_BLUETOOTH]);
     lv_obj_add_event_cb(btn, _sys_screen_bluetooth, LV_EVENT_CLICKED, NULL);
     // 显示设置
-    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x0000FF), LV_SYMBOL_IMAGE, current_lang[STR_ID_SETTINGS_DISPLAY]);
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0xffbb39), LV_SYMBOL_IMAGE, current_lang[STR_ID_SETTINGS_DISPLAY]);
     lv_obj_add_event_cb(btn, _sys_screen_display, LV_EVENT_CLICKED, NULL);
-    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x0000FF), LV_SYMBOL_IMAGE, "1234567890abcdefghijklmn");
+    // 通知设置
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0xff3939), LV_SYMBOL_BELL, current_lang[STR_ID_SETTINGS_NOTIFICATION]);
+    lv_obj_add_event_cb(btn, _sys_screen_notification, LV_EVENT_CLICKED, NULL);
 }

@@ -43,6 +43,19 @@ typedef enum{
     SIDE_BTN_RELEASED,
     SIDE_BTN_DOUBLE_CLICKED
 } eos_side_btn_state_t;
+
+/**
+ * @brief 时间结构体定义
+ */
+typedef struct {
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint8_t day_of_week;
+}eos_datetime_t;
 /* Public function prototypes --------------------------------*/
 /**
  * @brief ElenaOS 入口函数

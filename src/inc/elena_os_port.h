@@ -18,6 +18,7 @@ extern "C" {
 #include <stddef.h>
 #include "mem_mgr.h"
 #include "rtthread.h"
+#include "elena_os_core.h"
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
@@ -45,7 +46,13 @@ void eos_delay(uint32_t ms);
  * @brief 系统重置
  */
 void eos_cpu_reset();
-uint64_t eos_get_timestamp(void);
+/**
+ * @brief 获取当前时间结构体
+ * @return eos_datetime_t 时间结构体
+ * @note 推荐使用RTC获取时间
+ * @warning 请自行同步时间，确保获取的是准确时间
+ */
+eos_datetime_t eos_time_get(void);
 
 #ifdef __cplusplus
 }

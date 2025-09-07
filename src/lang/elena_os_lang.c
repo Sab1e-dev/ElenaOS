@@ -33,7 +33,8 @@ const char *lang_en[SYS_STR_ID_MAX] = {
     [STR_ID_SETTINGS] = "Settings",
     [STR_ID_SETTINGS_BLUETOOTH] = "Bluetooth",
     [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "Enable Bluetooth",
-    [STR_ID_SETTINGS_DISPLAY] = "Display"
+    [STR_ID_SETTINGS_DISPLAY] = "Display",
+    [STR_ID_SETTINGS_NOTIFICATION] = "Notification"
     // 在此添加新的字符串ID和英文翻译
 };
 
@@ -54,7 +55,8 @@ const char *lang_zh[SYS_STR_ID_MAX] = {
     [STR_ID_SETTINGS] = "设置",
     [STR_ID_SETTINGS_BLUETOOTH] = "蓝牙",
     [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "启用蓝牙",
-    [STR_ID_SETTINGS_DISPLAY] = "显示"
+    [STR_ID_SETTINGS_DISPLAY] = "显示",
+    [STR_ID_SETTINGS_NOTIFICATION] = "通知"
     // 在此添加新的字符串ID和中文翻译
 };
 

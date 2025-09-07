@@ -46,6 +46,7 @@ typedef enum {
     STR_ID_SETTINGS_BLUETOOTH,
     STR_ID_SETTINGS_BLUETOOTH_ENABLE,
     STR_ID_SETTINGS_DISPLAY,
+    STR_ID_SETTINGS_NOTIFICATION,
 } lang_string_id_t;
 
 /* Public function prototypes --------------------------------*/

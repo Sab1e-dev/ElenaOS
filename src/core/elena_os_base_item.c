@@ -18,10 +18,10 @@
 #include "elena_os_nav.h"
 #include "elena_os_img.h"
 #include "elena_os_event.h"
-#include "elena_os_clock.h"
 #include "script_engine_core.h"
 #include "elena_os_theme.h"
 #include "script_engine_nav.h"
+#include "elena_os_port.h"
 // Macros and Definitions
 #define APP_HEADER_HEIGHT 120
 #define APP_HEADER_CLOCK_UPDATE_PERIOD_MS 60000 // 一分钟
@@ -108,7 +108,7 @@ static void clock_update_cb(lv_timer_t *timer)
     lv_obj_t *label = lv_timer_get_user_data(timer);
     EOS_CHECK_PTR_RETURN(label);
     // 更新显示文字
-    lv_label_set_text(label, eos_colck_get_time_str(false));
+    // lv_label_set_text(label, eos_colck_get_time_str(false));
 }
 
 // Header事件回调
@@ -192,7 +192,7 @@ void eos_app_header_init(void)
 
     // 时间文字
     app_header->clock_label = lv_label_create(app_header->container);
-    lv_label_set_text(app_header->clock_label, eos_colck_get_time_str(false));
+    // lv_label_set_text(app_header->clock_label, eos_colck_get_time_str(false));
     lv_obj_align(app_header->clock_label, LV_ALIGN_RIGHT_MID, -APP_HEADER_MARGIN_RIGHT, -15);
     app_header->clock_timer = lv_timer_create(clock_update_cb, APP_HEADER_CLOCK_UPDATE_PERIOD_MS, app_header->clock_label);
 
