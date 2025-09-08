@@ -30,7 +30,7 @@ typedef enum{
 } language_id_t;
 /**
  * @brief 字符串索引
- * @note 此处可添加新的字符串索引
+ * @note 此处可添加新的字符串ID
  */
 typedef enum {
     STR_ID_LANGUAGE,
@@ -47,9 +47,17 @@ typedef enum {
     STR_ID_SETTINGS_BLUETOOTH_ENABLE,
     STR_ID_SETTINGS_DISPLAY,
     STR_ID_SETTINGS_NOTIFICATION,
+    /* 此处可添加新的字符串ID */
+    STR_ID_MAX_NUMBER   /**< 字符串ID最大值 */
 } lang_string_id_t;
 
 /* Public function prototypes --------------------------------*/
+
+/**
+ * @brief 获取当前语言的字符串
+ * 
+ * 例如当前语言是英语，那么 `current_lang[STR_ID_LANGUAGE]` 等于 `"English"`
+ */
 extern const char** current_lang;
 /**
  * @brief 初始化语言系统

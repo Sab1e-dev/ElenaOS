@@ -22,6 +22,12 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
+/**
+ * @brief 设置系统主题色
+ * @param primary_color 主色
+ * @param secondary_color 副色
+ * @param font 字体
+ */
 void eos_theme_set(lv_color_t primary_color, lv_color_t secondary_color, const lv_font_t *font);
 #ifdef __cplusplus
 }

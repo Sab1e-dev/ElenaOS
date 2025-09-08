@@ -47,6 +47,14 @@ void eos_delay(uint32_t ms);
  */
 void eos_cpu_reset();
 /**
+ * @brief 启用蓝牙
+ */
+void eos_bluetooth_enable(void);
+/**
+ * @brief 关闭蓝牙
+ */
+void eos_bluetooth_disable(void);
+/**
  * @brief 获取当前时间结构体
  * @return eos_datetime_t 时间结构体
  * @note 推荐使用RTC获取时间

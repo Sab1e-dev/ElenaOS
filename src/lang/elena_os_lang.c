@@ -15,12 +15,11 @@
 #include "lvgl.h"
 
 // Macros and Definitions
-#define SYS_STR_ID_MAX 128 // 最大字符串ID数量
 /**
  * @brief 英文语言数组
  * @note 在此处新增字符串
  */
-const char *lang_en[SYS_STR_ID_MAX] = {
+const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_LANGUAGE] = "English",
     [STR_ID_OK] = "OK",
     [STR_ID_CANCEL] = "Cancel",

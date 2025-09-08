@@ -19,23 +19,30 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
+
+/**
+ * @brief ElenaOS 返回值状态
+ */
 typedef enum {
-    EOS_OK = 0,
-    EOS_FAILED,
-    EOS_ERR_MEM,
-    EOS_ERR_STACK_EMPTY,
-    EOS_ERR_STACK_FULL,
-    EOS_ERR_VAR_NOT_NULL,
-    EOS_ERR_VAR_NULL,
-    EOS_ERR_NOT_INITIALIZED,
-    EOS_ERR_ALREADY_INITIALIZED,
-    EOS_ERR_BUSY,
-    EOS_ERR_FILE_ERROR,
-    EOS_ERR_JSON_ERROR,
-    EOS_ERR_VALUE_MISMATCH,
+    EOS_OK = 0,                     /**< 操作成功 */
+    EOS_FAILED,                     /**< 操作失败 */
+    EOS_ERR_MEM,                    /**< 操作失败：内存相关错误 */
+    EOS_ERR_STACK_EMPTY,            /**< 操作失败：栈空 */
+    EOS_ERR_STACK_FULL,             /**< 操作失败：栈满 */
+    EOS_ERR_VAR_NOT_NULL,           /**< 操作失败：变量不为空 */
+    EOS_ERR_VAR_NULL,               /**< 操作失败：变量为空 */
+    EOS_ERR_NOT_INITIALIZED,        /**< 操作失败：未初始化 */
+    EOS_ERR_ALREADY_INITIALIZED,    /**< 操作失败：已初始化 */
+    EOS_ERR_BUSY,                   /**< 操作失败：正忙         */
+    EOS_ERR_FILE_ERROR,             /**< 操作失败：文件相关错误*/
+    EOS_ERR_JSON_ERROR,             /**< 操作失败：JSON相关错误*/
+    EOS_ERR_VALUE_MISMATCH,         /**< 操作失败：值不匹配*/
     EOS_ERR_UNKNOWN,
 } eos_result_t;
 
+/**
+ * @brief 侧面按钮按下状态
+ */
 typedef enum{
     SIDE_BTN_CLICKED,
     SIDE_BTN_PRESSED,
@@ -57,11 +64,16 @@ typedef struct {
     uint8_t day_of_week;
 }eos_datetime_t;
 /* Public function prototypes --------------------------------*/
+
 /**
  * @brief ElenaOS 入口函数
  * @return eos_result_t 返回运行结果
  */
 eos_result_t eos_run();
+/**
+ * @brief 设置侧面按钮的状态
+ * @param state 状态值
+ */
 void eos_side_btn_handler(eos_side_btn_state_t state);
 #ifdef __cplusplus
 }

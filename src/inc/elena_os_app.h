@@ -20,9 +20,11 @@ extern "C" {
 #include "elena_os_sys.h"
 
 /* Public macros ----------------------------------------------*/
+/************************** 路径定义 **************************/
 #define EOS_APP_DIR EOS_SYS_DIR "app/"
 #define EOS_APP_INSTALLED_DIR EOS_APP_DIR "apps/"
 #define EOS_APP_DATA_DIR EOS_APP_DIR "app_data/"
+/************************** 文件名定义 **************************/
 #define EOS_APP_ICON_FILE_NAME  "icon.bin"
 #define EOS_APP_MANIFEST_FILE_NAME "manifest.json"
 #define EOS_APP_SCRIPT_ENTRY_FILE_NAME "main.js"

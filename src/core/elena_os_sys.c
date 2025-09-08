@@ -829,6 +829,22 @@ void eos_sys_app_list_create()
     }
 }
 
+static void _bluetooth_enable_switch_cb(lv_event_t *e)
+{
+    lv_obj_t *bt_sw = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(bt_sw);
+    if (lv_obj_has_state(bt_sw, LV_STATE_CHECKED))
+    {
+        eos_bluetooth_enable();
+        eos_sys_cfg_set_bool(EOS_SYS_CFG_KEY_BLUETOOTH, true);
+    }
+    else
+    {
+        eos_bluetooth_disable();
+        eos_sys_cfg_set_bool(EOS_SYS_CFG_KEY_BLUETOOTH, false);
+    }
+}
+
 static void _sys_screen_bluetooth(lv_event_t *e)
 {
     lv_obj_t *scr = eos_nav_scr_create();
@@ -844,9 +860,8 @@ static void _sys_screen_bluetooth(lv_event_t *e)
     // 占位符
     eos_list_add_placeholder(list, 110);
 
-    eos_list_add_switch(list,"123");
-
-
+    lv_obj_t *bt_sw = eos_list_add_switch(list, current_lang[STR_ID_SETTINGS_BLUETOOTH_ENABLE]);
+    lv_obj_add_event_cb(bt_sw, LV_EVENT_VALUE_CHANGE, _bluetooth_enable_switch_cb, NULL);
 }
 
 static void _sys_screen_display(lv_event_t *e)
@@ -854,7 +869,6 @@ static void _sys_screen_display(lv_event_t *e)
     lv_obj_t *scr = eos_nav_scr_create();
     eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
     lv_screen_load(scr);
-    
 }
 
 static void _sys_screen_notification(lv_event_t *e)
@@ -862,11 +876,8 @@ static void _sys_screen_notification(lv_event_t *e)
     lv_obj_t *scr = eos_nav_scr_create();
     eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
     lv_screen_load(scr);
-    
 }
-/**
- * @brief 系统设置页面
- */
+
 void eos_sys_settings_create(void)
 {
     lv_obj_t *scr = eos_nav_scr_create();

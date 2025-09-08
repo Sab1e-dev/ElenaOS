@@ -29,11 +29,16 @@
 #define APP_HEADER_MARGIN_RIGHT 30
 
 #define EOS_APP_CIRCLE_ICON_BUTTON_HEIGHT 100
+
+#define APP_HEADER_TIME_STR_ARRAY_MAX 32
 // Variables
 extern script_pkg_t *script_pkg_ptr;
 static eos_app_header_t *app_header = NULL;
 // Function Implementations
 
+/**
+ * @brief 返回按钮的回调
+ */
 static void _back_btn_cb(lv_event_t *e)
 {
     EOS_LOG_D("NAV back");
@@ -102,16 +107,30 @@ lv_obj_t *eos_list_add_button(lv_obj_t *list, const void *icon, const char *txt)
     return obj;
 }
 
-// 每分钟刷新一次的回调
+/**
+ * @brief 更新LVGL字符串，显示当前时间
+ */
+static inline void _app_header_update_clock_label(lv_obj_t *label){
+    eos_datetime_t dt = eos_time_get();
+    char time_str[APP_HEADER_TIME_STR_ARRAY_MAX];
+    snprintf(time_str,sizeof(time_str),"%02d:%02d",dt.hour,dt.minute);
+    lv_label_set_text(label, time_str);
+}
+
+/**
+ * @brief 时间刷新的回调，由 LVGL 的定时器触发
+ */
 static void clock_update_cb(lv_timer_t *timer)
 {
     lv_obj_t *label = lv_timer_get_user_data(timer);
     EOS_CHECK_PTR_RETURN(label);
     // 更新显示文字
-    // lv_label_set_text(label, eos_colck_get_time_str(false));
+    _app_header_update_clock_label(label);
 }
 
-// Header事件回调
+/**
+ * @brief Header 的 screen 加载事件回调
+ */
 static void _screen_load_cb(lv_event_t *e)
 {
     EOS_LOG_D("screen loaded");
@@ -130,6 +149,9 @@ static void _screen_load_cb(lv_event_t *e)
     }
 }
 
+/**
+ * @brief Header 的 screen 删除事件回调
+ */
 static void _screen_delete_cb(lv_event_t *e)
 {
     EOS_LOG_D("screen deleted");
@@ -137,14 +159,12 @@ static void _screen_delete_cb(lv_event_t *e)
     eos_app_header_hide();
 }
 
-// 设置标题（只改 label 内容）
 void eos_app_header_set_title(const char *title)
 {
     EOS_CHECK_PTR_RETURN(app_header);
     lv_label_set_text(app_header->title_label, title);
 }
 
-// 显示/隐藏 header
 void eos_app_header_hide(void)
 {
     EOS_CHECK_PTR_RETURN(app_header);
@@ -192,7 +212,7 @@ void eos_app_header_init(void)
 
     // 时间文字
     app_header->clock_label = lv_label_create(app_header->container);
-    // lv_label_set_text(app_header->clock_label, eos_colck_get_time_str(false));
+    _app_header_update_clock_label(app_header->clock_label);
     lv_obj_align(app_header->clock_label, LV_ALIGN_RIGHT_MID, -APP_HEADER_MARGIN_RIGHT, -15);
     app_header->clock_timer = lv_timer_create(clock_update_cb, APP_HEADER_CLOCK_UPDATE_PERIOD_MS, app_header->clock_label);
 
@@ -222,6 +242,7 @@ lv_obj_t *eos_list_add_placeholder(lv_obj_t *list, uint32_t height)
     lv_obj_set_size(ph, lv_pct(100), height);
     return ph;
 }
+
 lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_color, const void *icon_src, const char *txt)
 {
     // 创建按钮
@@ -293,7 +314,6 @@ lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt)
     lv_label_set_text(label, txt);
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_flex_grow(label, 1);
-    // lv_obj_set_style_margin_right(label, 18, 0);
 
     // 开关
     lv_obj_t *sw = lv_switch_create(container);

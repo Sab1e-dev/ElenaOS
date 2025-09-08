@@ -39,12 +39,12 @@ void eos_cpu_reset(void)
     // rt_hw_cpu_reset();
 }
 
-void eos_ble_enable(void)
+void eos_bluetooth_enable(void)
 {
     // TODO: 启动BLE广播
 }
 
-void eos_ble_disable(void)
+void eos_bluetooth_disable(void)
 {
     // TODO: 断开所有连接，关闭BLE广播
 }

@@ -18,6 +18,7 @@ extern "C" {
 #include "lvgl.h"
 #include "elena_os_sys.h"
 /* Public macros ----------------------------------------------*/
+/************************** 系统内置图片资源名称定义 **************************/
 #define EOS_IMG_APP EOS_SYS_RES_IMG_DIR "app.bin"
 #define EOS_IMG_SETTINGS EOS_SYS_RES_IMG_DIR "settings.bin"
 #define EOS_IMG_APP_HEADER_BG EOS_SYS_RES_IMG_DIR "app_header.bin"

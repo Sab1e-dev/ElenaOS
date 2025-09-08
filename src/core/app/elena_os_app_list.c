@@ -9,6 +9,7 @@
  * TODO:
  * 应用列表需要支持系统应用（c应用）
  * 广播通知应用安装与卸载
+ * 应用列表需要支持应用排序
  */
 
 #include "elena_os_app_list.h"
@@ -35,6 +36,9 @@ extern script_pkg_t *script_pkg_ptr; // 脚本包指针
 extern lv_group_t *encoder_group;
 // Function Implementations
 
+/**
+ * @brief 应用图标按下后的回调
+ */
 static void _app_list_icon_clicked_cb(lv_event_t *e)
 {
     if (script_engine_get_state() != SCRIPT_STATE_STOPPED)
@@ -131,6 +135,9 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     }
 }
 
+/**
+ * @brief 设置图标按下时的回调 
+ */
 static void _app_list_settings_cb(lv_event_t *e)
 {
     eos_sys_settings_create();
@@ -153,9 +160,9 @@ void eos_app_list_create(void)
     lv_obj_center(cont);
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_flex_align(cont,
-                          LV_FLEX_ALIGN_START,  // 主轴(水平方向)居中
-                          LV_FLEX_ALIGN_START,  // 交叉轴(垂直方向)居中
-                          LV_FLEX_ALIGN_START); // 内容居中
+                          LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_START);
     // 系统设置
     char icon_path[PATH_MAX];
     memcpy(icon_path, EOS_IMG_SETTINGS, sizeof(EOS_IMG_SETTINGS));

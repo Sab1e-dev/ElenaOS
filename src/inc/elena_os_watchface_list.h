@@ -21,6 +21,9 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
+/**
+ * @brief 创建表盘列表页面
+ */
 void eos_watchface_list_create(void);
 #ifdef __cplusplus
 }

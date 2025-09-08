@@ -3,3 +3,5 @@ SConstruct
 SConscript
 # Temporary files
 temp
+# VSCode
+.vscode

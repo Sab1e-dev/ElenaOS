@@ -20,17 +20,17 @@
 #include "elena_os_pkg_mgr.h"
 #include "script_engine_core.h"
 // Macros and Definitions
-#define EOS_APP_LIST_DEFAULT_CAPACITY 1
+#define EOS_APP_LIST_DEFAULT_CAPACITY 1 // 列表默认容量大小
 /**
- * @brief 应用结构体
+ * @brief 应用列表结构体
+ * 
+ * 可变数组
  */
-typedef script_pkg_t eos_app_t;
-
 typedef struct
 {
-    char **data;
-    size_t size;
-    size_t capacity;
+    char **data;        /**< 应用唯一ID */
+    size_t size;        /**< 应用列表已存储的ID数量 */
+    size_t capacity;    /**< 应用列表的容量 */
 } eos_app_list_t;
 static eos_app_list_t app_list;
 static bool app_list_initialized = false;
@@ -65,6 +65,9 @@ bool eos_app_list_contains(const char *app_id)
     return false;
 }
 
+/**
+ * @brief 初始化应用列表
+ */
 void _eos_app_list_init(eos_app_list_t *list, size_t capacity)
 {
     list->data = malloc(capacity * sizeof(char *));
@@ -72,6 +75,9 @@ void _eos_app_list_init(eos_app_list_t *list, size_t capacity)
     list->capacity = capacity;
 }
 
+/**
+ * @brief 向应用列表添加新的应用
+ */
 void _eos_app_list_add(eos_app_list_t *list, const char *id)
 {
     if (list->size == list->capacity)
@@ -83,6 +89,9 @@ void _eos_app_list_add(eos_app_list_t *list, const char *id)
     list->size++;
 }
 
+/**
+ * @brief 释放列表的数据
+ */
 void _eos_app_list_free(eos_app_list_t *list)
 {
     for (size_t i = 0; i < list->size; i++)
@@ -92,6 +101,9 @@ void _eos_app_list_free(eos_app_list_t *list)
     free(list->data);
 }
 
+/**
+ * @brief 从 Flash 获取已安装的应用
+ */
 eos_result_t _eos_app_list_get_installed(void)
 {
     DIR *dir;
@@ -132,6 +144,9 @@ eos_result_t _eos_app_list_get_installed(void)
     return EOS_OK;
 }
 
+/**
+ * @brief 刷新应用列表
+ */
 eos_result_t _eos_app_list_refresh()
 {
     memcpy(&app_list, 0, sizeof(app_list));

@@ -19,6 +19,10 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
+/**
+ * @brief 全局广播事件类型定义
+ * @note 此处可添加新的事件
+ */
 typedef enum{
     EOS_EVENT_SWIPE_PANEL_TOUCH_LOCK=0,
     EOS_EVENT_SWIPE_PANEL_TOUCH_UNLOCK,

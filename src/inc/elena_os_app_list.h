@@ -21,6 +21,9 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
+/**
+ * @brief 创建应用列表页面
+ */
 void eos_app_list_create(void);
 #ifdef __cplusplus
 }

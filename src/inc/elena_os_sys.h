@@ -24,7 +24,8 @@ extern "C" {
  * 系统设置配置文件：/.sys/config/cfg.json
  * 应用位置：/.sys/app/package
  * 应用数据：/.sys/app/app_data
- *
+ * 表盘位置：/.sys/wf/faces
+ * 表盘数据：/.sys/wf/wf_data
  */
 #define EOS_SYS_DIR "/.sys/"
 #define EOS_SYS_CONFIG_DIR EOS_SYS_DIR "config/"
@@ -32,10 +33,12 @@ extern "C" {
 
 #define EOS_SYS_RES_DIR EOS_SYS_DIR "res/"
 #define EOS_SYS_RES_IMG_DIR EOS_SYS_RES_DIR "img/"
-
+/************************** 系统配置信息的键 **************************/
 #define EOS_SYS_CFG_KEY_VERSION "version"
 #define EOS_SYS_CFG_KEY_LANGUAGE "language"
 #define EOS_SYS_CFG_KEY_WATCHFACE_ID "wf_id"
+#define EOS_SYS_CFG_KEY_BLUETOOTH "bluetooth"
+
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
