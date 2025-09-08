@@ -41,7 +41,7 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
  * @brief 中文语言数组
  * @note 在此处新增字符串
  */
-const char *lang_zh[SYS_STR_ID_MAX] = {
+const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_LANGUAGE] = "简体中文",
     [STR_ID_OK] = "确定",
     [STR_ID_CANCEL] = "取消",
@@ -126,7 +126,7 @@ static void lang_event_cb(lv_event_t *e)
         return;
     }
 
-    if (id < SYS_STR_ID_MAX && current_lang && current_lang[id])
+    if (id < STR_ID_MAX_NUMBER && current_lang && current_lang[id])
     {
         lv_label_set_text(label, current_lang[id]);
     }
@@ -148,7 +148,7 @@ lv_obj_t *eos_lang_label_create(lv_obj_t *parent, uint32_t str_id)
         return NULL;
 
     // 设置初始文本
-    if (str_id < SYS_STR_ID_MAX && current_lang && current_lang[str_id])
+    if (str_id < STR_ID_MAX_NUMBER && current_lang && current_lang[str_id])
     {
         lv_label_set_text(label, current_lang[str_id]);
     }

@@ -861,7 +861,7 @@ static void _sys_screen_bluetooth(lv_event_t *e)
     eos_list_add_placeholder(list, 110);
 
     lv_obj_t *bt_sw = eos_list_add_switch(list, current_lang[STR_ID_SETTINGS_BLUETOOTH_ENABLE]);
-    lv_obj_add_event_cb(bt_sw, LV_EVENT_VALUE_CHANGE, _bluetooth_enable_switch_cb, NULL);
+    lv_obj_add_event_cb(bt_sw, _bluetooth_enable_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 static void _sys_screen_display(lv_event_t *e)
