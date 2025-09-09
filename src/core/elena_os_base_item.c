@@ -32,7 +32,7 @@
 
 #define APP_HEADER_TIME_STR_ARRAY_MAX 32
 // Variables
-extern script_pkg_t *script_pkg_ptr;
+extern script_pkg_t script_pkg;
 static eos_app_header_t *app_header = NULL;
 // Function Implementations
 
@@ -42,7 +42,7 @@ static eos_app_header_t *app_header = NULL;
 static void _back_btn_cb(lv_event_t *e)
 {
     EOS_LOG_D("NAV back");
-    if (script_pkg_ptr)
+    if (script_pkg.id!=NULL)
     {
         if (script_engine_nav_back_clean() != EOS_OK)
         {
@@ -218,9 +218,9 @@ void eos_app_header_init(void)
 
     // 标题文字
     app_header->title_label = lv_label_create(app_header->container);
-    if (script_pkg_ptr && script_pkg_ptr->name)
+    if (script_pkg.name!=NULL)
     {
-        lv_label_set_text(app_header->title_label, script_pkg_ptr->name);
+        lv_label_set_text(app_header->title_label, script_pkg.name);
     }
     else
     {

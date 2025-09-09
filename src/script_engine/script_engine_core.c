@@ -185,7 +185,7 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
         strlen(script_package->script_str),
         JERRY_PARSE_NO_OPTS);
     // 清理脚本字符串
-    eos_mem_free((void *)script_package->script_str);
+    eps_free_large((void *)script_package->script_str);
     script_package->script_str = NULL;
     if (!jerry_value_is_exception(parsed_code))
     {

@@ -32,7 +32,7 @@
 // Macros and Definitions
 
 // Variables
-extern script_pkg_t *script_pkg_ptr; // 脚本包指针
+extern script_pkg_t script_pkg; // 脚本包
 extern lv_group_t *encoder_group;
 // Function Implementations
 
@@ -61,7 +61,7 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     }
     // 获取根节点
     cJSON *root = cJSON_Parse(manifest_json);
-    eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+    eps_free_large(manifest_json); // 解析完立即释放原始字符串
     if (!root)
     {
         EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
@@ -118,15 +118,13 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
         return;
     }
 
-    script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
-    EOS_CHECK_PTR_RETURN(script_pkg_ptr);
-    script_pkg_ptr->id = eos_strdup(id->valuestring);
-    script_pkg_ptr->name = eos_strdup(name->valuestring);
-    script_pkg_ptr->type = SCRIPT_TYPE_APPLICATION;
-    script_pkg_ptr->version = eos_strdup(version->valuestring);
-    script_pkg_ptr->author = eos_strdup(author->valuestring);
-    script_pkg_ptr->description = eos_strdup(description->valuestring);
-    script_pkg_ptr->script_str = eos_read_file(script_path);
+    script_pkg.id = eos_strdup(id->valuestring);
+    script_pkg.name = eos_strdup(name->valuestring);
+    script_pkg.type = SCRIPT_TYPE_APPLICATION;
+    script_pkg.version = eos_strdup(version->valuestring);
+    script_pkg.author = eos_strdup(author->valuestring);
+    script_pkg.description = eos_strdup(description->valuestring);
+    script_pkg.script_str = eos_read_file(script_path);
     cJSON_Delete(root);
     if (!script_engine_request_ready())
     {

@@ -31,7 +31,7 @@
 // Macros and Definitions
 
 // Variables
-extern script_pkg_t *script_pkg_ptr; // 脚本包指针
+extern script_pkg_t script_pkg; // 脚本包
 extern lv_group_t *encoder_group;
 // Function Implementations
 
@@ -123,7 +123,7 @@ void eos_watchface_list_create(void)
         }
         // 获取根节点
         cJSON *root = cJSON_Parse(manifest_json);
-        eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+        eps_free_large(manifest_json); // 解析完立即释放原始字符串
         if (!root)
         {
             EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());

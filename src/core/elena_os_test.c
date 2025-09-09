@@ -40,7 +40,7 @@ LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 // Variables
 static lv_obj_t *img = NULL;         // 全局图片对象
 static lv_obj_t *ta = NULL;          // 全局文本输入框对象
-extern script_pkg_t *script_pkg_ptr; // 脚本包指针
+extern script_pkg_t script_pkg; // 脚本包
 // Function Implementations
 
 void _create_new_scr()
@@ -323,9 +323,8 @@ void eos_test_start(void)
         if (script_engine_get_state()==SCRIPT_STATE_READY)
         {
             script_engine_nav_init(scr);
-            script_engine_result_t ret = script_engine_run(script_pkg_ptr);
-            eos_pkg_free(script_pkg_ptr);
-            script_pkg_ptr = NULL;
+            script_engine_result_t ret = script_engine_run(&script_pkg);
+            eos_pkg_free(&script_pkg);
             if (ret != SE_OK)
             {
                 EOS_LOG_E("Script encounter a fatal error");

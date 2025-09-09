@@ -17,12 +17,12 @@
 
 // Function Implementations
 
-EOS_WEAK void *eos_malloc(size_t size)
+EOS_WEAK void *eps_malloc_large(size_t size)
 {
     return malloc(size);
 }
 
-EOS_WEAK void eos_mem_free(void *ptr)
+EOS_WEAK void eps_free_large(void *ptr)
 {
     free(ptr);
 }

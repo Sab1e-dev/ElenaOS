@@ -50,7 +50,7 @@ typedef enum
     ENTRY_WATCHFACE_LIST,
 } screen_entry_t;
 // Variables
-script_pkg_t *script_pkg_ptr = NULL; // 当前运行的脚本包指针
+script_pkg_t script_pkg = {0}; // 当前运行的脚本包
 lv_group_t *encoder_group;
 lv_obj_t *root_scr;
 screen_entry_t next_screen_type;
@@ -107,8 +107,6 @@ eos_result_t eos_run()
 {
     /************************** 变量初始化 **************************/
     root_scr = lv_screen_active();
-    script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
-    memcpy(script_pkg_ptr,0,sizeof(script_pkg_t));
     /************************** 系统组件初始化 **************************/
     eos_event_init();
     // eos_theme_init();
@@ -170,7 +168,7 @@ eos_result_t eos_run()
         }
         // 获取根节点
         cJSON *root = cJSON_Parse(manifest_json);
-        eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+        eps_free_large(manifest_json); // 解析完立即释放原始字符串
         if (!root)
         {
             EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
@@ -228,19 +226,13 @@ eos_result_t eos_run()
             return -EOS_FAILED;
         }
 
-        script_pkg_ptr = eos_malloc(sizeof(script_pkg_t));
-        if (!script_pkg_ptr)
-        {
-            EOS_LOG_E("memory alloc failed");
-            return -EOS_FAILED;
-        }
-        script_pkg_ptr->id = eos_strdup(id->valuestring);
-        script_pkg_ptr->name = eos_strdup(name->valuestring);
-        script_pkg_ptr->type = SCRIPT_TYPE_WATCHFACE;
-        script_pkg_ptr->version = eos_strdup(version->valuestring);
-        script_pkg_ptr->author = eos_strdup(author->valuestring);
-        script_pkg_ptr->description = eos_strdup(description->valuestring);
-        script_pkg_ptr->script_str = eos_read_file(script_path);
+        script_pkg.id = eos_strdup(id->valuestring);
+        script_pkg.name = eos_strdup(name->valuestring);
+        script_pkg.type = SCRIPT_TYPE_WATCHFACE;
+        script_pkg.version = eos_strdup(version->valuestring);
+        script_pkg.author = eos_strdup(author->valuestring);
+        script_pkg.description = eos_strdup(description->valuestring);
+        script_pkg.script_str = eos_read_file(script_path);
 
         // 设置下拉面板
         msg_list_t *msg_list = eos_msg_list_create(root_scr);
@@ -254,10 +246,9 @@ eos_result_t eos_run()
         // 设置长按回调 进入 watchface list 使用普通 nav 导航
         lv_obj_add_event_cb(root_scr, _watchface_long_pressed_cb, LV_EVENT_LONG_PRESSED, NULL);
         // 正式运行表盘脚本
-        script_engine_result_t ret = script_engine_run(script_pkg_ptr);
-        eos_pkg_free(script_pkg_ptr);
+        script_engine_result_t ret = script_engine_run(&script_pkg);
+        eos_pkg_free(&script_pkg);
         lv_obj_clean(root_scr);
-        script_pkg_ptr = NULL;
         if (ret != SE_OK)
         {
             EOS_LOG_E("Script encounter a fatal error");
@@ -283,9 +274,8 @@ eos_result_t eos_run()
             if (script_engine_get_state() == SCRIPT_STATE_READY)
             {
                 script_engine_nav_init(lv_screen_active());
-                script_engine_result_t ret = script_engine_run(script_pkg_ptr);
-                eos_pkg_free(script_pkg_ptr);
-                script_pkg_ptr = NULL;
+                script_engine_result_t ret = script_engine_run(&script_pkg);
+                eos_pkg_free(&script_pkg);
                 if (ret != SE_OK)
                 {
                     EOS_LOG_E("Script encounter a fatal error");

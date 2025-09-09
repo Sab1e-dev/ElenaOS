@@ -70,7 +70,7 @@ eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_malloc(fsize + 1);
+    char *file_content = eps_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -83,14 +83,14 @@ eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eos_mem_free(file_content);
+        eps_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eos_mem_free(file_content);
+    eps_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -165,7 +165,7 @@ eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_malloc(fsize + 1);
+    char *file_content = eps_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -178,14 +178,14 @@ eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eos_mem_free(file_content);
+        eps_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eos_mem_free(file_content);
+    eps_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -260,7 +260,7 @@ eos_result_t eos_sys_cfg_set_number(const char *key, double value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_malloc(fsize + 1);
+    char *file_content = eps_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -273,14 +273,14 @@ eos_result_t eos_sys_cfg_set_number(const char *key, double value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eos_mem_free(file_content);
+        eps_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eos_mem_free(file_content);
+    eps_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -657,7 +657,7 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eos_malloc(fsize + 1);
+    char *file_content = eps_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -670,14 +670,14 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eos_mem_free(file_content);
+        eps_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eos_mem_free(file_content);
+    eps_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -747,7 +747,7 @@ static void _sys_app_list_btn_cb(lv_event_t *e)
     }
     // 获取根节点
     cJSON *root = cJSON_Parse(manifest_json);
-    eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+    eps_free_large(manifest_json); // 解析完立即释放原始字符串
     if (!root)
     {
         EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
@@ -804,7 +804,7 @@ void eos_sys_app_list_create()
         }
         // 获取根节点
         cJSON *root = cJSON_Parse(manifest_json);
-        eos_mem_free(manifest_json); // 解析完立即释放原始字符串
+        eps_free_large(manifest_json); // 解析完立即释放原始字符串
         if (!root)
         {
             EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());

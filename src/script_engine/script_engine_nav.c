@@ -59,7 +59,7 @@ typedef struct
 // Variables
 static script_nav_stack_t script_nav = {.top = -1, .initialized = false};
 static atomic_bool script_nav_busy = false; // 正在清除
-extern script_pkg_t *script_pkg_ptr;
+extern script_pkg_t script_pkg;
 // Function Implementations
 static lv_obj_t *_script_nav_peek_prev(void);
 bool is_script_nav_stack_initialized(void);
@@ -177,7 +177,7 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
         EOS_LOG_E("Base screen is NULL");
         return -SE_ERR_VAR_NULL;
     }
-    if (script_pkg_ptr->type == SCRIPT_TYPE_WATCHFACE)
+    if (script_pkg.type == SCRIPT_TYPE_WATCHFACE)
     {
         EOS_LOG_E("Watchface can't use nav");
         return -SE_FAILED;
@@ -203,9 +203,9 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
 
     // 加载root_scr（脚本的根页面）
     // lv_scr_load(root_scr);
-    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    if (script_pkg.type == SCRIPT_TYPE_APPLICATION)
     {
-        eos_screen_bind_header(root_scr, script_pkg_ptr->name);
+        eos_screen_bind_header(root_scr, script_pkg.name);
     }
     lv_screen_load_anim(root_scr, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 0, false);
     lv_obj_add_style(root_scr, &style_screen, 0);
@@ -250,9 +250,9 @@ lv_obj_t *script_engine_nav_scr_create(void)
         return NULL;
     }
     lv_obj_add_style(scr, &style_screen, 0);
-    if (script_pkg_ptr->type == SCRIPT_TYPE_APPLICATION)
+    if (script_pkg.type == SCRIPT_TYPE_APPLICATION)
     {
-        eos_screen_bind_header(scr, script_pkg_ptr->name);
+        eos_screen_bind_header(scr, script_pkg.name);
     }
     // 确保新屏幕与栈中已有屏幕地址不同
     for (int i = 0; i <= script_nav.top; i++)
