@@ -20,7 +20,7 @@
 #include "elena_os_nav.h"
 #include "elena_os_log.h"
 #include "elena_os_watchface.h"
-#include "elena_os_base_item.h"
+#include "elena_os_basic_widgets.h"
 #include "elena_os_misc.h"
 #include "elena_os_img.h"
 #include "elena_os_port.h"

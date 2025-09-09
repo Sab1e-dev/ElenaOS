@@ -29,6 +29,7 @@ EOS_WEAK void eps_free_large(void *ptr)
 
 EOS_WEAK void eos_delay(uint32_t ms)
 {
+    EOS_UNUSED(ms);
     return;
 }
 
@@ -55,8 +56,14 @@ EOS_WEAK eos_datetime_t eos_time_get(void)
     dt.month = 9;
     dt.day = 7;
     dt.hour = 18;
-    dt.minute = 26;
-    dt.second = 13;
+    dt.min = 26;
+    dt.sec = 13;
     dt.day_of_week = 7;
     return dt;
+}
+
+EOS_WEAK void eos_display_set_brightness(uint8_t brightness)
+{
+    EOS_UNUSED(brightness);
+    return;
 }

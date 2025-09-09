@@ -36,6 +36,11 @@ extern "C" {
 #else
     #error not supported tool chain
 #endif
+/**
+ * @brief UNUSED 宏
+ */
+#define EOS_UNUSED(x) (void)(x)
+
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
@@ -76,7 +81,11 @@ void eos_bluetooth_disable(void);
  * @warning 请自行同步时间，确保获取的是准确时间
  */
 eos_datetime_t eos_time_get(void);
-
+/**
+ * @brief 设置屏幕亮度
+ * @param brightness 亮度值（0~100）
+ */
+void eos_display_set_brightness(uint8_t brightness);
 #ifdef __cplusplus
 }
 #endif

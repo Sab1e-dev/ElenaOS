@@ -31,8 +31,9 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_SCRIPT_RUN_ERR] = "The script encountered a fatal error during runtime",
     [STR_ID_SETTINGS] = "Settings",
     [STR_ID_SETTINGS_BLUETOOTH] = "Bluetooth",
-    [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "Enable Bluetooth",
+    [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "Bluetooth",
     [STR_ID_SETTINGS_DISPLAY] = "Display",
+    [STR_ID_SETTINGS_DISPLAY_BRIGHTNESS] = "Brightness",
     [STR_ID_SETTINGS_NOTIFICATION] = "Notification"
     // 在此添加新的字符串ID和英文翻译
 };
@@ -53,8 +54,9 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_SCRIPT_RUN_ERR] = "脚本在运行时遇到了致命错误",
     [STR_ID_SETTINGS] = "设置",
     [STR_ID_SETTINGS_BLUETOOTH] = "蓝牙",
-    [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "启用蓝牙",
+    [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "蓝牙",
     [STR_ID_SETTINGS_DISPLAY] = "显示",
+    [STR_ID_SETTINGS_DISPLAY_BRIGHTNESS] = "亮度",
     [STR_ID_SETTINGS_NOTIFICATION] = "通知"
     // 在此添加新的字符串ID和中文翻译
 };

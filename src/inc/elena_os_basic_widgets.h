@@ -1,12 +1,12 @@
 /**
- * @file elena_os_base_item.h
+ * @file elena_os_basic_widgets.h
  * @brief 基本控件
  * @author Sab1e
  * @date 2025-08-17
  */
 
-#ifndef ELENA_OS_BASE_ITEM_H
-#define ELENA_OS_BASE_ITEM_H
+#ifndef ELENA_OS_BASIC_WIDGETS_H
+#define ELENA_OS_BASIC_WIDGETS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +29,14 @@ typedef struct{
     lv_obj_t *back_btn;
     lv_timer_t *clock_timer;
 }eos_app_header_t;
+/**
+ * @brief 列表内的滑块定义
+ */
+typedef struct{
+    lv_obj_t *slider;
+    lv_obj_t *plus_btn;
+    lv_obj_t *minus_btn;
+}eos_list_slider_t;
 /* Public function prototypes --------------------------------*/
 
 /**
@@ -111,8 +119,9 @@ lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt);
  * 创建失败则返回 NULL
  */
 lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_color, const void *icon, const char *txt);
+eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ELENA_OS_BASE_ITEM_H */
+#endif /* ELENA_OS_BASIC_WIDGETS_H */

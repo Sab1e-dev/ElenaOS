@@ -38,6 +38,7 @@ extern "C" {
 #define EOS_SYS_CFG_KEY_LANGUAGE "language"
 #define EOS_SYS_CFG_KEY_WATCHFACE_ID "wf_id"
 #define EOS_SYS_CFG_KEY_BLUETOOTH "bluetooth"
+#define EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS "display_brightness"
 
 /* Public typedefs --------------------------------------------*/
 

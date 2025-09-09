@@ -10,6 +10,7 @@
  * 应用列表详情页
  * 主题设置
  * 打开设置页面时会分配16KB内存，原因未知
+ * 退出页面时再存储配置信息
  */
 
 #include "elena_os_sys.h"
@@ -28,7 +29,7 @@
 #include "elena_os_lang.h"
 #include "elena_os_log.h"
 #include "elena_os_nav.h"
-#include "elena_os_base_item.h"
+#include "elena_os_basic_widgets.h"
 #include "elena_os_event.h"
 #include "elena_os_test.h"
 #include "elena_os_version.h"
@@ -40,6 +41,8 @@
 // Macros and Definitions
 #define EOS_SYS_DEFAULT_LANG_STR "English"
 #define EOS_SYS_DEFAULT_WATCHFACE_ID_STR "cn.sab1e.clock"
+#define EOS_SYS_DISPLAY_BRIGHTNESS_MIN 1 /**< 亮度为0即关闭屏幕 */
+#define EOS_SYS_DISPLAY_BRIGHTNESS_MAX 100
 // Variables
 
 // Function Implementations
@@ -614,6 +617,18 @@ void eos_sys_init()
     {
         _create_default_cfg_json(EOS_SYS_CONFIG_FILE_PATH);
     }
+
+    /************************** 加载系统设置 **************************/
+    // 蓝牙设置
+    if (eos_sys_cfg_get_bool(EOS_SYS_CFG_KEY_BLUETOOTH, false))
+    {
+        eos_bluetooth_enable();
+    }
+    // 显示设置
+    uint8_t brightness = eos_sys_cfg_get_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, 50);
+    if (brightness < 1 || brightness > 100)
+        brightness = 50;
+    eos_display_set_brightness(brightness);
 }
 
 /**
@@ -861,14 +876,75 @@ static void _sys_screen_bluetooth(lv_event_t *e)
     eos_list_add_placeholder(list, 110);
 
     lv_obj_t *bt_sw = eos_list_add_switch(list, current_lang[STR_ID_SETTINGS_BLUETOOTH_ENABLE]);
+    lv_obj_set_state(bt_sw, LV_STATE_CHECKED, eos_sys_cfg_get_bool(EOS_SYS_CFG_KEY_BLUETOOTH, false));
     lv_obj_add_event_cb(bt_sw, _bluetooth_enable_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
+
+static void _brightness_slider_value_changed_cb(lv_event_t *e)
+{
+    lv_obj_t *sl = lv_event_get_target(e);
+    eos_display_set_brightness(lv_slider_get_value(sl));
+}
+
+static void _brightness_slider_released_cb(lv_event_t *e)
+{
+    lv_obj_t *sl = lv_event_get_target(e);
+    int32_t val = lv_slider_get_value(sl);
+    eos_display_set_brightness(val);
+    eos_sys_cfg_set_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, val);
+}
+
+static void _list_slider_minus_cb(lv_event_t *e)
+{
+    lv_obj_t *slider = (lv_obj_t *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(slider);
+    int32_t min = lv_slider_get_min_value(slider);
+    int32_t val = lv_slider_get_value(slider);
+    if (val == min)
+        return;
+    val-=5;
+    lv_slider_set_value(slider, val, LV_ANIM_ON);
+    eos_sys_cfg_set_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, val);
+    eos_display_set_brightness(val);
+}
+
+static void _list_slider_plus_cb(lv_event_t *e)
+{
+    lv_obj_t *slider = (lv_obj_t *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(slider);
+    int32_t max = lv_slider_get_max_value(slider);
+    int32_t val = lv_slider_get_value(slider);
+    if (val == max)
+        return;
+    val+=5;
+    lv_slider_set_value(slider, val, LV_ANIM_ON);
+    eos_sys_cfg_set_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, val);
+    eos_display_set_brightness(val);
+}
+
 
 static void _sys_screen_display(lv_event_t *e)
 {
     lv_obj_t *scr = eos_nav_scr_create();
     eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
     lv_screen_load(scr);
+
+    lv_obj_t *list = lv_list_create(scr);
+    lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_all(list, 0, 0);
+    lv_obj_center(list);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+
+    // 占位符
+    eos_list_add_placeholder(list, 110);
+
+    eos_list_slider_t *brightness_slider = eos_list_add_slider(list, current_lang[STR_ID_SETTINGS_DISPLAY_BRIGHTNESS]);
+    lv_slider_set_value(brightness_slider->slider, eos_sys_cfg_get_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, 50), LV_ANIM_ON);
+    lv_slider_set_range(brightness_slider->slider, EOS_SYS_DISPLAY_BRIGHTNESS_MIN, EOS_SYS_DISPLAY_BRIGHTNESS_MAX);
+    lv_obj_add_event_cb(brightness_slider->slider, _brightness_slider_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(brightness_slider->slider, _brightness_slider_released_cb, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(brightness_slider->minus_btn,_list_slider_minus_cb,LV_EVENT_CLICKED,brightness_slider->slider);
+    lv_obj_add_event_cb(brightness_slider->plus_btn,_list_slider_plus_cb,LV_EVENT_CLICKED,brightness_slider->slider);
 }
 
 static void _sys_screen_notification(lv_event_t *e)

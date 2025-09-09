@@ -9,7 +9,7 @@
  * TODO:
  * 编码器索引
  * screen 切换渐变（LVGL自带）
- * 
+ * Group问题
  */
 
 #include "elena_os_core.h"
@@ -27,7 +27,7 @@
 #include "elena_os_lang.h"
 #include "elena_os_log.h"
 #include "elena_os_nav.h"
-#include "elena_os_base_item.h"
+#include "elena_os_basic_widgets.h"
 #include "elena_os_event.h"
 #include "elena_os_test.h"
 #include "elena_os_version.h"

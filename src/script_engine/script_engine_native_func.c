@@ -603,11 +603,11 @@ static jerry_value_t js_eos_time_get(const jerry_call_info_t *call_info_p,
     jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"hour"), val));
     jerry_value_free(val);
 
-    val = jerry_number(dt.minute);
+    val = jerry_number(dt.min);
     jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"minute"), val));
     jerry_value_free(val);
 
-    val = jerry_number(dt.second);
+    val = jerry_number(dt.sec);
     jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"second"), val));
     jerry_value_free(val);
 
