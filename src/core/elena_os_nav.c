@@ -96,27 +96,6 @@ static lv_obj_t *_nav_peek_prev(void)
     return (nav.top > 0) ? nav.stack[nav.top - 1] : NULL;
 }
 
-static void _nav_gesture_back_cb(lv_event_t *e)
-{
-    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-    EOS_LOG_D("GESTURE: ");
-    if (dir == LV_DIR_LEFT)
-    {
-        EOS_LOG_D("LV_DIR_LEFT");
-        if (nav.top == 0)
-        {
-            EOS_LOG_D("root scr");
-            return;
-        }
-        if (is_script_nav_stack_initialized())
-        {
-            EOS_LOG_D("ignore gesture");
-            return;
-        }
-        eos_nav_back_clean();
-    }
-}
-
 eos_result_t eos_nav_init(lv_obj_t *root_scr)
 {
     if (!root_scr)
@@ -139,7 +118,6 @@ eos_result_t eos_nav_init(lv_obj_t *root_scr)
     // 确保root screen是活动屏幕
     lv_scr_load(root_scr);
     lv_obj_add_style(root_scr, &style_screen, 0);
-    lv_obj_add_event_cb(root_scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized with root screen %p", root_scr);
     return EOS_OK;
 }
@@ -185,7 +163,6 @@ lv_obj_t *eos_nav_scr_create(void)
 
     EOS_LOG_D("NAV PUSH: new screen at %p", scr);
     nav.stack[++nav.top] = scr;
-    lv_obj_add_event_cb(scr, _nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_MEM("Create new scr");
     atomic_store(&nav_busy, false);
     return scr;

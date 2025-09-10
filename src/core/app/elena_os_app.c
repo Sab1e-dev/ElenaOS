@@ -85,7 +85,7 @@ void _eos_app_list_add(eos_app_list_t *list, const char *id)
         list->capacity *= 2;
         list->data = realloc(list->data, list->capacity * sizeof(char *));
     }
-    list->data[list->size] = strdup(id); // 复制字符串
+    list->data[list->size] = eos_strdup(id); // 复制字符串
     list->size++;
 }
 

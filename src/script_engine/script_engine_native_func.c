@@ -6,11 +6,6 @@
  * @date 2025-07-26
  */
 
-/**
- * TODO:
- * Slider控件在滑动时会触发返回上一页的问题
- */
-
 // Includes
 #include "script_engine_native_func.h"
 #include "jerryscript.h"

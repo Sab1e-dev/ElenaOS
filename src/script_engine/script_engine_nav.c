@@ -101,17 +101,6 @@ static lv_obj_t *_script_nav_peek_prev(void)
     return (script_nav.top > 0) ? script_nav.stack[script_nav.top - 1] : NULL;
 }
 
-static void _script_nav_gesture_back_cb(lv_event_t *e)
-{
-    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-    EOS_LOG_D("GESTURE: ");
-    if (dir == LV_DIR_LEFT)
-    {
-        EOS_LOG_D("LV_DIR_LEFT");
-        script_engine_nav_back_clean();
-    }
-}
-
 /**
  * @brief 清除整个导航栈
  */
@@ -214,7 +203,6 @@ script_engine_result_t script_engine_nav_init(lv_obj_t *base_scr)
         lv_timer_handler();
         lv_tick_inc(1);
     }
-    lv_obj_add_event_cb(root_scr, _script_nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_LOG_D("Nav stack initialized: base_scr=%p, root_scr=%p", base_scr, root_scr);
     return SE_OK;
 }
@@ -267,7 +255,6 @@ lv_obj_t *script_engine_nav_scr_create(void)
 
     EOS_LOG_D("NAV PUSH: new screen at %p", scr);
     script_nav.stack[++script_nav.top] = scr;
-    lv_obj_add_event_cb(scr, _script_nav_gesture_back_cb, LV_EVENT_GESTURE, NULL);
     EOS_MEM("Create new scr");
     atomic_store(&script_nav_busy, false);
     return scr;

@@ -413,14 +413,14 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     if (!key)
     {
         EOS_LOG_E("Invalid parameter: key is NULL");
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     // 检查配置文件是否存在
     if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
     {
         EOS_LOG_W("Config file does not exist, returning default value for key '%s'", key);
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     // 读取配置文件内容
@@ -428,7 +428,7 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     if (fd == -1)
     {
         EOS_LOG_E("Failed to open config file for reading, errno=%d", errno);
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     off_t fsize = lseek(fd, 0, SEEK_END);
@@ -439,7 +439,7 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     {
         EOS_LOG_E("Memory allocation failed");
         close(fd);
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     ssize_t read_size = read(fd, file_content, fsize);
@@ -448,7 +448,7 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
         free(file_content);
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
     file_content[fsize] = '\0';
 
@@ -458,7 +458,7 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     // 获取字符串值
@@ -474,16 +474,16 @@ char *eos_sys_cfg_get_string(const char *key, const char *default_value)
             EOS_LOG_W("Value for key '%s' is not a string, returning default", key);
         }
         cJSON_Delete(root);
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
-    char *result = strdup(item->valuestring);
+    char *result = eos_strdup(item->valuestring);
     cJSON_Delete(root);
 
     if (!result)
     {
         EOS_LOG_E("Failed to duplicate string, returning default");
-        return strdup(default_value);
+        return eos_strdup(default_value);
     }
 
     EOS_LOG_D("Successfully got string config item: %s=%s", key, result);
