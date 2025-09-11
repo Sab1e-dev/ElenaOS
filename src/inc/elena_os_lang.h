@@ -55,6 +55,7 @@ typedef enum {
     STR_ID_SETTINGS_APPS_VERSION,
     STR_ID_SETTINGS_APPS_DESCRIPTON,
     STR_ID_SETTINGS_APPS_UINSTALL,
+    STR_ID_SETTINGS_APPS_CLEAR_DATA,
     /* 此处可添加新的字符串ID */
     STR_ID_MAX_NUMBER   /**< 字符串ID最大值 */
 } lang_string_id_t;

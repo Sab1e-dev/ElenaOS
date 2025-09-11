@@ -41,7 +41,8 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_APPS_AUTHOR] = "Author",
     [STR_ID_SETTINGS_APPS_VERSION] = "Version",
     [STR_ID_SETTINGS_APPS_DESCRIPTON] = "Description",
-    [STR_ID_SETTINGS_APPS_UINSTALL] = "Uinstall"
+    [STR_ID_SETTINGS_APPS_UINSTALL] = "Uinstall",
+    [STR_ID_SETTINGS_APPS_CLEAR_DATA] = "Clear data"
     // 在此添加新的字符串ID和英文翻译
 };
 
@@ -71,7 +72,8 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_APPS_AUTHOR] = "作者",
     [STR_ID_SETTINGS_APPS_VERSION] = "版本",
     [STR_ID_SETTINGS_APPS_DESCRIPTON] = "描述",
-    [STR_ID_SETTINGS_APPS_UINSTALL] = "卸载"
+    [STR_ID_SETTINGS_APPS_UINSTALL] = "卸载",
+    [STR_ID_SETTINGS_APPS_CLEAR_DATA] = "删除应用数据"
 
     // 在此添加新的字符串ID和中文翻译
 };

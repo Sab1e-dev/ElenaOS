@@ -8,7 +8,6 @@
 /**
  * TODO:
  * 应用列表需要支持系统应用（c应用）
- * 广播通知应用安装与卸载
  * 应用列表需要支持应用排序
  */
 
@@ -55,6 +54,7 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
              app_id);
     script_pkg_t pkg = {0};
+    pkg.type = SCRIPT_TYPE_APPLICATION;
     if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);

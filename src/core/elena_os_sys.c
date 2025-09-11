@@ -865,6 +865,15 @@ static void _uninstall_btn_cb(lv_event_t *e)
     eos_nav_back_clean();
 }
 
+static void _clear_data_btn_cb(lv_event_t *e)
+{
+    const char *app_id = (const char *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(app_id);
+    char data_path[PATH_MAX];
+    snprintf(data_path, sizeof(data_path), EOS_APP_DATA_DIR "%s", app_id);
+    eos_rm_recursive(data_path);
+}
+
 /**
  * @brief 应用列表回调，打开应用详情
  * @param e
@@ -927,7 +936,7 @@ static void _sys_app_list_btn_cb(lv_event_t *e)
     {
         memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
     }
-    eos_row_create(container, NULL, pkg.name, icon_path, 128, 128);
+    eos_row_create(container, NULL, pkg.name, icon_path, 100, 100);
 
     eos_row_create(container, current_lang[STR_ID_SETTINGS_APPS_APPID], app_id, NULL, 0, 0);
     eos_row_create(container, current_lang[STR_ID_SETTINGS_APPS_AUTHOR], pkg.author, NULL, 0, 0);
@@ -944,6 +953,16 @@ static void _sys_app_list_btn_cb(lv_event_t *e)
         lv_label_set_long_mode(desc_label, LV_LABEL_LONG_WRAP);
     }
 
+    lv_obj_t *clear_data_btn = lv_button_create(list);
+    lv_obj_set_size(clear_data_btn, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_margin_bottom(clear_data_btn,20,0);
+    lv_obj_set_style_bg_color(clear_data_btn, EOS_THEME_DANGEROS_COLOR, 0);
+
+    lv_obj_t *clear_data_btn_label = lv_label_create(clear_data_btn);
+    lv_label_set_text(clear_data_btn_label, current_lang[STR_ID_SETTINGS_APPS_CLEAR_DATA]);
+    lv_obj_add_event_cb(clear_data_btn, _clear_data_btn_cb, LV_EVENT_CLICKED, (void *)app_id);
+    lv_obj_center(clear_data_btn_label);
+
     lv_obj_t *uninstall_btn = lv_button_create(list);
     lv_obj_set_size(uninstall_btn, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_style_bg_color(uninstall_btn, EOS_THEME_DANGEROS_COLOR, 0);
@@ -952,6 +971,8 @@ static void _sys_app_list_btn_cb(lv_event_t *e)
     lv_label_set_text(uninstall_btn_label, current_lang[STR_ID_SETTINGS_APPS_UINSTALL]);
     lv_obj_add_event_cb(uninstall_btn, _uninstall_btn_cb, LV_EVENT_CLICKED, (void *)app_id);
     lv_obj_center(uninstall_btn_label);
+
+    eos_list_add_placeholder(list, 50);
 }
 
 static void _app_btn_create(lv_obj_t *parent, const char *app_id)

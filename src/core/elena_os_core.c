@@ -8,7 +8,6 @@
 /**
  * TODO:
  * 编码器索引
- * screen 切换渐变（LVGL自带）
  * Group问题
  */
 
@@ -160,6 +159,8 @@ eos_result_t eos_run()
         snprintf(manifest_path, sizeof(manifest_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
                  wf_id);
         script_pkg_t pkg = {0};
+        pkg.type = SCRIPT_TYPE_WATCHFACE;
+        
         if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
         {
             EOS_LOG_E("Read manifest failed: %s", manifest_path);
