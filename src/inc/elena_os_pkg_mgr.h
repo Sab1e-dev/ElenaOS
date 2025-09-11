@@ -37,6 +37,7 @@ extern "C"
 #define EOS_PKG_RESERVED_OFFSET     EOS_PKG_FILE_COUNT_OFFSET + 4
 #define EOS_PKG_TABLE_OFFSET        EOS_PKG_RESERVED_OFFSET + 4
 
+/* Public typedefs --------------------------------------------*/
 /**
  * @brief 定义软件包的文件头
  */
@@ -62,7 +63,6 @@ typedef struct
         uint32_t size;      // 文件大小
     } eos_pkg_entry_t;
  ************************************/
-/* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
 /**

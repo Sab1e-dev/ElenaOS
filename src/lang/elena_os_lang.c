@@ -34,7 +34,14 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "Bluetooth",
     [STR_ID_SETTINGS_DISPLAY] = "Display",
     [STR_ID_SETTINGS_DISPLAY_BRIGHTNESS] = "Brightness",
-    [STR_ID_SETTINGS_NOTIFICATION] = "Notification"
+    [STR_ID_SETTINGS_NOTIFICATION] = "Notification",
+    [STR_ID_SETTINGS_APPS] = "Apps",
+    [STR_OD_SETTINGS_APPS_DETAILS] = "App Details",
+    [STR_ID_SETTINGS_APPS_APPID] = "ID",
+    [STR_ID_SETTINGS_APPS_AUTHOR] = "Author",
+    [STR_ID_SETTINGS_APPS_VERSION] = "Version",
+    [STR_ID_SETTINGS_APPS_DESCRIPTON] = "Description",
+    [STR_ID_SETTINGS_APPS_UINSTALL] = "Uinstall"
     // 在此添加新的字符串ID和英文翻译
 };
 
@@ -57,7 +64,15 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_BLUETOOTH_ENABLE] = "蓝牙",
     [STR_ID_SETTINGS_DISPLAY] = "显示",
     [STR_ID_SETTINGS_DISPLAY_BRIGHTNESS] = "亮度",
-    [STR_ID_SETTINGS_NOTIFICATION] = "通知"
+    [STR_ID_SETTINGS_NOTIFICATION] = "通知",
+    [STR_ID_SETTINGS_APPS] = "应用",
+    [STR_OD_SETTINGS_APPS_DETAILS] = "应用详情",
+    [STR_ID_SETTINGS_APPS_APPID] = "ID",
+    [STR_ID_SETTINGS_APPS_AUTHOR] = "作者",
+    [STR_ID_SETTINGS_APPS_VERSION] = "版本",
+    [STR_ID_SETTINGS_APPS_DESCRIPTON] = "描述",
+    [STR_ID_SETTINGS_APPS_UINSTALL] = "卸载"
+
     // 在此添加新的字符串ID和中文翻译
 };
 

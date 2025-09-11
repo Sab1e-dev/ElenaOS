@@ -29,6 +29,7 @@
 #include "elena_os_anim.h"
 #include "script_engine_core.h"
 #include "elena_os_sys.h"
+#include "elena_os_event.h"
 // Macros and Definitions
 
 // Variables
@@ -53,79 +54,30 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     char manifest_path[PATH_MAX];
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
              app_id);
-    char *manifest_json = eos_read_file(manifest_path);
-    if (!manifest_json)
+    script_pkg_t pkg = {0};
+    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
     {
-        EOS_LOG_E("Read manifest.json failed");
-        return;
-    }
-    // 获取根节点
-    cJSON *root = cJSON_Parse(manifest_json);
-    eps_free_large(manifest_json); // 解析完立即释放原始字符串
-    if (!root)
-    {
-        EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
-        return;
-    }
-    // 读取脚本包相关信息
-    cJSON *id = cJSON_GetObjectItemCaseSensitive(root, "id");
-    if (!cJSON_IsString(id) || id->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"id\" failed");
-        cJSON_Delete(root);
-        return;
-    }
-    cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
-    if (!cJSON_IsString(name) || name->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"name\" failed");
-        cJSON_Delete(root);
-        return;
-    }
-    cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
-    if (!cJSON_IsString(version) || version->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"version\" failed");
-        cJSON_Delete(root);
-        return;
-    }
-    cJSON *author = cJSON_GetObjectItemCaseSensitive(root, "author");
-    if (!cJSON_IsString(author) || author->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"author\" failed");
-        cJSON_Delete(root);
-        return;
-    }
-    cJSON *description = cJSON_GetObjectItemCaseSensitive(root, "description");
-    if (!cJSON_IsString(description) || description->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"description\" failed");
-        cJSON_Delete(root);
+        EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return;
     }
     EOS_LOG_D("App Info:\n"
               "id=%s | name=%s | version=%s |\n"
               "author:%s | description:%s",
-              id->valuestring, name->valuestring, version->valuestring,
-              author->valuestring, description->valuestring);
+              pkg.id, pkg.name, pkg.version,
+              pkg.version, pkg.description);
     char script_path[PATH_MAX];
     snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
              app_id);
     if (!eos_is_file(script_path))
     {
         EOS_LOG_E("Can't find script: %s", script_path);
-        cJSON_Delete(root);
         return;
     }
 
-    script_pkg.id = eos_strdup(id->valuestring);
-    script_pkg.name = eos_strdup(name->valuestring);
-    script_pkg.type = SCRIPT_TYPE_APPLICATION;
-    script_pkg.version = eos_strdup(version->valuestring);
-    script_pkg.author = eos_strdup(author->valuestring);
-    script_pkg.description = eos_strdup(description->valuestring);
-    script_pkg.script_str = eos_read_file(script_path);
-    cJSON_Delete(root);
+    pkg.script_str = eos_read_file(script_path);
+
+    memcpy(&script_pkg, &pkg, sizeof(script_pkg_t));
+
     if (!script_engine_request_ready())
     {
         EOS_LOG_E("Request ready failed");
@@ -134,11 +86,53 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
 }
 
 /**
- * @brief 设置图标按下时的回调 
+ * @brief 设置图标按下时的回调
  */
 static void _app_list_settings_cb(lv_event_t *e)
 {
     eos_sys_settings_create();
+}
+
+static lv_obj_t *_app_icon_create(lv_obj_t *parent, const char *icon_path)
+{
+    lv_obj_t *app_icon = lv_image_create(parent);
+    lv_obj_set_size(app_icon, 100, 100);
+    lv_obj_set_style_shadow_width(app_icon, 0, 0);
+    lv_obj_set_style_margin_all(app_icon, 0, 0);
+    lv_obj_set_style_pad_all(app_icon, 0, 0);
+    // lv_obj_remove_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    eos_img_set_src(app_icon, icon_path);
+    eos_img_set_size(app_icon, 100, 100);
+    lv_obj_center(app_icon);
+
+    return app_icon;
+}
+
+static void _app_installed_cb(lv_event_t *e)
+{
+    lv_obj_t *parent = lv_event_get_target(e);
+    const char *installed_app_id = (const char *)lv_event_get_param(e);
+    EOS_CHECK_PTR_RETURN(parent && installed_app_id);
+    char icon_path[PATH_MAX];
+    snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+             installed_app_id);
+    if (!eos_is_file(icon_path))
+    {
+        memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
+    }
+    lv_obj_t *app_icon = _app_icon_create(parent, icon_path);
+    EOS_LOG_D("app_icon ptr = %p", app_icon);
+    lv_obj_add_event_cb(app_icon, _app_list_icon_clicked_cb, LV_EVENT_CLICKED, (void *)installed_app_id);
+    eos_app_obj_auto_delete(app_icon, installed_app_id);
+}
+
+static void _container_delete_cb(lv_event_t *e)
+{
+    lv_obj_t *container = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(container);
+    eos_event_remove_cb(container, eos_event_get_code(EOS_EVENT_APP_INSTALLED), _app_installed_cb);
 }
 
 void eos_app_list_create(void)
@@ -148,37 +142,26 @@ void eos_app_list_create(void)
     lv_screen_load(scr);
     size_t app_list_size = eos_app_list_size();
 
-    lv_obj_t *cont = lv_list_create(scr);
-    lv_obj_set_style_pad_all(cont, 20, 0);
-    lv_obj_set_style_pad_column(cont, 20, 0); // 列间距
-    lv_obj_set_style_pad_row(cont, 20, 0);
-    lv_obj_set_size(cont, lv_pct(100), lv_pct(100));
-    lv_obj_set_scroll_dir(cont, LV_DIR_VER);
-    lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_center(cont);
-    lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(cont,
+    lv_obj_t *container = lv_list_create(scr);
+    lv_obj_set_style_pad_all(container, 20, 0);
+    lv_obj_set_style_pad_column(container, 20, 0); // 列间距
+    lv_obj_set_style_pad_row(container, 20, 0);
+    lv_obj_set_size(container, lv_pct(100), lv_pct(100));
+    lv_obj_set_scroll_dir(container, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_center(container);
+    lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(container,
                           LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_START,
                           LV_FLEX_ALIGN_START);
+    lv_obj_add_event_cb(container, _container_delete_cb, LV_EVENT_DELETE, NULL);
+    eos_event_add_cb(container, _app_installed_cb, eos_event_get_code(EOS_EVENT_APP_INSTALLED), NULL);
     // 系统设置
     char icon_path[PATH_MAX];
     memcpy(icon_path, EOS_IMG_SETTINGS, sizeof(EOS_IMG_SETTINGS));
-    lv_obj_t *settings_icon = lv_image_create(cont);
-    lv_obj_set_size(settings_icon, 100, 100);
-    lv_obj_set_style_shadow_width(settings_icon, 0, 0);
-    lv_obj_set_style_margin_all(settings_icon, 0, 0);
-    lv_obj_set_style_pad_all(settings_icon, 0, 0);
-    lv_obj_remove_flag(settings_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    lv_obj_add_flag(settings_icon, LV_OBJ_FLAG_CLICKABLE);
-    eos_img_set_src(settings_icon, icon_path);
-    eos_img_set_size(settings_icon, 100, 100);
-    lv_obj_center(settings_icon);
+    lv_obj_t *settings_icon = _app_icon_create(container, icon_path);
     lv_obj_add_event_cb(settings_icon, _app_list_settings_cb, LV_EVENT_CLICKED, NULL);
-    if (encoder_group)
-    {
-        lv_group_add_obj(encoder_group, settings_icon);
-    }
     // 脚本应用
     for (size_t i = 0; i < app_list_size; i++)
     {
@@ -189,21 +172,8 @@ void eos_app_list_create(void)
         {
             memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
         }
-        lv_obj_t *app_icon = lv_image_create(cont);
-        lv_obj_set_size(app_icon, 100, 100);
-        lv_obj_set_style_shadow_width(app_icon, 0, 0);
-        lv_obj_set_style_margin_all(app_icon, 0, 0);
-        lv_obj_set_style_pad_all(app_icon, 0, 0);
-        // lv_obj_remove_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_flag(app_icon, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-        eos_img_set_src(app_icon, icon_path);
-        eos_img_set_size(app_icon, 100, 100);
-        lv_obj_center(app_icon);
+        lv_obj_t *app_icon = _app_icon_create(container, icon_path);
         lv_obj_add_event_cb(app_icon, _app_list_icon_clicked_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
-        if (encoder_group)
-        {
-            lv_group_add_obj(encoder_group, app_icon);
-        }
+        eos_app_obj_auto_delete(app_icon, eos_app_list_get_id(i));
     }
 }

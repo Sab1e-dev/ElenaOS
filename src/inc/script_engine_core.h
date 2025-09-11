@@ -78,11 +78,20 @@ typedef enum {
 } script_engine_result_t;
 
 /* Public function prototypes --------------------------------*/
+
 /**
  * @brief 关闭当前运行的 JS 应用
  * @return script_engine_result_t 返回操作结果
  */
 script_engine_result_t script_engine_request_stop(void);
+
+/**
+ * @brief 获取 manifest.json 并填充 script_pkg_t 结构体
+ * @param manifest_path manifest.json 文件路径
+ * @param pkg 目标结构体指针
+ * @return script_engine_result_t
+ */
+script_engine_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg);
 
 /**
  * @brief 运行指定应用，如果当前已有应用在运行则自动清除

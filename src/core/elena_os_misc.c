@@ -115,6 +115,11 @@ eos_result_t eos_rm_recursive(const char *path)
     struct stat st;
     if (stat(path, &st) != 0)
     {
+        // 文件不存在则忽略
+        if (errno == -ENOENT) {
+            EOS_LOG_W("Path dose not exist: %s, ignored.\n", path, errno);
+            return EOS_OK;
+        }
         EOS_LOG_E("stat failed: %s, errno=%d\n", path, errno);
         return -EOS_ERR_FILE_ERROR;
     }
@@ -205,7 +210,7 @@ char *eos_read_file(const char *filename)
     long size = ftell(fp);
     rewind(fp);
 
-    char *data = (char *)eps_malloc_large(size + 1);
+    char *data = (char *)eos_malloc_large(size + 1);
     if (!data)
     {
         fclose(fp);

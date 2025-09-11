@@ -18,6 +18,7 @@ extern "C" {
 #include <stddef.h>
 #include "elena_os_core.h"
 #include "elena_os_sys.h"
+#include "lvgl.h"
 
 /* Public macros ----------------------------------------------*/
 /************************** 路径定义 **************************/
@@ -50,6 +51,12 @@ const char* eos_app_list_get_id(size_t index);
  */
 bool eos_app_list_contains(const char* app_id);
 /**
+ * @brief 从应用列表中获取与输入字符串匹配的 ID（避免重复分配内存）
+ * @param id 要查找的原始 ID（如 header.pkg_id）
+ * @return 列表中已存在的字符串指针（生命周期由列表管理），若未找到则返回 NULL
+ */
+const char *eos_app_list_get_existing_id(const char *id);
+/**
  * @brief 安装应用
  * @param eapk_path eapk 安装包路径
  * @return eos_result_t 安装结果
@@ -61,6 +68,12 @@ eos_result_t eos_app_install(const char *eapk_path);
  * @return eos_result_t 卸载结果
  */
 eos_result_t eos_app_uninstall(const char *app_id);
+/**
+ * @brief 当应用被删除时，自动删除指定对象
+ * @param obj 目标对象
+ * @param app_id 目标应用 ID
+ */
+void eos_app_obj_auto_delete(lv_obj_t *obj, const char *app_id);
 /**
  * @brief 初始化应用系统
  * @return eos_result_t 初始化结果

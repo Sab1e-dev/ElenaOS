@@ -17,6 +17,8 @@ extern "C" {
 #include <stdbool.h>
 #include "lvgl.h"
 /* Public macros ----------------------------------------------*/
+#define EOS_LIST_CONTAINER_HEIGHT 100
+#define EOS_LIST_OBJ_RADIUS 25
 
 /* Public typedefs --------------------------------------------*/
 /**
@@ -119,7 +121,47 @@ lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt);
  * 创建失败则返回 NULL
  */
 lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_color, const void *icon, const char *txt);
+/**
+ * @brief 向列表内创建滑块
+ * @param list 目标列表
+ * @param txt 滑块功能描述文字（左上角）
+ * @return eos_list_slider_t* 创建成功则返回滑块对象
+ * 
+ * 创建失败则返回 NULL
+ */
 eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt);
+/**
+ * @brief 向列表内创建一个容器
+ * @param list 目标列表
+ * @return lv_obj_t* 创建成功则返回容器对象
+ * 
+ * 创建失败则返回 NULL
+ */
+lv_obj_t *eos_list_add_container(lv_obj_t *list);
+/**
+ * @brief 创建一行左右对齐的控件
+ * @param parent 父对象
+ * @param left_text 左边文本，可以为 NULL
+ * @param right_text 右边文本，可以为 NULL
+ * @param left_img_path 左边图像路径，如果不需要可传 NULL
+ * @param icon_w 图像宽度
+ * @param icon_h 图像高度
+ * @return lv_obj_t* 返回行对象，方便进一步操作
+ */
+lv_obj_t *eos_row_create(lv_obj_t *parent,
+                         const char *left_text,
+                         const char *right_text,
+                         const char *left_img_path,
+                         int icon_w, int icon_h);
+/**
+ * @brief 创建一个带有标题的容器（标题位于容器外部）
+ * @param list 目标列表
+ * @param title 标题字符串
+ * @return lv_obj_t* 创建成功则返回内部容器
+ * 
+ * 创建失败则返回 NULL
+ */
+lv_obj_t *eos_list_add_title_container(lv_obj_t *list, const char *title);
 #ifdef __cplusplus
 }
 #endif

@@ -18,19 +18,20 @@
 #include "elena_os_port.h"
 #include "elena_os_log.h"
 #include "elena_os_pkg_mgr.h"
+#include "elena_os_event.h"
 #include "script_engine_core.h"
 // Macros and Definitions
 #define EOS_APP_LIST_DEFAULT_CAPACITY 1 // 列表默认容量大小
 /**
  * @brief 应用列表结构体
- * 
+ *
  * 可变数组
  */
 typedef struct
 {
-    char **data;        /**< 应用唯一ID */
-    size_t size;        /**< 应用列表已存储的ID数量 */
-    size_t capacity;    /**< 应用列表的容量 */
+    char **data;     /**< 应用唯一ID */
+    size_t size;     /**< 应用列表已存储的ID数量 */
+    size_t capacity; /**< 应用列表的容量 */
 } eos_app_list_t;
 static eos_app_list_t app_list;
 static bool app_list_initialized = false;
@@ -63,6 +64,18 @@ bool eos_app_list_contains(const char *app_id)
         }
     }
     return false;
+}
+
+const char *eos_app_list_get_existing_id(const char *id)
+{
+        for (size_t i = 0; i < app_list.size; i++)
+    {
+        if (strcmp(app_list.data[i], id) == 0)
+        {
+            return app_list.data[i];
+        }
+    }
+    return NULL;
 }
 
 /**
@@ -225,12 +238,17 @@ eos_result_t eos_app_install(const char *eapk_path)
     }
     _eos_app_list_refresh();
     EOS_LOG_D("App installed successfully: %s", header.pkg_name);
+    const char *app_id = eos_app_list_get_existing_id(header.pkg_id);
+    EOS_LOG_D("app_id=%s\npkg_id=%s", app_id, header.pkg_id);
+    eos_event_broadcast(eos_event_get_code(EOS_EVENT_APP_INSTALLED), (void *)app_id);
     return EOS_OK;
 }
 
 eos_result_t eos_app_uninstall(const char *app_id)
 {
+    EOS_LOG_D("Uninstall: %s", app_id);
     // 卸载应用程序
+    eos_event_broadcast(eos_event_get_code(EOS_EVENT_APP_DELETED), (void *)app_id);
     char path[PATH_MAX];
     snprintf(path, sizeof(path), EOS_APP_INSTALLED_DIR "%s", app_id);
     char data_path[PATH_MAX];
@@ -250,7 +268,8 @@ eos_result_t eos_app_uninstall(const char *app_id)
     }
 
     // 清理应用数据
-    if(eos_is_dir(data_path)){
+    if (eos_is_dir(data_path))
+    {
         ret = eos_rm_recursive(path);
     }
 
@@ -262,6 +281,30 @@ eos_result_t eos_app_uninstall(const char *app_id)
     _eos_app_list_refresh();
     EOS_LOG_D("App uninstalled successfully: %s", app_id);
     return EOS_OK;
+}
+
+static void _app_delete_cb(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target(e);
+    const char *deleted_app_id = lv_event_get_param(e);
+    const char *obj_app_id = lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(obj);
+    EOS_LOG_D("_app_delete_cb target obj=%p", obj);
+    if (strcmp(deleted_app_id, obj_app_id) == 0)
+    {
+        eos_event_remove_cb(obj,eos_event_get_code(EOS_EVENT_APP_DELETED),_app_delete_cb);
+        lv_obj_delete(obj);
+    }
+}
+
+void eos_app_obj_auto_delete(lv_obj_t *obj, const char *app_id)
+{
+    EOS_CHECK_PTR_RETURN(obj);
+    EOS_LOG_D("Auto del regesited: %s, ptr: %p", app_id, obj);
+    eos_event_add_cb(obj,
+                     _app_delete_cb,
+                     eos_event_get_code(EOS_EVENT_APP_DELETED),
+                     (void *)eos_strdup(app_id));
 }
 
 eos_result_t eos_app_init(void)

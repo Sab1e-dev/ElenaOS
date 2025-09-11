@@ -19,6 +19,8 @@
 #include "script_engine_nav.h"
 #include "script_engine_native_func.h"
 #include "elena_os_log.h"
+#include "elena_os_misc.h"
+#include "cJSON.h"
 // Macros and Definitions
 
 // Variables
@@ -131,6 +133,64 @@ jerry_value_t _script_engine_create_info(const script_pkg_t *script_package)
     return obj;
 }
 
+script_engine_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg)
+{
+    if (!manifest_path || !pkg)
+    {
+        EOS_LOG_E("Invalid manifest_path or pkg pointer");
+        return -SE_ERR_NULL_PACKAGE;
+    }
+
+    char *manifest_json = eos_read_file(manifest_path);
+    if (!manifest_json)
+    {
+        EOS_LOG_E("Read manifest.json failed");
+        return -SE_FAILED;
+    }
+
+    cJSON *root = cJSON_Parse(manifest_json);
+    eos_free_large(manifest_json);
+    if (!root)
+    {
+        EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
+        return -SE_FAILED;
+    }
+
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(root, "id");
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
+    cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
+    cJSON *author = cJSON_GetObjectItemCaseSensitive(root, "author");
+    cJSON *description = cJSON_GetObjectItemCaseSensitive(root, "description");
+
+    if (!cJSON_IsString(id) || !id->valuestring ||
+        !cJSON_IsString(name) || !name->valuestring ||
+        !cJSON_IsString(version) || !version->valuestring ||
+        !cJSON_IsString(author) || !author->valuestring ||
+        !cJSON_IsString(description) || !description->valuestring)
+    {
+        EOS_LOG_E("Manifest missing required fields");
+        cJSON_Delete(root);
+        return -SE_FAILED;
+    }
+
+    // 释放原有指针（如果有），防止内存泄漏
+    if (pkg->id) eos_free_large((void*)pkg->id);
+    if (pkg->name) eos_free_large((void*)pkg->name);
+    if (pkg->version) eos_free_large((void*)pkg->version);
+    if (pkg->author) eos_free_large((void*)pkg->author);
+    if (pkg->description) eos_free_large((void*)pkg->description);
+
+    // 分配并赋值
+    pkg->id = eos_strdup(id->valuestring);
+    pkg->name = eos_strdup(name->valuestring);
+    pkg->version = eos_strdup(version->valuestring);
+    pkg->author = eos_strdup(author->valuestring);
+    pkg->description = eos_strdup(description->valuestring);
+
+    cJSON_Delete(root);
+    return SE_OK;
+}
+
 script_engine_result_t script_engine_run(script_pkg_t *script_package)
 {
     if (script_package == NULL || script_package->script_str == NULL)
@@ -185,7 +245,7 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
         strlen(script_package->script_str),
         JERRY_PARSE_NO_OPTS);
     // 清理脚本字符串
-    eps_free_large((void *)script_package->script_str);
+    eos_free_large((void *)script_package->script_str);
     script_package->script_str = NULL;
     if (!jerry_value_is_exception(parsed_code))
     {

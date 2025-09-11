@@ -28,8 +28,6 @@
 
 #define APP_HEADER_MARGIN_RIGHT 30
 
-#define EOS_LIST_CONTAINER_HEIGHT 100
-#define EOS_LIST_OBJ_RADIUS 25
 #define APP_HEADER_TIME_STR_ARRAY_MAX 32
 
 // Variables
@@ -95,6 +93,7 @@ lv_obj_t *eos_list_add_button(lv_obj_t *list, const void *icon, const char *txt)
     {
         lv_obj_t *img = lv_image_create(obj);
         eos_img_set_src(img, icon);
+        eos_img_set_size(img, 64, 64);
     }
 
     if (txt)
@@ -256,7 +255,6 @@ lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_colo
     lv_obj_set_style_border_width(btn, 0, 0);
     lv_obj_set_style_pad_all(btn, 18, 0);
     lv_obj_set_style_margin_bottom(btn, 20, 0);
-    lv_obj_set_style_margin_hor(btn, 20, 0);
     lv_obj_set_style_align(btn, LV_ALIGN_CENTER, 0);
     lv_obj_set_style_radius(btn, EOS_LIST_OBJ_RADIUS, 0);
     lv_obj_set_style_shadow_width(btn, 0, 0);
@@ -288,7 +286,7 @@ lv_obj_t *eos_list_add_circle_icon_button(lv_obj_t *list, lv_color_t circle_colo
     return btn;
 }
 
-lv_obj_t *_list_container_create(lv_obj_t *list)
+lv_obj_t *eos_list_add_container(lv_obj_t *list)
 {
     lv_obj_t *container = lv_obj_create(list);
     lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
@@ -297,7 +295,6 @@ lv_obj_t *_list_container_create(lv_obj_t *list)
     lv_obj_set_style_border_width(container, 0, 0);
     lv_obj_set_style_pad_all(container, 18, 0);
     lv_obj_set_style_margin_bottom(container, 20, 0);
-    lv_obj_set_style_margin_hor(container, 20, 0);
     lv_obj_set_style_align(container, LV_ALIGN_CENTER, 0);
     lv_obj_set_style_radius(container, EOS_LIST_OBJ_RADIUS, 0);
     lv_obj_set_style_shadow_width(container, 0, 0);
@@ -308,7 +305,7 @@ lv_obj_t *_list_container_create(lv_obj_t *list)
 lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt)
 {
     // 创建容器
-    lv_obj_t *container = _list_container_create(list);
+    lv_obj_t *container = eos_list_add_container(list);
     lv_obj_set_size(container, lv_pct(100), EOS_LIST_CONTAINER_HEIGHT);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW); // 水平排布
     lv_obj_set_flex_align(container,
@@ -344,32 +341,41 @@ static void _list_slider_delete_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(list_slider);
     lv_free(list_slider);
 }
+
+lv_obj_t *eos_list_add_title_container(lv_obj_t *list, const char *title)
+{
+    // 创建外层透明容器
+    lv_obj_t *outer_container = lv_obj_create(list);
+    lv_obj_remove_style_all(outer_container); // 移除默认样式
+    lv_obj_set_size(outer_container, lv_pct(100), LV_SIZE_CONTENT); // 高度自适应
+    lv_obj_set_style_bg_opa(outer_container, LV_OPA_TRANSP, 0);     // 设置透明背景
+    lv_obj_set_flex_flow(outer_container, LV_FLEX_FLOW_COLUMN);     // 垂直布局
+
+    // 添加左上角标签
+    lv_obj_t *txt_label = lv_label_create(outer_container);
+    lv_label_set_text(txt_label, title);
+    lv_obj_set_style_text_align(txt_label, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_align(txt_label, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_set_style_margin_bottom(txt_label, 10, 0);
+
+    // 创建内层容器（水平居中）
+    lv_obj_t *inner_container = eos_list_add_container(outer_container);
+    lv_obj_set_style_align(inner_container, LV_ALIGN_CENTER, 0); // 水平居中
+    lv_obj_set_style_margin_hor(inner_container, 0, 0);
+
+    return inner_container;
+}
+
 eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt)
 {
     eos_list_slider_t *list_slider = (eos_list_slider_t *)lv_malloc(sizeof(eos_list_slider_t));
     EOS_CHECK_PTR_RETURN_VAL_FREE(list_slider, NULL, list_slider);
-    
-    // 创建外层透明容器
-    lv_obj_t *outer_container = lv_obj_create(list);
-    lv_obj_remove_style_all(outer_container);  // 移除默认样式
-    lv_obj_set_style_margin_hor(outer_container, 20, 0);
-    lv_obj_set_size(outer_container, lv_pct(100), LV_SIZE_CONTENT); // 高度自适应
-    lv_obj_set_style_bg_opa(outer_container, LV_OPA_TRANSP, 0);    // 设置透明背景
-    lv_obj_set_flex_flow(outer_container, LV_FLEX_FLOW_COLUMN);     // 垂直布局
-    
-    // 添加左上角标签
-    lv_obj_t *txt_label = lv_label_create(outer_container);
-    lv_label_set_text(txt_label, txt);
-    lv_obj_set_style_text_align(txt_label, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_align(txt_label, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_set_style_margin_bottom(txt_label,10,0);
 
-    // 创建内层容器（水平居中）
-    lv_obj_t *inner_container = _list_container_create(outer_container);
-    lv_obj_set_size(inner_container, lv_pct(100), 60);
+    // 创建外层透明容器
+    lv_obj_t *inner_container = eos_list_add_title_container(list, txt);
+        lv_obj_set_size(inner_container, lv_pct(100), 60);
     lv_obj_add_event_cb(inner_container, _list_slider_delete_cb, LV_EVENT_DELETE, (void *)list_slider);
-    lv_obj_set_style_align(inner_container, LV_ALIGN_CENTER, 0); // 水平居中
-    lv_obj_set_style_margin_hor(inner_container, 0, 0);
+
     // 滑块
     list_slider->slider = lv_slider_create(inner_container);
     lv_obj_set_style_margin_left(list_slider->slider, 18, 0);
@@ -418,4 +424,47 @@ eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt)
     lv_obj_center(label);
 
     return list_slider;
+}
+
+lv_obj_t *eos_row_create(lv_obj_t *parent,
+                         const char *left_text,
+                         const char *right_text,
+                         const char *left_img_path,
+                         int icon_w, int icon_h)
+{
+    lv_obj_t *row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row,
+                          LV_FLEX_ALIGN_SPACE_BETWEEN, // 主轴两端对齐
+                          LV_FLEX_ALIGN_CENTER,        // 交叉轴居中
+                          LV_FLEX_ALIGN_CENTER);
+
+    // 左边图像
+    if (left_img_path)
+    {
+        lv_obj_t *icon = lv_image_create(row);
+        eos_img_set_src(icon, left_img_path);
+        eos_img_set_size(icon, icon_w, icon_h);
+    }
+
+    // 左边文本
+    if (left_text)
+    {
+        lv_obj_t *left_label = lv_label_create(row);
+        lv_label_set_text(left_label, left_text);
+    }
+
+    // 右边文本
+    if (right_text)
+    {
+        lv_obj_t *right_label = lv_label_create(row);
+        lv_label_set_text(right_label, right_text);
+        lv_obj_set_flex_grow(right_label, 1); // 吃掉中间空间
+        lv_obj_set_style_text_align(right_label, LV_TEXT_ALIGN_RIGHT, 0);
+        lv_label_set_long_mode(right_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    }
+
+    return row;
 }

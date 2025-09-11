@@ -38,6 +38,8 @@
 #include "elena_os_app.h"
 #include "elena_os_watchface.h"
 #include "elena_os_misc.h"
+#include "elena_os_theme.h"
+#include "elena_os_pkg_mgr.h"
 // Macros and Definitions
 #define EOS_SYS_DEFAULT_LANG_STR "English"
 #define EOS_SYS_DEFAULT_WATCHFACE_ID_STR "cn.sab1e.clock"
@@ -73,7 +75,7 @@ eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eps_malloc_large(fsize + 1);
+    char *file_content = eos_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -86,14 +88,14 @@ eos_result_t eos_sys_cfg_set_bool(const char *key, bool value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eps_free_large(file_content);
+        eos_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eps_free_large(file_content);
+    eos_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -168,7 +170,7 @@ eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eps_malloc_large(fsize + 1);
+    char *file_content = eos_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -181,14 +183,14 @@ eos_result_t eos_sys_cfg_set_string(const char *key, const char *value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eps_free_large(file_content);
+        eos_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eps_free_large(file_content);
+    eos_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -263,7 +265,7 @@ eos_result_t eos_sys_cfg_set_number(const char *key, double value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eps_malloc_large(fsize + 1);
+    char *file_content = eos_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -276,14 +278,14 @@ eos_result_t eos_sys_cfg_set_number(const char *key, double value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eps_free_large(file_content);
+        eos_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eps_free_large(file_content);
+    eos_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -672,7 +674,7 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     off_t fsize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
-    char *file_content = eps_malloc_large(fsize + 1);
+    char *file_content = eos_malloc_large(fsize + 1);
     if (!file_content)
     {
         EOS_LOG_E("Memory allocation failed");
@@ -685,14 +687,14 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     if (read_size != fsize)
     {
         EOS_LOG_E("Failed to read config file, read_size=%zd, errno=%d", read_size, errno);
-        eps_free_large(file_content);
+        eos_free_large(file_content);
         return -EOS_ERR_FILE_ERROR;
     }
     file_content[fsize] = '\0';
 
     // 解析JSON
     cJSON *root = cJSON_Parse(file_content);
-    eps_free_large(file_content);
+    eos_free_large(file_content);
     if (!root)
     {
         EOS_LOG_E("Failed to parse JSON");
@@ -741,109 +743,7 @@ eos_result_t eos_sys_add_config_item(const char *key, const char *value)
     return EOS_OK;
 }
 
-static void _sys_app_list_btn_cb(lv_event_t *e)
-{
-    const char *app_id = (const char *)lv_event_get_user_data(e);
-    EOS_CHECK_PTR_RETURN(app_id);
-
-    // 创建新的页面用于绘制应用详情页
-    lv_obj_t *scr = eos_nav_scr_create();
-    lv_screen_load(scr);
-
-    // 获取清单文件
-    char manifest_path[PATH_MAX];
-    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
-             app_id);
-    char *manifest_json = eos_read_file(manifest_path);
-    if (!manifest_json)
-    {
-        EOS_LOG_E("Read manifest.json failed");
-        return;
-    }
-    // 获取根节点
-    cJSON *root = cJSON_Parse(manifest_json);
-    eps_free_large(manifest_json); // 解析完立即释放原始字符串
-    if (!root)
-    {
-        EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
-        return;
-    }
-
-    cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
-    if (!cJSON_IsString(name) || name->valuestring == NULL)
-    {
-        EOS_LOG_E("Get \"name\" failed");
-        cJSON_Delete(root);
-        return;
-    }
-    EOS_LOG_I("name = %s\n", name->valuestring);
-
-    lv_obj_t *label = lv_label_create(scr);
-    lv_label_set_text(label, name->valuestring);
-    lv_obj_center(label);
-    cJSON_Delete(root);
-}
-/**
- * @brief 系统设置中的应用列表
- */
-void eos_sys_app_list_create()
-{
-    // 创建新的页面用于绘制应用列表
-    lv_obj_t *scr = eos_nav_scr_create();
-    lv_screen_load(scr);
-
-    lv_obj_t *app_list = lv_list_create(scr);
-    lv_obj_set_size(app_list, lv_pct(100), lv_pct(100));
-
-    size_t app_list_size = eos_app_list_size();
-    for (size_t i = 0; i < app_list_size; i++)
-    {
-        char icon_path[PATH_MAX];
-        snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-                 eos_app_list_get_id(i));
-        if (!eos_is_file(icon_path))
-        {
-            memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
-        }
-        EOS_LOG_D("Icon: %s", icon_path);
-
-        // 获取清单文件
-        char manifest_path[PATH_MAX];
-        snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
-                 eos_app_list_get_id(i));
-        char *manifest_json = eos_read_file(manifest_path);
-        if (!manifest_json)
-        {
-            EOS_LOG_E("Read manifest.json failed");
-            return;
-        }
-        // 获取根节点
-        cJSON *root = cJSON_Parse(manifest_json);
-        eps_free_large(manifest_json); // 解析完立即释放原始字符串
-        if (!root)
-        {
-            EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
-            return;
-        }
-
-        cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
-        if (!cJSON_IsString(name) || name->valuestring == NULL)
-        {
-            EOS_LOG_E("Get \"name\" failed");
-            cJSON_Delete(root);
-            return;
-        }
-        EOS_LOG_I("name = %s\n", name->valuestring);
-
-        // lv_obj_t *label = lv_label_create(scr);
-        // lv_label_set_text(label, name->valuestring);
-        // lv_obj_center(label);
-        lv_obj_t *btn = eos_list_add_button(app_list, icon_path, name->valuestring);
-        lv_obj_add_event_cb(btn, _sys_app_list_btn_cb, LV_EVENT_CLICKED, (void *)eos_app_list_get_id(i));
-        cJSON_Delete(root);
-    }
-}
-
+/************************** 蓝牙 **************************/
 static void _bluetooth_enable_switch_cb(lv_event_t *e)
 {
     lv_obj_t *bt_sw = lv_event_get_target(e);
@@ -868,18 +768,18 @@ static void _sys_screen_bluetooth(lv_event_t *e)
 
     lv_obj_t *list = lv_list_create(scr);
     lv_obj_set_size(list, lv_pct(100), lv_pct(100));
-    lv_obj_set_style_pad_all(list, 0, 0);
+    lv_obj_set_style_pad_hor(list, 20, 0);
+    lv_obj_set_style_pad_ver(list, 0, 0);
     lv_obj_center(list);
     lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
 
     // 占位符
     eos_list_add_placeholder(list, 110);
-
     lv_obj_t *bt_sw = eos_list_add_switch(list, current_lang[STR_ID_SETTINGS_BLUETOOTH_ENABLE]);
     lv_obj_set_state(bt_sw, LV_STATE_CHECKED, eos_sys_cfg_get_bool(EOS_SYS_CFG_KEY_BLUETOOTH, false));
     lv_obj_add_event_cb(bt_sw, _bluetooth_enable_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
-
+/************************** 显示设置 **************************/
 static void _brightness_slider_value_changed_cb(lv_event_t *e)
 {
     lv_obj_t *sl = lv_event_get_target(e);
@@ -902,7 +802,7 @@ static void _list_slider_minus_cb(lv_event_t *e)
     int32_t val = lv_slider_get_value(slider);
     if (val == min)
         return;
-    val-=5;
+    val -= 5;
     lv_slider_set_value(slider, val, LV_ANIM_ON);
     eos_sys_cfg_set_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, val);
     eos_display_set_brightness(val);
@@ -916,12 +816,11 @@ static void _list_slider_plus_cb(lv_event_t *e)
     int32_t val = lv_slider_get_value(slider);
     if (val == max)
         return;
-    val+=5;
+    val += 5;
     lv_slider_set_value(slider, val, LV_ANIM_ON);
     eos_sys_cfg_set_number(EOS_SYS_CFG_KEY_DISPLAY_BRIGHTNESS, val);
     eos_display_set_brightness(val);
 }
-
 
 static void _sys_screen_display(lv_event_t *e)
 {
@@ -943,17 +842,197 @@ static void _sys_screen_display(lv_event_t *e)
     lv_slider_set_range(brightness_slider->slider, EOS_SYS_DISPLAY_BRIGHTNESS_MIN, EOS_SYS_DISPLAY_BRIGHTNESS_MAX);
     lv_obj_add_event_cb(brightness_slider->slider, _brightness_slider_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(brightness_slider->slider, _brightness_slider_released_cb, LV_EVENT_RELEASED, NULL);
-    lv_obj_add_event_cb(brightness_slider->minus_btn,_list_slider_minus_cb,LV_EVENT_CLICKED,brightness_slider->slider);
-    lv_obj_add_event_cb(brightness_slider->plus_btn,_list_slider_plus_cb,LV_EVENT_CLICKED,brightness_slider->slider);
+    lv_obj_add_event_cb(brightness_slider->minus_btn, _list_slider_minus_cb, LV_EVENT_CLICKED, brightness_slider->slider);
+    lv_obj_add_event_cb(brightness_slider->plus_btn, _list_slider_plus_cb, LV_EVENT_CLICKED, brightness_slider->slider);
 }
-
+/************************** 通知 **************************/
 static void _sys_screen_notification(lv_event_t *e)
 {
     lv_obj_t *scr = eos_nav_scr_create();
     eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_DISPLAY]);
     lv_screen_load(scr);
 }
+/************************** 应用列表 **************************/
 
+/**
+ * @brief 卸载按钮回调
+ */
+static void _uninstall_btn_cb(lv_event_t *e)
+{
+    const char *app_id = (const char *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(app_id);
+    eos_app_uninstall(app_id);
+    eos_nav_back_clean();
+}
+
+/**
+ * @brief 应用列表回调，打开应用详情
+ * @param e
+ */
+static void _sys_app_list_btn_cb(lv_event_t *e)
+{
+    const char *app_id = (const char *)lv_event_get_user_data(e);
+    EOS_CHECK_PTR_RETURN(app_id);
+
+    // 获取清单文件
+    char manifest_path[PATH_MAX];
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
+             app_id);
+    script_pkg_t pkg = {0};
+    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    {
+        EOS_LOG_E("Read manifest failed: %s", manifest_path);
+        return;
+    }
+    EOS_LOG_D("App Info:\n"
+              "id=%s | name=%s | version=%s |\n"
+              "author:%s | description:%s",
+              pkg.id, pkg.name, pkg.version,
+              pkg.version, pkg.description);
+    char script_path[PATH_MAX];
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
+             app_id);
+    if (!eos_is_file(script_path))
+    {
+        EOS_LOG_E("Can't find script: %s", script_path);
+        return;
+    }
+
+    // 创建新的页面用于绘制应用详情页
+    lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, pkg.name);
+    lv_screen_load(scr);
+
+    lv_obj_t *list = lv_list_create(scr);
+    lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_hor(list, 20, 0);
+    lv_obj_set_style_pad_ver(list, 0, 0);
+    lv_obj_center(list);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
+
+    eos_list_add_placeholder(list, 110);
+
+    lv_obj_t *container = eos_list_add_container(list);
+    lv_obj_set_size(container, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(container,
+                          LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER);
+
+    char icon_path[PATH_MAX];
+    snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+             app_id);
+    if (!eos_is_file(icon_path))
+    {
+        memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
+    }
+    eos_row_create(container, NULL, pkg.name, icon_path, 128, 128);
+
+    eos_row_create(container, current_lang[STR_ID_SETTINGS_APPS_APPID], app_id, NULL, 0, 0);
+    eos_row_create(container, current_lang[STR_ID_SETTINGS_APPS_AUTHOR], pkg.author, NULL, 0, 0);
+    eos_row_create(container, current_lang[STR_ID_SETTINGS_APPS_VERSION], pkg.version, NULL, 0, 0);
+
+    if (strcmp(pkg.description, "") != 0)
+    {
+        lv_obj_t *inner_container = eos_list_add_title_container(list, current_lang[STR_ID_SETTINGS_APPS_DESCRIPTON]);
+        lv_obj_set_size(inner_container, lv_pct(100), LV_SIZE_CONTENT);
+
+        lv_obj_t *desc_label = lv_label_create(inner_container);
+        lv_label_set_text(desc_label, pkg.description);
+        lv_obj_set_width(desc_label, lv_pct(100));
+        lv_label_set_long_mode(desc_label, LV_LABEL_LONG_WRAP);
+    }
+
+    lv_obj_t *uninstall_btn = lv_button_create(list);
+    lv_obj_set_size(uninstall_btn, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(uninstall_btn, EOS_THEME_DANGEROS_COLOR, 0);
+
+    lv_obj_t *uninstall_btn_label = lv_label_create(uninstall_btn);
+    lv_label_set_text(uninstall_btn_label, current_lang[STR_ID_SETTINGS_APPS_UINSTALL]);
+    lv_obj_add_event_cb(uninstall_btn, _uninstall_btn_cb, LV_EVENT_CLICKED, (void *)app_id);
+    lv_obj_center(uninstall_btn_label);
+}
+
+static void _app_btn_create(lv_obj_t *parent, const char *app_id)
+{
+    char icon_path[PATH_MAX];
+    snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+             app_id);
+    if (!eos_is_file(icon_path))
+    {
+        memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
+    }
+    EOS_LOG_D("Icon: %s", icon_path);
+
+    // 获取清单文件
+    char manifest_path[PATH_MAX];
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
+             app_id);
+    script_pkg_t pkg = {0};
+    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    {
+        EOS_LOG_E("Read manifest failed: %s", manifest_path);
+        return;
+    }
+
+    EOS_LOG_I("name = %s\n", pkg.name);
+
+    lv_obj_t *btn = eos_list_add_button(parent, icon_path, pkg.name);
+    lv_obj_set_size(btn, lv_pct(100), EOS_LIST_CONTAINER_HEIGHT);
+    lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(btn, LV_DIR_NONE); // 禁止滚动
+    lv_obj_set_style_bg_color(btn, EOS_THEME_SECONDARY_COLOR, 0);
+    lv_obj_set_style_border_width(btn, 0, 0);
+    lv_obj_set_style_pad_all(btn, 18, 0);
+    lv_obj_set_style_margin_bottom(btn, 20, 0);
+    lv_obj_set_style_align(btn, LV_ALIGN_CENTER, 0);
+    lv_obj_set_style_radius(btn, EOS_LIST_OBJ_RADIUS, 0);
+    lv_obj_set_style_shadow_width(btn, 0, 0);
+    lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW); // 水平排布
+    lv_obj_set_flex_align(btn,
+                          LV_FLEX_ALIGN_START,
+                          LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_event_cb(btn, _sys_app_list_btn_cb, LV_EVENT_CLICKED, (void *)app_id);
+    eos_app_obj_auto_delete(btn, app_id);
+}
+
+static void _app_installed_cb(lv_event_t *e)
+{
+    lv_obj_t *parent = lv_event_get_target(e);
+    const char *installed_app_id = lv_event_get_param(e);
+    EOS_CHECK_PTR_RETURN(parent && installed_app_id);
+    _app_btn_create(parent, installed_app_id);
+}
+
+/**
+ * @brief 系统设置中的应用列表
+ */
+static void _sys_screen_apps(lv_event_t *e)
+{
+    // 创建新的页面用于绘制应用列表
+    lv_obj_t *scr = eos_nav_scr_create();
+    eos_screen_bind_header(scr, current_lang[STR_ID_SETTINGS_APPS]);
+    lv_screen_load(scr);
+
+    lv_obj_t *app_list = lv_list_create(scr);
+    lv_obj_set_size(app_list, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_pad_hor(app_list, 20, 0);
+    lv_obj_set_style_pad_ver(app_list, 0, 0);
+    lv_obj_center(app_list);
+    lv_obj_set_scrollbar_mode(app_list, LV_SCROLLBAR_MODE_OFF);
+    eos_event_add_cb(app_list, _app_installed_cb, eos_event_get_code(EOS_EVENT_APP_INSTALLED), NULL);
+    eos_list_add_placeholder(app_list, 110);
+
+    size_t app_list_size = eos_app_list_size();
+    for (size_t i = 0; i < app_list_size; i++)
+    {
+        _app_btn_create(app_list, eos_app_list_get_id(i));
+    }
+}
+/************************** 系统设置 **************************/
 void eos_sys_settings_create(void)
 {
     lv_obj_t *scr = eos_nav_scr_create();
@@ -979,4 +1058,9 @@ void eos_sys_settings_create(void)
     // 通知设置
     btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0xff3939), LV_SYMBOL_BELL, current_lang[STR_ID_SETTINGS_NOTIFICATION]);
     lv_obj_add_event_cb(btn, _sys_screen_notification, LV_EVENT_CLICKED, NULL);
+    // 应用列表
+    btn = eos_list_add_circle_icon_button(settings_list, lv_color_hex(0x00b8a9), LV_SYMBOL_LIST, current_lang[STR_ID_SETTINGS_APPS]);
+    lv_obj_add_event_cb(btn, _sys_screen_apps, LV_EVENT_CLICKED, NULL);
+
+    eos_list_add_placeholder(settings_list, 50);
 }

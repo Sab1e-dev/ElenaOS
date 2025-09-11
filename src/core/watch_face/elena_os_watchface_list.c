@@ -77,13 +77,13 @@ void eos_watchface_list_create(void)
         lv_obj_set_style_pad_gap(item, 20, 0); // snapshot 和 label 的间距
         lv_obj_set_style_border_width(item, 0, 0);
         lv_obj_set_style_shadow_width(item, 0, 0);
-        lv_obj_set_style_bg_opa(item,LV_OPA_TRANSP,0);
+        lv_obj_set_style_bg_opa(item, LV_OPA_TRANSP, 0);
         lv_obj_clear_flag(item, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_align(item,
                               LV_FLEX_ALIGN_START,   // 主轴(水平方向)居中
                               LV_FLEX_ALIGN_CENTER,  // 交叉轴(垂直方向)居中
                               LV_FLEX_ALIGN_CENTER); // 内容居中
-        
+
         char icon_path[PATH_MAX];
         snprintf(icon_path, sizeof(icon_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_SNAPSHOT_FILE_NAME,
                  eos_watchface_list_get_id(i));
@@ -115,31 +115,15 @@ void eos_watchface_list_create(void)
         char manifest_path[PATH_MAX];
         snprintf(manifest_path, sizeof(manifest_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
                  eos_watchface_list_get_id(i));
-        char *manifest_json = eos_read_file(manifest_path);
-        if (!manifest_json)
+        script_pkg_t pkg = {0};
+        if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
         {
-            EOS_LOG_E("Read manifest.json failed");
-            return;
-        }
-        // 获取根节点
-        cJSON *root = cJSON_Parse(manifest_json);
-        eps_free_large(manifest_json); // 解析完立即释放原始字符串
-        if (!root)
-        {
-            EOS_LOG_E("parse error: %s\n", cJSON_GetErrorPtr());
-            return;
-        }
-        cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
-        if (!cJSON_IsString(name) || name->valuestring == NULL)
-        {
-            EOS_LOG_E("Get \"name\" failed");
-            cJSON_Delete(root);
+            EOS_LOG_E("Read manifest failed: %s", manifest_path);
             return;
         }
         lv_obj_t *label = lv_label_create(item);
-        lv_label_set_text(label, name->valuestring);
+        lv_label_set_text(label, pkg.name);
         lv_obj_set_width(label, LV_SIZE_CONTENT);
         lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-        cJSON_Delete(root);
     }
 }

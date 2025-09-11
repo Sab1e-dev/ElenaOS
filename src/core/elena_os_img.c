@@ -40,7 +40,7 @@ static void _img_delete_event_cb(lv_event_t *e)
 
     if (user_data->bin_data)
     {
-        eps_free_large(user_data->bin_data);
+        eos_free_large(user_data->bin_data);
         user_data->bin_data = NULL;
     }
     if (user_data->img_dsc)
@@ -76,8 +76,9 @@ void eos_img_set_size(lv_obj_t *img_obj, const uint32_t w, const uint32_t h)
         EOS_LOG_E("Image width or height is 0");
         return;
     }
-    lv_image_set_scale_x(img_obj, (uint32_t)((w* 256) / dsc->header.w) );
-    lv_image_set_scale_y(img_obj, (uint32_t)((h* 256) / dsc->header.h) );
+    lv_obj_set_size(img_obj, w, h);
+    lv_image_set_scale_x(img_obj, (uint32_t)((w * 256) / dsc->header.w));
+    lv_image_set_scale_y(img_obj, (uint32_t)((h * 256) / dsc->header.h));
 }
 
 void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
@@ -116,7 +117,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     }
 
     // 分配内存
-    void *bin_data = eps_malloc_large(file_size);
+    void *bin_data = eos_malloc_large(file_size);
     if (!bin_data)
     {
         EOS_LOG_E("Failed to allocate memory for image\n");
@@ -131,7 +132,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (bytes_read != file_size)
     {
         EOS_LOG_E("Failed to read complete file (read %zd of %ld bytes)\n", bytes_read, file_size);
-        eps_free_large(bin_data);
+        eos_free_large(bin_data);
         return;
     }
 
@@ -140,7 +141,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (!img_dsc)
     {
         EOS_LOG_E("Failed to allocate image descriptor\n");
-        eps_free_large(bin_data);
+        eos_free_large(bin_data);
         return;
     }
     memset(img_dsc, 0, sizeof(lv_image_dsc_t));
@@ -151,7 +152,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     {
         EOS_LOG_E("Invalid image magic\n");
         lv_free(img_dsc);
-        eps_free_large(bin_data);
+        eos_free_large(bin_data);
         return;
     }
 
@@ -164,7 +165,7 @@ void eos_img_set_src(lv_obj_t *img_obj, const char *bin_path)
     if (!user_data)
     {
         EOS_LOG_E("Failed to allocate user data\n");
-        eps_free_large(bin_data);
+        eos_free_large(bin_data);
         lv_free(img_dsc);
         return;
     }

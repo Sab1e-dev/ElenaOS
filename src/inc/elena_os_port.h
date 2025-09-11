@@ -51,12 +51,12 @@ extern "C" {
  * @return void* 分配成功则返回内存地址，否则返回 NULL
  * @note 主要用于图片内存分配
  */
-void *eps_malloc_large(size_t size);
+void *eos_malloc_large(size_t size);
 /**
  * @brief 释放目标内存
  * @param ptr 目标指针
  */
-void eps_free_large(void *ptr);
+void eos_free_large(void *ptr);
 /**
  * @brief 延时指定时间（非阻塞）
  * @param ms 毫秒数
