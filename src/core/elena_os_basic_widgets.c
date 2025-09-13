@@ -184,6 +184,7 @@ void eos_screen_bind_header(lv_obj_t *scr, const char *title)
 
     // LVGL 会在 screen 加载时触发 LV_EVENT_SCREEN_LOADED
     // 并在 screen 被删除时触发 LV_EVENT_DELETE
+    _app_header_update_clock_label(app_header->clock_label);    // 提前触发一次同步时钟
     lv_obj_add_event_cb(scr, _screen_load_cb, LV_EVENT_SCREEN_LOADED, (void *)title);
     lv_obj_add_event_cb(scr, _screen_delete_cb, LV_EVENT_DELETE, NULL);
 }

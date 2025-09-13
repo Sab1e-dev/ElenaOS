@@ -28,10 +28,50 @@ static atomic_bool should_terminate = ATOMIC_VAR_INIT(false); // 请求终止脚
 static script_state_t script_state = SCRIPT_STATE_STOPPED;
 static bool is_terminated_by_req = false;
 // Function Implementations
+
+inline void script_engine_set_prop_number(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    double value) 
+{
+    jerry_value_t prop = jerry_string_sz((const jerry_char_t*)prop_name);
+    jerry_value_t jerry_value = jerry_number(value);
+    jerry_value_t ret = jerry_object_set(obj, prop, jerry_value);
+
+    jerry_value_free(ret);
+    jerry_value_free(jerry_value);
+    jerry_value_free(prop);
+}
+
+inline void script_engine_set_prop_bool(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    bool value) 
+{
+    jerry_value_t prop = jerry_string_sz((const jerry_char_t*)prop_name);
+    jerry_value_t jerry_value = jerry_boolean(value);
+    jerry_value_t ret = jerry_object_set(obj, prop, jerry_value);
+
+    jerry_value_free(ret);
+    jerry_value_free(jerry_value);
+    jerry_value_free(prop);
+}
+
+inline void script_engine_set_prop_string(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    const char* value) 
+{
+    jerry_value_t prop = jerry_string_sz((const jerry_char_t*)prop_name);
+    jerry_value_t jerry_value = jerry_string_sz(value);
+    jerry_value_t ret = jerry_object_set(obj, prop, jerry_value);
+
+    jerry_value_free(ret);
+    jerry_value_free(jerry_value);
+    jerry_value_free(prop);
+}
+
 /**
  * @brief VM 终止运行回调
  */
-static jerry_value_t _script_engine_vm_exec_stop_callback(void *user_p)
+static jerry_value_t _vm_exec_stop_callback(void *user_p)
 {
     (void)user_p; // 不使用参数
     if (should_terminate)
@@ -115,20 +155,11 @@ jerry_value_t _script_engine_create_info(const script_pkg_t *script_package)
 {
     jerry_value_t obj = jerry_object();
 
-    jerry_value_t key, val;
-
-#define SET_PROP(field)                                                 \
-    key = jerry_string_sz((const jerry_char_t *)#field);                \
-    val = jerry_string_sz((const jerry_char_t *)script_package->field); \
-    jerry_object_set(obj, key, val);                                    \
-    jerry_value_free(key);                                              \
-    jerry_value_free(val);
-
-    SET_PROP(id);
-    SET_PROP(name);
-    SET_PROP(version);
-    SET_PROP(author);
-    SET_PROP(description);
+    script_engine_set_prop_string(obj,"id",script_package->id);
+    script_engine_set_prop_string(obj,"name",script_package->name);
+    script_engine_set_prop_string(obj,"version",script_package->version);
+    script_engine_set_prop_string(obj,"author",script_package->author);
+    script_engine_set_prop_string(obj,"description",script_package->description);
 
     return obj;
 }
@@ -220,7 +251,7 @@ script_engine_result_t script_engine_run(script_pkg_t *script_package)
     jerry_init(JERRY_INIT_EMPTY);
 
     // 初始化停止回调
-    jerry_halt_handler(16, _script_engine_vm_exec_stop_callback, NULL);
+    jerry_halt_handler(16, _vm_exec_stop_callback, NULL);
     jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
     // 注册原生函数
     script_engine_register_natives();

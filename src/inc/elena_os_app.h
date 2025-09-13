@@ -29,9 +29,18 @@ extern "C" {
 #define EOS_APP_ICON_FILE_NAME  "icon.bin"
 #define EOS_APP_MANIFEST_FILE_NAME "manifest.json"
 #define EOS_APP_SCRIPT_ENTRY_FILE_NAME "main.js"
+/************************** 配置文件 **************************/
+#define EOS_APP_LIST_APP_ORDER_PATH EOS_SYS_CONFIG_DIR "app_order.json"
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
+/**
+ * @brief 将目标 ID 的应用移动到指定位置，以便 app_list 排序
+ * @param app_id 目标 ID
+ * @param new_index 新的索引值
+ * @return eos_result_t 
+ */
+eos_result_t eos_app_order_move(const char *app_id, size_t new_index);
 /**
  * @brief 获取当前已安装的应用数量，即列表大小
  * @return size_t 列表大小

@@ -580,35 +580,13 @@ static jerry_value_t js_eos_time_get(const jerry_call_info_t *call_info_p,
     // 创建 JS 对象
     jerry_value_t obj = jerry_object();
 
-    jerry_value_t val;
-
-    val = jerry_number(dt.year);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"year"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.month);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"month"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.day);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"day"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.hour);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"hour"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.min);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"minute"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.sec);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"second"), val));
-    jerry_value_free(val);
-
-    val = jerry_number(dt.day_of_week);
-    jerry_value_free(jerry_object_set(obj, jerry_string_sz((const jerry_char_t *)"day_of_week"), val));
-    jerry_value_free(val);
+    script_engine_set_prop_number(obj,"year",dt.year);
+    script_engine_set_prop_number(obj,"month",dt.month);
+    script_engine_set_prop_number(obj,"day",dt.day);
+    script_engine_set_prop_number(obj,"hour",dt.hour);
+    script_engine_set_prop_number(obj,"min",dt.min);
+    script_engine_set_prop_number(obj,"sec",dt.sec);
+    script_engine_set_prop_number(obj,"day_of_week",dt.day_of_week);
 
     return obj;
 }

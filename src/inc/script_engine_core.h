@@ -78,7 +78,33 @@ typedef enum {
 } script_engine_result_t;
 
 /* Public function prototypes --------------------------------*/
-
+/**
+ * @brief 向指定的JerryScript对象中添加参数 参数为数值型
+ * @param obj 目标对象
+ * @param prop_name 参数名称（键）
+ * @param value 参数：数值
+ */
+extern inline void script_engine_set_prop_number(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    double value);
+/**
+ * @brief 向指定的JerryScript对象中添加参数 参数为布尔型
+ * @param obj 目标对象
+ * @param prop_name 参数名称（键）
+ * @param value 参数：布尔值
+ */
+extern inline void script_engine_set_prop_bool(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    bool value);
+/**
+ * @brief 向指定的JerryScript对象中添加参数 参数为字符串
+ * @param obj 目标对象
+ * @param prop_name 参数名称（键）
+ * @param value 参数：字符串
+ */
+extern inline void script_engine_set_prop_string(jerry_value_t obj, 
+                                    const char* prop_name, 
+                                    const char* value);
 /**
  * @brief 关闭当前运行的 JS 应用
  * @return script_engine_result_t 返回操作结果
