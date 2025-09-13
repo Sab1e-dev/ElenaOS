@@ -614,6 +614,8 @@ void eos_sys_init()
 
     eos_mkdir_if_not_exist(EOS_SYS_RES_DIR, 0755);
     eos_mkdir_if_not_exist(EOS_SYS_RES_IMG_DIR, 0755);
+    eos_mkdir_if_not_exist(EOS_SYS_RES_FONT_DIR, 0755);
+
     // 如果系统文件不存在则创建
     if (!eos_is_file(EOS_SYS_CONFIG_FILE_PATH))
     {
@@ -955,7 +957,7 @@ static void _sys_app_list_btn_cb(lv_event_t *e)
 
     lv_obj_t *clear_data_btn = lv_button_create(list);
     lv_obj_set_size(clear_data_btn, lv_pct(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_margin_bottom(clear_data_btn,20,0);
+    lv_obj_set_style_margin_bottom(clear_data_btn, 20, 0);
     lv_obj_set_style_bg_color(clear_data_btn, EOS_THEME_DANGEROS_COLOR, 0);
 
     lv_obj_t *clear_data_btn_label = lv_label_create(clear_data_btn);

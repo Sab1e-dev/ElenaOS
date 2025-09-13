@@ -299,7 +299,7 @@ static jerry_value_t js_lv_img_set_src(const jerry_call_info_t *call_info_p,
         arg_src = arg_src_str;
     }
     char img_path[PATH_MAX];
-    if (script_pkg.id==NULL)
+    if (script_pkg.id == NULL)
     {
         return throw_error("Script package info is NULL");
     }
@@ -580,15 +580,104 @@ static jerry_value_t js_eos_time_get(const jerry_call_info_t *call_info_p,
     // 创建 JS 对象
     jerry_value_t obj = jerry_object();
 
-    script_engine_set_prop_number(obj,"year",dt.year);
-    script_engine_set_prop_number(obj,"month",dt.month);
-    script_engine_set_prop_number(obj,"day",dt.day);
-    script_engine_set_prop_number(obj,"hour",dt.hour);
-    script_engine_set_prop_number(obj,"min",dt.min);
-    script_engine_set_prop_number(obj,"sec",dt.sec);
-    script_engine_set_prop_number(obj,"day_of_week",dt.day_of_week);
+    script_engine_set_prop_number(obj, "year", dt.year);
+    script_engine_set_prop_number(obj, "month", dt.month);
+    script_engine_set_prop_number(obj, "day", dt.day);
+    script_engine_set_prop_number(obj, "hour", dt.hour);
+    script_engine_set_prop_number(obj, "min", dt.min);
+    script_engine_set_prop_number(obj, "sec", dt.sec);
+    script_engine_set_prop_number(obj, "day_of_week", dt.day_of_week);
 
     return obj;
+}
+
+static jerry_value_t js_lv_tiny_ttf_create_file(const jerry_call_info_t *call_info_p,
+                                                const jerry_value_t args[],
+                                                const jerry_length_t argc)
+{
+    // 参数数量检查
+    if (argc < 2)
+    {
+        return throw_error("Insufficient arguments");
+    }
+
+    // 解析参数: src (const char*)
+    char *arg_src_str = NULL;
+    const char *arg_src = NULL;
+    if (!jerry_value_is_undefined(args[0]) && !jerry_value_is_null(args[0]))
+    {
+        if (!jerry_value_is_string(args[0]))
+        {
+            return throw_error("Argument 0 must be a string");
+        }
+        jerry_size_t arg_src_len = jerry_string_size(args[0], JERRY_ENCODING_UTF8);
+        arg_src_str = (char *)malloc(arg_src_len + 0);
+        jerry_string_to_buffer(args[0], JERRY_ENCODING_UTF8, (jerry_char_t *)arg_src_str, arg_src_len);
+        arg_src_str[arg_src_len] = '\0';
+        arg_src = arg_src_str;
+    }
+
+    // 解析参数: font_size (uint32_t)
+    if (!jerry_value_is_number(args[1]))
+    {
+        if (arg_src_str) free(arg_src_str);
+        return throw_error("Argument 1 must be a number");
+    }
+    uint32_t font_size = (uint32_t)jerry_value_as_number(args[1]);
+
+    char font_path[PATH_MAX];
+    if (script_pkg.id == NULL)
+    {
+        if (arg_src_str) free(arg_src_str);
+        return throw_error("Script package info is NULL");
+    }
+    
+    if (script_pkg.type == SCRIPT_TYPE_APPLICATION)
+    {
+        snprintf(font_path, sizeof(font_path), EOS_APP_INSTALLED_DIR "%s/assets/%s",
+                 script_pkg.id, arg_src);
+    }
+    else if (script_pkg.type == SCRIPT_TYPE_WATCHFACE)
+    {
+        snprintf(font_path, sizeof(font_path), EOS_WATCHFACE_INSTALLED_DIR "%s/assets/%s",
+                 script_pkg.id, arg_src);
+    }
+    else
+    {
+        if (arg_src_str) free(arg_src_str);
+        return throw_error("Unknown script type");
+    }
+    
+    if (!eos_is_file(font_path))
+    {
+        if (arg_src_str) free(arg_src_str);
+        return throw_error("Font file not found");
+    }
+    
+    EOS_LOG_D("Font Path: %s", font_path);
+
+    // 调用底层函数创建字体
+    lv_font_t *font = lv_tiny_ttf_create_file(font_path, font_size);
+    
+    // 释放临时字符串内存
+    if (arg_src_str)
+        free(arg_src_str);
+
+    if (!font)
+    {
+        return throw_error("Failed to create font");
+    }
+
+    // 包装为LVGL字体对象返回
+    jerry_value_t js_result = jerry_object();
+    jerry_value_t ptr = jerry_number((double)(uintptr_t)font);
+    jerry_value_t type = jerry_string_sz("lv_font");
+    jerry_object_set(js_result, jerry_string_sz("__ptr"), ptr);
+    jerry_object_set(js_result, jerry_string_sz("__type"), type);
+    jerry_value_free(ptr);
+    jerry_value_free(type);
+
+    return js_result;
 }
 
 /********************************** 注册原生函数 **********************************/
@@ -621,6 +710,8 @@ const script_engine_func_entry_t script_engine_native_funcs[] = {
      .handler = js_config_get_number},
     {.name = "eos_time_get",
      .handler = js_eos_time_get},
+    {.name = "lv_tiny_ttf_create_file",
+     .handler = js_lv_tiny_ttf_create_file},
 };
 
 /**

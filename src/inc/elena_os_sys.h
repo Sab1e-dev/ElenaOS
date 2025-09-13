@@ -33,6 +33,8 @@ extern "C" {
 
 #define EOS_SYS_RES_DIR EOS_SYS_DIR "res/"
 #define EOS_SYS_RES_IMG_DIR EOS_SYS_RES_DIR "img/"
+
+#define EOS_SYS_RES_FONT_DIR EOS_SYS_RES_DIR "font/"
 /************************** 系统配置信息的键 **************************/
 #define EOS_SYS_CFG_KEY_VERSION "version"
 #define EOS_SYS_CFG_KEY_LANGUAGE "language"

@@ -1,6 +1,6 @@
 /**
  * @file elena_os_log.h
- * @brief Debug
+ * @brief 日志系统
  * @author Sab1e
  * @date 2025-08-14
  */

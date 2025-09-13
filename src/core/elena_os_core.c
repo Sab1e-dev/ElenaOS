@@ -40,6 +40,7 @@
 #include "elena_os_app_list.h"
 #include "script_engine_nav.h"
 #include "elena_os_theme.h"
+#include "elena_os_config.h"
 // Macros and Definitions
 typedef enum
 {
@@ -107,10 +108,28 @@ eos_result_t eos_run()
     root_scr = lv_screen_active();
     /************************** 系统组件初始化 **************************/
     eos_event_init();
-    // eos_theme_init();
+#ifdef EOS_USE_FONT_TTF
+    static lv_font_t *font_ttf;
+    font_ttf = lv_tiny_ttf_create_file(argv[1], 24); // 24px 大小
+    if (font_ttf == NULL)
+    {
+        EOS_LOG_E("Failed to load TTF font!");
+    }
+    else
+    {
+        eos_theme_set(lv_palette_main(LV_PALETTE_BLUE),
+                      lv_palette_main(LV_PALETTE_RED),
+                      &EOS_FONT_C_NAME);
+    }
+#elif EOS_USE_FONT_C
+    eos_theme_set(lv_palette_main(LV_PALETTE_BLUE),
+                  lv_palette_main(LV_PALETTE_RED),
+                  &EOS_FONT_C_NAME);
+#else
     eos_theme_set(lv_palette_main(LV_PALETTE_BLUE),
                   lv_palette_main(LV_PALETTE_RED),
                   &lv_font_montserrat_30);
+#endif /* EOS_USE_FONT_TTF */
     eos_app_init();
     eos_watchface_init();
     eos_sys_init();
@@ -160,7 +179,7 @@ eos_result_t eos_run()
                  wf_id);
         script_pkg_t pkg = {0};
         pkg.type = SCRIPT_TYPE_WATCHFACE;
-        
+
         if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
         {
             EOS_LOG_E("Read manifest failed: %s", manifest_path);
