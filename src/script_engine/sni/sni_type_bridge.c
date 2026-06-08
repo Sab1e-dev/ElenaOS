@@ -119,13 +119,29 @@ static sni_control_block_t *sni_cb_from_obj(void *ptr)
     return (sni_control_block_t *)lv_obj_get_user_data((lv_obj_t *)ptr);
 }
 
+static void sni_obj_deleted_cb(lv_event_t *e);
+
 static void *sni_node_from_native(void *ptr, sni_type_t type)
 {
     if (!ptr) return NULL;
 
     if (SNI_TYPE_IS_TREE_NODE(type))
     {
-        return sni_cb_from_obj(ptr);
+        sni_control_block_t *cb = sni_cb_from_obj(ptr);
+        if (!cb) return NULL;
+        /* Stale control block from a previous engine session — the
+         * cb->js_obj handle refers to a destroyed JerryScript heap.
+         * Clear the LVGL link, remove stale callbacks, free the old
+         * control block, and return NULL so the caller creates a
+         * fresh wrapper on the current engine generation. */
+        if (cb->engine_gen != script_engine_get_gen())
+        {
+            lv_obj_remove_event_cb((lv_obj_t *)ptr, sni_obj_deleted_cb);
+            lv_obj_set_user_data((lv_obj_t *)ptr, NULL);
+            eos_free(cb);
+            return NULL;
+        }
+        return cb;
     }
 
     sni_context_t *ctx = sni_get_current_context();
@@ -173,6 +189,19 @@ static void sni_obj_deleted_cb(lv_event_t *e)
     cb = (sni_control_block_t *)lv_event_get_user_data(e);
     if (!cb)
     {
+        return;
+    }
+
+    /* Stale control block from a previous engine session — the
+     * cb->js_obj handle refers to a destroyed JerryScript heap.
+     * Clear the LVGL link, free the stale CB, and bail out without
+     * touching JerryScript to prevent both memory leaks and
+     * refcount assertions. */
+    if (cb->engine_gen != script_engine_get_gen())
+    {
+        cb->ptr = NULL;
+        lv_obj_set_user_data(obj, NULL);
+        eos_free(cb);
         return;
     }
 
@@ -665,6 +694,7 @@ jerry_value_t sni_tb_c2js(void *c_val, sni_type_t type)
             new_cb->js_obj = jerry_value_copy(js_obj);
             new_cb->type = type;
             new_cb->is_alive = true;
+            new_cb->engine_gen = script_engine_get_gen();
             new_cb->owner_ctx = sni_get_current_context();
 
             jerry_object_set_native_ptr(js_obj, &sni_native_info, new_cb);
@@ -788,6 +818,7 @@ bool sni_tb_c2js_set_object(void *c_val, sni_type_t type, jerry_value_t js_obj)
             new_cb->js_obj = jerry_value_copy(js_obj);
             new_cb->type = type;
             new_cb->is_alive = true;
+            new_cb->engine_gen = script_engine_get_gen();
             new_cb->owner_ctx = sni_get_current_context();
 
             jerry_object_set_native_ptr(js_obj, &sni_native_info, new_cb);

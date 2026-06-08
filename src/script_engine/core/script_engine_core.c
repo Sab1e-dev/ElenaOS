@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <setjmp.h>
 #define EOS_LOG_TAG "ScriptEngine"
 #include "eos_log.h"
 
@@ -48,8 +49,10 @@ typedef struct
     jerry_value_t promise;
 } _module_task_t;
 
+/* Variables --------------------------------------------------*/
+
 /**
- * @brief Script Engine Runtime — global engine singleton per SEC plan
+ * @brief Script Engine Runtime — global engine singleton
  */
 typedef struct
 {
@@ -66,8 +69,13 @@ typedef struct
     jerry_value_t old_realm;
     script_program_t *current_program;
     script_pkg_t owned_script;
+
+    jmp_buf fatal_jmp_buf;
+    bool fatal_recovering;
+    bool fatal_scope_active;
+    uint32_t engine_gen;
 } script_engine_runtime_t;
-/* Variables --------------------------------------------------*/
+
 static script_engine_runtime_t engine_rt = {
     .state = SCRIPT_ENGINE_STATE_UNINITIALIZED,
     .initialized = false,
@@ -77,6 +85,9 @@ static script_engine_runtime_t engine_rt = {
     .pending_stop = false,
     .old_realm = 0,
     .current_program = NULL,
+    .fatal_recovering = false,
+    .fatal_scope_active = false,
+    .engine_gen = 0,
 };
 
 static eos_cqueue_t *_module_queue = NULL;
@@ -1103,11 +1114,75 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
         return -SE_ERR_INVALID_STATE;
     }
 
+    /* Clear stale error info from previous program runs before starting fresh */
+    _clear_error_info();
 
     _pkg_clone_into(&engine_rt.owned_script, script_package);
     script_program_t *prog = _get_prog();
 
+    /* ---- Fatal error recovery point (setjmp for jerry_port_fatal longjmp) ---- */
+    int fatal_code = setjmp(engine_rt.fatal_jmp_buf);
+    engine_rt.fatal_scope_active = true;
+    EOS_LOG_D("ENGINE_RUN: entered fatal_code=%d", fatal_code);
+    if (fatal_code != 0)
+    {
+        EOS_LOG_W("Engine recovered from fatal error (code=%d)", fatal_code);
+        const char *fatal_desc;
+        switch (fatal_code) {
+        case 10:  fatal_desc = "Out of memory";        break;
+        case 12:  fatal_desc = "Ref count limit";      break;
+        case 13:  fatal_desc = "Disabled byte code";   break;
+        case 14:  fatal_desc = "GC loop limit";        break;
+        case 120: fatal_desc = "Assertion failed";     break;
+        default:  fatal_desc = "Unknown";              break;
+        }
+        char fatal_msg[64];
+        snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d, %s)", fatal_code, fatal_desc);
+        _set_error_info(fatal_msg);
+
+        /*
+         * CRITICAL ORDERING: Clean up ALL stale JS handles and C resources
+         * BEFORE jerry_init() wipes the heap.
+         *
+         * jerry_cleanup() is NOT called — the heap is full but structurally
+         * consistent, so jerry_value_free() on old handles still works.
+         * jerry_init() does memset(&context, 0, ...) + jmem_init() + ecma_init(),
+         * which fully resets all engine state.
+         * See: jerry-core/api/jerryscript.c:jerry_init()
+         */
+
+        /* Release module queue tasks (hold jerry_value_t handles) */
+        _cleanup_module_queue();
+
+        /* Release tracked module references (hold jerry_value_t handles) */
+        _release_all_tracked_modules();
+
+        /* Clean up engine-level C state (old_realm, owned_script) */
+        _engine_cleanup();
+
+        /* Destroy all SPM programs — frees realm & sni ctx handles
+         *    on the old heap. After this, no stale JS handles remain. */
+        spm_handle_engine_reset();
+
+        /* Clear current_program pointer (the program was destroyed in step 4) */
+        script_engine_set_current_program(NULL);
+
+        /* Now safe to reinitialize — heap gets memset'd + reinit */
+        jerry_init(SCRIPT_INIT_FLAGS);
+        sni_init();
+        engine_rt.engine_gen++;
+        engine_rt.initialized = true;
+        engine_rt.fatal_recovering = false;
+
+        /* Reset runtime state */
+        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        engine_rt.stop_is_timeout = false;
+        engine_rt.pending_stop = false;
+        return -SE_ERR_JERRY_EXCEPTION;
+    }
+
     engine_rt.script_start_time = eos_tick_get();
+    EOS_LOG_D("ENGINE_RUN: normal flow start");
     _change_state(SCRIPT_ENGINE_STATE_RUNNING);
 
     jerry_value_t new_realm = _realm_create();
@@ -1239,14 +1314,13 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
 
     if (result != SE_OK || engine_rt.pending_stop)
     {
-        _collect_script_garbage();
         _change_state(SCRIPT_ENGINE_STATE_IDLE);
-        jerry_module_cleanup(jerry_undefined());
-        _collect_script_garbage();
+        engine_rt.stop_is_timeout = false;
+        engine_rt.pending_stop = false;
     }
 
-    engine_rt.stop_is_timeout = false;
-    engine_rt.pending_stop = false;
+    engine_rt.fatal_scope_active = false;
+    EOS_LOG_D("ENGINE_RUN: returning result=%d", result);
     return result;
 }
 
@@ -1281,7 +1355,8 @@ static script_engine_result_t _script_engine_stop_and_cleanup(void)
     jerry_module_cleanup(jerry_undefined());
 
     engine_rt.pending_stop = false;
-    _change_state(SCRIPT_ENGINE_STATE_IDLE);
+    if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+        _change_state(SCRIPT_ENGINE_STATE_IDLE);
 
     _collect_script_garbage();
 
@@ -1289,6 +1364,8 @@ static script_engine_result_t _script_engine_stop_and_cleanup(void)
         jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 
     _check_mem();
+    /* Clear error state — next program starts with zero error state */
+    _clear_error_info();
     EOS_LOG_I("Script terminated");
     return SE_OK;
 }
@@ -1301,8 +1378,8 @@ script_engine_result_t script_engine_stop(void)
     case SCRIPT_ENGINE_STATE_UNINITIALIZED:
         return SE_OK;
     case SCRIPT_ENGINE_STATE_RUNNING:
-    case SCRIPT_ENGINE_STATE_IDLE:
     case SCRIPT_ENGINE_STATE_EXCEPTION:
+    case SCRIPT_ENGINE_STATE_IDLE:
         return _script_engine_stop_and_cleanup();
     default:
         return -SE_ERR_INVALID_STATE;
@@ -1394,4 +1471,31 @@ script_engine_result_t script_engine_reload_current_script(void)
 script_engine_result_t script_engine_reload_current_app(void)
 {
     return script_engine_reload_current_script();
+}
+
+uint32_t script_engine_get_gen(void)
+{
+    return engine_rt.engine_gen;
+}
+
+bool script_engine_is_fatal_scope_active(void)
+{
+    return engine_rt.fatal_scope_active;
+}
+
+bool script_engine_is_fatal_recovering(void)
+{
+    return engine_rt.fatal_recovering;
+}
+
+void script_engine_set_fatal_recovering(bool recovering)
+{
+    engine_rt.fatal_recovering = recovering;
+}
+
+void JERRY_ATTR_NORETURN script_engine_fatal_longjmp(int code)
+{
+    longjmp(engine_rt.fatal_jmp_buf, code);
+    /* unreachable */
+    while (1) { }
 }

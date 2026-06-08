@@ -87,6 +87,9 @@ typedef struct script_program {
 
     bool has_error;
     spm_error_t error;
+
+    void (*cleanup_view)(void *user_data);
+    void *cleanup_user_data;
 } script_program_t;
 
 /* Public function prototypes --------------------------------*/
@@ -99,6 +102,16 @@ typedef struct script_program {
  * @note Must be called after script_engine_init()
  */
 spm_result_t spm_init(void);
+
+/**
+ * @brief Emergency destroy all programs during engine fatal recovery
+ *
+ * Called from script_engine_run()'s setjmp/longjmp recovery block
+ * BEFORE jerry_init() wipes the heap. Walks the entire program list,
+ * frees all JS handles (realm, sni_ctx callbacks) on the still-valid
+ * old heap, destroys all C-level resources, and clears s_wf_program.
+ */
+void spm_handle_engine_reset(void);
 /**@}*/
 
 /** @name Program Lifecycle (low-level) */
@@ -225,7 +238,8 @@ const spm_error_t *spm_get_last_error(void);
 
 /** @name Simplified WatchFace APIs */
 /**@{*/
-script_engine_result_t spm_watchface_start(const script_pkg_t *pkg);
+script_engine_result_t spm_watchface_start(const script_pkg_t *pkg, void *view);
+void spm_watchface_set_view_cleanup(void *view);
 script_engine_result_t spm_watchface_pause(void);
 script_engine_result_t spm_watchface_resume(void);
 script_engine_result_t spm_watchface_destroy(void);

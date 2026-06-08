@@ -97,6 +97,7 @@ typedef enum {
     EOS_SCRIPT_FAULT_UNRESPONSIVE,
     EOS_SCRIPT_FAULT_ERROR_PARSE,
     EOS_SCRIPT_FAULT_ERROR_MODULE_LINK,
+    EOS_SCRIPT_FAULT_ENGINE_CRASH,
 } eos_script_error_type_t;
 
 /**
@@ -194,6 +195,24 @@ static inline void script_engine_set_prop_string(jerry_value_t obj,
     jerry_value_free(val);
     jerry_value_free(prop);
 }
+/**@}*/
+
+/** @name Fatal Recovery */
+/**@{*/
+bool script_engine_is_fatal_scope_active(void);
+bool script_engine_is_fatal_recovering(void);
+void script_engine_set_fatal_recovering(bool recovering);
+void JERRY_ATTR_NORETURN script_engine_fatal_longjmp(int code);
+/**@}*/
+
+/** @name Engine Generation */
+/**@{*/
+/**
+ * @brief Get the current engine generation counter.
+ * Incremented after each jerry_init() during recovery.
+ * SNI control blocks store the generation at creation time to detect stale handles.
+ */
+uint32_t script_engine_get_gen(void);
 /**@}*/
 
 /** @name Reload */

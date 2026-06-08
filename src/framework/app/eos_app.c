@@ -607,6 +607,8 @@ static const char *_eos_script_error_get_reason(eos_script_error_type_t error_ty
         return "Module link error";
     case EOS_SCRIPT_FAULT_UNRESPONSIVE:
         return "Unresponsive";
+    case EOS_SCRIPT_FAULT_ENGINE_CRASH:
+        return "Engine crash";
     default:
         return "Unknown error";
     }

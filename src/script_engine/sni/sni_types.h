@@ -172,6 +172,7 @@ typedef struct sni_control_block
     bool is_alive;                   /**< Whether the native object is still alive */
     void *aux;                       /**< Module-private auxiliary context */
     struct sni_context *owner_ctx;   /**< Owning SNI context (Realm) */
+    uint32_t engine_gen;             /**< Engine generation at creation time */
 } sni_control_block_t;
 
 typedef void (*sni_handle_destroy_cb_t)(void *native_ptr);

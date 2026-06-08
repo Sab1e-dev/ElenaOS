@@ -102,7 +102,7 @@ static void _js_on_enter(eos_activity_t *activity)
 
     lv_obj_add_event_cb(view, _js_long_pressed_cb, LV_EVENT_LONG_PRESSED, NULL);
 
-    script_engine_result_t ret = spm_watchface_start(&self->data.js.pkg);
+    script_engine_result_t ret = spm_watchface_start(&self->data.js.pkg, view);
     if (ret != SE_OK) {
         _js_handle_error(self, ret);
     }
@@ -131,9 +131,10 @@ static void _js_on_resume(eos_activity_t *activity)
     if (ret != SE_OK) {
         EOS_LOG_W("watchface_resume failed (%d), falling back to full reload", ret);
 
+        lv_obj_t *view = eos_activity_get_view(activity);
         script_pkg_t pkg = _js_load_package_from_disk(self->id);
         if (pkg.script_str) {
-            ret = spm_watchface_start(&pkg);
+            ret = spm_watchface_start(&pkg, view);
             if (ret != SE_OK) {
                 _js_handle_error(self, ret);
             }
@@ -199,7 +200,9 @@ static void _js_handle_error(eos_watchface_instance_t *self, int32_t error_code)
     const char *error_info = script_engine_get_error_info();
     eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
 
-    if (error_info && strstr(error_info, "timeout")) {
+    if (error_info && strstr(error_info, "Engine crash")) {
+        error_type = EOS_SCRIPT_FAULT_ENGINE_CRASH;
+    } else if (error_info && strstr(error_info, "timeout")) {
         error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
     }
 
