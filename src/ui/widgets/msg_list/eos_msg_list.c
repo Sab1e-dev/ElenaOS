@@ -25,6 +25,7 @@
 #include "eos_crown.h"
 #include "eos_panel.h"
 #include "eos_chrome_manager.h"
+#include "eos_overlay_layer.h"
 /* Macros and Definitions -------------------------------------*/
 #define _DEBUG_LAYOUT 0
 
@@ -811,7 +812,7 @@ eos_msg_list_t *eos_msg_list_get_instance(void)
 
 void eos_msg_list_init(void)
 {
-    message_list_instance = eos_msg_list_create(lv_layer_top());
+    message_list_instance = eos_msg_list_create(eos_overlay_get_overlay_layer());
 }
 
 const eos_chrome_overlay_t *eos_msg_list_get_overlay_descriptor(void)

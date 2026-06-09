@@ -34,9 +34,13 @@ static void _side_button_async_cb(void *user_data)
         return;
     }
 
-    /* Absorb side key events when any overlay is open (e.g. permission panel) */
+    /* Absorb side key events when any overlay is open (e.g. permission panel),
+     * but allow the side button to toggle the control center which it controls */
     if (eos_chrome_manager_any_overlay_open()) {
-        return;
+        const eos_chrome_overlay_t *top = eos_chrome_manager_get_top_overlay();
+        if (top != eos_control_center_get_overlay_descriptor()) {
+            return;
+        }
     }
 
     eos_button_state_t state = (eos_button_state_t)(intptr_t)user_data;

@@ -51,6 +51,13 @@ static void _ensure_overlay_on_top(const eos_chrome_overlay_t *overlay)
     if (obj && lv_obj_is_valid(obj))
     {
         lv_obj_move_foreground(obj);
+        /* Also raise the overlay's container layer so the entire overlay
+         * sits above any direct children of lv_layer_top() */
+        lv_obj_t *parent = lv_obj_get_parent(obj);
+        if (parent && lv_obj_is_valid(parent))
+        {
+            lv_obj_move_foreground(parent);
+        }
         EOS_LOG_D("Brought overlay to front[%s]", overlay->name ? overlay->name : "unknown");
     }
 }

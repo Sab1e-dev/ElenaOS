@@ -30,6 +30,7 @@
 #include "eos_service_battery.h"
 #include "eos_chrome_manager.h"
 #include "eos_overlay_layer.h"
+#include "eos_activity.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _BTN_DEFAULT_COLOR EOS_THEME_SECONDARY_COLOR
@@ -424,6 +425,17 @@ static void _control_center_closed_cb(lv_event_t *e)
 {
     EOS_LOG_I("Control center closed");
     eos_chrome_manager_notify_overlay_closed(&_control_center_overlay);
+
+    /* On non-watchface pages the touch area should be hidden when the panel
+     * closes, so it does not intercept touches meant for the app below.
+     * The watchface is responsible for re-showing it via on_resume. */
+    eos_activity_t *act = eos_activity_get_current();
+    if (!act || eos_activity_get_type(act) != EOS_ACTIVITY_TYPE_WATCHFACE)
+    {
+        lv_obj_add_flag(eos_slide_widget_get_touch_obj(
+                            control_center_instance->swipe_panel->sw),
+                        LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 static void _control_center_overlay_pull_back(void)

@@ -232,6 +232,11 @@ void eos_swipe_panel_slide_down(eos_swipe_panel_t *sp)
     if (sp->dir >= EOS_SWIPE_DIR_COUNT)
         return;
 
+    /* Ensure objects are visible — they may have been hidden by
+     * eos_chrome_manager_handle_activity_switch() via hide() */
+    lv_obj_remove_flag(sp->swipe_obj, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(eos_slide_widget_get_touch_obj(sp->sw), LV_OBJ_FLAG_HIDDEN);
+
     const _direction_config_t *cfg = &_dir_configs[sp->dir];
     eos_slide_widget_move(sp->sw, cfg->target_base, cfg->target_target, SWIPE_ANIM_DURATION);
 
