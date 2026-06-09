@@ -36,11 +36,11 @@ ElenixOS provides an online simulator that allows you to experience the system d
 
 ## Quick Start
 
-Please refer to the [Quick Start](https://docs.elenixos.com/en/docs/getting_started/quick_start).
+Please refer to the [Quick Start](https://elenixos.com/en/docs/getting_started/quick_start).
 
 ## Reference Documentation
 
-Please refer to the [ElenixOS Documentation](https://docs.elenixos.com/en).
+Please refer to the [ElenixOS Documentation](https://elenixos.com/en).
 
 ## Community
 
