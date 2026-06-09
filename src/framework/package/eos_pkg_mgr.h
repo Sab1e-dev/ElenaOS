@@ -30,7 +30,9 @@ extern "C"
 #define EOS_PKG_NAME_OFFSET         EOS_PKG_MAGIC_OFFSET + 4
 #define EOS_PKG_ID_OFFSET           EOS_PKG_NAME_OFFSET + EOS_PKG_NAME_LEN_MAX
 #define EOS_PKG_VERSION_OFFSET      EOS_PKG_ID_OFFSET + EOS_PKG_ID_LEN_MAX
-#define EOS_PKG_FILE_COUNT_OFFSET   EOS_PKG_VERSION_OFFSET + EOS_PKG_VERSION_LEN_MAX
+#define EOS_PKG_MIN_API_OFFSET      EOS_PKG_VERSION_OFFSET + EOS_PKG_VERSION_LEN_MAX
+#define EOS_PKG_TARGET_API_OFFSET   EOS_PKG_MIN_API_OFFSET + 2
+#define EOS_PKG_FILE_COUNT_OFFSET   EOS_PKG_TARGET_API_OFFSET + 2
 #define EOS_PKG_RESERVED_OFFSET     EOS_PKG_FILE_COUNT_OFFSET + 4
 #define EOS_PKG_TABLE_OFFSET        EOS_PKG_RESERVED_OFFSET + 4
 
@@ -44,8 +46,10 @@ typedef struct
     char pkg_name[EOS_PKG_NAME_LEN_MAX];        // Package name
     char pkg_id[EOS_PKG_ID_LEN_MAX];            // Software ID
     char pkg_version[EOS_PKG_VERSION_LEN_MAX];  // Software version
-    uint32_t file_count;   // File count
-    uint32_t reserved;     // Reserved field for future expansion
+    uint16_t min_api_level;                     // Minimum required API level
+    uint16_t target_api_level;                  // Target API level
+    uint32_t file_count;                        // File count
+    uint32_t reserved;                          // Reserved field for future expansion
 } eos_pkg_header_t;
 
 /**

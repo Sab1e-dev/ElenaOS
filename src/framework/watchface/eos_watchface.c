@@ -22,6 +22,7 @@
 #include "eos_service_config.h"
 #include "eos_service_storage.h"
 #include "eos_activity.h"
+#include "eos_version.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define EOS_WATCHFACE_LIST_DEFAULT_CAPACITY 1
@@ -187,6 +188,12 @@ eos_result_t eos_watchface_install(const char *eapk_path)
     {
         EOS_LOG_E("Builtin fallback watchface cannot be installed over");
         return EOS_FAILED;
+    }
+    if (header.min_api_level > ELENIX_OS_API_LEVEL)
+    {
+        EOS_LOG_E("Watchface '%s' requires API level %d, OS supports %d",
+                  header.pkg_id, header.min_api_level, ELENIX_OS_API_LEVEL);
+        return EOS_ERR_SDK_VERSION;
     }
     // Construct path
     char path[EOS_FS_PATH_MAX];

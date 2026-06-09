@@ -48,6 +48,7 @@ typedef enum
     /* Data/format errors (-400 ~ -499) */
     EOS_ERR_JSON_ERROR = -400,   /**< JSON related error */
     EOS_ERR_VALUE_MISMATCH = -401, /**< Value mismatch */
+    EOS_ERR_SDK_VERSION = -402,    /**< Package requires higher SDK/API level */
 
     /* Container/data-structure errors (-500 ~ -599) */
     EOS_ERR_STACK_EMPTY = -500,  /**< Stack empty */

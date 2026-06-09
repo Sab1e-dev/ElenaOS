@@ -776,6 +776,11 @@ static void _settings_app_list_btn_cb(lv_event_t *e)
     eos_row_create(container, eos_lang_get_text(STR_ID_SETTINGS_APPS_AUTHOR), pkg.author, NULL, 0, 0);
     eos_row_create(container, eos_lang_get_text(STR_ID_SETTINGS_APPS_VERSION), pkg.version, NULL, 0, 0);
 
+    char sdk_buf[32];
+    snprintf(sdk_buf, sizeof(sdk_buf), "Min: %d, Target: %d",
+             pkg.min_api_level, pkg.target_api_level);
+    eos_row_create(container, eos_lang_get_text(STR_ID_SETTINGS_APPS_SDK), sdk_buf, NULL, 0, 0);
+
     if (strcmp(pkg.description, "") != 0)
     {
         lv_obj_t *inner_container = eos_list_add_title_container(list, eos_lang_get_text(STR_ID_SETTINGS_APPS_DESCRIPTON));

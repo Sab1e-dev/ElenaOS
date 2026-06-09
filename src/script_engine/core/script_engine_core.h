@@ -62,6 +62,8 @@ typedef struct {
     const char *base_path;
     const char **permissions;      /**< Array of permission name strings */
     uint8_t     permission_count;  /**< Number of permissions declared */
+    uint16_t    min_api_level;     /**< Minimum required API level */
+    uint16_t    target_api_level;  /**< Target API level the package was built for */
 } script_pkg_t;
 
 typedef struct {
@@ -88,6 +90,7 @@ typedef enum {
     SE_ERR_INVALID_STATE,
     SE_ERR_TIMEOUT,
     SE_ERR_NO_SAVED_CONTEXT,
+    SE_ERR_SDK_VERSION,
     SE_ERR_UNKNOWN
 } script_engine_result_t;
 

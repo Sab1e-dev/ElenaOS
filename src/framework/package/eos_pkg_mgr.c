@@ -57,6 +57,8 @@ void eos_pkg_free(script_pkg_t *pkg)
     pkg->base_path = NULL;
     pkg->permissions = NULL;
     pkg->permission_count = 0;
+    pkg->min_api_level = 0;
+    pkg->target_api_level = 0;
 }
 
 eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
@@ -122,6 +124,24 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
         return EOS_ERR_FILE_ERROR;
     }
     header->pkg_version[EOS_PKG_VERSION_LEN_MAX - 1] = '\0';
+
+    // Read min_api_level
+    if (eos_storage_file_seek(fp, EOS_PKG_MIN_API_OFFSET) != 0 ||
+        eos_storage_file_read(fp, &header->min_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
+    {
+        eos_storage_file_close(fp);
+        EOS_LOG_E("Failed to read min_api_level");
+        return EOS_ERR_FILE_ERROR;
+    }
+
+    // Read target_api_level
+    if (eos_storage_file_seek(fp, EOS_PKG_TARGET_API_OFFSET) != 0 ||
+        eos_storage_file_read(fp, &header->target_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
+    {
+        eos_storage_file_close(fp);
+        EOS_LOG_E("Failed to read target_api_level");
+        return EOS_ERR_FILE_ERROR;
+    }
 
     // Read file_count
     if (eos_storage_file_seek(fp, EOS_PKG_FILE_COUNT_OFFSET) != 0 ||

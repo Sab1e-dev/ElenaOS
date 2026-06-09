@@ -33,9 +33,10 @@
 #include "eos_font.h"
 #include "sni_callback_runtime.h"
 #include "spm.h"
+#include "eos_version.h"
 
 /* Macros and Definitions -------------------------------------*/
-#define EOS_APP_LIST_DEFAULT_CAPACITY 1 // 列表默认容量大小
+#define EOS_APP_LIST_DEFAULT_CAPACITY 1 // Default capacity of application list
 /**
  * @brief Application list structure
  *
@@ -420,6 +421,12 @@ eos_result_t eos_app_install(const char *eapk_path)
     {
         EOS_LOG_E("Invalid package id");
         return EOS_FAILED;
+    }
+    if (header.min_api_level > ELENIX_OS_API_LEVEL)
+    {
+        EOS_LOG_E("App '%s' requires API level %d, OS supports %d",
+                  header.pkg_id, header.min_api_level, ELENIX_OS_API_LEVEL);
+        return EOS_ERR_SDK_VERSION;
     }
     // Concatenate path
     char path[EOS_FS_PATH_MAX];

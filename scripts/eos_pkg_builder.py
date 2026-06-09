@@ -58,7 +58,7 @@ def collect_files(directory: str) -> List[Tuple[str, bool, int]]:
 
     return entries
 
-def read_manifest(input_dir: str) -> Tuple[str, str, str]:
+def read_manifest(input_dir: str) -> Tuple[str, str, str, int, int]:
     """Read package metadata from manifest.json."""
     manifest_path = os.path.join(input_dir, 'manifest.json')
     if not os.path.exists(manifest_path):
@@ -70,12 +70,17 @@ def read_manifest(input_dir: str) -> Tuple[str, str, str]:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid manifest.json: {e}")
 
-    required_fields = ['id', 'name', 'version']
+    required_fields = ['id', 'name', 'version', 'minApiLevel', 'targetApiLevel']
     for field in required_fields:
         if field not in manifest:
             raise ValueError(f"Missing required field in manifest.json: {field}")
 
-    return manifest['name'], manifest['id'], manifest['version']
+    min_api = manifest['minApiLevel']
+    target_api = manifest['targetApiLevel']
+    if not isinstance(min_api, int) or not isinstance(target_api, int):
+        raise ValueError("minApiLevel and targetApiLevel must be integers")
+
+    return manifest['name'], manifest['id'], manifest['version'], min_api, target_api
 
 def pack_directory(input_dir: str, output_file: str, script_type: ScriptType):
     """Pack a directory into an EAPK/EWPK file with name/ID/version metadata."""
@@ -84,12 +89,12 @@ def pack_directory(input_dir: str, output_file: str, script_type: ScriptType):
         raise ValueError("No files found in input directory")
 
     # Read package metadata from manifest.json
-    pkg_name, pkg_id, pkg_version = read_manifest(input_dir)
+    pkg_name, pkg_id, pkg_version, min_api_level, target_api_level = read_manifest(input_dir)
 
     file_count = len(entries)
 
-    # magic(4) + pkg_name(256) + pkg_id(256) + pkg_version(256) + file_count(4) + reserved(4)
-    header_size = 4 + PKG_NAME_LEN_MAX + PKG_ID_LEN_MAX + PKG_VERSION_LEN_MAX + 8
+    # magic(4) + pkg_name(256) + pkg_id(256) + pkg_version(256) + min_api(2) + target_api(2) + file_count(4) + reserved(4)
+    header_size = 4 + PKG_NAME_LEN_MAX + PKG_ID_LEN_MAX + PKG_VERSION_LEN_MAX + 2 + 2 + 4 + 4
 
     # Calculate file table size
     table_size = calculate_table_size(entries)
@@ -117,7 +122,7 @@ def pack_directory(input_dir: str, output_file: str, script_type: ScriptType):
         f.write(pack_string(pkg_name, PKG_NAME_LEN_MAX))  # pkg_name
         f.write(pack_string(pkg_id, PKG_ID_LEN_MAX))  # pkg_id
         f.write(pack_string(pkg_version, PKG_VERSION_LEN_MAX))  # pkg_version
-        f.write(struct.pack("<II", file_count, 0))  # file_count + reserved
+        f.write(struct.pack("<HHII", min_api_level, target_api_level, file_count, 0))  # min_api + target_api + file_count + reserved
 
         # Write file table
         for (name, is_dir, size), offset in zip(entries, file_offsets):

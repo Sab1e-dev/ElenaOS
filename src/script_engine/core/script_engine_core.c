@@ -25,6 +25,7 @@
 #include "eos_service_storage.h"
 #include "eos_mem.h"
 #include "eos_pkg_mgr.h"
+#include "eos_version.h"
 #include "eos_event.h"
 #include "eos_cqueue.h"
 #include "eos_dispatcher.h"
@@ -214,6 +215,9 @@ static void _pkg_clone_into(script_pkg_t *dst, const script_pkg_t *src)
             dst->permission_count = src->permission_count;
         }
     }
+
+    dst->min_api_level = src->min_api_level;
+    dst->target_api_level = src->target_api_level;
 }
 
 static void _pkg_free_fields(script_pkg_t *p)
@@ -1012,6 +1016,15 @@ script_engine_result_t script_engine_get_manifest(const char *manifest_path, scr
         cJSON_Delete(root);
         return -SE_FAILED;
     }
+
+    cJSON *min_api = cJSON_GetObjectItemCaseSensitive(root, "minApiLevel");
+    cJSON *target_api = cJSON_GetObjectItemCaseSensitive(root, "targetApiLevel");
+    if (!cJSON_IsNumber(min_api) || !cJSON_IsNumber(target_api))
+    {
+        EOS_LOG_E("Manifest missing required number fields: minApiLevel, targetApiLevel");
+        cJSON_Delete(root);
+        return -SE_FAILED;
+    }
     if (pkg->id)
         eos_free((void *)pkg->id);
     if (pkg->name)
@@ -1027,6 +1040,8 @@ script_engine_result_t script_engine_get_manifest(const char *manifest_path, scr
     pkg->version = eos_strdup(version->valuestring);
     pkg->author = eos_strdup(author->valuestring);
     pkg->description = eos_strdup(description->valuestring);
+    pkg->min_api_level = (uint16_t)cJSON_GetNumberValue(min_api);
+    pkg->target_api_level = (uint16_t)cJSON_GetNumberValue(target_api);
 
     /* Parse optional "permissions" array */
     cJSON *permissions = cJSON_GetObjectItemCaseSensitive(root, "permissions");
@@ -1096,6 +1111,8 @@ static jerry_value_t _script_engine_create_info(const script_pkg_t *pkg)
     script_engine_set_prop_string(obj, "version", pkg->version);
     script_engine_set_prop_string(obj, "author", pkg->author);
     script_engine_set_prop_string(obj, "description", pkg->description);
+    script_engine_set_prop_number(obj, "minApiLevel", pkg->min_api_level);
+    script_engine_set_prop_number(obj, "targetApiLevel", pkg->target_api_level);
     return obj;
 }
 
@@ -1112,6 +1129,14 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
     {
         EOS_LOG_E("Cannot run in state %d", engine_rt.state);
         return -SE_ERR_INVALID_STATE;
+    }
+
+    if (script_package->min_api_level > ELENIX_OS_API_LEVEL)
+    {
+        EOS_LOG_E("Package '%s' requires API level %d, OS only supports %d",
+                  script_package->id ? script_package->id : "unknown",
+                  script_package->min_api_level, ELENIX_OS_API_LEVEL);
+        return -SE_ERR_SDK_VERSION;
     }
 
     /* Clear stale error info from previous program runs before starting fresh */

@@ -140,6 +140,9 @@ static void _pkg_clone(script_pkg_t *dst, const script_pkg_t *src)
             dst->permission_count = src->permission_count;
         }
     }
+
+    dst->min_api_level = src->min_api_level;
+    dst->target_api_level = src->target_api_level;
 }
 
 /* SPM Lifecycle -----------------------------------------------*/
