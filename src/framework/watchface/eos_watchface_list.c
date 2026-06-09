@@ -23,6 +23,7 @@
 #include "eos_service_config.h"
 #include "eos_service_storage.h"
 #include "eos_activity.h"
+#include "eos_mem.h"
 /* Macros and Definitions -------------------------------------*/
 
 #define _SNAPSHOT_CONTAINER_PAD 12
@@ -69,6 +70,10 @@ void eos_watchface_list_enter(void)
                           LV_FLEX_ALIGN_CENTER,  // Cross axis (vertical) center
                           LV_FLEX_ALIGN_CENTER); // Content center
     lv_obj_set_scroll_snap_x(cont, LV_SCROLL_SNAP_CENTER);
+
+    lv_obj_t *selected_item = NULL;
+    char *current_wf_id = eos_config_get_string(EOS_CONFIG_KEY_WATCHFACE_ID_STR, NULL);
+
     for (size_t i = 0; i < watchface_list_size; i++)
     {
         const char *watchface_id = eos_watchface_list_get_id(i);
@@ -87,6 +92,11 @@ void eos_watchface_list_enter(void)
                               LV_FLEX_ALIGN_START,   // Main axis (horizontal) start
                               LV_FLEX_ALIGN_CENTER,  // Cross axis (vertical) center
                               LV_FLEX_ALIGN_CENTER); // Content center
+
+        if (current_wf_id && watchface_id && strcmp(watchface_id, current_wf_id) == 0)
+        {
+            selected_item = item;
+        }
 
         char icon_path[EOS_FS_PATH_MAX];
         if (watchface_id && strcmp(watchface_id, EOS_WATCHFACE_BUILTIN_FALLBACK_ID) == 0)
@@ -183,5 +193,14 @@ void eos_watchface_list_enter(void)
         lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
     }
     lv_obj_update_snap(cont, LV_ANIM_OFF);
+
+    if (selected_item)
+    {
+        lv_obj_scroll_to_view(selected_item, LV_ANIM_OFF);
+        lv_obj_update_snap(cont, LV_ANIM_OFF);
+    }
+
+    eos_free(current_wf_id);
+
     eos_activity_enter(a);
 }
