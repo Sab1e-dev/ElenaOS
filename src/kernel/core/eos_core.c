@@ -161,10 +161,10 @@ void eos_init(void)
     /************************** Image cache initialization **************************/
     eos_service_cache_init();
 
-    eos_logo_play(true);
     _print_boot_info();
     /************************** System components initialization **************************/
     eos_service_storage_init();
+    eos_logo_play(true);
     eos_lang_init();
     eos_dispatcher_init();
     eos_toast_init();
