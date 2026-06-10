@@ -96,6 +96,50 @@ extern "C"
 
 #define EOS_MEM_TRACK_ENABLE 1 /**< Whether to enable memory tracking */
 
+/************************** Image cache configuration **************************/
+
+/**
+ * Master switch for LVGL image decode cache.
+ * 0 = disabled, 1 = enabled (default).
+ */
+#ifndef EOS_CACHE_ENABLE
+    #define EOS_CACHE_ENABLE                1
+#endif
+
+/**
+ * Max decoded image cache size in bytes.
+ * Auto-detects SiFli PSRAM pool when IMAGE_CACHE_IN_PSRAM_SIZE is defined.
+ */
+#ifndef EOS_CACHE_IMAGE_SIZE
+    #if defined(IMAGE_CACHE_IN_PSRAM_SIZE) && (IMAGE_CACHE_IN_PSRAM_SIZE > 0)
+        #define EOS_CACHE_IMAGE_SIZE        ((uint32_t)IMAGE_CACHE_IN_PSRAM_SIZE)
+    #elif defined(IMAGE_CACHE_IN_SRAM_SIZE) && (IMAGE_CACHE_IN_SRAM_SIZE > 0)
+        #define EOS_CACHE_IMAGE_SIZE        ((uint32_t)IMAGE_CACHE_IN_SRAM_SIZE)
+    #else
+        #define EOS_CACHE_IMAGE_SIZE        (128U * 1024U)
+    #endif
+#endif
+
+/**
+ * Max image header cache entries.
+ */
+#ifndef EOS_CACHE_IMAGE_HEADER_CNT
+#define EOS_CACHE_IMAGE_HEADER_CNT          16U
+#endif
+
+/**
+ * Route decoded pixel data through platform PSRAM allocator.
+ * Auto-enabled when SiFli BSP_USING_PSRAM or IMAGE_CACHE_IN_PSRAM_SIZE
+ * is defined at build time.
+ */
+#ifndef EOS_CACHE_USE_PSRAM
+    #if defined(BSP_USING_PSRAM) || defined(IMAGE_CACHE_IN_PSRAM_SIZE)
+        #define EOS_CACHE_USE_PSRAM        1
+    #else
+        #define EOS_CACHE_USE_PSRAM        0
+    #endif
+#endif
+
 /************************** RTOS configuration **************************/
 
 /**
@@ -136,7 +180,7 @@ extern "C"
 
 #if EOS_FONT_TYPE == EOS_FONT_C_MULTI
 
-#define EOS_ENABLE_CHINESE_FONT 1
+#define EOS_ENABLE_CHINESE_FONT 0
 
 #if EOS_ENABLE_CHINESE_FONT
 
