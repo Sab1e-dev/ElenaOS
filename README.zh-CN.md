@@ -35,11 +35,11 @@ ElenixOS 提供了一个在线模拟器，允许您直接在 Web 浏览器中体
 
 ## 快速开始
 
-请参考[快速开始](https://docs.elenixos.com/docs/getting_started/quick_start)。
+请参考[快速开始](https://elenixos.com/docs/getting_started/quick_start)。
 
 ## 参考文档
 
-请参考 [ElenixOS 文档](https://docs.elenixos.com)。
+请参考 [ElenixOS 文档](https://elenixos.com)。
 
 ## 社区
 

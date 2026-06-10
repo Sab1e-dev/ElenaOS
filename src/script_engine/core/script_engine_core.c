@@ -438,9 +438,12 @@ static void _set_error_info(const char *msg)
     if (!msg)
         return;
     size_t len = strlen(msg);
+    if (len > 4096) len = 4096;
     engine_rt.error_info = eos_malloc(len + 1);
-    if (engine_rt.error_info)
-        memcpy(engine_rt.error_info, msg, len + 1);
+    if (engine_rt.error_info) {
+        memcpy(engine_rt.error_info, msg, len);
+        engine_rt.error_info[len] = '\0';
+    }
 }
 
 static void _clear_error_info(void)
@@ -503,7 +506,7 @@ static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array)
         size_t file_len = colon1 - file_start;
         if (file_len > SCRIPT_BACKTRACE_SOURCE_SIZE - 1)
             file_len = SCRIPT_BACKTRACE_SOURCE_SIZE - 1;
-        strncpy(loc->source_name, file_start, file_len);
+        memcpy(loc->source_name, file_start, file_len);
         loc->source_name[file_len] = '\0';
         loc->line = (uint32_t)atoi(colon1 + 1);
         loc->column = (uint32_t)atoi(colon2 + 1);
