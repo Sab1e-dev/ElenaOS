@@ -920,11 +920,6 @@ static void refresh_icon_objects(eos_bubble_grid_t * wb)
         lv_obj_t * image = node->image_obj;
         if(bubble == NULL || image == NULL) continue;
 
-        if(node->src == NULL) {
-            lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
-            continue;
-        }
-
         int32_t x, y, scale;
         if(!calc_icon_visual(wb, node, &x, &y, &scale)) {
             lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
@@ -967,12 +962,18 @@ static void refresh_icon_objects(eos_bubble_grid_t * wb)
         lv_obj_set_pos(bubble, fx_to_int_round(x) - bubble_r, fx_to_int_round(y) - bubble_r);
         lv_obj_set_style_bg_color(bubble, bubble_color, 0);
 
-        lv_obj_set_size(image, diameter, diameter);
-        apply_image_cover_scale(node, image, diameter, diameter);
-        lv_obj_center(image);
-        lv_obj_set_style_image_recolor(image, lv_color_black(), 0);
-        lv_opa_t image_darken_opa = is_pressed ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress + FX_HALF) / FX_ONE) : LV_OPA_TRANSP;
-        lv_obj_set_style_image_recolor_opa(image, image_darken_opa, 0);
+        if(node->src != NULL) {
+            lv_obj_clear_flag(image, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_size(image, diameter, diameter);
+            apply_image_cover_scale(node, image, diameter, diameter);
+            lv_obj_center(image);
+            lv_obj_set_style_image_recolor(image, lv_color_black(), 0);
+            lv_opa_t image_darken_opa = is_pressed ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress + FX_HALF) / FX_ONE) : LV_OPA_TRANSP;
+            lv_obj_set_style_image_recolor_opa(image, image_darken_opa, 0);
+        }
+        else {
+            lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     wb->needs_refresh = false;
@@ -1418,6 +1419,24 @@ void eos_bubble_set_config(lv_obj_t * obj, const eos_bubble_config_t * config)
             wb->offset_y = fx_clamp(wb->offset_y, min_allowed, max_allowed);
         }
     }
+
+    mark_refresh(wb);
+    refresh_if_needed(wb);
+}
+
+void eos_bubble_set_icon_color(lv_obj_t * obj, uint32_t index, lv_color_t color)
+{
+    if(!is_component_obj(obj)) return;
+
+    eos_bubble_grid_t * wb = get_instance(obj);
+    if(wb == NULL) return;
+
+    icon_node_t * node = ensure_icon_node_by_index(wb, index);
+    if(node == NULL) return;
+
+    create_icon_object(wb, node);
+
+    node->bubble_color = color;
 
     mark_refresh(wb);
     refresh_if_needed(wb);

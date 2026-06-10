@@ -102,6 +102,15 @@ void eos_bubble_set_config(lv_obj_t * obj, const eos_bubble_config_t * config);
 void eos_bubble_get_config(lv_obj_t * obj, eos_bubble_config_t * config);
 
 /**
+ * @brief Set bubble background color for one icon index.
+ *        Creates the bubble object if needed. No image is displayed.
+ * @param obj The watch bubble component.
+ * @param index The bubble index.
+ * @param color The background color.
+ */
+void eos_bubble_set_icon_color(lv_obj_t * obj, uint32_t index, lv_color_t color);
+
+/**
  * @brief Get bubble object by icon index.
  * @param obj The watch bubble component.
  * @param index Bubble index.
