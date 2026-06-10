@@ -38,7 +38,7 @@
 #include "jerryscript.h"
 #include "eos_font.h"
 #include "eos_service_sensor.h"
-#include "eos_cache.h"
+#include "eos_service_cache.h"
 #include "eos_dispatcher.h"
 #include "eos_anim.h"
 #include "eos_control_center.h"
@@ -159,7 +159,7 @@ void eos_init(void)
     eos_service_log_init();
 
     /************************** Image cache initialization **************************/
-    eos_image_cache_init_default();
+    eos_service_cache_init();
 
     eos_logo_play(true);
     _print_boot_info();

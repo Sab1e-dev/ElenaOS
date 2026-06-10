@@ -99,44 +99,55 @@ extern "C"
 /************************** Image cache configuration **************************/
 
 /**
- * Master switch for LVGL image decode cache.
- * 0 = disabled, 1 = enabled (default).
+ * Enable LVGL image decode cache.
+ * When enabled, decoded image pixel data is cached to avoid
+ * re-decoding.  The cache is initialised automatically during
+ * system startup.
  */
 #ifndef EOS_CACHE_ENABLE
     #define EOS_CACHE_ENABLE                1
 #endif
 
 /**
- * Max decoded image cache size in bytes.
- * Auto-detects SiFli PSRAM pool when IMAGE_CACHE_IN_PSRAM_SIZE is defined.
+ * Max cache memory budget for decoded image pixel data (bytes).
+ *
+ * Default: 128 KB.  On platforms that define a dedicated image
+ * cache memory pool, the value is derived from that pool automatically.
  */
-#ifndef EOS_CACHE_IMAGE_SIZE
+#ifndef EOS_CACHE_SIZE
     #if defined(IMAGE_CACHE_IN_PSRAM_SIZE) && (IMAGE_CACHE_IN_PSRAM_SIZE > 0)
-        #define EOS_CACHE_IMAGE_SIZE        ((uint32_t)IMAGE_CACHE_IN_PSRAM_SIZE)
+        #define EOS_CACHE_SIZE              ((uint32_t)IMAGE_CACHE_IN_PSRAM_SIZE)
     #elif defined(IMAGE_CACHE_IN_SRAM_SIZE) && (IMAGE_CACHE_IN_SRAM_SIZE > 0)
-        #define EOS_CACHE_IMAGE_SIZE        ((uint32_t)IMAGE_CACHE_IN_SRAM_SIZE)
+        #define EOS_CACHE_SIZE              ((uint32_t)IMAGE_CACHE_IN_SRAM_SIZE)
     #else
-        #define EOS_CACHE_IMAGE_SIZE        (128U * 1024U)
+        #define EOS_CACHE_SIZE              (128U * 1024U)
     #endif
 #endif
 
 /**
- * Max image header cache entries.
+ * Max number of cached image header entries.
+ * Each entry stores image metadata (dimensions, format, etc.)
+ * for quick lookup without re-reading the file header.
  */
-#ifndef EOS_CACHE_IMAGE_HEADER_CNT
-#define EOS_CACHE_IMAGE_HEADER_CNT          16U
+#ifndef EOS_CACHE_HEADER_COUNT
+    #define EOS_CACHE_HEADER_COUNT          16U
 #endif
 
 /**
- * Route decoded pixel data through platform PSRAM allocator.
- * Auto-enabled when SiFli BSP_USING_PSRAM or IMAGE_CACHE_IN_PSRAM_SIZE
- * is defined at build time.
+ * Allocate cache pixel buffers from a dedicated memory pool
+ * (e.g. PSRAM on SiFli platforms) instead of the default heap.
+ *
+ * 0 = use default heap (lv_malloc / lv_free).
+ * 1 = use dedicated pool via eos_cache_buf_alloc / eos_cache_buf_free.
+ *
+ * When enabled, platform ports must override the weak default
+ * of eos_cache_buf_alloc / eos_cache_buf_free.
  */
-#ifndef EOS_CACHE_USE_PSRAM
+#ifndef EOS_CACHE_USE_DEDICATED_MEM
     #if defined(BSP_USING_PSRAM) || defined(IMAGE_CACHE_IN_PSRAM_SIZE)
-        #define EOS_CACHE_USE_PSRAM        1
+        #define EOS_CACHE_USE_DEDICATED_MEM 1
     #else
-        #define EOS_CACHE_USE_PSRAM        0
+        #define EOS_CACHE_USE_DEDICATED_MEM 0
     #endif
 #endif
 
