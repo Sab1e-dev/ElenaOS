@@ -37,6 +37,7 @@
 #include "eos_activity.h"
 #include "eos_bubble_grid.h"
 #include "eos_accordion.h"
+#include "eos_overlay_layer.h"
 #ifdef EOS_ENABLE_TEST_APP
 #include "eos_test.h"
 #endif
@@ -44,7 +45,7 @@
 #define _APP_ICON_ANIM_DURATION 200
 #define _APP_ICON_ANIM_DELAY 75
 
-#define _APP_LIST_ANIM_DURATION 150
+#define _APP_LIST_ANIM_DURATION 1500
 #define _APP_LIST_ANIM_FOCUS_SCALE 1024
 #define _APP_LIST_ANIM_MIN_SACLE 64
 #define _APP_LIST_ANIM_SPLIT_PCT 15
@@ -119,14 +120,17 @@ static void _app_list_record_icon_center_point(int32_t x, int32_t y);
 static bool _app_list_calc_focus_pivot(lv_obj_t *snapshot_obj, lv_obj_t *icon_obj, int32_t *pivot_x, int32_t *pivot_y);
 static bool _app_list_calc_focus_pivot_by_global_center(lv_obj_t *obj, int32_t *pivot_x, int32_t *pivot_y);
 static void _app_list_set_transform_scale_cb(void *var, int32_t value);
+static void _app_list_set_image_scale_cb(void *var, int32_t value);
 static void _app_list_set_translate_x_cb(void *var, int32_t value);
 static void _app_list_set_translate_y_cb(void *var, int32_t value);
 static void _app_list_set_opa_cb(void *var, int32_t value);
 static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
+static void _app_list_init_image_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
 static void _app_list_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
 static void _app_list_init_translate_y_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
 static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
 static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening);
+static void _app_list_cleanup_extra_cb(lv_event_t *e);
 static int32_t _app_list_find_sys_app(const char *app_id);
 static script_engine_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
@@ -497,6 +501,11 @@ static void _app_list_set_transform_scale_cb(void *var, int32_t value)
     lv_obj_set_style_transform_scale((lv_obj_t *)var, value, 0);
 }
 
+static void _app_list_set_image_scale_cb(void *var, int32_t value)
+{
+    lv_image_set_scale((lv_obj_t *)var, value);
+}
+
 static void _app_list_set_translate_x_cb(void *var, int32_t value)
 {
     lv_obj_set_style_translate_x((lv_obj_t *)var, value, 0);
@@ -518,6 +527,16 @@ static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t st
     lv_anim_set_var(anim, obj);
     lv_anim_set_values(anim, start, end);
     lv_anim_set_exec_cb(anim, _app_list_set_transform_scale_cb);
+    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
+    lv_anim_set_duration(anim, duration);
+}
+
+static void _app_list_init_image_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+{
+    lv_anim_init(anim);
+    lv_anim_set_var(anim, obj);
+    lv_anim_set_values(anim, start, end);
+    lv_anim_set_exec_cb(anim, _app_list_set_image_scale_cb);
     lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
     lv_anim_set_duration(anim, duration);
 }
@@ -552,6 +571,15 @@ static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t star
     lv_anim_set_duration(anim, duration);
 }
 
+static void _app_list_cleanup_extra_cb(lv_event_t *e)
+{
+    lv_obj_t *extra = (lv_obj_t *)lv_event_get_user_data(e);
+    if (extra && lv_obj_is_valid(extra))
+    {
+        lv_obj_delete(extra);
+    }
+}
+
 static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening)
 {
     if (!(at && from && to))
@@ -559,7 +587,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         return;
     }
 
-    const char *focus_app_id = opening ? _app_list_get_launch_app_id(to) : _app_list_get_launch_app_id(from);
     lv_obj_t *list_view = opening ? eos_activity_get_view(from) : eos_activity_get_view(to);
     lv_obj_t *bubble_grid = _app_list_get_bubble_grid(opening ? from : to);
     lv_obj_t *focus_icon = NULL;
@@ -567,38 +594,123 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     {
         focus_icon = eos_bubble_get_icon_obj(bubble_grid, (uint32_t)_app_list_last_click_index);
     }
-    LV_UNUSED(focus_app_id);
 
-    /* Closing animation (APP -> APP_LIST) should not render app header on top. */
+    /* Closing animation should not render app header on top. */
     bool include_header_in_snapshot = opening;
-    lv_obj_t *app_snapshot = eos_activity_take_snapshot(opening ? to : from, include_header_in_snapshot);
-    if (!app_snapshot)
+
+    /* Take list snapshot WITHOUT the focus icon baked in.
+     * Hide focus_icon first so the snapshot captures an empty slot,
+     * then restore it for independent opacity animation. */
+    lv_obj_t *list_snapshot = NULL;
+    bool focus_icon_hidden_flag = false;
+    if (focus_icon && lv_obj_has_flag(focus_icon, LV_OBJ_FLAG_HIDDEN))
     {
-        return;
+        focus_icon_hidden_flag = true;
+    }
+    if (focus_icon)
+    {
+        lv_obj_add_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
     }
 
+    /* For closing (APP->APP_LIST), unhide the list view so we can snapshot it. */
     if (!opening && list_view)
     {
         lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(list_view);
     }
 
-    int32_t pivot_x = 0;
-    int32_t pivot_y = 0;
-    if (!_app_list_calc_focus_pivot_by_global_center(list_view ? list_view : app_snapshot, &pivot_x, &pivot_y))
+    eos_activity_t *list_activity = opening ? from : to;
+    if (list_activity)
     {
-        _app_list_calc_focus_pivot(list_view ? list_view : app_snapshot, focus_icon, &pivot_x, &pivot_y);
+        list_snapshot = eos_activity_take_snapshot(list_activity, false);
     }
 
-    if (list_view)
+    /* Restore focus_icon visibility. */
+    if (focus_icon && !focus_icon_hidden_flag)
     {
-        lv_obj_set_style_transform_pivot_x(list_view, pivot_x, 0);
-        lv_obj_set_style_transform_pivot_y(list_view, pivot_y, 0);
+        lv_obj_remove_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
     }
-    lv_obj_set_style_transform_pivot_x(app_snapshot, pivot_x, 0);
-    lv_obj_set_style_transform_pivot_y(app_snapshot, pivot_y, 0);
 
-    EOS_LOG_D("Pivot(%d,%d)", pivot_x, pivot_y);
+    /* Take app snapshot. */
+    lv_obj_t *app_snapshot = eos_activity_take_snapshot(opening ? to : from, include_header_in_snapshot);
+    if (!app_snapshot)
+    {
+        return;
+    }
+
+    /* Clone the focus icon onto the overlay so it renders above list_snapshot.
+     * Replicate the bubble structure (container + image child) so clip_corner
+     * scales correctly with transform_scale (tiny 48x48 intermediate layer). */
+    lv_obj_t *icon_clone = NULL;
+    if (focus_icon)
+    {
+        lv_obj_t *icon_img = lv_obj_get_child(focus_icon, 0);
+        if (icon_img)
+        {
+            const void *img_src = lv_image_get_src(icon_img);
+            if (img_src)
+            {
+                int32_t bw = lv_obj_get_width(focus_icon);
+                int32_t bh = lv_obj_get_height(focus_icon);
+
+                icon_clone = lv_obj_create(eos_overlay_get_snapshot_layer());
+                lv_obj_set_size(icon_clone, bw, bh);
+                lv_obj_set_pos(icon_clone, lv_obj_get_x(focus_icon), lv_obj_get_y(focus_icon));
+                lv_obj_set_style_radius(icon_clone, LV_RADIUS_CIRCLE, 0);
+                lv_obj_set_style_bg_opa(icon_clone, LV_OPA_COVER, 0);
+                lv_obj_set_style_bg_color(icon_clone, lv_obj_get_style_bg_color(focus_icon, 0), 0);
+                lv_obj_set_style_border_width(icon_clone, 0, 0);
+                lv_obj_set_style_pad_all(icon_clone, 0, 0);
+                lv_obj_set_style_clip_corner(icon_clone, true, 0);
+                lv_obj_set_style_transform_pivot_x(icon_clone, bw / 2, 0);
+                lv_obj_set_style_transform_pivot_y(icon_clone, bh / 2, 0);
+                lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
+
+                lv_obj_t *icon_img_clone = lv_image_create(icon_clone);
+                lv_image_set_src(icon_img_clone, img_src);
+                lv_image_set_scale_x(icon_img_clone, lv_image_get_scale_x(icon_img));
+                lv_image_set_scale_y(icon_img_clone, lv_image_get_scale_y(icon_img));
+                lv_obj_set_size(icon_img_clone, bw, bh);
+                lv_image_set_inner_align(icon_img_clone, LV_IMAGE_ALIGN_CENTER);
+                lv_obj_center(icon_img_clone);
+                lv_obj_set_style_bg_opa(icon_img_clone, LV_OPA_TRANSP, 0);
+                lv_obj_set_style_border_width(icon_img_clone, 0, 0);
+                lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
+            }
+        }
+    }
+
+    /* Calculate separate pivots. */
+    int32_t list_pivot_x = 0;
+    int32_t list_pivot_y = 0;
+    int32_t app_pivot_x = 0;
+    int32_t app_pivot_y = 0;
+
+    if (list_snapshot)
+    {
+        if (!_app_list_calc_focus_pivot_by_global_center(list_snapshot, &list_pivot_x, &list_pivot_y))
+        {
+            _app_list_calc_focus_pivot(list_snapshot, focus_icon, &list_pivot_x, &list_pivot_y);
+        }
+        lv_image_set_pivot(list_snapshot, list_pivot_x, list_pivot_y);
+    }
+
+    if (!_app_list_calc_focus_pivot_by_global_center(app_snapshot, &app_pivot_x, &app_pivot_y))
+    {
+        _app_list_calc_focus_pivot(app_snapshot, focus_icon, &app_pivot_x, &app_pivot_y);
+    }
+    lv_image_set_pivot(app_snapshot, app_pivot_x, app_pivot_y);
+
+    /* Ensure correct z-order: icon_clone above list_snapshot, app_snapshot on top. */
+    if (icon_clone)
+    {
+        lv_obj_move_foreground(icon_clone);
+    }
+    lv_obj_move_foreground(app_snapshot);
+
+    EOS_LOG_D("ListPivot(%d,%d) AppPivot(%d,%d)", list_pivot_x, list_pivot_y, app_pivot_x, app_pivot_y);
 
     uint32_t total_duration = (uint32_t)_APP_LIST_ANIM_DURATION;
     if (total_duration == 0U)
@@ -617,7 +729,7 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
 
     int32_t focus_translate_x = 0;
     int32_t focus_translate_y = 0;
-    if (_app_list_last_icon_center_valid && list_view)
+    if (_app_list_last_icon_center_valid)
     {
         int32_t view_center_x = EOS_DISPLAY_WIDTH / 2;
         int32_t view_center_y = EOS_DISPLAY_HEIGHT / 2;
@@ -628,39 +740,56 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     lv_anim_t list_scale_anim;
     lv_anim_t list_translate_x_anim;
     lv_anim_t list_translate_y_anim;
+    lv_anim_t icon_scale_anim;
+    lv_anim_t icon_translate_x_anim;
+    lv_anim_t icon_translate_y_anim;
     lv_anim_t icon_opa_anim;
     lv_anim_t app_scale_anim;
     lv_anim_t app_opa_anim;
 
     if (opening)
     {
-        if (list_view)
+        /* List snapshot: zoom in from normal to 4x, translate to center icon. */
+        if (list_snapshot)
         {
-            lv_obj_set_style_transform_scale(list_view, 256, 0);
-            lv_obj_set_style_translate_x(list_view, 0, 0);
-            lv_obj_set_style_translate_y(list_view, 0, 0);
-            _app_list_init_scale_anim(&list_scale_anim, list_view, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration);
-            _app_list_init_translate_x_anim(&list_translate_x_anim, list_view, 0, focus_translate_x, from_scale_duration);
-            _app_list_init_translate_y_anim(&list_translate_y_anim, list_view, 0, focus_translate_y, from_scale_duration);
+            lv_image_set_scale(list_snapshot, 256);
+            lv_obj_set_style_translate_x(list_snapshot, 0, 0);
+            lv_obj_set_style_translate_y(list_snapshot, 0, 0);
+            _app_list_init_image_scale_anim(&list_scale_anim, list_snapshot, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration);
+            _app_list_init_translate_x_anim(&list_translate_x_anim, list_snapshot, 0, focus_translate_x, from_scale_duration);
+            _app_list_init_translate_y_anim(&list_translate_y_anim, list_snapshot, 0, focus_translate_y, from_scale_duration);
             lv_anim_timeline_add(at, 0, &list_scale_anim);
             lv_anim_timeline_add(at, 0, &list_translate_x_anim);
             lv_anim_timeline_add(at, 0, &list_translate_y_anim);
         }
 
-        if (focus_icon)
+        /* Focus icon clone: zoom in with the list, fade out.
+         * Uses transform_scale on the container so clip_corner scales correctly;
+         * the tiny intermediate layer (bubble size ~48x48, ~5KB) is negligible. */
+        if (icon_clone)
         {
-            lv_obj_set_style_opa(focus_icon, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_START, 0);
+            lv_obj_set_style_transform_scale(icon_clone, 256, 0);
+            lv_obj_set_style_translate_x(icon_clone, 0, 0);
+            lv_obj_set_style_translate_y(icon_clone, 0, 0);
+            lv_obj_set_style_opa(icon_clone, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_START, 0);
+            _app_list_init_scale_anim(&icon_scale_anim, icon_clone, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration);
+            _app_list_init_translate_x_anim(&icon_translate_x_anim, icon_clone, 0, focus_translate_x, from_scale_duration);
+            _app_list_init_translate_y_anim(&icon_translate_y_anim, icon_clone, 0, focus_translate_y, from_scale_duration);
             _app_list_init_opa_anim(&icon_opa_anim,
-                                    focus_icon,
+                                    icon_clone,
                                     _APP_LIST_ANIM_FROM_OPA_START,
                                     _APP_LIST_ANIM_FROM_OPA_END,
                                     total_duration);
+            lv_anim_timeline_add(at, 0, &icon_scale_anim);
+            lv_anim_timeline_add(at, 0, &icon_translate_x_anim);
+            lv_anim_timeline_add(at, 0, &icon_translate_y_anim);
             lv_anim_timeline_add(at, 0, &icon_opa_anim);
         }
 
-        lv_obj_set_style_transform_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 0);
+        /* App snapshot: scale from 0.25x to 1x (grows from pivot = icon center), fade in. */
+        lv_image_set_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_START, 0);
-        _app_list_init_scale_anim(&app_scale_anim, app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, to_duration);
+        _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, to_duration);
         _app_list_init_opa_anim(&app_opa_anim,
                                 app_snapshot,
                                 _APP_LIST_ANIM_TO_OPA_START,
@@ -671,33 +800,45 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     }
     else
     {
-        if (list_view)
+        /* List snapshot: zoom out from 4x to normal, translate back (with split_delay). */
+        if (list_snapshot)
         {
-            lv_obj_set_style_transform_scale(list_view, _APP_LIST_ANIM_FOCUS_SCALE, 0);
-            lv_obj_set_style_translate_x(list_view, focus_translate_x, 0);
-            lv_obj_set_style_translate_y(list_view, focus_translate_y, 0);
-            _app_list_init_scale_anim(&list_scale_anim, list_view, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration);
-            _app_list_init_translate_x_anim(&list_translate_x_anim, list_view, focus_translate_x, 0, to_duration);
-            _app_list_init_translate_y_anim(&list_translate_y_anim, list_view, focus_translate_y, 0, to_duration);
+            lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
+            lv_obj_set_style_translate_x(list_snapshot, focus_translate_x, 0);
+            lv_obj_set_style_translate_y(list_snapshot, focus_translate_y, 0);
+            _app_list_init_image_scale_anim(&list_scale_anim, list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration);
+            _app_list_init_translate_x_anim(&list_translate_x_anim, list_snapshot, focus_translate_x, 0, to_duration);
+            _app_list_init_translate_y_anim(&list_translate_y_anim, list_snapshot, focus_translate_y, 0, to_duration);
             lv_anim_timeline_add(at, split_delay, &list_scale_anim);
             lv_anim_timeline_add(at, split_delay, &list_translate_x_anim);
             lv_anim_timeline_add(at, split_delay, &list_translate_y_anim);
         }
 
-        if (focus_icon)
+        /* Focus icon clone: zoom out with the list, fade in. */
+        if (icon_clone)
         {
-            lv_obj_set_style_opa(focus_icon, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_END, 0);
+            lv_obj_set_style_transform_scale(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 0);
+            lv_obj_set_style_translate_x(icon_clone, focus_translate_x, 0);
+            lv_obj_set_style_translate_y(icon_clone, focus_translate_y, 0);
+            lv_obj_set_style_opa(icon_clone, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_END, 0);
+            _app_list_init_scale_anim(&icon_scale_anim, icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration);
+            _app_list_init_translate_x_anim(&icon_translate_x_anim, icon_clone, focus_translate_x, 0, to_duration);
+            _app_list_init_translate_y_anim(&icon_translate_y_anim, icon_clone, focus_translate_y, 0, to_duration);
             _app_list_init_opa_anim(&icon_opa_anim,
-                                    focus_icon,
+                                    icon_clone,
                                     _APP_LIST_ANIM_FROM_OPA_END,
                                     _APP_LIST_ANIM_FROM_OPA_START,
-                                    total_duration);
-            lv_anim_timeline_add(at, 0, &icon_opa_anim);
+                                    to_duration);
+            lv_anim_timeline_add(at, split_delay, &icon_scale_anim);
+            lv_anim_timeline_add(at, split_delay, &icon_translate_x_anim);
+            lv_anim_timeline_add(at, split_delay, &icon_translate_y_anim);
+            lv_anim_timeline_add(at, split_delay, &icon_opa_anim);
         }
 
-        lv_obj_set_style_transform_scale(app_snapshot, 256, 0);
+        /* App snapshot: scale from 1x to 0.25x (shrinks to pivot = icon center), fade out. */
+        lv_image_set_scale(app_snapshot, 256);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_END, 0);
-        _app_list_init_scale_anim(&app_scale_anim, app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, to_duration);
+        _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, to_duration);
         _app_list_init_opa_anim(&app_opa_anim,
                                 app_snapshot,
                                 _APP_LIST_ANIM_TO_OPA_END,
@@ -705,6 +846,14 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
                                 to_duration);
         lv_anim_timeline_add(at, 0, &app_scale_anim);
         lv_anim_timeline_add(at, 0, &app_opa_anim);
+    }
+
+    /* Clean up icon_clone when the snapshot layer deletes its children.
+     * Register a delete callback that frees any ancillary data if needed
+     * (the clone itself is a plain IMAGE on the snapshot layer). */
+    if (icon_clone && app_snapshot)
+    {
+        lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);
     }
 }
 
@@ -735,12 +884,16 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     _app_list_set_last_launch_app_id(app_id);
     _app_list_last_click_index = (int32_t)click_event->index;
 
-    lv_indev_t *indev = lv_indev_get_act();
-    if (indev)
+    /* Use the icon's center, not the click point, so animation pivot/translate
+     * is consistent regardless of where the user touches. */
+    lv_obj_t *clicked_bubble = eos_bubble_get_icon_obj(bubble_grid, click_event->index);
+    if (clicked_bubble)
     {
-        lv_point_t p;
-        lv_indev_get_point(indev, &p);
-        _app_list_record_icon_center_point(p.x, p.y);
+        lv_area_t area;
+        lv_obj_get_coords(clicked_bubble, &area);
+        _app_list_record_icon_center_point(
+            area.x1 + lv_area_get_width(&area) / 2,
+            area.y1 + lv_area_get_height(&area) / 2);
     }
 
     if (eos_app_launch_immediately(app_id) != EOS_OK)
