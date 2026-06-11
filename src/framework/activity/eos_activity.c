@@ -27,7 +27,7 @@
 /* Macros and Definitions -------------------------------------*/
 #define _ACTIVITY_STACK_INIT_CAPACITY 8
 #define _DEFAULT_TITLE_COLOR EOS_COLOR_BLUE
-#define _SNAPSHOT_COLOR_FORMAT LV_COLOR_FORMAT_NATIVE_WITH_ALPHA
+#define _SNAPSHOT_COLOR_FORMAT LV_COLOR_FORMAT_RGB565
 #define _DEBUG_SNAPSHOT 0
 
 typedef enum
