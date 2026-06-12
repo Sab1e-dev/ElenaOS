@@ -887,6 +887,7 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
     _activity_ctx.active_anim_ctx->snapshots = snapshot_node;
 
     lv_image_set_src(snapshot_obj, snapshot);
+    lv_obj_set_size(snapshot_obj, lv_obj_get_width(view), lv_obj_get_height(view));
     lv_obj_set_pos(snapshot_obj, lv_obj_get_x(view), lv_obj_get_y(view));
     lv_obj_add_event_cb(snapshot_obj, _snapshot_img_delete_cb, LV_EVENT_DELETE, snapshot_node);
     _activity_snapshot_hold(activity);

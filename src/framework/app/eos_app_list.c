@@ -458,6 +458,14 @@ static bool _app_list_calc_focus_pivot_by_global_center(lv_obj_t *obj, int32_t *
         local_x = 0;
     if (local_y < 0)
         local_y = 0;
+
+    /* Defensive: if the object reports zero width/height (e.g. snapshot
+     * image not yet laid out), use the known display dimensions. */
+    if (max_x <= 0)
+        max_x = EOS_DISPLAY_WIDTH;
+    if (max_y <= 0)
+        max_y = EOS_DISPLAY_HEIGHT;
+
     if (local_x > max_x)
         local_x = max_x;
     if (local_y > max_y)
@@ -580,6 +588,59 @@ static void _app_list_cleanup_extra_cb(lv_event_t *e)
     }
 }
 
+static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
+{
+    if (!focus_icon)
+    {
+        return NULL;
+    }
+
+    lv_obj_t *icon_img = lv_obj_get_child(focus_icon, 0);
+    if (!icon_img)
+    {
+        return NULL;
+    }
+
+    const void *img_src = lv_image_get_src(icon_img);
+    if (!img_src)
+    {
+        return NULL;
+    }
+
+    lv_area_t icon_coords;
+    lv_obj_get_coords(focus_icon, &icon_coords);
+    int32_t bw = lv_area_get_width(&icon_coords);
+    int32_t bh = lv_area_get_height(&icon_coords);
+
+    lv_obj_t *icon_clone = lv_obj_create(eos_overlay_get_snapshot_layer());
+    lv_obj_set_size(icon_clone, bw, bh);
+    lv_obj_set_pos(icon_clone, icon_coords.x1, icon_coords.y1);
+    lv_obj_set_style_radius(icon_clone, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_opa(icon_clone, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(icon_clone, lv_obj_get_style_bg_color(focus_icon, 0), 0);
+    lv_obj_set_style_border_width(icon_clone, 0, 0);
+    lv_obj_set_style_pad_all(icon_clone, 0, 0);
+    lv_obj_set_style_clip_corner(icon_clone, true, 0);
+    lv_obj_set_style_transform_pivot_x(icon_clone, bw / 2, 0);
+    lv_obj_set_style_transform_pivot_y(icon_clone, bh / 2, 0);
+    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t *icon_img_clone = lv_image_create(icon_clone);
+    lv_image_set_src(icon_img_clone, img_src);
+    lv_image_set_scale_x(icon_img_clone, lv_image_get_scale_x(icon_img));
+    lv_image_set_scale_y(icon_img_clone, lv_image_get_scale_y(icon_img));
+    lv_obj_set_size(icon_img_clone, bw, bh);
+    lv_image_set_inner_align(icon_img_clone, LV_IMAGE_ALIGN_CENTER);
+    lv_obj_center(icon_img_clone);
+    lv_obj_set_style_bg_opa(icon_img_clone, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(icon_img_clone, 0, 0);
+    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
+
+    return icon_clone;
+}
+
 static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening)
 {
     if (!(at && from && to))
@@ -598,25 +659,59 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     /* Closing animation should not render app header on top. */
     bool include_header_in_snapshot = opening;
 
-    /* Take list snapshot WITHOUT the focus icon baked in.
-     * Hide focus_icon first so the snapshot captures an empty slot,
-     * then restore it for independent opacity animation. */
     lv_obj_t *list_snapshot = NULL;
     bool focus_icon_hidden_flag = false;
     if (focus_icon && lv_obj_has_flag(focus_icon, LV_OBJ_FLAG_HIDDEN))
     {
         focus_icon_hidden_flag = true;
     }
-    if (focus_icon)
-    {
-        lv_obj_add_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
-    }
 
-    /* For closing (APP->APP_LIST), unhide the list view so we can snapshot it. */
-    if (!opening && list_view)
+    lv_obj_t *icon_clone = NULL;
+    lv_obj_t *app_snapshot = NULL;
+
+    if (opening)
     {
-        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_move_foreground(list_view);
+        icon_clone = _app_list_create_icon_clone(focus_icon);
+
+        if (focus_icon)
+        {
+            lv_obj_add_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    else
+    {
+        app_snapshot = eos_activity_take_snapshot(from, include_header_in_snapshot);
+        if (!app_snapshot)
+        {
+            return;
+        }
+        lv_obj_move_foreground(app_snapshot);
+
+        if (list_view)
+        {
+            lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_move_foreground(list_view);
+        }
+
+        if (focus_icon)
+        {
+            lv_area_t area;
+            lv_obj_get_coords(focus_icon, &area);
+            _app_list_record_icon_center_point(
+                area.x1 + lv_area_get_width(&area) / 2,
+                area.y1 + lv_area_get_height(&area) / 2);
+        }
+
+        icon_clone = _app_list_create_icon_clone(focus_icon);
+        if (icon_clone)
+        {
+            lv_obj_set_style_opa(icon_clone, LV_OPA_TRANSP, 0);
+        }
+
+        if (focus_icon)
+        {
+            lv_obj_add_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     eos_activity_t *list_activity = opening ? from : to;
@@ -625,64 +720,30 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         list_snapshot = eos_activity_take_snapshot(list_activity, false);
     }
 
-    /* Restore focus_icon visibility. */
+    if (!opening && app_snapshot)
+    {
+        lv_obj_move_foreground(app_snapshot);
+    }
+
+    if (icon_clone)
+    {
+        lv_obj_move_foreground(icon_clone);
+    }
+
     if (focus_icon && !focus_icon_hidden_flag)
     {
         lv_obj_remove_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
     }
 
-    /* Take app snapshot. */
-    lv_obj_t *app_snapshot = eos_activity_take_snapshot(opening ? to : from, include_header_in_snapshot);
-    if (!app_snapshot)
+    if (opening)
     {
-        return;
-    }
-
-    /* Clone the focus icon onto the overlay so it renders above list_snapshot.
-     * Replicate the bubble structure (container + image child) so clip_corner
-     * scales correctly with transform_scale (tiny 48x48 intermediate layer). */
-    lv_obj_t *icon_clone = NULL;
-    if (focus_icon)
-    {
-        lv_obj_t *icon_img = lv_obj_get_child(focus_icon, 0);
-        if (icon_img)
+        app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
+        if (!app_snapshot)
         {
-            const void *img_src = lv_image_get_src(icon_img);
-            if (img_src)
-            {
-                int32_t bw = lv_obj_get_width(focus_icon);
-                int32_t bh = lv_obj_get_height(focus_icon);
-
-                icon_clone = lv_obj_create(eos_overlay_get_snapshot_layer());
-                lv_obj_set_size(icon_clone, bw, bh);
-                lv_obj_set_pos(icon_clone, lv_obj_get_x(focus_icon), lv_obj_get_y(focus_icon));
-                lv_obj_set_style_radius(icon_clone, LV_RADIUS_CIRCLE, 0);
-                lv_obj_set_style_bg_opa(icon_clone, LV_OPA_COVER, 0);
-                lv_obj_set_style_bg_color(icon_clone, lv_obj_get_style_bg_color(focus_icon, 0), 0);
-                lv_obj_set_style_border_width(icon_clone, 0, 0);
-                lv_obj_set_style_pad_all(icon_clone, 0, 0);
-                lv_obj_set_style_clip_corner(icon_clone, true, 0);
-                lv_obj_set_style_transform_pivot_x(icon_clone, bw / 2, 0);
-                lv_obj_set_style_transform_pivot_y(icon_clone, bh / 2, 0);
-                lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
-                lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
-
-                lv_obj_t *icon_img_clone = lv_image_create(icon_clone);
-                lv_image_set_src(icon_img_clone, img_src);
-                lv_image_set_scale_x(icon_img_clone, lv_image_get_scale_x(icon_img));
-                lv_image_set_scale_y(icon_img_clone, lv_image_get_scale_y(icon_img));
-                lv_obj_set_size(icon_img_clone, bw, bh);
-                lv_image_set_inner_align(icon_img_clone, LV_IMAGE_ALIGN_CENTER);
-                lv_obj_center(icon_img_clone);
-                lv_obj_set_style_bg_opa(icon_img_clone, LV_OPA_TRANSP, 0);
-                lv_obj_set_style_border_width(icon_img_clone, 0, 0);
-                lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
-                lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
-            }
+            return;
         }
     }
 
-    /* Calculate separate pivots. */
     int32_t list_pivot_x = 0;
     int32_t list_pivot_y = 0;
     int32_t app_pivot_x = 0;
@@ -703,14 +764,11 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     }
     lv_image_set_pivot(app_snapshot, app_pivot_x, app_pivot_y);
 
-    /* Ensure correct z-order: icon_clone above list_snapshot, app_snapshot on top. */
     if (icon_clone)
     {
         lv_obj_move_foreground(icon_clone);
     }
     lv_obj_move_foreground(app_snapshot);
-
-    EOS_LOG_D("ListPivot(%d,%d) AppPivot(%d,%d)", list_pivot_x, list_pivot_y, app_pivot_x, app_pivot_y);
 
     uint32_t total_duration = (uint32_t)_APP_LIST_ANIM_DURATION;
     if (total_duration == 0U)
@@ -749,7 +807,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
 
     if (opening)
     {
-        /* List snapshot: zoom in from normal to 4x, translate to center icon. */
         if (list_snapshot)
         {
             lv_image_set_scale(list_snapshot, 256);
@@ -763,9 +820,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_anim_timeline_add(at, 0, &list_translate_y_anim);
         }
 
-        /* Focus icon clone: zoom in with the list, fade out.
-         * Uses transform_scale on the container so clip_corner scales correctly;
-         * the tiny intermediate layer (bubble size ~48x48, ~5KB) is negligible. */
         if (icon_clone)
         {
             lv_obj_set_style_transform_scale(icon_clone, 256, 0);
@@ -786,7 +840,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_anim_timeline_add(at, 0, &icon_opa_anim);
         }
 
-        /* App snapshot: scale from 0.25x to 1x (grows from pivot = icon center), fade in. */
         lv_image_set_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_START, 0);
         _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, to_duration);
@@ -800,7 +853,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
     }
     else
     {
-        /* List snapshot: zoom out from 4x to normal, translate back (with split_delay). */
         if (list_snapshot)
         {
             lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
@@ -814,7 +866,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_anim_timeline_add(at, split_delay, &list_translate_y_anim);
         }
 
-        /* Focus icon clone: zoom out with the list, fade in. */
         if (icon_clone)
         {
             lv_obj_set_style_transform_scale(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 0);
@@ -835,7 +886,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_anim_timeline_add(at, split_delay, &icon_opa_anim);
         }
 
-        /* App snapshot: scale from 1x to 0.25x (shrinks to pivot = icon center), fade out. */
         lv_image_set_scale(app_snapshot, 256);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_END, 0);
         _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, to_duration);
@@ -848,9 +898,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         lv_anim_timeline_add(at, 0, &app_opa_anim);
     }
 
-    /* Clean up icon_clone when the snapshot layer deletes its children.
-     * Register a delete callback that frees any ancillary data if needed
-     * (the clone itself is a plain IMAGE on the snapshot layer). */
     if (icon_clone && app_snapshot)
     {
         lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);
