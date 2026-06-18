@@ -67,6 +67,25 @@ typedef struct
 /* Public function prototypes --------------------------------*/
 
 /**
+ * @brief Set the virtual filesystem root directory.
+ *        On simulator, call once at startup with the sandbox path.
+ *        On real hardware, skip (defaults to "/", i.e. pass-through).
+ * @param root Absolute path to use as filesystem root, e.g. "/path/to/fs/"
+ */
+void eos_fs_set_root(const char *root);
+
+/**
+ * @brief Resolve a virtual path to a real filesystem path.
+ *        If root is "/" (or NULL / empty), path passes through unchanged.
+ *        Otherwise prepends root.  Already-prefixed paths pass through.
+ * @param path  Virtual path (e.g. "/.sys/config/cfg.json")
+ * @param buf   Output buffer for the resolved path
+ * @param bufsz Buffer size
+ * @return buf on success, NULL on invalid input
+ */
+const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz);
+
+/**
  * @brief Open a file in read-only mode
  * @param path File path
  * @return void* File handle, returns NULL on failure

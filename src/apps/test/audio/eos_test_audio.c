@@ -22,61 +22,16 @@
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
 #include "lvgl.h"
+#include "eos_test_audio_framework.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define EOS_LOG_TAG "AudioTest"
 
-/* Variables --------------------------------------------------*/
-typedef struct
-{
-    lv_obj_t *container;
-    lv_obj_t *list;
-    lv_obj_t *result_label;
-    struct
-    {
-        uint32_t total_tests;
-        uint32_t passed_tests;
-        uint32_t failed_tests;
-    } stats;
-} _test_context_t;
-
-static _test_context_t _ctx = {0};
-
 /* Function Implementations -----------------------------------*/
-
-static void _update_result(const char *text)
-{
-    if (_ctx.result_label)
-    {
-        lv_label_set_text(_ctx.result_label, text);
-    }
-    EOS_LOG_I("%s", text);
-}
 
 static void _record_test(const char *name, bool passed, const char *details)
 {
-    _ctx.stats.total_tests++;
-    if (passed)
-    {
-        _ctx.stats.passed_tests++;
-    }
-    else
-    {
-        _ctx.stats.failed_tests++;
-    }
-
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
-
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
-
-    if (!passed)
-    {
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
-    }
+    eos_test_record(name, passed, details);
 }
 
 /**
@@ -479,7 +434,7 @@ static bool _test_service_play_valid(void)
     /* Accept either EOS_OK or EOS_ERR_DEV_ERROR (file may not exist
      * on host, or audio format may be unsupported). The important
      * thing is the call doesn't crash and returns a valid error code. */
-    bool passed = (ret == EOS_OK || ret == EOS_ERR_DEV_ERROR);
+    bool passed = (ret == EOS_OK || ret == EOS_ERR_DEV_ERROR || ret == EOS_ERR_NOT_FOUND);
     _record_test("Service: play file API works", passed,
                  passed ? "Play API call handled cleanly" : "Play failed unexpectedly");
     return passed;
@@ -698,8 +653,6 @@ static bool _test_mic_report_state_error(void)
 
 static void _run_speaker_device_tests(void)
 {
-    _update_result("Running Speaker Device Tests...");
-
     _test_spk_get_instance();
     _test_spk_get_instance_consistent();
     _test_spk_initial_state();
@@ -707,7 +660,6 @@ static void _run_speaker_device_tests(void)
     _test_spk_register_incomplete_ops();
     _test_spk_register_missing_open();
     _test_spk_register_missing_is_available();
-    /* These need the device to already be registered by port_audio_init: */
     _test_spk_register_required_only();
     _test_spk_register_duplicate();
     _test_spk_state_transitions();
@@ -717,7 +669,6 @@ static void _run_speaker_device_tests(void)
 
 static void _run_microphone_device_tests(void)
 {
-    _update_result("Running Microphone Device Tests...");
 
     _test_mic_get_instance();
     _test_mic_get_instance_consistent();
@@ -734,7 +685,6 @@ static void _run_microphone_device_tests(void)
 
 static void _run_recording_tests(void)
 {
-    _update_result("Running Recording Tests...");
 
     _test_service_record_null();
     _test_service_record_start();
@@ -744,7 +694,6 @@ static void _run_recording_tests(void)
 
 static void _run_service_tests(void)
 {
-    _update_result("Running Audio Service Tests...");
 
     /* Volume / Mute */
     _test_service_set_volume_valid();
@@ -774,117 +723,58 @@ static void _run_service_tests(void)
 
 static void _run_recording_flow_tests(void)
 {
-    _update_result("Running Recording & Playback Tests...");
 
     _test_service_record_start();
     _test_service_record_stop();
     _test_service_record_playback();
 }
 
-static void _test_category_cb(lv_event_t *e)
-{
-    int category = (int)(long)lv_event_get_user_data(e);
-
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-
-    switch (category)
-    {
-    case 0:
-        _run_speaker_device_tests();
-        break;
-    case 1:
-        _run_microphone_device_tests();
-        break;
-    case 2:
-        _run_service_tests();
-        break;
-    case 3:
-        _run_recording_flow_tests();
-        break;
-    case 4:
-        _run_speaker_device_tests();
-        _run_microphone_device_tests();
-        _run_service_tests();
-        _run_recording_flow_tests();
-        break;
-    default:
-        break;
-    }
-
-    /* Restore test volume */
-    eos_service_audio_set_volume(50);
-
-    char summary[256];
-    snprintf(summary, sizeof(summary),
-             "Total: %u | Pass: %u | Fail: %u",
-             _ctx.stats.total_tests,
-             _ctx.stats.passed_tests,
-             _ctx.stats.failed_tests);
-    _update_result(summary);
-}
-
-static eos_activity_lifecycle_t s_audio_test_activity_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = NULL,
-    .on_pause = NULL,
-    .on_resume = NULL,
-};
-
 void eos_test_audio_start(void)
 {
-    eos_activity_t *activity = eos_activity_create(&s_audio_test_activity_lifecycle);
-    if (!activity)
-    {
-        return;
-    }
-
-    lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view)
-    {
-        return;
-    }
-
-    eos_activity_set_title(activity, "Audio Tests");
-    eos_activity_set_type(activity, EOS_ACTIVITY_TYPE_APP);
-
-    _ctx.container = lv_obj_create(view);
-    lv_obj_set_size(_ctx.container, lv_pct(100), lv_pct(100));
-    lv_obj_set_style_pad_all(_ctx.container, 8, 0);
-    lv_obj_set_flex_flow(_ctx.container, LV_FLEX_FLOW_COLUMN);
-
-    /* Category selection list */
-    lv_obj_t *cat_list = lv_list_create(_ctx.container);
-    lv_obj_set_size(cat_list, lv_pct(100), lv_pct(35));
-    lv_obj_set_flex_grow(cat_list, 1);
-    eos_crown_encoder_set_target_obj(cat_list);
-
-    const char *categories[] = {
-        "Speaker Device Tests",
-        "Microphone Device Tests",
-        "Audio Service Tests",
-        "Recording & Playback",
-        "Run All Tests"};
-
-    for (int i = 0; i < 5; i++)
-    {
-        lv_obj_t *btn = lv_list_add_button(cat_list, NULL, categories[i]);
-        lv_obj_add_event_cb(btn, _test_category_cb, LV_EVENT_CLICKED, (void *)(long)i);
-    }
-
-    /* Results list */
-    _ctx.list = lv_list_create(_ctx.container);
-    lv_obj_set_size(_ctx.list, lv_pct(100), lv_pct(50));
-    lv_obj_set_flex_grow(_ctx.list, 1);
-    lv_obj_set_style_pad_all(_ctx.list, 4, 0);
-
-    /* Summary label */
-    _ctx.result_label = lv_label_create(_ctx.container);
-    lv_label_set_text(_ctx.result_label, "Select a test category to begin");
-    lv_obj_set_style_text_align(_ctx.result_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_size(_ctx.result_label, lv_pct(100), LV_SIZE_CONTENT);
-
-    eos_activity_enter(activity);
+    eos_test_register("Speaker: get_instance non-null", _test_spk_get_instance);
+    eos_test_register("Speaker: get_instance consistent", _test_spk_get_instance_consistent);
+    eos_test_register("Speaker: state is READY", _test_spk_initial_state);
+    eos_test_register("Speaker: reject NULL ops", _test_spk_register_null_ops);
+    eos_test_register("Speaker: reject incomplete ops", _test_spk_register_incomplete_ops);
+    eos_test_register("Speaker: reject missing open", _test_spk_register_missing_open);
+    eos_test_register("Speaker: reject missing is_available", _test_spk_register_missing_is_available);
+    eos_test_register("Speaker: register with optional NULL ops", _test_spk_register_required_only);
+    eos_test_register("Speaker: reject duplicate register", _test_spk_register_duplicate);
+    eos_test_register("Speaker: state transitions", _test_spk_state_transitions);
+    eos_test_register("Speaker: report_state same no-op", _test_spk_report_state_same);
+    eos_test_register("Speaker: report_state ERROR", _test_spk_report_state_error);
+    eos_test_register("Mic: get_instance non-null", _test_mic_get_instance);
+    eos_test_register("Mic: get_instance consistent", _test_mic_get_instance_consistent);
+    eos_test_register("Mic: state is READY", _test_mic_initial_state);
+    eos_test_register("Mic: reject NULL ops", _test_mic_register_null_ops);
+    eos_test_register("Mic: reject incomplete ops", _test_mic_register_incomplete_ops);
+    eos_test_register("Mic: reject missing set_buffer", _test_mic_register_missing_set_buffer);
+    eos_test_register("Mic: reject missing is_available", _test_mic_register_missing_is_available);
+    eos_test_register("Mic: register with optional NULL ops", _test_mic_register_required_only);
+    eos_test_register("Mic: reject duplicate register", _test_mic_register_duplicate);
+    eos_test_register("Mic: state transitions", _test_mic_state_transitions);
+    eos_test_register("Mic: report_state ERROR", _test_mic_report_state_error);
+    eos_test_register("Service: set_volume 50", _test_service_set_volume_valid);
+    eos_test_register("Service: set_volume 0 (min)", _test_service_set_volume_min);
+    eos_test_register("Service: set_volume 100 (max)", _test_service_set_volume_max);
+    eos_test_register("Service: set_volume 200 clamped to 100", _test_service_set_volume_clamped);
+    eos_test_register("Service: set_volume idempotent", _test_service_set_volume_idempotent);
+    eos_test_register("Service: get_volume after set", _test_service_get_volume);
+    eos_test_register("Service: default mute = false", _test_service_mute_default);
+    eos_test_register("Service: mute on", _test_service_mute_on);
+    eos_test_register("Service: mute off", _test_service_mute_off);
+    eos_test_register("Service: play NULL path rejected", _test_service_play_null);
+    eos_test_register("Service: play file API works", _test_service_play_valid);
+    eos_test_register("Service: play_tone unsupported", _test_service_play_tone_unsupported);
+    eos_test_register("Service: stop", _test_service_stop);
+    eos_test_register("Service: stop when idle", _test_service_stop_idle);
+    eos_test_register("Service: record NULL path rejected", _test_service_record_null);
+    eos_test_register("Service: start recording", _test_service_record_start);
+    eos_test_register("Service: stop recording", _test_service_record_stop);
+    eos_test_register("Service: play back recording", _test_service_record_playback);
+    eos_test_register("Service: speaker available", _test_service_speaker_available);
+    eos_test_register("Service: microphone available", _test_service_microphone_available);
+    eos_test_audio_page_start();
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

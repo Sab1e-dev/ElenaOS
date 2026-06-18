@@ -19,6 +19,18 @@
 
 /* Function Implementations -----------------------------------*/
 
+void eos_fs_set_root(const char *root)
+{
+    (void)root;
+}
+
+const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz)
+{
+    if (!path || !buf || bufsz == 0) return NULL;
+    snprintf(buf, bufsz, "%s", path);
+    return buf;
+}
+
 eos_file_t eos_fs_open_read(const char *path)
 {
     if (!path)

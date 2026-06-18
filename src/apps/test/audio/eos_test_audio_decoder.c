@@ -22,6 +22,8 @@
 #include "eos_audio_feed.h"
 #include "eos_service_audio.h"
 #include "eos_log.h"
+#include "eos_test_audio_framework.h"
+#include "eos_fs_port.h"
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
 #include "lvgl.h"
@@ -30,46 +32,23 @@
 #define EOS_LOG_TAG "AudioDecTest"
 
 /* Variables --------------------------------------------------*/
-typedef struct
-{
-    lv_obj_t *container;
-    lv_obj_t *list;
-    lv_obj_t *result_label;
-    struct
-    {
-        uint32_t total_tests;
-        uint32_t passed_tests;
-        uint32_t failed_tests;
-    } stats;
-} _test_context_t;
-
-static _test_context_t _ctx = {0};
-
 static eos_audio_player_t _test_player;
+static bool _test_player_inited = false;
+static bool _wav_test_ready = false;
 
 /* Function Implementations -----------------------------------*/
 
-static void _update_result(const char *text)
-{
-    if (_ctx.result_label)
-        lv_label_set_text(_ctx.result_label, text);
-    EOS_LOG_I("%s", text);
-}
-
 static void _record_test(const char *name, bool passed, const char *details)
 {
-    _ctx.stats.total_tests++;
-    if (passed)
-        _ctx.stats.passed_tests++;
-    else
-        _ctx.stats.failed_tests++;
+    eos_test_record(name, passed, details);
+}
 
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text), "%s: %s", name, passed ? "PASS" : "FAIL");
-    EOS_LOG_I("%s (%s)", label_text, details);
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
-    if (!passed)
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+static void _ensure_player_ready(void)
+{
+    if (!_test_player_inited) {
+        eos_audio_player_init(&_test_player);
+        _test_player_inited = true;
+    }
 }
 
 /* 16-bit signed LE, stereo, 44100 Hz, 16 samples of PCM data */
@@ -756,6 +735,7 @@ static bool _test_player_init(void)
 
 static bool _test_player_initial_state(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     /* Stop any previous playback first */
     eos_audio_player_stop(p);
@@ -768,6 +748,7 @@ static bool _test_player_initial_state(void)
 
 static bool _test_player_play_null_fails(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_result_t r = eos_audio_player_play(p, NULL, EOS_AUDIO_SRC_VAR);
     bool passed = (r != EOS_OK);
@@ -778,6 +759,7 @@ static bool _test_player_play_null_fails(void)
 
 static bool _test_player_play_var(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -800,6 +782,7 @@ static bool _test_player_play_var(void)
 
 static bool _test_player_duration_after_play(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     uint32_t dur = eos_audio_player_get_duration(p);
     bool passed = (dur == TEST_PCM_TOTAL_SAMPLES);
@@ -810,6 +793,7 @@ static bool _test_player_duration_after_play(void)
 
 static bool _test_player_stop_transitions_to_idle(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -822,6 +806,7 @@ static bool _test_player_stop_transitions_to_idle(void)
 
 static bool _test_player_pause_resume(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -850,6 +835,7 @@ static bool _test_player_pause_resume(void)
 
 static bool _test_player_pause_from_idle_fails(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
     eos_result_t r = eos_audio_player_pause(p);
@@ -861,6 +847,7 @@ static bool _test_player_pause_from_idle_fails(void)
 
 static bool _test_player_resume_from_idle_fails(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
     eos_result_t r = eos_audio_player_resume(p);
@@ -872,6 +859,7 @@ static bool _test_player_resume_from_idle_fails(void)
 
 static bool _test_player_get_position(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -884,6 +872,7 @@ static bool _test_player_get_position(void)
 
 static bool _test_player_set_volume(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     uint8_t saved = eos_service_audio_get_volume();
     eos_result_t r = eos_audio_player_set_volume(p, 75);
@@ -896,6 +885,7 @@ static bool _test_player_set_volume(void)
 
 static bool _test_player_set_volume_clamp(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     uint8_t saved = eos_service_audio_get_volume();
     eos_result_t r = eos_audio_player_set_volume(p, 200);
@@ -908,6 +898,7 @@ static bool _test_player_set_volume_clamp(void)
 
 static bool _test_player_get_state_consistent(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -1119,6 +1110,7 @@ static void _run_custom_decoder_tests(void)
 
 static bool _test_player_mute(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_set_mute(p, true);
     bool muted = eos_audio_player_is_muted(p);
@@ -1133,6 +1125,7 @@ static bool _test_player_mute(void)
 
 static bool _test_player_seek_var(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -1163,7 +1156,7 @@ static bool _test_player_seek_var(void)
 static void _run_player_tests(void)
 {
     EOS_LOG_I("--- Audio Player Tests ---");
-    eos_audio_player_init(&_test_player);
+    _ensure_player_ready();
     _test_player_init();
     _test_player_initial_state();
     _test_player_play_null_fails();
@@ -1228,6 +1221,7 @@ static bool _test_effects_magic_valid(void)
 
 static bool _test_effects_play_click(void)
 {
+    _ensure_player_ready();
     eos_audio_player_t *p = &_test_player;
     eos_audio_player_stop(p);
 
@@ -1265,10 +1259,43 @@ static bool _test_effects_get_invalid(void)
 
 /* ---- WAV Decoder Tests ------------------------------------- */
 
-#define WAV_TEST_PATH "fs/test_wav_decoder.wav"
+#define WAV_TEST_PATH "/elenixos/test_wav_decoder.wav"
+
+static bool _generate_test_wav(void)
+{
+    uint8_t wav[] = {
+        'R','I','F','F', 44,0,0,0, 'W','A','V','E',
+        'f','m','t',' ', 16,0,0,0, 1,0, 1,0,
+        0x40,0x1f,0,0, 0x80,0x3e,0,0, 2,0, 16,0,
+        'd','a','t','a', 8,0,0,0,
+        0,0, 1,0, 2,0, 3,0
+    };
+    eos_fs_mkdir("/elenixos");
+    eos_file_t f = eos_fs_open_write(WAV_TEST_PATH);
+    if (f == EOS_FILE_INVALID) return false;
+    int n = eos_fs_write(f, wav, sizeof(wav));
+    eos_fs_close(f);
+    return (n == (int)sizeof(wav));
+}
+
+static void _cleanup_test_wav(void)
+{
+    eos_fs_remove(WAV_TEST_PATH);
+}
+
+static bool _ensure_wav_test_file(void)
+{
+    if (_wav_test_ready) return true;
+    _wav_test_ready = _generate_test_wav();
+    return _wav_test_ready;
+}
 
 static bool _test_wav_probe(void)
 {
+    if (!_ensure_wav_test_file()) {
+        _record_test("WAV: probe + open file", false, "Generated file failed");
+        return false;
+    }
     eos_audio_decoder_dsc_t dsc;
     eos_result_t res = eos_audio_decoder_open(&dsc, WAV_TEST_PATH, EOS_AUDIO_SRC_FILE);
     if (res != EOS_OK)
@@ -1289,6 +1316,10 @@ static bool _test_wav_probe(void)
 
 static bool _test_wav_read(void)
 {
+    if (!_ensure_wav_test_file()) {
+        _record_test("WAV: read data", false, "Generated file failed");
+        return false;
+    }
     eos_audio_decoder_dsc_t dsc;
     eos_result_t r = eos_audio_decoder_open(&dsc, WAV_TEST_PATH, EOS_AUDIO_SRC_FILE);
     if (r != EOS_OK)
@@ -1310,6 +1341,10 @@ static bool _test_wav_read(void)
 
 static bool _test_wav_seek(void)
 {
+    if (!_ensure_wav_test_file()) {
+        _record_test("WAV: seek", false, "Generated file failed");
+        return false;
+    }
     eos_audio_decoder_dsc_t dsc;
     eos_result_t r = eos_audio_decoder_open(&dsc, WAV_TEST_PATH, EOS_AUDIO_SRC_FILE);
     if (r != EOS_OK)
@@ -1332,204 +1367,92 @@ static bool _test_wav_seek(void)
 static void _run_wav_decoder_tests(void)
 {
     EOS_LOG_I("--- WAV Decoder Tests ---");
+    _generate_test_wav();
     _test_wav_probe();
     _test_wav_read();
     _test_wav_seek();
-}
-
-static void _test_wav_decoder_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_wav_decoder_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "WAV Dec: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
+    _cleanup_test_wav();
 }
 
 static void _run_effects_tests(void)
 {
     EOS_LOG_I("--- VAR Effects Tests ---");
-    eos_audio_player_init(&_test_player);
+    _ensure_player_ready();
     _test_effects_get_all();
     _test_effects_magic_valid();
     _test_effects_play_click();
     _test_effects_get_invalid();
 }
 
-static void _test_effects_cb(lv_event_t *e)
+static void _register_all_tests(void)
 {
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_effects_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "Effects: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
+    eos_test_register("Decoder: init registers built-in decoders", _test_dec_init_creates_list);
+    eos_test_register("Decoder: create adds to linked list", _test_dec_create_adds_to_list);
+    eos_test_register("Decoder: get_next traverses all nodes", _test_dec_get_next_traverses);
+    eos_test_register("Decoder: set probe_cb", _test_dec_set_probe_cb);
+    eos_test_register("Decoder: set open_cb", _test_dec_set_open_cb);
+    eos_test_register("Decoder: set read_cb", _test_dec_set_read_cb);
+    eos_test_register("Decoder: set close_cb", _test_dec_set_close_cb);
+    eos_test_register("Decoder: open NULL dsc fails", _test_dec_open_null_dsc);
+    eos_test_register("Decoder: open NULL src fails", _test_dec_open_null_src);
+    eos_test_register("Decoder: read NULL dsc fails", _test_dec_read_null_dsc);
+    eos_test_register("Decoder: close NULL dsc no-crash", _test_dec_close_null_dsc);
+    eos_test_register("SrcType: NULL returns NONE", _test_src_type_null);
+    eos_test_register("SrcType: VAR magic byte returns VAR", _test_src_type_var_magic);
+    eos_test_register("SrcType: file path returns FILE", _test_src_type_file_string);
+    eos_test_register("SrcType: plain string returns FILE", _test_src_type_plain_string);
+    eos_test_register("VAR: probe succeeds with correct format", _test_var_probe_ok);
+    eos_test_register("VAR: duration_ms calculated correctly", _test_var_probe_duration_calc);
+    eos_test_register("VAR: probe rejects bad magic", _test_var_probe_bad_magic);
+    eos_test_register("VAR: probe rejects FILE type", _test_var_probe_wrong_src_type);
+    eos_test_register("VAR: open sets all fields correctly", _test_var_open_and_format);
+    eos_test_register("VAR: read full data matches", _test_var_read_full);
+    eos_test_register("VAR: read partial (1 sample)", _test_var_read_partial);
+    eos_test_register("VAR: read multi tracks position", _test_var_read_multi_tracked);
+    eos_test_register("VAR: read past end returns 0", _test_var_read_past_end);
+    eos_test_register("VAR: read with 0 buffer size", _test_var_read_empty_buf);
+    eos_test_register("VAR: close clears user_data & decoder", _test_var_close_frees_user_data);
+    eos_test_register("VAR: full cycle open->read->close", _test_var_full_cycle_via_api);
+    eos_test_register("VAR Seek: seek to middle", _test_var_seek_middle);
+    eos_test_register("VAR Seek: seek to start", _test_var_seek_to_start);
+    eos_test_register("VAR Seek: past end returns error", _test_var_seek_past_end);
+    eos_test_register("CustomDec: register & delete", _test_custom_dec_register_and_probe);
+    eos_test_register("CustomDec: probe dispatch to mock", _test_custom_dec_probe_dispatch);
+    eos_test_register("CustomDec: read produces 0xAA pattern", _test_custom_dec_read);
+    eos_test_register("Player: init sets IDLE state", _test_player_init);
+    eos_test_register("Player: initial state is IDLE", _test_player_initial_state);
+    eos_test_register("Player: play NULL fails", _test_player_play_null_fails);
+    eos_test_register("Player: play VAR transitions to PLAYING", _test_player_play_var);
+    eos_test_register("Player: get_duration matches descriptor", _test_player_duration_after_play);
+    eos_test_register("Player: stop transitions to IDLE", _test_player_stop_transitions_to_idle);
+    eos_test_register("Player: pause->PAUSED, resume->PLAYING", _test_player_pause_resume);
+    eos_test_register("Player: pause from IDLE fails", _test_player_pause_from_idle_fails);
+    eos_test_register("Player: resume from IDLE fails", _test_player_resume_from_idle_fails);
+    eos_test_register("Player: get_position returns valid value", _test_player_get_position);
+    eos_test_register("Player: set_volume returns OK", _test_player_set_volume);
+    eos_test_register("Player: set_volume < 0 clamps", _test_player_set_volume_clamp);
+    eos_test_register("Player: get_state is consistent", _test_player_get_state_consistent);
+    eos_test_register("Player: NULL player guarded", _test_player_null_guard);
+    eos_test_register("Player: set_mute/is_muted", _test_player_mute);
+    eos_test_register("Player: seek VAR source", _test_player_seek_var);
+    eos_test_register("SpeakerOps: reject missing open", _test_spk_register_missing_open);
+    eos_test_register("SpeakerOps: reject missing borrow", _test_spk_register_missing_borrow);
+    eos_test_register("SpeakerOps: get_instance returns valid ops", _test_spk_get_instance_after_register);
+    eos_test_register("SpeakerOps: open/borrow/enqueue/stop/set_volume/is_available exist", _test_spk_has_new_ops);
+    eos_test_register("SpeakerOps: pause and resume are implemented", _test_spk_optional_ops_exist);
+    eos_test_register("Effects: all IDs return non-NULL", _test_effects_get_all);
+    eos_test_register("Effects: magic byte is EOS_AUDIO_HEADER_MAGIC", _test_effects_magic_valid);
+    eos_test_register("Effects: play click via player", _test_effects_play_click);
+    eos_test_register("Effects: out-of-range ID returns NULL", _test_effects_get_invalid);
+    eos_test_register("WAV: probe + open file", _test_wav_probe);
+    eos_test_register("WAV: read data", _test_wav_read);
+    eos_test_register("WAV: seek", _test_wav_seek);
 }
-
-static void _test_decoder_registry_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_decoder_registry_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "Registry: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_src_type_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_src_type_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "SrcType: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_var_decoder_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_var_decoder_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "VAR Dec: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_custom_dec_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_custom_decoder_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "CustomDec: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_player_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_player_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "Player: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_speaker_ops_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_speaker_ops_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "SpeakerOps: %u/%u passed",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests);
-    _update_result(summary);
-}
-
-static void _test_all_cb(lv_event_t *e)
-{
-    (void)e;
-    memset(&_ctx.stats, 0, sizeof(_ctx.stats));
-    lv_obj_clean(_ctx.list);
-    _run_decoder_registry_tests();
-    _run_src_type_tests();
-    _run_var_decoder_tests();
-    _run_custom_decoder_tests();
-    _run_player_tests();
-    _run_speaker_ops_tests();
-    _run_effects_tests();
-    _run_wav_decoder_tests();
-    char summary[128];
-    snprintf(summary, sizeof(summary), "ALL: %u/%u passed (%u failed)",
-             _ctx.stats.passed_tests, _ctx.stats.total_tests,
-             _ctx.stats.failed_tests);
-    _update_result(summary);
-}
-
-static eos_activity_lifecycle_t s_test_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = NULL,
-    .on_pause = NULL,
-    .on_resume = NULL,
-};
 
 void eos_test_audio_decoder_start(void)
 {
-    eos_activity_t *activity = eos_activity_create(&s_test_lifecycle);
-    if (!activity)
-        return;
-
-    lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view)
-        return;
-
-    eos_activity_set_title(activity, "Audio Decoder/Player");
-    eos_activity_set_type(activity, EOS_ACTIVITY_TYPE_APP);
-
-    /* Category menu */
-    lv_obj_t *cat_list = lv_list_create(view);
-    lv_obj_set_size(cat_list, lv_pct(100), lv_pct(45));
-    lv_obj_align(cat_list, LV_ALIGN_TOP_MID, 0, 0);
-
-    lv_obj_t *btn;
-
-    btn = lv_list_add_button(cat_list, NULL, "1. Decoder Registry");
-    lv_obj_add_event_cb(btn, _test_decoder_registry_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "2. Source Type Detection");
-    lv_obj_add_event_cb(btn, _test_src_type_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "3. VAR Decoder");
-    lv_obj_add_event_cb(btn, _test_var_decoder_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "4. Custom Decoder");
-    lv_obj_add_event_cb(btn, _test_custom_dec_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "5. Audio Player");
-    lv_obj_add_event_cb(btn, _test_player_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "6. Speaker OPS");
-    lv_obj_add_event_cb(btn, _test_speaker_ops_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "7. VAR Effects");
-    lv_obj_add_event_cb(btn, _test_effects_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "8. WAV Decoder");
-    lv_obj_add_event_cb(btn, _test_wav_decoder_cb, LV_EVENT_CLICKED, NULL);
-
-    btn = lv_list_add_button(cat_list, NULL, "Run ALL Tests");
-    lv_obj_add_event_cb(btn, _test_all_cb, LV_EVENT_CLICKED, NULL);
-
-    /* Results */
-    _ctx.list = lv_list_create(view);
-    lv_obj_set_size(_ctx.list, lv_pct(100), lv_pct(45));
-    lv_obj_align(_ctx.list, LV_ALIGN_BOTTOM_MID, 0, -30);
-
-    _ctx.result_label = lv_label_create(view);
-    lv_obj_align(_ctx.result_label, LV_ALIGN_BOTTOM_MID, 0, -5);
-    lv_label_set_text(_ctx.result_label, "Select a test category");
-
-    _ctx.container = view;
-
-    eos_crown_encoder_set_target_obj(cat_list);
-    eos_activity_enter(activity);
+    _register_all_tests();
+    eos_test_audio_page_start();
 }
 
 #endif /* EOS_ENABLE_TEST_APP */
