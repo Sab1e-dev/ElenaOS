@@ -30,7 +30,7 @@ extern "C" {
     #define EOS_WEAK __attribute__((weak))
 #elif defined(__ADSPBLACKFIN__) /* for VisualDSP++ Compiler */
     #define EOS_WEAK __attribute__((weak))
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) || defined(__MINGW32__)
     #define EOS_WEAK
 #elif defined(__TI_COMPILER_VERSION__)
     #define EOS_WEAK
