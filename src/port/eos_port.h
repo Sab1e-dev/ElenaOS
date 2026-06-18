@@ -26,7 +26,7 @@ extern "C" {
     #define EOS_WEAK __weak
 #elif defined(__IAR_SYSTEMS_ICC__) /* for IAR Compiler */
     #define EOS_WEAK __weak
-#elif defined(__GNUC__) /* GNU GCC Compiler */
+#elif defined(__GNUC__) && !defined(__MINGW32__) /* GNU GCC Compiler */
     #define EOS_WEAK __attribute__((weak))
 #elif defined(__ADSPBLACKFIN__) /* for VisualDSP++ Compiler */
     #define EOS_WEAK __attribute__((weak))
