@@ -14,8 +14,7 @@
 #include "eos_theme.h"
 #include "eos_service_config.h"
 #include "eos_port.h"
-#include "eos_watchface.h"
-#include "eos_port.h"
+#include "eos_service_audio.h"
 #include "eos_config.h"
 #include "eos_event.h"
 #include "eos_icon.h"
@@ -360,7 +359,7 @@ static void _control_center_volume_value_changed_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(label);
     // Get current Slider value
     int16_t value = lv_slider_get_value(slider);
-    eos_speaker_set_volume(value);
+    eos_service_audio_set_volume(value);
     lv_label_set_text(label, _control_center_volume_get_icon_by_value(value));
     if (lv_obj_has_state(cc->mute_btn, LV_STATE_CHECKED))
     {

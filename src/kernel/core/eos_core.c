@@ -43,6 +43,7 @@
 #include "eos_anim.h"
 #include "eos_control_center.h"
 #include "eos_chrome_manager.h"
+#include "eos_service_audio.h"
 #include "eos_service_storage.h"
 #include "eos_service_state.h"
 #include "eos_service_battery.h"
@@ -60,10 +61,12 @@
 #include "eos_service_storage.h"
 #define EOS_LOG_TAG "Core"
 #include "eos_log.h"
+
 /* Macros and Definitions -------------------------------------*/
 
 /* Variables --------------------------------------------------*/
 static bool _is_inited = false;
+
 /* Function Implementations -----------------------------------*/
 
 static const char *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
@@ -190,6 +193,7 @@ void eos_init(void)
     eos_control_center_init();
     eos_chrome_manager_init();
     eos_service_pm_init();
+    eos_service_audio_init();
     eos_service_lock_init();
 
     eos_activity_t *watchface_activity = eos_watchface_get_activity();

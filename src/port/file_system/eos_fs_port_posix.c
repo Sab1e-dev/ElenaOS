@@ -20,8 +20,34 @@
 #include "eos_port.h"
 #include "eos_log.h"
 /* Macros and Definitions -------------------------------------*/
+#define FS_PATH_BUF_SIZE 512
 
 /* Variables --------------------------------------------------*/
+
+/**
+ * @brief Resolve an EOS virtual path to the real filesystem path.
+ * On POSIX simulators this prefixes absolute paths with EOS_SYS_ROOT_DIR
+ * so that "/.sys/..." maps to "<fs-root>/.sys/...".
+ * Already-resolved paths (starting with EOS_SYS_ROOT_DIR) pass through.
+ */
+static const char *_fs_realpath(const char *path, char *buf, size_t bufsz)
+{
+    if (!path || !buf || bufsz == 0) return NULL;
+    if (path[0] != '/') {
+        snprintf(buf, bufsz, "%s", path);
+        return buf;
+    }
+    const char *sys_root = EOS_SYS_ROOT_DIR;
+    size_t root_len = strlen(sys_root);
+    while (root_len > 0 && sys_root[root_len - 1] == '/') root_len--;
+    if (strncmp(path, sys_root, root_len) == 0) {
+        /* Already resolved — pass through */
+        snprintf(buf, bufsz, "%s", path);
+        return buf;
+    }
+    snprintf(buf, bufsz, "%.*s%s", (int)root_len, sys_root, path);
+    return buf;
+}
 
 /* Function Implementations -----------------------------------*/
 
@@ -32,7 +58,8 @@ eos_file_t eos_fs_open_read(const char *path)
 {
     if (!path)
         return NULL;
-    return fopen(path, "rb");
+    char resolved[FS_PATH_BUF_SIZE];
+    return fopen(_fs_realpath(path, resolved, sizeof(resolved)), "rb");
 }
 
 /* Open file write-only (create if not exist, overwrite if exist) */
@@ -40,7 +67,8 @@ eos_file_t eos_fs_open_write(const char *path)
 {
     if (!path)
         return NULL;
-    return fopen(path, "wb");
+    char resolved[FS_PATH_BUF_SIZE];
+    return fopen(_fs_realpath(path, resolved, sizeof(resolved)), "wb");
 }
 
 /* Read file data */
@@ -115,10 +143,13 @@ int eos_fs_mkdir(const char *path)
 {
     if (!path)
         return -1;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return -1;
 #ifdef _WIN32
-    return mkdir(path) == 0 ? 0 : -1;
+    return mkdir(rp) == 0 ? 0 : -1;
 #else
-    return mkdir(path, 0755) == 0 ? 0 : -1;
+    return mkdir(rp, 0755) == 0 ? 0 : -1;
 #endif
 }
 
@@ -127,7 +158,10 @@ int eos_fs_rmdir(const char *path)
 {
     if (!path)
         return -1;
-    return rmdir(path) == 0 ? 0 : -1;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return -1;
+    return rmdir(rp) == 0 ? 0 : -1;
 }
 
 /* Remove file */
@@ -135,7 +169,10 @@ int eos_fs_remove(const char *path)
 {
     if (!path)
         return -1;
-    return remove(path) == 0 ? 0 : -1;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return -1;
+    return remove(rp) == 0 ? 0 : -1;
 }
 
 /* Check if file or directory exists */
@@ -143,14 +180,20 @@ int eos_fs_exists(const char *path)
 {
     if (!path)
         return 0;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return 0;
     struct stat st;
-    return stat(path, &st) == 0 ? 1 : 0;
+    return stat(rp, &st) == 0 ? 1 : 0;
 }
 
 int eos_fs_type(const char *path)
 {
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return EOS_FS_TYPE_NOT_EXIST;
     struct stat st;
-    if (stat(path, &st) != 0)
+    if (stat(rp, &st) != 0)
         return EOS_FS_TYPE_NOT_EXIST;
     if (S_ISDIR(st.st_mode))
         return EOS_FS_TYPE_DIR;
@@ -159,7 +202,11 @@ int eos_fs_type(const char *path)
 
 eos_dir_t eos_fs_opendir(const char *path)
 {
-    return opendir(path);
+    if (!path) return NULL;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = _fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp) return NULL;
+    return opendir(rp);
 }
 
 int eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
@@ -186,7 +233,12 @@ void eos_fs_closedir(eos_dir_t dir)
 
 int eos_fs_mv(const char *old_path, const char *new_path)
 {
-    if (rename(old_path, new_path) != 0)
+    if (!old_path || !new_path) return -1;
+    char old_r[FS_PATH_BUF_SIZE], new_r[FS_PATH_BUF_SIZE];
+    const char *op = _fs_realpath(old_path, old_r, sizeof(old_r));
+    const char *np = _fs_realpath(new_path, new_r, sizeof(new_r));
+    if (!op || !np) return -1;
+    if (rename(op, np) != 0)
     {
         perror("rename failed");
         return -1;

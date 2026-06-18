@@ -18,7 +18,6 @@
 #include "eos_image.h"
 #include "eos_msg_list.h"
 #include "eos_lang.h"
-#define EOS_LOG_TAG "Test"
 #include "eos_log.h"
 #include "eos_basic_widgets.h"
 #include "eos_std_widgets.h"
@@ -44,6 +43,12 @@
 #include "package/eos_test_package.h"
 #include "input/eos_test_input_page.h"
 #include "permission/eos_test_permission.h"
+#include "eos_test_audio.h"
+#include "eos_test_audio_decoder.h"
+#include "eos_test_audio_effects.h"
+#include "eos_service_audio.h"
+#include "eos_audio_player.h"
+#include "eos_dev_speaker.h"
 #include "eos_crown.h"
 #include "eos_app_header.h"
 #include "eos_service_storage.h"
@@ -54,6 +59,7 @@
 #include "eos_fault_panel.h"
 
 /* Macros and Definitions -------------------------------------*/
+#define EOS_LOG_TAG "Test"
 // #define TEST_USE_ZH_FONT
 #ifdef TEST_USE_ZH_FONT
 LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
@@ -87,8 +93,25 @@ typedef struct
     lv_obj_t *status_label;
     lv_obj_t *play_btn;
     lv_obj_t *play_btn_label;
+    lv_obj_t *pause_btn;
+    lv_obj_t *stop_btn;
+    lv_obj_t *progress_slider;
+    lv_obj_t *time_label;
+    lv_obj_t *volume_slider;
+    lv_obj_t *volume_label;
     lv_timer_t *state_timer;
 } test_audio_page_ctx_t;
+
+typedef struct
+{
+    lv_obj_t *screen;
+    lv_obj_t *status_label;
+    lv_obj_t *record_btn;
+    lv_obj_t *record_btn_label;
+    lv_obj_t *playback_btn;
+    lv_timer_t *state_timer;
+    bool is_recording;
+} test_recording_page_ctx_t;
 
 // All LVGL built-in symbols
 static const symbol_t lv_symbols[] = {
@@ -157,6 +180,7 @@ static const symbol_t lv_symbols[] = {
 
 static test_app_debug_ctx_t s_test_app_debug = {0};
 static test_audio_page_ctx_t s_test_audio_page = {0};
+static test_recording_page_ctx_t s_test_recording_page = {0};
 static lv_coord_t s_debug_bar_global_x = 0;
 static lv_coord_t s_debug_bar_global_y = 0;
 static bool s_debug_bar_global_pos_valid = false;
@@ -954,59 +978,7 @@ static void _test_lang(lv_event_t *e)
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -20);
 }
 
-static void _test_vkb_event_cb(lv_event_t *e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *ta = lv_event_get_target(e);
-    lv_obj_t *kb = lv_event_get_user_data(e);
 
-    if (code == LV_EVENT_FOCUSED)
-    {
-        if (lv_indev_get_type(lv_indev_active()) != LV_INDEV_TYPE_KEYPAD)
-        {
-            lv_keyboard_set_textarea(kb, ta);
-            lv_obj_remove_flag(kb, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
-    else if (code == LV_EVENT_CANCEL)
-    {
-        lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_state(ta, LV_STATE_FOCUSED);
-        lv_indev_reset(NULL, ta); /*To forget the last clicked object to make it focusable again*/
-    }
-}
-
-static void _test_vkb(lv_event_t *e)
-{
-    _create_new_scr();
-    lv_obj_t *pinyin_ime = lv_ime_pinyin_create(eos_view_active());
-#ifdef TEST_USE_ZH_FONT
-    lv_obj_set_style_text_font(pinyin_ime, &eos_font_resource_han_rounded_30, 0);
-#endif
-    // lv_ime_pinyin_set_dict(pinyin_ime, your_dict); // Use a custom dictionary. If it is not set, the built-in dictionary will be used.
-
-    /* ta1 */
-    lv_obj_t *ta1 = lv_textarea_create(eos_view_active());
-    lv_textarea_set_one_line(ta1, true);
-#ifdef TEST_USE_ZH_FONT
-    lv_obj_set_style_text_font(ta1, &eos_font_resource_han_rounded_30, 0);
-#endif
-    lv_obj_align(ta1, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_set_width(ta1, lv_pct(100));
-
-    /*Create a keyboard and add it to ime_pinyin*/
-    lv_obj_t *kb = lv_keyboard_create(eos_view_active());
-
-    lv_ime_pinyin_set_keyboard(pinyin_ime, kb);
-    lv_keyboard_set_textarea(kb, ta1);
-
-    lv_obj_add_event_cb(ta1, _test_vkb_event_cb, LV_EVENT_ALL, kb);
-
-    /*Get the cand_panel, and adjust its size and position*/
-    lv_obj_t *cand_panel = lv_ime_pinyin_get_cand_panel(pinyin_ime);
-    lv_obj_set_size(cand_panel, LV_PCT(100), LV_PCT(10));
-    lv_obj_align_to(cand_panel, kb, LV_ALIGN_OUT_TOP_MID, 0, 0);
-}
 
 static void _test_image_input_cb(lv_event_t *e)
 {
@@ -1336,62 +1308,92 @@ static const char *_test_audio_resolve_path(void)
     return s_test_audio_primary_path;
 }
 
-static void _test_audio_update_button_style(bool is_playing)
-{
-    if (!(s_test_audio_page.play_btn && lv_obj_is_valid(s_test_audio_page.play_btn)))
-    {
-        return;
-    }
-
-    lv_color_t bg = is_playing ? lv_color_hex(0xD84F4F) : lv_color_hex(0x2F80ED);
-    lv_obj_set_style_bg_color(s_test_audio_page.play_btn, bg, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(s_test_audio_page.play_btn, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_text_color(s_test_audio_page.play_btn, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-}
-
 static void _test_audio_sync_ui(void)
 {
-    if (!(s_test_audio_page.status_label && lv_obj_is_valid(s_test_audio_page.status_label)))
-    {
+    test_audio_page_ctx_t *ctx = &s_test_audio_page;
+    if (!(ctx->status_label && lv_obj_is_valid(ctx->status_label)))
         return;
-    }
 
-    eos_audio_state_t state = eos_audio_get_state();
+    bool spk_avail = eos_service_audio_speaker_available();
+    bool mic_avail = eos_service_audio_microphone_available();
+    eos_dev_state_t state = eos_dev_speaker_get_state();
     const char *path = _test_audio_resolve_path();
-    const char *status_text = "Audio status: unknown";
-    bool is_playing = false;
 
+    const char *status_text;
     switch (state)
     {
-    case EOS_AUDIO_STATE_READY:
+    case DEV_STATE_BUSY:
+        status_text = "Audio status: playing";
+        break;
+    case DEV_STATE_READY:
         status_text = "Audio status: ready";
         break;
-    case EOS_AUDIO_STATE_BUSY:
-        status_text = "Audio status: playing";
-        is_playing = true;
-        break;
-    case EOS_AUDIO_STATE_ERROR:
-        status_text = "Audio status: error";
-        break;
-    case EOS_AUDIO_STATE_UNAVAILABLE:
     default:
-        status_text = "Audio status: unavailable";
+        status_text = "Audio status: idle";
         break;
     }
 
-    lv_label_set_text_fmt(s_test_audio_page.status_label,
+    lv_label_set_text_fmt(ctx->status_label,
                           "%s\nSpeaker: %s  Mic: %s\nFile: %s",
                           status_text,
-                          eos_speaker_detect() ? "yes" : "no",
-                          eos_microphone_detect() ? "yes" : "no",
+                          spk_avail ? "yes" : "no",
+                          mic_avail ? "yes" : "no",
                           path);
 
-    if (s_test_audio_page.play_btn_label && lv_obj_is_valid(s_test_audio_page.play_btn_label))
+    eos_audio_player_t *player = eos_service_audio_get_player();
+
+    if (ctx->play_btn_label && lv_obj_is_valid(ctx->play_btn_label))
     {
-        lv_label_set_text(s_test_audio_page.play_btn_label,
-                          is_playing ? (LV_SYMBOL_STOP " Stop") : (LV_SYMBOL_PLAY " Play music"));
+        eos_audio_player_state_t p_state = eos_audio_player_get_state(player);
+        uint32_t check_dur = eos_audio_player_get_duration(player);
+
+        /* Defensive: if state claims PLAYING but no decoder is open,
+         * treat as IDLE (stale state from incomplete teardown). */
+        if (p_state == EOS_AUDIO_PLAYING && check_dur == 0)
+        {
+            p_state = EOS_AUDIO_IDLE;
+        }
+
+        lv_label_set_text(ctx->play_btn_label,
+                          (p_state == EOS_AUDIO_PLAYING)
+                              ? (LV_SYMBOL_PAUSE " Pause")
+                              : (LV_SYMBOL_PLAY " Play"));
     }
-    _test_audio_update_button_style(is_playing);
+
+    uint32_t pos = eos_audio_player_get_position(player);
+    uint32_t dur = eos_audio_player_get_duration(player);
+    uint32_t rate = eos_audio_player_get_sample_rate(player);
+
+    if (ctx->progress_slider && lv_obj_is_valid(ctx->progress_slider))
+    {
+        if (dur > 0 && rate > 0)
+        {
+            lv_slider_set_range(ctx->progress_slider, 0, (int32_t)dur);
+            lv_slider_set_value(ctx->progress_slider, (int32_t)pos, LV_ANIM_OFF);
+            lv_obj_remove_flag(ctx->progress_slider, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(ctx->progress_slider, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    if (ctx->time_label && lv_obj_is_valid(ctx->time_label))
+    {
+        if (dur > 0 && rate > 0)
+        {
+            uint32_t pos_sec = pos / rate;
+            uint32_t dur_sec = dur / rate;
+            lv_label_set_text_fmt(ctx->time_label, "%u:%02u / %u:%02u",
+                                  pos_sec / 60, pos_sec % 60,
+                                  dur_sec / 60, dur_sec % 60);
+            lv_obj_remove_flag(ctx->time_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(ctx->time_label, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 }
 
 static void _test_audio_state_timer_cb(lv_timer_t *t)
@@ -1400,48 +1402,75 @@ static void _test_audio_state_timer_cb(lv_timer_t *t)
     _test_audio_sync_ui();
 }
 
+static void _test_audio_seek_cb(lv_event_t *e)
+{
+    lv_obj_t *slider = lv_event_get_target(e);
+    int32_t sample = lv_slider_get_value(slider);
+    eos_audio_player_t *player = eos_service_audio_get_player();
+    eos_audio_player_seek(player, (uint32_t)sample);
+}
+
+static void _test_audio_volume_cb(lv_event_t *e)
+{
+    lv_obj_t *slider = lv_event_get_target(e);
+    uint8_t vol = (uint8_t)lv_slider_get_value(slider);
+    eos_service_audio_set_volume(vol);
+    if (s_test_audio_page.volume_label && lv_obj_is_valid(s_test_audio_page.volume_label))
+    {
+        lv_label_set_text_fmt(s_test_audio_page.volume_label, "Volume: %u%%", vol);
+    }
+}
+
 static void _test_audio_button_cb(lv_event_t *e)
 {
     LV_UNUSED(e);
+    eos_audio_player_t *player = eos_service_audio_get_player();
+    eos_audio_player_state_t p_state = eos_audio_player_get_state(player);
 
-    eos_audio_state_t state = eos_audio_get_state();
-    if (state == EOS_AUDIO_STATE_BUSY)
+    if (p_state == EOS_AUDIO_PLAYING)
     {
-        int ret = eos_audio_stop();
-        if (ret != 0)
+        eos_service_audio_pause();
+        eos_toast_show(NULL, "Paused");
+    }
+    else if (p_state == EOS_AUDIO_PAUSED)
+    {
+        eos_service_audio_resume();
+        eos_toast_show(NULL, "Resumed");
+    }
+    else
+    {
+        if (!eos_service_audio_speaker_available())
         {
-            eos_toast_show(NULL, "Stop audio failed");
+            eos_toast_show(NULL, "Speaker unavailable");
+            return;
         }
-        _test_audio_sync_ui();
-        return;
+        const char *path = _test_audio_resolve_path();
+        if (!eos_storage_is_file(path))
+        {
+            eos_toast_show(NULL, "File not found");
+            return;
+        }
+        eos_result_t ret = eos_service_audio_play(path);
+        if (ret != EOS_OK)
+            eos_toast_show(NULL, "Play failed");
+        else
+            eos_toast_show(NULL, "Playing...");
     }
+    _test_audio_sync_ui();
+}
 
-    if (!eos_speaker_detect())
-    {
-        eos_toast_show(NULL, "Speaker unavailable");
-        _test_audio_sync_ui();
-        return;
-    }
-
-    const char *path = _test_audio_resolve_path();
-    if (!eos_storage_is_file(path))
-    {
-        eos_toast_show(NULL, "Audio file not found: fs/music.mp3");
-        _test_audio_sync_ui();
-        return;
-    }
-
-    int ret = eos_audio_play_file(path);
-    if (ret != 0)
-    {
-        eos_toast_show(NULL, "Play audio failed");
-    }
+static void _test_audio_stop_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    eos_service_audio_stop();
     _test_audio_sync_ui();
 }
 
 static void _test_audio_page_delete_cb(lv_event_t *e)
 {
     LV_UNUSED(e);
+
+    eos_service_audio_stop();
 
     if (s_test_audio_page.state_timer)
     {
@@ -1453,11 +1482,13 @@ static void _test_audio_page_delete_cb(lv_event_t *e)
 static void _test_audio_page(lv_event_t *e)
 {
     lv_obj_t *scr = _create_new_scr();
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     memset(&s_test_audio_page, 0, sizeof(s_test_audio_page));
     s_test_audio_page.screen = scr;
 
     lv_obj_t *list = eos_list_create(scr);
     lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+    lv_obj_set_scroll_dir(list, LV_DIR_VER);
     lv_obj_set_style_pad_all(list, 16, 0);
     lv_obj_set_style_pad_row(list, 14, 0);
 
@@ -1466,7 +1497,7 @@ static void _test_audio_page(lv_event_t *e)
     eos_label_set_font_size(title, EOS_FONT_SIZE_LARGE);
 
     lv_obj_t *hint = lv_label_create(list);
-    lv_label_set_text(hint, "Tap button to play/stop fs/music.mp3");
+    lv_label_set_text(hint, "Play/Pause/Stop fs/music.mp3");
     lv_obj_set_style_text_color(hint, lv_color_hex(0xA0A0A0), LV_PART_MAIN);
 
     s_test_audio_page.play_btn = lv_button_create(list);
@@ -1474,16 +1505,203 @@ static void _test_audio_page(lv_event_t *e)
     lv_obj_add_event_cb(s_test_audio_page.play_btn, _test_audio_button_cb, LV_EVENT_CLICKED, NULL);
 
     s_test_audio_page.play_btn_label = lv_label_create(s_test_audio_page.play_btn);
-    lv_label_set_text(s_test_audio_page.play_btn_label, LV_SYMBOL_PLAY " Play music");
+    lv_label_set_text(s_test_audio_page.play_btn_label, LV_SYMBOL_PLAY " Play");
     lv_obj_center(s_test_audio_page.play_btn_label);
+
+    s_test_audio_page.progress_slider = lv_slider_create(list);
+    lv_obj_set_size(s_test_audio_page.progress_slider, lv_pct(100), 20);
+    lv_slider_set_range(s_test_audio_page.progress_slider, 0, 100);
+    lv_obj_set_style_pad_all(s_test_audio_page.progress_slider, 8, LV_PART_KNOB);
+    lv_obj_set_style_bg_opa(s_test_audio_page.progress_slider, LV_OPA_COVER, LV_PART_KNOB);
+    lv_obj_add_flag(s_test_audio_page.progress_slider, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(s_test_audio_page.progress_slider, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_add_event_cb(s_test_audio_page.progress_slider, _test_audio_seek_cb, LV_EVENT_RELEASED, NULL);
+
+    s_test_audio_page.time_label = lv_label_create(list);
+    lv_obj_add_flag(s_test_audio_page.time_label, LV_OBJ_FLAG_HIDDEN);
+
+    s_test_audio_page.volume_slider = lv_slider_create(list);
+    lv_obj_set_size(s_test_audio_page.volume_slider, lv_pct(70), 20);
+    lv_slider_set_range(s_test_audio_page.volume_slider, 0, 100);
+    lv_slider_set_value(s_test_audio_page.volume_slider, eos_service_audio_get_volume(), LV_ANIM_OFF);
+    lv_obj_add_event_cb(s_test_audio_page.volume_slider, _test_audio_volume_cb, LV_EVENT_RELEASED, NULL);
+
+    s_test_audio_page.volume_label = lv_label_create(list);
+    lv_label_set_text_fmt(s_test_audio_page.volume_label, "Volume: %u%%", eos_service_audio_get_volume());
+
+    s_test_audio_page.stop_btn = lv_button_create(list);
+    lv_obj_set_size(s_test_audio_page.stop_btn, lv_pct(100), 40);
+    lv_obj_set_style_bg_color(s_test_audio_page.stop_btn, lv_color_hex(0xD84F4F), LV_PART_MAIN);
+    lv_obj_add_event_cb(s_test_audio_page.stop_btn, _test_audio_stop_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *stop_label = lv_label_create(s_test_audio_page.stop_btn);
+    lv_label_set_text(stop_label, LV_SYMBOL_STOP " Stop");
+    lv_obj_set_style_text_color(stop_label, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_center(stop_label);
 
     s_test_audio_page.status_label = lv_label_create(list);
     lv_obj_set_width(s_test_audio_page.status_label, lv_pct(100));
     lv_label_set_long_mode(s_test_audio_page.status_label, LV_LABEL_LONG_WRAP);
 
     lv_obj_add_event_cb(scr, _test_audio_page_delete_cb, LV_EVENT_DELETE, NULL);
-    s_test_audio_page.state_timer = lv_timer_create(_test_audio_state_timer_cb, 300, NULL);
+    s_test_audio_page.state_timer = lv_timer_create(_test_audio_state_timer_cb, 200, NULL);
     _test_audio_sync_ui();
+}
+
+#define RECORDING_PATH "/.sys/recording.wav"
+
+static void _test_recording_sync_ui(void)
+{
+    test_recording_page_ctx_t *ctx = &s_test_recording_page;
+    if (!(ctx->status_label && lv_obj_is_valid(ctx->status_label)))
+        return;
+
+    bool mic_avail = eos_service_audio_microphone_available();
+    const char *status = ctx->is_recording ? "Recording..." : "Idle";
+
+    lv_label_set_text_fmt(ctx->status_label,
+                          "%s\nMic: %s\nFile: %s",
+                          status,
+                          mic_avail ? "yes" : "no",
+                          RECORDING_PATH);
+
+    if (ctx->record_btn_label && lv_obj_is_valid(ctx->record_btn_label))
+    {
+        lv_label_set_text(ctx->record_btn_label,
+                          ctx->is_recording ? (LV_SYMBOL_STOP " Stop") : (RI_RECORD_CIRCLE_FILL " Record"));
+    }
+}
+
+static void _test_recording_timer_cb(lv_timer_t *t)
+{
+    LV_UNUSED(t);
+    _test_recording_sync_ui();
+}
+
+static void _test_recording_record_btn_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    test_recording_page_ctx_t *ctx = &s_test_recording_page;
+
+    if (!eos_service_audio_microphone_available())
+    {
+        eos_toast_show(NULL, "Microphone unavailable");
+        return;
+    }
+
+    if (ctx->is_recording)
+    {
+        eos_service_audio_stop_recording();
+        ctx->is_recording = false;
+        eos_toast_show(NULL, "Recording stopped");
+    }
+    else
+    {
+        eos_result_t ret = eos_service_audio_start_recording(RECORDING_PATH);
+        if (ret != EOS_OK)
+        {
+            eos_toast_show(NULL, "Start recording failed");
+        }
+        else
+        {
+            ctx->is_recording = true;
+            eos_toast_show(NULL, "Recording...");
+        }
+    }
+    _test_recording_sync_ui();
+}
+
+static void _test_recording_playback_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+
+    if (s_test_recording_page.is_recording)
+    {
+        eos_toast_show(NULL, "Stop recording first");
+        return;
+    }
+
+    if (!eos_storage_is_file(RECORDING_PATH))
+    {
+        eos_toast_show(NULL, "No recording yet");
+        return;
+    }
+
+    eos_result_t ret = eos_service_audio_play(RECORDING_PATH);
+    if (ret != EOS_OK)
+    {
+        eos_toast_show(NULL, "Playback failed");
+    }
+}
+
+static void _test_recording_page_delete_cb(lv_event_t *e)
+{
+    LV_UNUSED(e);
+    test_recording_page_ctx_t *ctx = &s_test_recording_page;
+
+    if (ctx->is_recording)
+    {
+        eos_service_audio_stop_recording();
+        ctx->is_recording = false;
+    }
+    if (ctx->state_timer)
+    {
+        lv_timer_delete(ctx->state_timer);
+    }
+    memset(ctx, 0, sizeof(*ctx));
+}
+
+static void _test_recording_page(lv_event_t *e)
+{
+    lv_obj_t *scr = _create_new_scr();
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+    memset(&s_test_recording_page, 0, sizeof(s_test_recording_page));
+    s_test_recording_page.screen = scr;
+
+    lv_obj_t *list = eos_list_create(scr);
+    lv_obj_set_size(list, lv_pct(100), lv_pct(100));
+    lv_obj_set_scroll_dir(list, LV_DIR_VER);
+    lv_obj_set_style_pad_all(list, 16, 0);
+    lv_obj_set_style_pad_row(list, 14, 0);
+
+    lv_obj_t *title = lv_label_create(list);
+    lv_label_set_text(title, LV_SYMBOL_AUDIO " Recording");
+    eos_label_set_font_size(title, EOS_FONT_SIZE_LARGE);
+
+    lv_obj_t *hint = lv_label_create(list);
+    lv_label_set_text(hint, "Tap Record to start/stop, Play to listen");
+    lv_obj_set_style_text_color(hint, lv_color_hex(0xA0A0A0), LV_PART_MAIN);
+
+    /* Record button */
+    s_test_recording_page.record_btn = lv_button_create(list);
+    lv_obj_set_size(s_test_recording_page.record_btn, lv_pct(100), 56);
+    lv_obj_add_event_cb(s_test_recording_page.record_btn,
+                        _test_recording_record_btn_cb, LV_EVENT_CLICKED, NULL);
+
+    s_test_recording_page.record_btn_label = lv_label_create(s_test_recording_page.record_btn);
+    lv_label_set_text(s_test_recording_page.record_btn_label, RI_RECORD_CIRCLE_FILL " Record");
+    lv_obj_center(s_test_recording_page.record_btn_label);
+
+    /* Playback button */
+    s_test_recording_page.playback_btn = lv_button_create(list);
+    lv_obj_set_size(s_test_recording_page.playback_btn, lv_pct(100), 56);
+    lv_obj_add_event_cb(s_test_recording_page.playback_btn,
+                        _test_recording_playback_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_style_bg_color(s_test_recording_page.playback_btn,
+                               lv_color_hex(0x2F80ED), LV_PART_MAIN);
+
+    lv_obj_t *play_label = lv_label_create(s_test_recording_page.playback_btn);
+    lv_label_set_text(play_label, LV_SYMBOL_PLAY " Play Recording");
+    lv_obj_center(play_label);
+
+    /* Status label */
+    s_test_recording_page.status_label = lv_label_create(list);
+    lv_obj_set_width(s_test_recording_page.status_label, lv_pct(100));
+    lv_label_set_long_mode(s_test_recording_page.status_label, LV_LABEL_LONG_WRAP);
+
+    lv_obj_add_event_cb(scr, _test_recording_page_delete_cb, LV_EVENT_DELETE, NULL);
+    s_test_recording_page.state_timer = lv_timer_create(_test_recording_timer_cb, 300, NULL);
+    _test_recording_sync_ui();
 }
 
 static void _test_show_all_lv_symbols_list(lv_event_t *e)
@@ -1839,6 +2057,24 @@ static void _test_permission_cb(lv_event_t *e)
     eos_test_permission_start();
 }
 
+static void _test_audio_cb(lv_event_t *e)
+{
+    (void)e;
+    eos_test_audio_start();
+}
+
+static void _test_audio_decoder_cb(lv_event_t *e)
+{
+    (void)e;
+    eos_test_audio_decoder_start();
+}
+
+static void _test_audio_effects_cb(lv_event_t *e)
+{
+    (void)e;
+    eos_test_audio_effects_start();
+}
+
 /* Uncomment one of the following to test different apps: */
 #define SPM_STRESS_TEST_APP_ID  "com.elenixos.test"
 /* #define SPM_STRESS_TEST_APP_ID  "com.elenixos.empty_test" */
@@ -2048,79 +2284,88 @@ void eos_test_start(void)
     lv_obj_t *btn;
     lv_obj_t *label = lv_list_add_text(test_list, RI_ELENIX_WATCH " ElenixOS Test List");
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-    // 测试 SPM 内存泄漏 (重复启停应用)
+    // Test SPM stress (Memory Leak)
     btn = lv_list_add_button(test_list, LV_SYMBOL_REFRESH, "SPM Stress Test (Memory Leak)");
     lv_obj_add_event_cb(btn, _test_spm_stress_cb, LV_EVENT_CLICKED, NULL);
-    // 测试应用调试器
+    // App Debugger
     btn = lv_list_add_button(test_list, RI_BUG_LINE, "App Debugger");
     lv_obj_add_event_cb(btn, _test_app_debug_page, LV_EVENT_CLICKED, NULL);
-    // 传感器测试
+    // Sensor Tester
     btn = lv_list_add_button(test_list, RI_SENSOR_LINE, "SensorTester");
     lv_obj_add_event_cb(btn, _test_sensor, LV_EVENT_CLICKED, NULL);
-    // 传感器重构测试
+    // Sensor Refactor Test
     btn = lv_list_add_button(test_list, RI_SENSOR_LINE, "Sensor Refactor Test");
     lv_obj_add_event_cb(btn, _test_sensor_refactor_cb, LV_EVENT_CLICKED, NULL);
-    // 传感器图表测试
+    // Sensor Chart Test
     btn = lv_list_add_button(test_list, RI_SENSOR_LINE, "Sensor Chart");
     lv_obj_add_event_cb(btn, _test_sensor_chart_cb, LV_EVENT_CLICKED, NULL);
-    // 多传感器状态图表
+    // Multi-Sensor Status Chart
     btn = lv_list_add_button(test_list, RI_SENSOR_LINE, "Multi-Sensor Status");
     lv_obj_add_event_cb(btn, _test_sensor_multi_chart_cb, LV_EVENT_CLICKED, NULL);
-    // 事件系统测试
+    // Event System Test
     btn = lv_list_add_button(test_list, RI_BUG_LINE, "Event System Test");
     lv_obj_add_event_cb(btn, _test_event_cb, LV_EVENT_CLICKED, NULL);
-    // 输入页面测试
+    // Input Page Test
     btn = lv_list_add_button(test_list, RI_KEYBOARD_BOX_FILL, "Input Page Test");
     lv_obj_add_event_cb(btn, _test_input_page_cb, LV_EVENT_CLICKED, NULL);
-    // 电池历史图表测试
+    // Battery History Chart Test
     btn = lv_list_add_button(test_list, RI_BATTERY_FILL, "Battery History");
     lv_obj_add_event_cb(btn, _test_battery_history_cb, LV_EVENT_CLICKED, NULL);
-    // 插件安装测试
+    // Package Installer Test
     btn = lv_list_add_button(test_list, LV_SYMBOL_FILE, "Package Installer");
     lv_obj_add_event_cb(btn, _test_package_cb, LV_EVENT_CLICKED, NULL);
-    // 权限系统测试
+    // Permission System Test
     btn = lv_list_add_button(test_list, RI_SHIELD_CHECK_LINE, "Permission System");
     lv_obj_add_event_cb(btn, _test_permission_cb, LV_EVENT_CLICKED, NULL);
-    // 音频播放测试
+    // Audio Subsystem Test
+    btn = lv_list_add_button(test_list, RI_VOLUME_UP_FILL, "Audio Subsystem");
+    lv_obj_add_event_cb(btn, _test_audio_cb, LV_EVENT_CLICKED, NULL);
+    // Audio Decoder/Player Unit Test
+    btn = lv_list_add_button(test_list, LV_SYMBOL_FILE, "Audio Decoder/Player Tests");
+    lv_obj_add_event_cb(btn, _test_audio_decoder_cb, LV_EVENT_CLICKED, NULL);
+    // VAR Effects Selection
+    btn = lv_list_add_button(test_list, LV_SYMBOL_PLAY, "VAR Effects");
+    lv_obj_add_event_cb(btn, _test_audio_effects_cb, LV_EVENT_CLICKED, NULL);
+    // Audio Playback Test
     btn = lv_list_add_button(test_list, LV_SYMBOL_AUDIO, "Audio Playback");
     lv_obj_add_event_cb(btn, _test_audio_page, LV_EVENT_CLICKED, NULL);
-    // 测试滑动组件
+    // Recording Test
+    btn = lv_list_add_button(test_list, RI_RECORD_CIRCLE_FILL, "Recording");
+    lv_obj_add_event_cb(btn, _test_recording_page, LV_EVENT_CLICKED, NULL);
+    // Slide Widget Test
     btn = lv_list_add_button(test_list, RI_CAROUSEL_VIEW, "Slide Widget");
     lv_obj_add_event_cb(btn, _test_slide_widget, LV_EVENT_CLICKED, NULL);
-    // 测试导航功能
+    // Navigation Test
     btn = lv_list_add_button(test_list, RI_MENU_UNFOLD_FILL, "Navigation");
     lv_obj_add_event_cb(btn, _test_nav_cb_1, LV_EVENT_CLICKED, NULL);
-    // 测试消息列表
+    // Message List Test
     btn = lv_list_add_button(test_list, RI_CHAT_SMILE_FILL, "Message List");
     lv_obj_add_event_cb(btn, _test_msg_list, LV_EVENT_CLICKED, NULL);
-    // 测试字体
+    // Font Test
     btn = lv_list_add_button(test_list, RI_FONT_SANS_SERIF, "Font");
     lv_obj_add_event_cb(btn, _test_font, LV_EVENT_CLICKED, NULL);
-    // 测试字号
+    // Font Size Test
     btn = lv_list_add_button(test_list, RI_FONT_SIZE, "Font Size");
     lv_obj_add_event_cb(btn, _test_font_size, LV_EVENT_CLICKED, NULL);
-    // 测试语言切换
+    // Language Switch Test
     btn = lv_list_add_button(test_list, RI_TRANSLATE, "Language");
     lv_obj_add_event_cb(btn, _test_lang, LV_EVENT_CLICKED, NULL);
-    // 测试虚拟键盘
-    btn = lv_list_add_button(test_list, RI_KEYBOARD_BOX_FILL, "Virtual Keyboard");
-    lv_obj_add_event_cb(btn, _test_vkb, LV_EVENT_CLICKED, NULL);
-    // 测试图像显示
+    // Image Test
     btn = lv_list_add_button(test_list, RI_IMAGE_FILL, "Image");
     lv_obj_add_event_cb(btn, _test_image, LV_EVENT_CLICKED, NULL);
-    // 测试应用列表
+    // App List Test
     btn = lv_list_add_button(test_list, RI_APPS_FILL, "App List");
     lv_obj_add_event_cb(btn, _test_app_list, LV_EVENT_CLICKED, NULL);
-    // 测试表盘列表
+    // Watchface List Test
     btn = lv_list_add_button(test_list, RI_APPS_FILL, "Watchface List");
     lv_obj_add_event_cb(btn, _test_watchface_list, LV_EVENT_CLICKED, NULL);
-    // 测试 Toast
+    // Toast Test
     btn = lv_list_add_button(test_list, RI_MESSAGE_2_FILL, "Toast");
     lv_obj_add_event_cb(btn, _test_toast, LV_EVENT_CLICKED, NULL);
-    // 测试 Panel
+    // Panel Test
     btn = lv_list_add_button(test_list, RI_WINDOW_LINE, "Panel");
     lv_obj_add_event_cb(btn, _test_panel_list, LV_EVENT_CLICKED, NULL);
-    // 测试 LVGL 默认符号
+    // LVGL Symbols Test
     btn = lv_list_add_button(test_list, RI_OMEGA, "LVGL Symbols");
     lv_obj_add_event_cb(btn, _test_show_all_lv_symbols_list, LV_EVENT_CLICKED, NULL);
 

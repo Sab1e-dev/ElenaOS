@@ -191,7 +191,7 @@ extern "C"
 
 #if EOS_FONT_TYPE == EOS_FONT_C_MULTI
 
-#define EOS_ENABLE_CHINESE_FONT 0
+#define EOS_ENABLE_CHINESE_FONT 1
 
 #if EOS_ENABLE_CHINESE_FONT
 
@@ -280,11 +280,6 @@ extern "C"
 #define EOS_LVGL_FS_LETTER 'Z'
 
 #define EOS_DFW_ENABLE 0        /**< Whether to enable delayed file writer */
-
-/************************** Volume configuration **************************/
-
-#define EOS_SPEAKER_VOLUME_MIN 0
-#define EOS_SPEAKER_VOLUME_MAX 100
 
 /************************** Language configuration **************************/
 

@@ -111,7 +111,6 @@ bool eos_cqueue_enqueue(eos_cqueue_t *cq, void *data)
     cq->buffer[cq->tail] = data;
     cq->tail = (cq->tail + 1) % cq->capacity;
     cq->size++;
-    EOS_LOG_I("Enqueue data[%p]", data);
     return true;
 }
 
@@ -126,7 +125,6 @@ void *eos_cqueue_dequeue(eos_cqueue_t *cq)
 #if _SHRINK_ENABLE
     _cqueue_shrink(cq);
 #endif /* _SHRINK_ENABLE */
-    EOS_LOG_I("Dequeue data[%p]", tmp_data);
     return tmp_data;
 }
 

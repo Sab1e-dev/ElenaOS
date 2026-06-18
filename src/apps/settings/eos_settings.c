@@ -30,6 +30,7 @@
 #include "eos_config.h"
 #include "eos_icon.h"
 #include "eos_service_display.h"
+#include "eos_service_audio.h"
 #include "eos_toast.h"
 #include "eos_service_storage.h"
 #include "eos_service_pm.h"
@@ -61,15 +62,12 @@
 
 void eos_settings_slient_mode_on(void)
 {
-    eos_speaker_set_volume(0);
-    eos_config_set_bool(EOS_CONFIG_KEY_MUTE_BOOL, true);
+    eos_service_audio_set_mute(true);
 }
 
 void eos_settings_slient_mode_off(void)
 {
-    uint8_t volume = eos_config_get_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, 20);
-    eos_speaker_set_volume(volume);
-    eos_config_set_bool(EOS_CONFIG_KEY_MUTE_BOOL, false);
+    eos_service_audio_set_mute(false);
 }
 
 /************************** Helper Functions **************************/
@@ -300,15 +298,14 @@ static void _settings_view_notification(lv_event_t *e)
 static void _volume_slider_value_changed_cb(lv_event_t *e)
 {
     lv_obj_t *sl = lv_event_get_target(e);
-    eos_speaker_set_volume(lv_slider_get_value(sl));
+    eos_service_audio_set_volume(lv_slider_get_value(sl));
 }
 
 static void _volume_slider_released_cb(lv_event_t *e)
 {
     lv_obj_t *sl = lv_event_get_target(e);
     int32_t val = lv_slider_get_value(sl);
-    eos_speaker_set_volume(val);
-    eos_config_set_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, val);
+    eos_service_audio_set_volume(val);
 }
 
 static void _volume_slider_minus_cb(lv_event_t *e)
@@ -322,8 +319,7 @@ static void _volume_slider_minus_cb(lv_event_t *e)
         return;
     val -= 5;
     lv_slider_set_value(slider, val, LV_ANIM_ON);
-    eos_config_set_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, val);
-    eos_speaker_set_volume(val);
+    eos_service_audio_set_volume(val);
 }
 
 static void _volume_slider_plus_cb(lv_event_t *e)
@@ -337,8 +333,7 @@ static void _volume_slider_plus_cb(lv_event_t *e)
         return;
     val += 5;
     lv_slider_set_value(slider, val, LV_ANIM_ON);
-    eos_config_set_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, val);
-    eos_speaker_set_volume(val);
+    eos_service_audio_set_volume(val);
 }
 
 static void _mute_switch_cb(lv_event_t *e)

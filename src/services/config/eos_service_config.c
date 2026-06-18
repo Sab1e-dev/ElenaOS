@@ -19,6 +19,7 @@
 #include "eos_basic_widgets.h"
 #include "eos_event.h"
 #include "eos_service_display.h"
+#include "eos_service_audio.h"
 #include "eos_test.h"
 #include "eos_version.h"
 #include "eos_port.h"
@@ -242,13 +243,13 @@ void eos_service_config_init()
     bool mute = eos_config_get_bool(EOS_CONFIG_KEY_MUTE_BOOL, false);
     if (mute)
     {
-        eos_speaker_set_volume(0);
+        eos_service_audio_set_mute(true);
         EOS_LOG_I("Silent mode ON");
     }
     else
     {
         uint8_t volume = (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, 20);
-        eos_speaker_set_volume(volume);
+        eos_service_audio_set_volume(volume);
         EOS_LOG_I("Volume: %d", volume);
     }
 

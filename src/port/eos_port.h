@@ -16,7 +16,7 @@ extern "C" {
 #include <stddef.h>
 #include "eos_core.h"
 #include "eos_fs_port.h"
-#include "port/critical/eos_port_critical.h"
+#include "eos_port_critical.h"
 
 /* Public macros ----------------------------------------------*/
 /**
@@ -44,13 +44,6 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-typedef enum
-{
-    EOS_AUDIO_STATE_UNAVAILABLE = 0,
-    EOS_AUDIO_STATE_READY = 1,
-    EOS_AUDIO_STATE_BUSY = 2,
-    EOS_AUDIO_STATE_ERROR = 3,
-} eos_audio_state_t;
 /* Public function prototypes --------------------------------*/
 
 /**
@@ -78,41 +71,6 @@ void eos_bluetooth_disable(void);
  * Make phone ring via Bluetooth or other methods to locate phone.
  */
 void eos_locate_phone(void);
-/**
- * @brief Set speaker volume
- * @param volume Volume
- */
-void eos_speaker_set_volume(uint8_t volume);
-
-/**
- * @brief Detect whether speaker hardware is available.
- * @return true if available
- */
-bool eos_speaker_detect(void);
-
-/**
- * @brief Detect whether microphone hardware is available.
- * @return true if available
- */
-bool eos_microphone_detect(void);
-
-/**
- * @brief Get platform audio playback state.
- */
-eos_audio_state_t eos_audio_get_state(void);
-
-/**
- * @brief Play audio file from path.
- * @param file_path path to audio file
- * @return 0 on success, negative value on failure
- */
-int eos_audio_play_file(const char *file_path);
-
-/**
- * @brief Stop current audio playback.
- * @return 0 on success, negative value on failure
- */
-int eos_audio_stop(void);
 
 #ifdef __cplusplus
 }
