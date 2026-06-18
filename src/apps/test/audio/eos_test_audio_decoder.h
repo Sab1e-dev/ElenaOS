@@ -20,6 +20,14 @@ extern "C" {
 
 /* Public function prototypes --------------------------------*/
 
+/**
+ * @brief Register all audio decoder/player unit tests
+ */
+void eos_test_audio_decoder_register_tests(void);
+
+/**
+ * @brief Start audio decoder/player tests UI page
+ */
 void eos_test_audio_decoder_start(void);
 
 #ifdef __cplusplus

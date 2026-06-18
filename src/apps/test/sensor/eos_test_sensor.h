@@ -10,25 +10,28 @@
 extern "C" {
 #endif
 
+/* Includes ---------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
 
-/* Test result structure */
+/* Public macros ----------------------------------------------*/
+
+/* Public typedefs --------------------------------------------*/
 typedef struct {
     const char *name;
     bool passed;
     char details[128];
 } eos_sensor_test_result_t;
 
-/* Test statistics */
 typedef struct {
     uint32_t total_tests;
     uint32_t passed_tests;
     uint32_t failed_tests;
 } eos_sensor_test_stats_t;
 
-/* Public test entry function */
+/* Public function prototypes --------------------------------*/
 void eos_test_sensor_start(void);
+void eos_test_sensor_register_tests(void);
 
 #ifdef __cplusplus
 }

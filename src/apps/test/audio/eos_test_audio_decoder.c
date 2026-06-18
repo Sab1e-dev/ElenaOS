@@ -3,10 +3,9 @@
  * @brief Comprehensive unit tests for audio decoder & player subsystems
  */
 
+#include "eos_test_audio_decoder.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
-
-#include "eos_test_audio_decoder.h"
 
 /* Includes ---------------------------------------------------*/
 #include <string.h>
@@ -22,7 +21,7 @@
 #include "eos_audio_feed.h"
 #include "eos_service_audio.h"
 #include "eos_log.h"
-#include "eos_test_audio_framework.h"
+#include "eos_test_framework.h"
 #include "eos_fs_port.h"
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
@@ -1364,27 +1363,7 @@ static bool _test_wav_seek(void)
     return passed;
 }
 
-static void _run_wav_decoder_tests(void)
-{
-    EOS_LOG_I("--- WAV Decoder Tests ---");
-    _generate_test_wav();
-    _test_wav_probe();
-    _test_wav_read();
-    _test_wav_seek();
-    _cleanup_test_wav();
-}
-
-static void _run_effects_tests(void)
-{
-    EOS_LOG_I("--- VAR Effects Tests ---");
-    _ensure_player_ready();
-    _test_effects_get_all();
-    _test_effects_magic_valid();
-    _test_effects_play_click();
-    _test_effects_get_invalid();
-}
-
-static void _register_all_tests(void)
+void eos_test_audio_decoder_register_tests(void)
 {
     eos_test_register("Decoder: init registers built-in decoders", _test_dec_init_creates_list);
     eos_test_register("Decoder: create adds to linked list", _test_dec_create_adds_to_list);
@@ -1451,8 +1430,8 @@ static void _register_all_tests(void)
 
 void eos_test_audio_decoder_start(void)
 {
-    _register_all_tests();
-    eos_test_audio_page_start();
+    eos_test_audio_decoder_register_tests();
+    eos_test_fw_page_start("Audio Decoder Tests");
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

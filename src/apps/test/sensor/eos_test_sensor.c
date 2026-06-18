@@ -3,10 +3,15 @@
  * @brief Comprehensive sensor test module
  */
 
+#include "eos_test_sensor.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
 
-#include "eos_test_sensor.h"
+/* Includes ---------------------------------------------------*/
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "eos_test_framework.h"
 #include "eos_dev_sensor.h"
 #include "eos_service_sensor.h"
 #include "eos_event.h"
@@ -14,13 +19,14 @@
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
 #include "lvgl.h"
-#include <string.h>
-#include <stdio.h>
 #include "eos_activity.h"
 #include "eos_app_header.h"
 #include "eos_crown.h"
 
+/* Macros and Definitions -------------------------------------*/
 #define EOS_LOG_TAG "SensorTest"
+
+/* Variables --------------------------------------------------*/
 
 /* ============================================
  * Internal types and variables
@@ -34,6 +40,8 @@ typedef struct {
 } _test_context_t;
 
 static _test_context_t _ctx = {0};
+
+/* Function Implementations -----------------------------------*/
 
 /* ============================================
  * Test utility functions
@@ -56,16 +64,20 @@ static void _record_test(const char *name, bool passed, const char *details)
         _ctx.stats.failed_tests++;
     }
 
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
+    eos_test_record(name, passed, details);
 
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+    if (_ctx.list) {
+        char label_text[256];
+        snprintf(label_text, sizeof(label_text),
+                 "%s: %s",
+                 name,
+                 passed ? "PASS" : "FAIL");
 
-    if (!passed) {
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+
+        if (!passed) {
+            lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        }
     }
 }
 
@@ -1098,6 +1110,37 @@ void eos_test_sensor_start(void)
     lv_obj_set_size(_ctx.result_label, lv_pct(100), LV_SIZE_CONTENT);
 
     eos_activity_enter(activity);
+}
+
+void eos_test_sensor_register_tests(void)
+{
+    eos_test_register("Sensor: register new sensor", _test_sensor_register);
+    eos_test_register("Sensor: find by name/type", _test_sensor_find);
+    eos_test_register("Sensor: init/enable/set_rate/get_rate/disable ops", _test_sensor_ops);
+    eos_test_register("Sensor: get_state returns valid", _test_sensor_state);
+    eos_test_register("Sensor: service init idempotent", _test_service_init);
+    eos_test_register("Sensor: read_latest returns EOS_OK", _test_read_latest);
+    eos_test_register("Sensor: subscribe then unsubscribe", _test_subscribe);
+    eos_test_register("Sensor: nested self-unsubscribe (no UAF)", _test_nested_self_unsubscribe);
+    eos_test_register("Sensor: nested cross-unsubscribe", _test_nested_cross_unsubscribe);
+    eos_test_register("Sensor: nested subscribe during notify", _test_nested_subscribe_during_notify);
+    eos_test_register("Sensor: nested multi-sensor UAF", _test_nested_multi_sensor_uaf);
+    eos_test_register("Sensor: sample rate 50ms round-trip", _test_sample_rate);
+    eos_test_register("Sensor: sample rate multiple periods", _test_sample_rate_multiple);
+    eos_test_register("Sensor: enable/disable cycle", _test_sensor_enable_disable);
+    eos_test_register("Sensor: data notification rate period=100", _test_data_notification_rate);
+    eos_test_register("Sensor: FIFO full recovery", _test_fifo_full);
+    eos_test_register("Sensor: no subscriber sampling period=0", _test_no_subscriber_sampling);
+    eos_test_register("Sensor: min sample rate 1000ms", _test_min_sample_rate);
+    eos_test_register("Sensor: concurrent read x3", _test_concurrent_read);
+    eos_test_register("Sensor: null safety (invalid type, NULL data)", _test_null_safety);
+    eos_test_register("Sensor: throughput 100 reads", _test_throughput);
+    eos_test_register("Sensor: device manager integration", _test_device_manager_integration);
+    eos_test_register("Sensor: parameter errors", _test_parameter_errors);
+    eos_test_register("Sensor: FIFO boundary", _test_fifo_boundary);
+    eos_test_register("Sensor: frequency boundary 0Hz/1Hz", _test_frequency_boundary);
+    eos_test_register("Sensor: stability 1000 reads", _test_stability);
+    eos_test_register("Sensor: data integrity 100 reads", _test_data_integrity);
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

@@ -3,10 +3,9 @@
  * @brief Comprehensive audio subsystem test module
  */
 
+#include "eos_test_audio.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
-
-#include "eos_test_audio.h"
 
 /* Includes ---------------------------------------------------*/
 #include <string.h>
@@ -22,10 +21,13 @@
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
 #include "lvgl.h"
-#include "eos_test_audio_framework.h"
+#include "eos_test_framework.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define EOS_LOG_TAG "AudioTest"
+#define RECORD_TEST_PATH "/.sys/test_recording.wav"
+
+/* Variables --------------------------------------------------*/
 
 /* Function Implementations -----------------------------------*/
 
@@ -476,8 +478,6 @@ static bool _test_service_record_null(void)
     return passed;
 }
 
-#define RECORD_TEST_PATH "/.sys/test_recording.wav"
-
 /**
  * @brief Service: start recording to a file
  */
@@ -667,69 +667,7 @@ static void _run_speaker_device_tests(void)
     _test_spk_report_state_error();
 }
 
-static void _run_microphone_device_tests(void)
-{
-
-    _test_mic_get_instance();
-    _test_mic_get_instance_consistent();
-    _test_mic_initial_state();
-    _test_mic_register_null_ops();
-    _test_mic_register_incomplete_ops();
-    _test_mic_register_missing_set_buffer();
-    _test_mic_register_missing_is_available();
-    _test_mic_register_required_only();
-    _test_mic_register_duplicate();
-    _test_mic_state_transitions();
-    _test_mic_report_state_error();
-}
-
-static void _run_recording_tests(void)
-{
-
-    _test_service_record_null();
-    _test_service_record_start();
-    _test_service_record_stop();
-    _test_service_record_playback();
-}
-
-static void _run_service_tests(void)
-{
-
-    /* Volume / Mute */
-    _test_service_set_volume_valid();
-    _test_service_set_volume_min();
-    _test_service_set_volume_max();
-    _test_service_set_volume_clamped();
-    _test_service_set_volume_idempotent();
-    _test_service_get_volume();
-    _test_service_mute_default();
-    _test_service_mute_on();
-    _test_service_mute_off();
-
-    /* Playback */
-    _test_service_play_null();
-    _test_service_play_valid();
-    _test_service_play_tone_unsupported();
-    _test_service_stop();
-    _test_service_stop_idle();
-
-    /* Recording */
-    _test_service_record_null();
-
-    /* Availability */
-    _test_service_speaker_available();
-    _test_service_microphone_available();
-}
-
-static void _run_recording_flow_tests(void)
-{
-
-    _test_service_record_start();
-    _test_service_record_stop();
-    _test_service_record_playback();
-}
-
-void eos_test_audio_start(void)
+void eos_test_audio_register_tests(void)
 {
     eos_test_register("Speaker: get_instance non-null", _test_spk_get_instance);
     eos_test_register("Speaker: get_instance consistent", _test_spk_get_instance_consistent);
@@ -774,7 +712,12 @@ void eos_test_audio_start(void)
     eos_test_register("Service: play back recording", _test_service_record_playback);
     eos_test_register("Service: speaker available", _test_service_speaker_available);
     eos_test_register("Service: microphone available", _test_service_microphone_available);
-    eos_test_audio_page_start();
+}
+
+void eos_test_audio_start(void)
+{
+    eos_test_audio_register_tests();
+    eos_test_fw_page_start("Audio Tests");
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

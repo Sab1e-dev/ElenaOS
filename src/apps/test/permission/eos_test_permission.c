@@ -3,6 +3,7 @@
  * @brief Comprehensive permission system test module
  */
 
+#include "eos_test_permission.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
 
@@ -13,13 +14,14 @@
 #include "eos_app_header.h"
 #include "eos_crown.h"
 #include "eos_service_permission.h"
-#define EOS_LOG_TAG "PermTest"
 #include "eos_log.h"
 #include "eos_basic_widgets.h"
 #include "eos_lang.h"
 #include "lvgl.h"
+#include "eos_test_framework.h"
 
 /* Macros and Definitions -------------------------------------*/
+#define EOS_LOG_TAG "PermTest"
 #define TEST_APP_ID_1 "com.test.app1"
 #define TEST_APP_ID_2 "com.test.app2"
 
@@ -61,17 +63,22 @@ static void _record_test(const char *name, bool passed, const char *details)
         _ctx.stats.failed_tests++;
     }
 
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
+    eos_test_record(name, passed, details);
 
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
-
-    if (!passed)
+    if (_ctx.list)
     {
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        char label_text[256];
+        snprintf(label_text, sizeof(label_text),
+                 "%s: %s",
+                 name,
+                 passed ? "PASS" : "FAIL");
+
+        lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+
+        if (!passed)
+        {
+            lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        }
     }
 }
 
@@ -607,6 +614,22 @@ void eos_test_permission_start(void)
     lv_obj_set_size(_ctx.result_label, lv_pct(100), LV_SIZE_CONTENT);
 
     eos_activity_enter(activity);
+}
+
+void eos_test_permission_register_tests(void)
+{
+    eos_test_register("Permission: default state DENIED", _test_default_state_denied);
+    eos_test_register("Permission: set and get", _test_set_and_get);
+    eos_test_register("Permission: all grant states", _test_all_states);
+    eos_test_register("Permission: app isolation", _test_app_isolation);
+    eos_test_register("Permission: category independence", _test_category_independence);
+    eos_test_register("Permission: revoke all", _test_revoke_all);
+    eos_test_register("Permission: name to category", _test_name_to_category);
+    eos_test_register("Permission: category key", _test_category_key);
+    eos_test_register("Permission: null safety", _test_null_safety);
+    eos_test_register("Permission: state overwrite", _test_state_overwrite);
+    eos_test_register("Permission: all categories valid", _test_all_categories_valid);
+    eos_test_register("Permission: revoke nonexistent", _test_revoke_nonexistent);
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

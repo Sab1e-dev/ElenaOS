@@ -3,12 +3,14 @@
  * @brief Comprehensive event system test module
  */
 
+#include "eos_test_event.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
 
 /* Includes ---------------------------------------------------*/
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "eos_activity.h"
 #include "eos_app_header.h"
 #include "eos_crown.h"
@@ -18,6 +20,7 @@
 #include "eos_lang.h"
 #include "lvgl.h"
 #include "eos_error.h"
+#include "eos_test_framework.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define EOS_LOG_TAG "EventTest"
@@ -60,16 +63,20 @@ static void _record_test(const char *name, bool passed, const char *details)
         _ctx.stats.failed_tests++;
     }
 
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
+    eos_test_record(name, passed, details);
 
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+    if (_ctx.list) {
+        char label_text[256];
+        snprintf(label_text, sizeof(label_text),
+                 "%s: %s",
+                 name,
+                 passed ? "PASS" : "FAIL");
 
-    if (!passed) {
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+
+        if (!passed) {
+            lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        }
     }
 }
 
@@ -436,6 +443,23 @@ void eos_test_event_start(void)
     lv_obj_set_size(_ctx.result_label, lv_pct(100), LV_SIZE_CONTENT);
 
     eos_activity_enter(activity);
+}
+
+void eos_test_event_register_tests(void)
+{
+    eos_test_register("Event: register dynamic ID", _test_event_register_id);
+    eos_test_register("Event: basic subscribe/post", _test_event_subscribe_basic);
+    eos_test_register("Event: subscribe with obj", _test_event_subscribe_ex);
+    eos_test_register("Event: callback data passing", _test_event_callback_data);
+    eos_test_register("Event: basic unsubscribe", _test_event_unsubscribe_basic);
+    eos_test_register("Event: unsubscribe with user data", _test_event_unsubscribe_with_user_data);
+    eos_test_register("Event: unsubscribe all", _test_event_unsubscribe_all);
+    eos_test_register("Event: unsubscribe with obj", _test_event_unsubscribe_with_obj);
+    eos_test_register("Event: internal events", _test_event_internal_events);
+    eos_test_register("Event: multiple subscribers", _test_event_multiple_subscribers);
+    eos_test_register("Event: cleanup no crash", _test_event_cleanup);
+    eos_test_register("Event: null safety", _test_event_null_safety);
+    eos_test_register("Event: obj payload", _test_event_obj_payload);
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

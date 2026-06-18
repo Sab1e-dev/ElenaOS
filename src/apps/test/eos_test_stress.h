@@ -1,10 +1,13 @@
 /**
- * @file eos_test_audio.h
- * @brief Audio subsystem test module
+ * @file eos_test_stress.h
+ * @brief SPM stress test - memory leak check
  */
 
-#ifndef EOS_TEST_AUDIO_H
-#define EOS_TEST_AUDIO_H
+#ifndef EOS_TEST_STRESS_H
+#define EOS_TEST_STRESS_H
+
+#include "eos_config.h"
+#if EOS_ENABLE_TEST_APP
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,19 +22,11 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-
-/**
- * @brief Register all audio subsystem unit tests
- */
-void eos_test_audio_register_tests(void);
-
-/**
- * @brief Start audio subsystem unit tests UI page
- */
-void eos_test_audio_start(void);
+void eos_test_stress_register_tests(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* EOS_TEST_AUDIO_H */
+#endif /* EOS_ENABLE_TEST_APP */
+#endif /* EOS_TEST_STRESS_H */
