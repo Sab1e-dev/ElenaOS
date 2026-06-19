@@ -11,8 +11,13 @@ endif()
 # Recursively gather all source files
 file(GLOB_RECURSE ELENIXOS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/*.c
 )
+# Only include RemixIcon.c (icon font used as fallback in TTF mode)
+# Chinese bitmap fonts (source_han_sans_*.c) excluded since using TTF
+file(GLOB ELENIXOS_RES_FONT_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/RemixIcon.c
+)
+list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_SRC})
 
 # Automatically collect all directories that contain header files
 file(GLOB_RECURSE HEADER_FILES
@@ -51,9 +56,15 @@ target_link_libraries(elenixos_lib PRIVATE cjson)
 # JerryScript
 add_compile_options(-Wno-gnu-folding-constant)
 set(JERRY_VM_HALT ON CACHE INTERNAL "Enable VM halt feature")
-set(JERRY_MEM_STATS ON CACHE INTERNAL "Enable memory stats")
-set(JERRY_LINE_INFO ON CACHE INTERNAL "Enable line info feature")
-set(JERRY_ERROR_MESSAGES ON CACHE INTERNAL "Enable error message strings")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(JERRY_MEM_STATS ON CACHE INTERNAL "Enable memory stats")
+    set(JERRY_LINE_INFO ON CACHE INTERNAL "Enable line info feature")
+    set(JERRY_ERROR_MESSAGES ON CACHE INTERNAL "Enable error message strings")
+else()
+    set(JERRY_MEM_STATS OFF CACHE INTERNAL "Enable memory stats")
+    set(JERRY_LINE_INFO OFF CACHE INTERNAL "Enable line info feature")
+    set(JERRY_ERROR_MESSAGES OFF CACHE INTERNAL "Enable error message strings")
+endif()
 set(JERRY_CMDLINE OFF CACHE BOOL "Build jerry command line tool?" FORCE)
 set(JERRY_CMDLINE_TEST OFF CACHE BOOL "Build jerry test command line tool?" FORCE)
 set(JERRY_CMDLINE_SNAPSHOT OFF CACHE BOOL "Build jerry snapshot command line tool?" FORCE)

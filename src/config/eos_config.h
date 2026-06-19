@@ -15,6 +15,7 @@ extern "C"
 
 /* Includes ---------------------------------------------------*/
 #include "eos_config_internal.h"
+#include "eos_storage_paths.h"
 
 /* Configuration start ----------------------------------------------------*/
 
@@ -177,7 +178,7 @@ extern "C"
  *  - EOS_FONT_C_MULTI:     Store multiple bitmap fonts, different font sizes use different fonts
  *  - EOS_FONT_TTF:         Use TTF font files from the file system
  */
-#define EOS_FONT_TYPE EOS_FONT_C_MULTI
+#define EOS_FONT_TYPE EOS_FONT_TTF
 
 /**
  * Configure font sizes, the following three configurations correspond to three fonts:
@@ -221,7 +222,7 @@ extern "C"
     #define EOS_FONT_TTF_DATA_NAME SourceHanSansSC_12M
     #define EOS_FONT_TTF_DATA_SIZE SourceHanSansSC_12M_size
 #elif EOS_FONT_TTF_TYPE == EOS_FONT_TTF_FILE
-    #define EOS_FONT_TTF_FILE_PATH EOS_SYS_RES_FONT_DIR "MiSans-Normal.ttf"
+    #define EOS_FONT_TTF_FILE_PATH EOS_SYS_RES_FONT_DIR "font.ttf"
 #endif /* EOS_FONT_TTF_TYPE */
 
 /**
