@@ -37,8 +37,6 @@
 #define _ICON_LARGE_WIDTH 80
 #define _ICON_LARGE_HEIGHT _ICON_LARGE_WIDTH
 
-#define _TIME_LABEL_FONT lv_font_montserrat_24
-
 #define _ITEM_CLICK_THRESHOLD 3
 // Swipe-to-delete related macros
 #define _SWIPE_THRESHOLD (EOS_DISPLAY_WIDTH / 2) // Swipe distance threshold for deletion
@@ -387,7 +385,6 @@ eos_msg_list_item_t *eos_msg_list_item_create(eos_msg_list_t *list)
 
     // Time label
     item->time_label = lv_label_create(item->row1);
-    lv_obj_set_style_text_font(item->time_label, &_TIME_LABEL_FONT, 0);
     lv_obj_set_style_text_align(item->time_label, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Message content

@@ -478,7 +478,6 @@ static void _build_checklist_page(lv_obj_t *cont)
     lv_obj_set_style_bg_color(s_select_all_btn, lv_color_hex(0x607D8B), 0);
     s_select_all_label = lv_label_create(s_select_all_btn);
     lv_label_set_text(s_select_all_label, "Deselect All");
-    lv_obj_set_style_text_font(s_select_all_label, &lv_font_montserrat_12, 0);
     lv_obj_set_style_text_color(s_select_all_label, lv_color_white(), 0);
     lv_obj_center(s_select_all_label);
     lv_obj_add_event_cb(s_select_all_btn, _select_all_cb, LV_EVENT_CLICKED, NULL);
@@ -521,7 +520,6 @@ static void _build_checklist_page(lv_obj_t *cont)
             char buf[EOS_TEST_GROUP_NAME_MAX + 20];
             snprintf(buf, sizeof(buf), "%s %s (%d)", LV_SYMBOL_RIGHT, g->name, g->count);
             lv_label_set_text(glabel, buf);
-            lv_obj_set_style_text_font(glabel, &lv_font_montserrat_14, 0);
             s_group_header_labels[gi] = glabel;
         }
 
@@ -577,13 +575,11 @@ void eos_test_fw_page_start(const char *title)
 
     s_status_icon = lv_label_create(header);
     lv_label_set_text(s_status_icon, LV_SYMBOL_LIST);
-    lv_obj_set_style_text_font(s_status_icon, &lv_font_montserrat_18, 0);
 
     s_info_label = lv_label_create(header);
     char info_buf[40];
     snprintf(info_buf, sizeof(info_buf), "%d tests loaded", s_count);
     lv_label_set_text(s_info_label, info_buf);
-    lv_obj_set_style_text_font(s_info_label, &lv_font_montserrat_12, 0);
 
     /* Current */
     s_current_label = lv_label_create(cont);
@@ -591,7 +587,6 @@ void eos_test_fw_page_start(const char *title)
     lv_obj_set_style_text_align(s_current_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(s_current_label, lv_pct(100));
     lv_label_set_long_mode(s_current_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_set_style_text_font(s_current_label, &lv_font_montserrat_12, 0);
     lv_obj_set_style_pad_top(s_current_label, 2, 0);
 
     /* Progress */
@@ -611,7 +606,6 @@ void eos_test_fw_page_start(const char *title)
     lv_label_set_text(s_summary_label, sum_buf);
     lv_obj_set_style_text_align(s_summary_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(s_summary_label, lv_pct(100));
-    lv_obj_set_style_text_font(s_summary_label, &lv_font_montserrat_12, 0);
 
     /* Run button */
     s_run_btn = lv_btn_create(cont);
@@ -622,7 +616,6 @@ void eos_test_fw_page_start(const char *title)
     lv_obj_set_style_shadow_opa(s_run_btn, LV_OPA_30, 0);
     s_run_btn_label = lv_label_create(s_run_btn);
     lv_label_set_text(s_run_btn_label, LV_SYMBOL_PLAY "  Run Tests");
-    lv_obj_set_style_text_font(s_run_btn_label, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(s_run_btn_label, lv_color_white(), 0);
     lv_obj_center(s_run_btn_label);
     lv_obj_add_event_cb(s_run_btn, _run_cb, LV_EVENT_CLICKED, NULL);

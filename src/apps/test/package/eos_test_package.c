@@ -167,7 +167,6 @@ void eos_test_package_start(void)
     lv_obj_t *path_label = lv_label_create(_ctx.container);
     lv_label_set_text(path_label, "Package Path:");
     lv_obj_set_style_text_color(path_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(path_label, &lv_font_montserrat_14, 0);
 
     /* Create input field */
     _ctx.input_field = lv_textarea_create(_ctx.container);
@@ -193,7 +192,6 @@ void eos_test_package_start(void)
     _ctx.status_label = lv_label_create(_ctx.container);
     lv_label_set_text(_ctx.status_label, " ");
     lv_obj_set_style_text_color(_ctx.status_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(_ctx.status_label, &lv_font_montserrat_12, 0);
     lv_obj_set_width(_ctx.status_label, lv_pct(85));
     lv_label_set_long_mode(_ctx.status_label, LV_LABEL_LONG_WRAP);
 
@@ -201,7 +199,6 @@ void eos_test_package_start(void)
     lv_obj_t *hint_label = lv_label_create(_ctx.container);
     lv_label_set_text(hint_label, "Supported: .eapk (app), .ewpk (watchface)\nPath auto-prefixed with '" EOS_SYS_ROOT_DIR "'");
     lv_obj_set_style_text_color(hint_label, lv_color_hex(0x808080), 0);
-    lv_obj_set_style_text_font(hint_label, &lv_font_montserrat_12, 0);
 
     /* Enter activity */
     eos_activity_enter(activity);
