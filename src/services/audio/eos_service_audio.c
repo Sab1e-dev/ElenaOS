@@ -14,7 +14,6 @@
 #include "eos_dev_microphone.h"
 #include "eos_audio_player.h"
 #include "eos_audio_decoder.h"
-#include "eos_audio_decoder_var.h"
 #include "eos_audio_decoder_wav.h"
 #include "eos_service_config.h"
 #include "eos_service_state.h"
@@ -59,7 +58,6 @@ void eos_service_audio_init(void)
     }
     _initialized = true;
     eos_audio_decoder_init();
-    eos_audio_decoder_var_init();
     eos_audio_decoder_wav_init();
     eos_audio_player_init(&_player_media);
     EOS_LOG_I("Audio service initialized");

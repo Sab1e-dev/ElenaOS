@@ -174,7 +174,7 @@ static void _create_lock_ui(_lock_page_ctx_t *ctx, lv_obj_t *parent, uint8_t tar
     snprintf(time_str, sizeof(time_str), "%02d:%02d", now.hour, now.min);
     lv_label_set_text(time_label, time_str);
     lv_obj_set_style_text_color(time_label, EOS_COLOR_WHITE, 0);
-    eos_label_set_font_size(time_label, 48);
+    eos_label_set_font_size(time_label, EOS_FONT_SIZE_LARGE);
 
     /* Title label */
     ctx->title_label = lv_label_create(container);

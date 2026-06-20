@@ -17,16 +17,12 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-/** Magic byte for embedded audio descriptor */
-#define EOS_AUDIO_HEADER_MAGIC 0x1A
-
 /* Public typedefs --------------------------------------------*/
 
 typedef enum
 {
     EOS_AUDIO_SRC_NONE,
     EOS_AUDIO_SRC_FILE, /**< File path string */
-    EOS_AUDIO_SRC_VAR,  /**< Pointer to eos_audio_dsc_t (embedded PCM) */
 } eos_audio_src_type_t;
 
 typedef struct
@@ -37,20 +33,6 @@ typedef struct
     uint32_t total_samples; /**< 0 if unknown (streaming) */
     uint32_t duration_ms;   /**< 0 if unknown */
 } eos_audio_format_t;
-
-/**
- * Audio descriptor for embedded PCM data (VAR type).
- */
-typedef struct
-{
-    uint8_t magic; /**< Must be EOS_AUDIO_HEADER_MAGIC */
-    uint32_t sample_rate;
-    uint8_t channels;
-    uint8_t bits_per_sample;
-    uint32_t total_samples;
-    uint32_t data_size;  /**< PCM data size in bytes */
-    const uint8_t *data; /**< Pointer to PCM data (in flash/ROM) */
-} eos_audio_dsc_t;
 
 struct eos_audio_decoder_t;
 struct eos_audio_decoder_dsc_t;
@@ -100,7 +82,7 @@ void eos_audio_decoder_init(void);
 
 /**
  * @brief Detect the source type for an audio source
- * @param src Audio source (file path or eos_audio_dsc_t pointer)
+ * @param src Audio source (file path)
  * @return Source type
  */
 eos_audio_src_type_t eos_audio_src_get_type(const void *src);

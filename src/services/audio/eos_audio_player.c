@@ -141,11 +141,6 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
         p->cached_src = strdup((const char *)src);
         p->cached_src_type = EOS_AUDIO_SRC_FILE;
     }
-    else if (src_type == EOS_AUDIO_SRC_VAR && src)
-    {
-        p->cached_src = (void *)src;
-        p->cached_src_type = EOS_AUDIO_SRC_VAR;
-    }
     else
     {
         p->cached_src = NULL;
@@ -202,12 +197,7 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
     p->state = EOS_AUDIO_PLAYING;
     _player_start_feed(p);
 
-    if (src_type == EOS_AUDIO_SRC_FILE)
-        EOS_LOG_I("Playing: %s", (const char *)src);
-    else
-        EOS_LOG_I("Playing VAR audio: %dHz %dch %dbits",
-                  p->dsc.format.sample_rate, p->dsc.format.channels,
-                  p->dsc.format.bits_per_sample);
+    EOS_LOG_I("Playing: %s", (const char *)src);
 
     return EOS_OK;
 }

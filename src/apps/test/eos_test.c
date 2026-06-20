@@ -39,7 +39,6 @@
 #include "battery/eos_test_battery_history.h"
 #include "package/eos_test_package.h"
 #include "input/eos_test_input_page.h"
-#include "eos_test_audio_effects.h"
 #include "eos_test_runner.h"
 #include "eos_service_audio.h"
 #include "eos_audio_player.h"
@@ -2034,12 +2033,6 @@ static void _test_package_cb(lv_event_t *e)
     eos_test_package_start();
 }
 
-static void _test_audio_effects_cb(lv_event_t *e)
-{
-    (void)e;
-    eos_test_audio_effects_start();
-}
-
 static void _test_unit_runner_cb(lv_event_t *e)
 {
     (void)e;
@@ -2092,9 +2085,6 @@ void eos_test_start(void)
     // Package Installer Test
     btn = lv_list_add_button(test_list, LV_SYMBOL_FILE, "Package Installer");
     lv_obj_add_event_cb(btn, _test_package_cb, LV_EVENT_CLICKED, NULL);
-    // VAR Effects Selection
-    btn = lv_list_add_button(test_list, LV_SYMBOL_PLAY, "VAR Effects");
-    lv_obj_add_event_cb(btn, _test_audio_effects_cb, LV_EVENT_CLICKED, NULL);
     // Audio Playback Test
     btn = lv_list_add_button(test_list, LV_SYMBOL_AUDIO, "Audio Playback");
     lv_obj_add_event_cb(btn, _test_audio_page, LV_EVENT_CLICKED, NULL);

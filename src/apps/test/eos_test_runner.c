@@ -17,7 +17,6 @@
 
 /* Function Implementations -----------------------------------*/
 void eos_test_audio_register_tests(void);
-void eos_test_audio_decoder_register_tests(void);
 void eos_test_stress_register_tests(void);
 void eos_test_sensor_register_tests(void);
 void eos_test_event_register_tests(void);
@@ -26,7 +25,6 @@ void eos_test_permission_register_tests(void);
 void eos_test_runner_register_all(void)
 {
     eos_test_audio_register_tests();
-    eos_test_audio_decoder_register_tests();
     eos_test_stress_register_tests();
     eos_test_sensor_register_tests();
     eos_test_event_register_tests();

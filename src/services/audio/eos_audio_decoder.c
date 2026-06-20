@@ -31,11 +31,6 @@ void eos_audio_decoder_init(void)
 eos_audio_src_type_t eos_audio_src_get_type(const void *src)
 {
     if (src == NULL) return EOS_AUDIO_SRC_NONE;
-
-    const uint8_t *p = (const uint8_t *)src;
-    if (p[0] == EOS_AUDIO_HEADER_MAGIC) {
-        return EOS_AUDIO_SRC_VAR;
-    }
     return EOS_AUDIO_SRC_FILE;
 }
 

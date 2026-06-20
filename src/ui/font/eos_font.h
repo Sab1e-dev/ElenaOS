@@ -38,6 +38,15 @@ typedef enum
  */
 lv_font_t * eos_font_init(void);
 /**
+ * @brief Font system deinitialization - closes font files, frees caches
+ */
+void eos_font_deinit(void);
+/**
+ * @brief Reload fonts from file (deinit + init + theme update)
+ * @return lv_font_t* Returns default font pointer on success, otherwise returns NULL
+ */
+lv_font_t * eos_font_reload(const char *path);
+/**
  * @brief Set font size for label object
  * @param label Target label
  * @param size Font size, supports any size in pixels
