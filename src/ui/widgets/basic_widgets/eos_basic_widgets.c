@@ -29,6 +29,7 @@
 #include "eos_activity.h"
 #include "eos_app_list.h"
 #include "eos_mem.h"
+#include "eos_service_cache.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -158,15 +159,25 @@ lv_draw_buf_t *eos_draw_buf_create(uint32_t w, uint32_t h, lv_color_format_t cf,
     }
     if (data_size == 0)
         return NULL;
-    void *data_buf = eos_malloc_zeroed(data_size);
-    EOS_CHECK_PTR_RETURN_VAL(data_buf, NULL);
+    void *data_buf = eos_cache_buf_alloc(data_size);
+    if (!data_buf)
+    {
+        EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__);
+        return NULL;
+    }
+    memset(data_buf, 0, data_size);
     lv_draw_buf_t *draw_buf = eos_malloc_zeroed(sizeof(lv_draw_buf_t));
-    EOS_CHECK_PTR_RETURN_VAL_FREE(data_buf, NULL, data_buf);
+    if (!draw_buf)
+    {
+        EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__);
+        eos_cache_buf_free(data_buf);
+        return NULL;
+    }
 
     if (lv_draw_buf_init(draw_buf, w, h, cf, stride, data_buf, data_size) != LV_RESULT_OK)
     {
         EOS_LOG_E("Init draw buf failed");
-        eos_free(data_buf);
+        eos_cache_buf_free(data_buf);
         eos_free(draw_buf);
         return NULL;
     }
@@ -177,7 +188,7 @@ void eos_draw_buf_destroy(lv_draw_buf_t *draw_buf)
 {
     EOS_CHECK_PTR_RETURN(draw_buf);
     if (draw_buf->data)
-        eos_free(draw_buf->data);
+        eos_cache_buf_free(draw_buf->data);
     eos_free(draw_buf);
 }
 

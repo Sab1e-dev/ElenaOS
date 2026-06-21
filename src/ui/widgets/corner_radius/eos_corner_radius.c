@@ -13,6 +13,7 @@
 #define EOS_LOG_TAG "CornerRadius"
 #include "eos_log.h"
 #include "eos_mem.h"
+#include "eos_service_cache.h"
 #include "eos_config.h"
 
 /* Macros and Definitions -------------------------------------*/
@@ -39,7 +40,7 @@ static void _corner_radius_buffer_free(void *user_data)
     EOS_CHECK_PTR_RETURN(dsc);
     if (dsc->data)
     {
-        eos_free(dsc->data);
+        eos_cache_buf_free(dsc->data);
         dsc->data = NULL;
     }
     eos_free(dsc);
@@ -91,7 +92,7 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
         return;
     }
 
-    uint8_t *canvas_buf = eos_malloc_zeroed(canvas_buf_size);
+    uint8_t *canvas_buf = eos_cache_buf_alloc(canvas_buf_size);
     if (!canvas_buf)
     {
         EOS_LOG_E("Failed to allocate canvas buffer: %u bytes", canvas_buf_size);

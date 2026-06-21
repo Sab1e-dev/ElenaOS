@@ -740,6 +740,11 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
         if (!app_snapshot)
         {
+            if (icon_clone)
+            {
+                lv_obj_delete(icon_clone);
+                icon_clone = NULL;
+            }
             return;
         }
     }
