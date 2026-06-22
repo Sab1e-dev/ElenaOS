@@ -475,24 +475,21 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         next_activity->lifecycle.on_resume(next_activity);
     }
 
+    bool header_need_anim = false;
+    bool header_reverse_anim = false;
     if (eos_activity_is_app_header_visible(next_activity))
     {
         if (cur_activity)
         {
-            bool need_anim = false;
-            bool reverse_anim = false;
-
             if (eos_activity_is_app_header_visible(cur_activity))
             {
-                need_anim = true;
+                header_need_anim = true;
 
                 if (cur_activity->destroy_on_exit)
                 {
-                    reverse_anim = true;
+                    header_reverse_anim = true;
                 }
             }
-
-            _play_title_changed_anim(cur_activity, next_activity, need_anim, reverse_anim);
         }
     }
     else
@@ -553,6 +550,10 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             _init_anim_timeline(anim_ctx);
             _activity_ctx.active_anim_ctx = anim_ctx;
             _activity_ctx.snapshot_capture_window = true;
+            if (cur_activity)
+            {
+                _play_title_changed_anim(cur_activity, next_activity, header_need_anim, header_reverse_anim, anim_ctx->at);
+            }
             if (anim_cb)
             {
                 anim_cb(anim_ctx->at, cur_activity, next_activity);
@@ -591,6 +592,10 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         _activity_show(next_activity);
         if (eos_activity_is_app_header_visible(next_activity))
         {
+            if (cur_activity)
+            {
+                _play_title_changed_anim(cur_activity, next_activity, header_need_anim, header_reverse_anim, NULL);
+            }
             eos_app_header_show(next_activity);
         }
         _activity_mark_visible(next_activity);

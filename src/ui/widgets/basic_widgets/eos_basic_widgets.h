@@ -26,8 +26,6 @@ extern "C" {
 #define EOS_LIST_CONTAINER_PAD_ALL 24
 #define EOS_ITEM_RADIUS 20
 
-#define EOS_SCREEN_SWITCH_DURATION 300
-
 /* Public typedefs --------------------------------------------*/
 
 /**

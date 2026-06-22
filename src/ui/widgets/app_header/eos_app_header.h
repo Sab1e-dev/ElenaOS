@@ -85,7 +85,7 @@ bool eos_app_header_is_attached_to_view(void);
  * @param need_anim Whether animation is needed
  * @param reverse_anim Whether to reverse animation
  */
-void _play_title_changed_anim(eos_activity_t *from, eos_activity_t *to, bool need_anim, bool reverse_anim);
+void _play_title_changed_anim(eos_activity_t *from, eos_activity_t *to, bool need_anim, bool reverse_anim, lv_anim_timeline_t *at);
 #ifdef __cplusplus
 }
 #endif

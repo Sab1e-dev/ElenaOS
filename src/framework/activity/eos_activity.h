@@ -18,6 +18,8 @@ extern "C" {
 #include "eos_lang.h"
 /* Public macros ----------------------------------------------*/
 
+#define EOS_VIEW_SWITCH_DURATION 300
+
 /* Public typedefs --------------------------------------------*/
 
 typedef struct eos_activity_t eos_activity_t;

@@ -689,7 +689,7 @@ void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_
     }
     lv_anim_t list_scale_anims[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
 
-    uint32_t total_duration = EOS_SCREEN_SWITCH_DURATION;
+    uint32_t total_duration = EOS_VIEW_SWITCH_DURATION;
     if (total_duration == 0U)
     {
         total_duration = 1U;
