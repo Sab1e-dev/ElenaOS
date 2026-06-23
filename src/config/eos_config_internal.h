@@ -48,6 +48,9 @@ extern "C" {
 #define EOS_SYSMON_USE_INTERNAL     1
 #define EOS_SYSMON_USE_CUSTOM       2
 
+#define EOS_LANG_EN 0
+#define EOS_LANG_ZH 1
+
 /* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/

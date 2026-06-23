@@ -1,0 +1,316 @@
+#
+# ElenixOS Kernel Configuration
+#
+
+menu "Product identity"
+
+config ELENIX_WATCH_MARKETING_NAME
+    string "Marketing name"
+    default "Elenix Watch"
+
+config ELENIX_WATCH_MODEL_NUMBER
+    string "Model number"
+    default "S2508(0)"
+
+endmenu
+
+menu "Build & Compilation"
+
+choice
+    prompt "Compilation mode"
+    default EOS_COMPILE_MODE_DEBUG
+
+config EOS_COMPILE_MODE_DEBUG
+    bool "Debug mode"
+
+config EOS_COMPILE_MODE_RELEASE
+    bool "Release mode"
+endchoice
+
+config EOS_ICON_STR_BUILD_IN
+    bool "Build icon strings into JerryScript"
+    default n
+
+config EOS_USE_VIRTUAL_DISPLAY
+    bool "Enable virtual display module"
+    default y
+
+endmenu
+
+menu "Memory"
+
+choice
+    prompt "Memory allocation provider"
+    default EOS_MEM_PROVIDER_STDLIB_CLIB
+
+config EOS_MEM_PROVIDER_STDLIB_CLIB
+    bool "Standard C library (malloc / free)"
+
+config EOS_MEM_PROVIDER_AUTO
+    bool "Automatic (fast pool + large pool)"
+
+config EOS_MEM_PROVIDER_CUSTOM
+    bool "Custom (override eos_malloc_core etc.)"
+endchoice
+
+config EOS_MEM_POOL_ALLOC_THRESHOLD
+    int "Pool allocation threshold (bytes)"
+    default 32768
+    depends on EOS_MEM_PROVIDER_AUTO
+
+config EOS_OVERRIDE_LVGL_STDLIB_MALLOC_ENABLE
+    bool "Override LVGL stdlib malloc with EOS allocator"
+    default y
+
+config EOS_MEM_TRACK_ENABLE
+    bool "Enable memory tracking"
+    default y
+
+endmenu
+
+menu "Image cache"
+
+config EOS_CACHE_ENABLE
+    bool "Enable LVGL image decode cache"
+    default y
+    help
+      When enabled, decoded image pixel data is cached to avoid
+      re-decoding.  The cache is initialised during system startup.
+
+      Disable this on platforms where the cache budget (EOS_CACHE_SIZE)
+      cannot accommodate the largest decoded image (e.g. high-resolution
+      QR codes on a simulator with a 128 KB budget).
+
+config EOS_CACHE_SIZE
+    int "Cache memory budget (bytes)"
+    default 131072
+    depends on EOS_CACHE_ENABLE
+    help
+      Default: 128 KB.  If IMAGE_CACHE_IN_PSRAM_SIZE or
+      IMAGE_CACHE_IN_SRAM_SIZE is defined, that value is used
+      automatically.
+
+config EOS_CACHE_HEADER_COUNT
+    int "Max cached image header entries"
+    default 16
+    depends on EOS_CACHE_ENABLE
+
+config EOS_CACHE_USE_DEDICATED_MEM
+    bool "Use dedicated memory pool for cache"
+    default BSP_USING_PSRAM || IMAGE_CACHE_IN_PSRAM_SIZE
+    depends on EOS_CACHE_ENABLE
+
+endmenu
+
+menu "RTOS"
+
+choice
+    prompt "RTOS type"
+    default EOS_RTOS_BARE_METAL
+
+config EOS_RTOS_BARE_METAL
+    bool "Bare metal (no OS)"
+
+config EOS_RTOS_FREERTOS
+    bool "FreeRTOS"
+
+config EOS_RTOS_RTTHREAD
+    bool "RT-Thread"
+
+config EOS_RTOS_POSIX
+    bool "POSIX (simulator)"
+
+config EOS_RTOS_CUSTOM
+    bool "Custom RTOS"
+endchoice
+
+endmenu
+
+menu "Font"
+
+choice
+    prompt "Font source type"
+    default EOS_FONT_TTF
+
+config EOS_FONT_C_MULTI
+    bool "C bitmap fonts (multi-size)"
+
+config EOS_FONT_TTF
+    bool "TrueType font (file system)"
+endchoice
+
+config EOS_FONT_CFG_LARGE_SIZE
+    int "Large font size (px)"
+    default 30
+
+config EOS_FONT_CFG_MEDIUM_SIZE
+    int "Medium font size (px)"
+    default 26
+
+config EOS_FONT_CFG_SMALL_SIZE
+    int "Small font size (px)"
+    default 22
+
+choice
+    prompt "TTF data source"
+    default EOS_FONT_TTF_FILE
+    depends on EOS_FONT_TTF
+
+config EOS_FONT_TTF_DATA
+    bool "Compiled into firmware"
+
+config EOS_FONT_TTF_FILE
+    bool "Loaded from file system"
+endchoice
+
+config EOS_FONT_TTF_FILE_PATH
+    string "TTF font file path"
+    default "font.ttf"
+    depends on EOS_FONT_TTF_FILE
+    help
+      Path to the TrueType font file, relative to the system font
+      directory (EOS_SYS_RES_FONT_DIR).  The final path is built as:
+        EOS_SYS_RES_FONT_DIR + EOS_FONT_TTF_FILE_PATH
+      e.g.  "/.sys/res/font/" + "font.ttf"  →  "/.sys/res/font/font.ttf".
+
+      On MCU (Flash / SD):
+        Default "font.ttf" is usually fine — the font is placed in the
+        same directory as other system resources.
+
+      On Native / WASM simulator:
+        The standard value "font.ttf" works out-of-the-box because the
+        CMake build automatically sets EOS_SYS_ROOT_DIR to point at the
+        simulator's fs/ directory.
+
+      If you need a custom absolute path, override EOS_FONT_TTF_FILE_PATH
+      via compiler flag (-D) — the Kconfig value is ignored when the
+      variable is already defined by the build system.
+
+endmenu
+
+menu "Display"
+
+config EOS_DISPLAY_WIDTH
+    int "Display width (px)"
+    default 390
+
+config EOS_DISPLAY_HEIGHT
+    int "Display height (px)"
+    default 450
+
+config EOS_DISPLAY_RADIUS
+    int "Display corner radius (px)"
+    default 80
+
+config EOS_DISPLAY_BRIGHTNESS_MIN
+    int "Minimum brightness (0 = off)"
+    default 5
+
+config EOS_DISPLAY_BRIGHTNESS_MAX
+    int "Maximum brightness"
+    default 100
+
+endmenu
+
+menu "File system"
+
+config EOS_SYS_ROOT_DIR
+    string "System root directory"
+    default "/"
+    help
+      Root directory for all file system operations.
+
+      On MCU:
+        Usually "/" (flash root).  LVGL paths (e.g. "Z:font.ttf") are
+        mapped through the LVGL FS driver letter and do NOT go through
+        this root.
+
+      On Native / WASM simulator:
+        Must point to the simulator's fs/ data directory, otherwise the
+        system cannot find resources (fonts, images, config files) and
+        will fail to boot.
+        A typical CMakeLists.txt already sets this via
+          add_compile_definitions(EOS_SYS_ROOT_DIR="${CMAKE_SOURCE_DIR}/fs/").
+        Override here only if you need a custom location.
+
+choice
+    prompt "File system interface"
+    default EOS_FS_POSIX
+
+config EOS_FS_POSIX
+    bool "POSIX"
+
+config EOS_FS_FATFS
+    bool "FatFs"
+
+config EOS_FS_LITTLEFS
+    bool "LittleFS"
+
+config EOS_FS_RTTHREAD
+    bool "RT-Thread DFS"
+
+config EOS_FS_CUSTOM
+    bool "Custom FS"
+endchoice
+
+config EOS_FS_PATH_MAX
+    int "Maximum file path length"
+    default 256
+
+config EOS_LVGL_FS_LETTER
+    int "LVGL file system drive letter (ASCII code, 65='A', 90='Z')"
+    range 65 90
+    default 90
+    help
+      Drive letter encoded as ASCII code of an uppercase letter.
+      The value must match LV_FS_DEFAULT_DRIVE_LETTER in lv_conf.h.
+      Example: 90 = 'Z' (recommended), 65 = 'A' (STDIO default).
+
+config EOS_DFW_ENABLE
+    bool "Enable delayed file writer"
+    default n
+
+endmenu
+
+menu "Language"
+
+choice
+    prompt "Default system language"
+    default EOS_LANG_EN
+
+config EOS_LANG_EN
+    bool "English"
+
+config EOS_LANG_ZH
+    bool "简体中文"
+endchoice
+
+endmenu
+
+menu "Logging"
+
+config EOS_USE_ASSERT
+    bool "Enable assertions"
+    default y
+
+config EOS_LOG_USE_COLOR
+    bool "Enable colorful log output"
+    default n
+
+config EOS_LOG_MAX_LISTENERS
+    int "Maximum log listeners"
+    default 8
+
+config EOS_LOG_ENABLE_STD
+    bool "Enable stdout log listener"
+    default y
+
+endmenu
+
+menu "Miscellaneous"
+
+config EOS_ENABLE_TEST_APP
+    bool "Enable built-in test app"
+    default y
+
+endmenu

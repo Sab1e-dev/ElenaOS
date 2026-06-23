@@ -691,11 +691,11 @@ static void _slide_widget_init_common(eos_slide_widget_t *sw,
                                       lv_coord_t target,
                                       eos_threshold_t threshold)
 {
-    static bool s_initialized = false;
-    if (!s_initialized)
+    static bool _initialized = false;
+    if (!_initialized)
     {
         eos_slide_widget_init();
-        s_initialized = true;
+        _initialized = true;
     }
 
     EOS_CHECK_PTR_RETURN(sw && touch_obj && target_obj);

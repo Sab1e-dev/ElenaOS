@@ -58,7 +58,7 @@ static const eos_chrome_overlay_t _control_center_overlay = {
 void eos_control_panel_slide_change(void);
 
 /************************** List callback **************************/
-#if EOS_ANIMATION_ENABLE
+
 static void _list_scroll_cb(lv_event_t *e)
 {
     lv_obj_t *list = lv_event_get_user_data(e);
@@ -115,7 +115,7 @@ static void _list_scroll_cb(lv_event_t *e)
         lv_obj_set_style_transform_scale(child, scale, 0);
     }
 }
-#endif /* EOS_ANIMATION_ENABLE */
+
 static void _slide_widget_reached_threshold_cb(lv_event_t *e)
 {
     lv_obj_t *container = (lv_obj_t *)lv_event_get_user_data(e);
@@ -519,11 +519,9 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
                           LV_FLEX_ALIGN_START);
     lv_obj_add_flag(container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
-#if EOS_ANIMATION_ENABLE
     lv_obj_add_event_cb(container, _list_scroll_cb, LV_EVENT_SCROLL, container);
     eos_slide_widget_add_event_cb_moving(swipe_panel->sw, _list_scroll_cb, container);
     eos_slide_widget_add_event_cb_done(swipe_panel->sw, _list_scroll_cb, container);
-#endif /* EOS_ANIMATION_ENABLE */
     eos_slide_widget_add_event_cb_reached_threshold(swipe_panel->sw, _slide_widget_reached_threshold_cb, container);
     cc->container = container;
     lv_obj_t *btn;
