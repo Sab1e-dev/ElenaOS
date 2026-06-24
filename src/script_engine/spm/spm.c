@@ -35,7 +35,7 @@ static void _lvgl_view_clean(void *view)
 static void _program_list_add(script_program_t *prog);
 static void _program_list_remove(script_program_t *prog);
 static void _program_destroy(script_program_t *prog);
-static spm_result_t _error_copy_from_core(script_program_t *prog);
+static eos_result_t _error_copy_from_core(script_program_t *prog);
 
 static void _program_list_add(script_program_t *prog)
 {
@@ -95,9 +95,9 @@ static void _program_destroy(script_program_t *prog)
     eos_free(prog);
 }
 
-static spm_result_t _error_copy_from_core(script_program_t *prog)
+static eos_result_t _error_copy_from_core(script_program_t *prog)
 {
-    if (!prog) return SPM_ERR_NULL_PACKAGE;
+    if (!prog) return EOS_ERR_SCRIPT_NULL_PACKAGE;
     prog->has_error = true;
     const char *err_info = script_engine_get_error_info();
     if (err_info) snprintf(prog->error.error_info, SPM_ERROR_INFO_MAX, "%s", err_info);
@@ -111,7 +111,7 @@ static spm_result_t _error_copy_from_core(script_program_t *prog)
         memcpy(prog->error.backtrace, bt, frames * sizeof(script_error_location_t));
         prog->error.backtrace_count = frames;
     }
-    return SPM_OK;
+    return EOS_OK;
 }
 
 static void _pkg_clone(script_pkg_t *dst, const script_pkg_t *src)
@@ -147,13 +147,13 @@ static void _pkg_clone(script_pkg_t *dst, const script_pkg_t *src)
 
 /* SPM Lifecycle -----------------------------------------------*/
 
-spm_result_t spm_init(void)
+eos_result_t spm_init(void)
 {
-    if (s_initialized) return SPM_OK;
+    if (s_initialized) return EOS_OK;
     s_program_list = NULL;
     s_initialized = true;
     EOS_LOG_I("SPM initialized");
-    return SPM_OK;
+    return EOS_OK;
 }
 
 /* Program Lifecycle -------------------------------------------*/
@@ -185,13 +185,13 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
               pkg->id ? pkg->id : "unknown");
 
     script_engine_set_current_program(prog);
-    script_engine_result_t ret = script_engine_run(pkg);
+    eos_result_t ret = script_engine_run(pkg);
 
-    if (ret != SE_OK) {
+    if (ret != EOS_OK) {
         /* If fatal engine recovery happened, spm_handle_engine_reset()
          * already destroyed ALL programs (including this one). The prog
          * pointer is now freed — skip all cleanup. */
-        if (ret == -SE_ERR_JERRY_EXCEPTION && s_program_list == NULL) {
+        if (ret == EOS_ERR_SCRIPT_EXCEPTION && s_program_list == NULL) {
             const char *err = script_engine_get_error_info();
             if (err && err[0]) {
                 s_has_last_error = true;
@@ -226,46 +226,46 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
     return prog;
 }
 
-spm_result_t spm_suspend_program(script_program_t *prog)
+eos_result_t spm_suspend_program(script_program_t *prog)
 {
-    if (!prog) return SPM_ERR_NULL_PACKAGE;
-    if (prog->type != SCRIPT_TYPE_WATCHFACE) return SPM_ERR_INVALID_TYPE;
-    if (prog->state != SCRIPT_PROGRAM_STATE_ACTIVE) return SPM_ERR_INVALID_STATE;
+    if (!prog) return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    if (prog->type != SCRIPT_TYPE_WATCHFACE) return EOS_ERR_SCRIPT_INVALID_TYPE;
+    if (prog->state != SCRIPT_PROGRAM_STATE_ACTIVE) return EOS_ERR_INVALID_STATE;
 
     script_engine_state_t core_state = script_engine_get_state();
     if (core_state != SCRIPT_ENGINE_STATE_IDLE) {
         EOS_LOG_E("spm_suspend_program: Core state=%d not IDLE", core_state);
-        return SPM_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
 
     if (prog->sni_ctx) sni_context_set_paused(prog->sni_ctx, true);
     prog->state = SCRIPT_PROGRAM_STATE_SUSPENDED;
     EOS_LOG_I("Program %p suspended", (void *)prog);
-    return SPM_OK;
+    return EOS_OK;
 }
 
-spm_result_t spm_resume_program(script_program_t *prog)
+eos_result_t spm_resume_program(script_program_t *prog)
 {
-    if (!prog) return SPM_ERR_NULL_PACKAGE;
-    if (prog->state != SCRIPT_PROGRAM_STATE_SUSPENDED) return SPM_ERR_INVALID_STATE;
+    if (!prog) return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    if (prog->state != SCRIPT_PROGRAM_STATE_SUSPENDED) return EOS_ERR_INVALID_STATE;
 
     script_engine_state_t core_state = script_engine_get_state();
     if (core_state != SCRIPT_ENGINE_STATE_IDLE) {
         EOS_LOG_E("spm_resume_program: Core state=%d not IDLE", core_state);
-        return SPM_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
 
     if (prog->sni_ctx) sni_context_set_paused(prog->sni_ctx, false);
     prog->state = SCRIPT_PROGRAM_STATE_ACTIVE;
     script_engine_set_current_program(prog);
     EOS_LOG_I("Program %p resumed", (void *)prog);
-    return SPM_OK;
+    return EOS_OK;
 }
 
-spm_result_t spm_terminate_program(script_program_t *prog)
+eos_result_t spm_terminate_program(script_program_t *prog)
 {
-    if (!prog) return SPM_ERR_NULL_PACKAGE;
-    if (prog->state == SCRIPT_PROGRAM_STATE_TERMINATED) return SPM_OK;
+    if (!prog) return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    if (prog->state == SCRIPT_PROGRAM_STATE_TERMINATED) return EOS_OK;
 
     EOS_LOG_I("Terminating program %p type=%d state=%d", (void *)prog, prog->type, prog->state);
     prog->state = SCRIPT_PROGRAM_STATE_STOPPING;
@@ -311,7 +311,7 @@ spm_result_t spm_terminate_program(script_program_t *prog)
     }
 
     EOS_LOG_I("Program terminated");
-    return SPM_OK;
+    return EOS_OK;
 }
 
 void spm_terminate_programs_by_type(script_pkg_type_t type)
@@ -385,9 +385,9 @@ const script_error_location_t *spm_get_program_error_location(script_program_t *
 
 static script_program_t *s_wf_program = NULL;
 
-script_engine_result_t spm_watchface_start(const script_pkg_t *pkg, void *view)
+eos_result_t spm_watchface_start(const script_pkg_t *pkg, void *view)
 {
-    if (!pkg || !pkg->script_str) return -SE_ERR_NULL_PACKAGE;
+    if (!pkg || !pkg->script_str) return EOS_ERR_SCRIPT_NULL_PACKAGE;
     if (s_wf_program) { spm_terminate_program(s_wf_program); s_wf_program = NULL; }
     script_engine_stop();
     s_wf_program = spm_start_program(pkg);
@@ -395,30 +395,30 @@ script_engine_result_t spm_watchface_start(const script_pkg_t *pkg, void *view)
         s_wf_program->cleanup_view = _lvgl_view_clean;
         s_wf_program->cleanup_user_data = view;
     }
-    return s_wf_program ? SE_OK : -SE_FAILED;
+    return s_wf_program ? EOS_OK : EOS_FAILED;
 }
 
-script_engine_result_t spm_watchface_pause(void)
+eos_result_t spm_watchface_pause(void)
 {
-    if (!s_wf_program) return -SE_ERR_INVALID_STATE;
+    if (!s_wf_program) return EOS_ERR_INVALID_STATE;
     script_engine_state_t state = script_engine_get_state();
     if (state == SCRIPT_ENGINE_STATE_RUNNING) script_engine_request_stop();
-    spm_result_t ret = spm_suspend_program(s_wf_program);
-    return (ret == SPM_OK) ? SE_OK : -SE_ERR_INVALID_STATE;
+    eos_result_t ret = spm_suspend_program(s_wf_program);
+    return ret;
 }
 
-script_engine_result_t spm_watchface_resume(void)
+eos_result_t spm_watchface_resume(void)
 {
-    if (!s_wf_program) return -SE_ERR_INVALID_STATE;
-    spm_result_t ret = spm_resume_program(s_wf_program);
-    return (ret == SPM_OK) ? SE_OK : -SE_ERR_INVALID_STATE;
+    if (!s_wf_program) return EOS_ERR_INVALID_STATE;
+    eos_result_t ret = spm_resume_program(s_wf_program);
+    return ret;
 }
 
-script_engine_result_t spm_watchface_destroy(void)
+eos_result_t spm_watchface_destroy(void)
 {
     if (s_wf_program) { spm_terminate_program(s_wf_program); s_wf_program = NULL; }
     script_engine_stop();
-    return SE_OK;
+    return EOS_OK;
 }
 
 void spm_watchface_set_view_cleanup(void *view)
@@ -434,18 +434,18 @@ bool spm_watchface_has_context(void)
     return s_wf_program != NULL && s_wf_program->state != SCRIPT_PROGRAM_STATE_TERMINATED;
 }
 
-script_engine_result_t spm_app_run(const script_pkg_t *pkg)
+eos_result_t spm_app_run(const script_pkg_t *pkg)
 {
-    if (!pkg || !pkg->script_str) return -SE_ERR_NULL_PACKAGE;
-    return spm_start_program(pkg) ? SE_OK : -SE_FAILED;
+    if (!pkg || !pkg->script_str) return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    return spm_start_program(pkg) ? EOS_OK : EOS_FAILED;
 }
 
-script_engine_result_t spm_app_stop(void)
+eos_result_t spm_app_stop(void)
 {
     script_program_t *prog = spm_get_program_by_type(SCRIPT_TYPE_APPLICATION);
-    if (!prog) return SE_OK;
-    spm_result_t ret = spm_terminate_program(prog);
-    return (ret == SPM_OK) ? SE_OK : -SE_FAILED;
+    if (!prog) return EOS_OK;
+    eos_result_t ret = spm_terminate_program(prog);
+    return ret;
 }
 
 const spm_error_t *spm_get_last_error(void)

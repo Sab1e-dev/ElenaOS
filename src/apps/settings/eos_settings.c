@@ -578,7 +578,7 @@ static void _settings_perm_entry_clicked_cb(lv_event_t *e)
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
              app_id);
     script_pkg_t pkg = {0};
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return;
@@ -720,7 +720,7 @@ static void _settings_app_list_btn_cb(lv_event_t *e)
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
              app_id);
     script_pkg_t pkg = {0};
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return;
@@ -857,7 +857,7 @@ static void _app_btn_create(lv_obj_t *parent, const char *app_id)
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
              app_id);
     script_pkg_t pkg = {0};
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return;

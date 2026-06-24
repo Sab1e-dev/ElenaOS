@@ -45,20 +45,6 @@ typedef enum {
 } script_program_state_t;
 
 /**
- * @brief SPM operation result codes
- */
-typedef enum {
-    SPM_OK = 0,
-    SPM_ERR_NULL_PACKAGE,
-    SPM_ERR_SEC_ERROR,
-    SPM_ERR_ALREADY_RUNNING,
-    SPM_ERR_PROGRAM_NOT_FOUND,
-    SPM_ERR_INVALID_STATE,
-    SPM_ERR_INVALID_TYPE,
-    SPM_ERR_MALLOC,
-} spm_result_t;
-
-/**
  * @brief Script error record (copied from Core on failure)
  */
 typedef struct {
@@ -98,10 +84,10 @@ typedef struct script_program {
 /**@{*/
 /**
  * @brief Initialize the Script Program Manager
- * @return SPM_OK on success
+ * @return EOS_OK on success
  * @note Must be called after script_engine_init()
  */
-spm_result_t spm_init(void);
+eos_result_t spm_init(void);
 
 /**
  * @brief Emergency destroy all programs during engine fatal recovery
@@ -132,33 +118,33 @@ script_program_t *spm_start_program(const script_pkg_t *pkg);
 /**
  * @brief Suspend a script program (WatchFace only)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Preconditions: prog->type == SCRIPT_TYPE_WATCHFACE, prog->state == ACTIVE, Core == IDLE
  * Operations: save realm to prog, pause SNI callbacks, prog->state = SUSPENDED
  */
-spm_result_t spm_suspend_program(script_program_t *prog);
+eos_result_t spm_suspend_program(script_program_t *prog);
 
 /**
  * @brief Resume a script program (WatchFace only)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Preconditions: prog->state == SUSPENDED, Core == IDLE
  * Operations: restore realm to Core, resume SNI callbacks, prog->state = ACTIVE
  */
-spm_result_t spm_resume_program(script_program_t *prog);
+eos_result_t spm_resume_program(script_program_t *prog);
 
 /**
  * @brief Terminate a script program (async safe)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Terminal entry point:
  *   - ACTIVE -> STOPPING (async wait for Core stop) -> TERMINATED
  *   - SUSPENDED -> STOPPING (direct cleanup) -> TERMINATED
  */
-spm_result_t spm_terminate_program(script_program_t *prog);
+eos_result_t spm_terminate_program(script_program_t *prog);
 
 /**
  * @brief Terminate all programs of a given type
@@ -238,18 +224,18 @@ const spm_error_t *spm_get_last_error(void);
 
 /** @name Simplified WatchFace APIs */
 /**@{*/
-script_engine_result_t spm_watchface_start(const script_pkg_t *pkg, void *view);
+eos_result_t spm_watchface_start(const script_pkg_t *pkg, void *view);
 void spm_watchface_set_view_cleanup(void *view);
-script_engine_result_t spm_watchface_pause(void);
-script_engine_result_t spm_watchface_resume(void);
-script_engine_result_t spm_watchface_destroy(void);
+eos_result_t spm_watchface_pause(void);
+eos_result_t spm_watchface_resume(void);
+eos_result_t spm_watchface_destroy(void);
 bool spm_watchface_has_context(void);
 /**@}*/
 
 /** @name Simplified Application APIs */
 /**@{*/
-script_engine_result_t spm_app_run(const script_pkg_t *pkg);
-script_engine_result_t spm_app_stop(void);
+eos_result_t spm_app_run(const script_pkg_t *pkg);
+eos_result_t spm_app_stop(void);
 /**@}*/
 
 #ifdef __cplusplus

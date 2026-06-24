@@ -287,11 +287,11 @@ static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array);
 static void _extract_error_location_from_exception(jerry_value_t exception_value);
 static void _script_engine_exception_handler(const char *tag, jerry_value_t result);
 static jerry_value_t _vm_exec_stop_callback(void *user_p);
-static script_engine_result_t _change_state(script_engine_state_t new_state);
+static eos_result_t _change_state(script_engine_state_t new_state);
 static void _collect_script_garbage(void);
 static void _check_mem(void);
 static void _engine_cleanup(void);
-static script_engine_result_t _script_engine_stop_and_cleanup(void);
+static eos_result_t _script_engine_stop_and_cleanup(void);
 static jerry_value_t _script_engine_create_info(const script_pkg_t *script_package);
 
 /* ---- Realm Management (Encapsulated) ---- */
@@ -372,7 +372,7 @@ script_program_t *script_engine_get_current_program(void)
     return engine_rt.current_program;
 }
 
-static script_engine_result_t _change_state(script_engine_state_t new_state)
+static eos_result_t _change_state(script_engine_state_t new_state)
 {
     switch (engine_rt.state)
     {
@@ -380,35 +380,35 @@ static script_engine_result_t _change_state(script_engine_state_t new_state)
         if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_RUNNING)
         {
             EOS_LOG_E("Invalid transition UNINITIALIZED->%d", new_state);
-            return -SE_ERR_INVALID_STATE;
+            return EOS_ERR_INVALID_STATE;
         }
         break;
     case SCRIPT_ENGINE_STATE_RUNNING:
         if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_EXCEPTION && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
         {
             EOS_LOG_E("Invalid transition RUNNING->%d", new_state);
-            return -SE_ERR_INVALID_STATE;
+            return EOS_ERR_INVALID_STATE;
         }
         break;
     case SCRIPT_ENGINE_STATE_IDLE:
         if (new_state != SCRIPT_ENGINE_STATE_RUNNING && new_state != SCRIPT_ENGINE_STATE_EXCEPTION && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
         {
             EOS_LOG_E("Invalid transition IDLE->%d", new_state);
-            return -SE_ERR_INVALID_STATE;
+            return EOS_ERR_INVALID_STATE;
         }
         break;
     case SCRIPT_ENGINE_STATE_EXCEPTION:
         if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
         {
             EOS_LOG_E("Invalid transition EXCEPTION->%d", new_state);
-            return -SE_ERR_INVALID_STATE;
+            return EOS_ERR_INVALID_STATE;
         }
         break;
     default:
-        return -SE_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
     engine_rt.state = new_state;
-    return SE_OK;
+    return EOS_OK;
 }
 
 static void _check_mem(void)
@@ -805,25 +805,25 @@ static jerry_value_t _vm_exec_stop_callback(void *user_p)
 
 /* ---- Init ---- */
 
-script_engine_result_t script_engine_init(void)
+eos_result_t script_engine_init(void)
 {
     if (engine_rt.initialized)
-        return SE_ERR_ALREADY_INITIALIZED;
+        return EOS_ERR_ALREADY_INITIALIZED;
     if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP) || !jerry_feature_enabled(JERRY_FEATURE_REALM) || !jerry_feature_enabled(JERRY_FEATURE_MODULE))
     {
         EOS_LOG_E("Required JerryScript features not enabled");
-        return -SE_ERR_JERRY_INIT_FAIL;
+        return EOS_ERR_SCRIPT_INIT_FAIL;
     }
     if (!lv_is_initialized())
     {
         EOS_LOG_E("LVGL not initialized");
-        return -SE_ERR_NOT_INITIALIZED;
+        return EOS_ERR_NOT_INITIALIZED;
     }
     jerry_init(SCRIPT_INIT_FLAGS);
     sni_init();
     engine_rt.initialized = true;
     EOS_LOG_I("Script engine initialized");
-    return SE_OK;
+    return EOS_OK;
 }
 
 /* ---- Module system ---- */
@@ -995,20 +995,20 @@ static void _cleanup_module_queue(void)
 
 /* ---- Manifest ---- */
 
-script_engine_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg)
+eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg)
 {
     if (!manifest_path || !pkg)
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
     char *manifest_json = eos_storage_read_file(manifest_path);
     if (!manifest_json)
     {
         EOS_LOG_E("Read manifest.json failed");
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
     cJSON *root = cJSON_Parse(manifest_json);
     eos_free(manifest_json);
     if (!root)
-        return -SE_FAILED;
+        return EOS_FAILED;
     cJSON *id = cJSON_GetObjectItemCaseSensitive(root, "id");
     cJSON *name = cJSON_GetObjectItemCaseSensitive(root, "name");
     cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
@@ -1017,7 +1017,7 @@ script_engine_result_t script_engine_get_manifest(const char *manifest_path, scr
     if (!cJSON_IsString(id) || !id->valuestring || !cJSON_IsString(name) || !name->valuestring || !cJSON_IsString(version) || !version->valuestring || !cJSON_IsString(author) || !author->valuestring || !cJSON_IsString(description) || !description->valuestring)
     {
         cJSON_Delete(root);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     cJSON *min_api = cJSON_GetObjectItemCaseSensitive(root, "minApiLevel");
@@ -1026,7 +1026,7 @@ script_engine_result_t script_engine_get_manifest(const char *manifest_path, scr
     {
         EOS_LOG_E("Manifest missing required number fields: minApiLevel, targetApiLevel");
         cJSON_Delete(root);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
     if (pkg->id)
         eos_free((void *)pkg->id);
@@ -1101,7 +1101,7 @@ script_engine_result_t script_engine_get_manifest(const char *manifest_path, scr
     }
 
     cJSON_Delete(root);
-    return SE_OK;
+    return EOS_OK;
 }
 
 /* ---- Run ---- */
@@ -1119,19 +1119,19 @@ static jerry_value_t _script_engine_create_info(const script_pkg_t *pkg)
     return obj;
 }
 
-script_engine_result_t script_engine_run(const script_pkg_t *script_package)
+eos_result_t script_engine_run(const script_pkg_t *script_package)
 {
     if (!script_package || !script_package->script_str)
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
     if (!engine_rt.initialized)
     {
         EOS_LOG_E("Not initialized");
-        return -SE_ERR_NOT_INITIALIZED;
+        return EOS_ERR_NOT_INITIALIZED;
     }
     if (engine_rt.state != SCRIPT_ENGINE_STATE_UNINITIALIZED && engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
     {
         EOS_LOG_E("Cannot run in state %d", engine_rt.state);
-        return -SE_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
 
     if (script_package->min_api_level > ELENIX_OS_API_LEVEL)
@@ -1139,7 +1139,7 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
         EOS_LOG_E("Package '%s' requires API level %d, OS only supports %d",
                   script_package->id ? script_package->id : "unknown",
                   script_package->min_api_level, ELENIX_OS_API_LEVEL);
-        return -SE_ERR_SDK_VERSION;
+        return EOS_ERR_SDK_VERSION;
     }
 
     /* Clear stale error info from previous program runs before starting fresh */
@@ -1206,7 +1206,7 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
         _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
-        return -SE_ERR_JERRY_EXCEPTION;
+        return EOS_ERR_SCRIPT_EXCEPTION;
     }
 
     engine_rt.script_start_time = eos_tick_get();
@@ -1249,13 +1249,13 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
     engine_rt.owned_script.script_str = NULL;
 
 
-    script_engine_result_t result = SE_OK;
+    eos_result_t result = EOS_OK;
 
     if (jerry_value_is_exception(parsed_code))
     {
         _script_engine_exception_handler("Script Parse", parsed_code);
         _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
-        result = -SE_ERR_INVALID_JS;
+        result = EOS_ERR_SCRIPT_INVALID_JS;
     }
     else
     {
@@ -1273,7 +1273,7 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
             _script_engine_exception_handler("Module Link", link_result);
             _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
             jerry_value_free(link_result);
-            result = -SE_ERR_JERRY_EXCEPTION;
+            result = EOS_ERR_SCRIPT_EXCEPTION;
         }
         else
         {
@@ -1284,15 +1284,15 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
                 if (engine_rt.pending_stop)
                 {
                     if (engine_rt.stop_is_timeout)
-                        result = -SE_ERR_TIMEOUT;
+                        result = EOS_ERR_TIMEOUT;
                     else
-                        result = SE_OK;
+                        result = EOS_OK;
                 }
                 else
                 {
                     _script_engine_exception_handler("Script Runtime", run_result);
                     _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
-                    result = -SE_ERR_JERRY_EXCEPTION;
+                    result = EOS_ERR_SCRIPT_EXCEPTION;
                 }
             }
             else
@@ -1340,7 +1340,7 @@ script_engine_result_t script_engine_run(const script_pkg_t *script_package)
     _realm_release_program(prog);
     _cleanup_module_queue();
 
-    if (result != SE_OK || engine_rt.pending_stop)
+    if (result != EOS_OK || engine_rt.pending_stop)
     {
         _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
@@ -1361,7 +1361,7 @@ static void _engine_cleanup(void)
     memset(&engine_rt.owned_script, 0, sizeof(engine_rt.owned_script));
 }
 
-static script_engine_result_t _script_engine_stop_and_cleanup(void)
+static eos_result_t _script_engine_stop_and_cleanup(void)
 {
     EOS_LOG_I("Script stop cleanup: state=%d prog=%p", engine_rt.state, (void *)_get_prog());
     script_program_t *prog = _get_prog();
@@ -1395,46 +1395,46 @@ static script_engine_result_t _script_engine_stop_and_cleanup(void)
     /* Clear error state — next program starts with zero error state */
     _clear_error_info();
     EOS_LOG_I("Script terminated");
-    return SE_OK;
+    return EOS_OK;
 }
 
-script_engine_result_t script_engine_stop(void)
+eos_result_t script_engine_stop(void)
 {
     EOS_LOG_I("Stop script (sync) state=%d", engine_rt.state);
     switch (engine_rt.state)
     {
     case SCRIPT_ENGINE_STATE_UNINITIALIZED:
-        return SE_OK;
+        return EOS_OK;
     case SCRIPT_ENGINE_STATE_RUNNING:
     case SCRIPT_ENGINE_STATE_EXCEPTION:
     case SCRIPT_ENGINE_STATE_IDLE:
         return _script_engine_stop_and_cleanup();
     default:
-        return -SE_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
 }
 
-script_engine_result_t script_engine_request_stop(void)
+eos_result_t script_engine_request_stop(void)
 {
     EOS_LOG_I("Request stop script state=%d", engine_rt.state);
     switch (engine_rt.state)
     {
     case SCRIPT_ENGINE_STATE_UNINITIALIZED:
-        return SE_OK;
+        return EOS_OK;
     case SCRIPT_ENGINE_STATE_RUNNING:
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = true;
         eos_dispatcher_call((eos_dispatcher_cb_t)_script_engine_stop_and_cleanup, NULL);
-        return SE_OK;
+        return EOS_OK;
     case SCRIPT_ENGINE_STATE_IDLE:
     case SCRIPT_ENGINE_STATE_EXCEPTION:
         return _script_engine_stop_and_cleanup();
     default:
-        return -SE_ERR_INVALID_STATE;
+        return EOS_ERR_INVALID_STATE;
     }
 }
 
-script_engine_result_t script_engine_clean_up(void)
+eos_result_t script_engine_clean_up(void)
 {
     if (engine_rt.state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
         script_engine_request_stop();
@@ -1443,23 +1443,23 @@ script_engine_result_t script_engine_clean_up(void)
     jerry_cleanup();
     engine_rt.initialized = false;
     _change_state(SCRIPT_ENGINE_STATE_UNINITIALIZED);
-    return SE_OK;
+    return EOS_OK;
 }
 
 /* ---- Reload ---- */
 
-script_engine_result_t script_engine_reload_current_script(void)
+eos_result_t script_engine_reload_current_script(void)
 {
     if (!engine_rt.initialized)
-        return -SE_ERR_NOT_INITIALIZED;
+        return EOS_ERR_NOT_INITIALIZED;
     const script_pkg_t *p = _get_pkg();
     if (!p || !p->id || !p->base_path)
-        return -SE_ERR_SCRIPT_NOT_RUNNING;
+        return EOS_ERR_SCRIPT_NOT_RUNNING;
     script_engine_state_t state = engine_rt.state;
     if (state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
     {
-        script_engine_result_t sr = script_engine_request_stop();
-        if (sr != SE_OK && engine_rt.state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
+        eos_result_t sr = script_engine_request_stop();
+        if (sr != EOS_OK && engine_rt.state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
             return sr;
     }
 
@@ -1475,28 +1475,28 @@ script_engine_result_t script_engine_reload_current_script(void)
     snprintf(base_path_buf, sizeof(base_path_buf), "%s", p->base_path);
     char manifest_path[EOS_FS_PATH_MAX];
     snprintf(manifest_path, sizeof(manifest_path), "%s%s", base_path_buf, mf);
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
-        return -SE_FAILED;
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
+        return EOS_FAILED;
     char script_path[EOS_FS_PATH_MAX];
     snprintf(script_path, sizeof(script_path), "%s%s", base_path_buf, ef);
     pkg.base_path = eos_strdup(base_path_buf);
     if (!eos_storage_is_file(script_path))
     {
         eos_pkg_free(&pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
     pkg.script_str = eos_storage_read_file(script_path);
     if (!pkg.script_str)
     {
         eos_pkg_free(&pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
-    script_engine_result_t run_ret = script_engine_run(&pkg);
+    eos_result_t run_ret = script_engine_run(&pkg);
     eos_pkg_free(&pkg);
     return run_ret;
 }
 
-script_engine_result_t script_engine_reload_current_app(void)
+eos_result_t script_engine_reload_current_app(void)
 {
     return script_engine_reload_current_script();
 }

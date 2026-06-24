@@ -354,7 +354,7 @@ eos_result_t _eos_app_list_get_installed(void)
     }
 
     // Iterate through all entries in the directory
-    while (eos_storage_dir_read(dir, name_buf, sizeof(name_buf)) == 0)
+    while (eos_storage_dir_read(dir, name_buf, sizeof(name_buf)) == EOS_OK)
     {
         // Skip "." and ".." directories
         if (strcmp(name_buf, ".") == 0 || strcmp(name_buf, "..") == 0)
@@ -622,7 +622,7 @@ static const char *_eos_script_error_get_reason(eos_script_error_type_t error_ty
 }
 
 void eos_app_handle_script_error(eos_script_error_type_t error_type,
-                                 int32_t error_code,
+                                 eos_result_t error_code,
                                  const char *app_id,
                                  const eos_script_error_handler_cfg_t *cfg)
 {

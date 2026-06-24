@@ -348,10 +348,10 @@ static void _test_app_debug_unregister_global_cb(void)
     s_test_app_debug.global_cb_registered = false;
 }
 
-static script_engine_result_t _test_app_debug_create_pkg(const char *app_id, script_pkg_t **out_pkg)
+static eos_result_t _test_app_debug_create_pkg(const char *app_id, script_pkg_t **out_pkg)
 {
     if (!(app_id && out_pkg))
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
 
     char manifest_path[EOS_FS_PATH_MAX];
     snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
@@ -359,14 +359,14 @@ static script_engine_result_t _test_app_debug_create_pkg(const char *app_id, scr
 
     script_pkg_t *pkg = eos_malloc_zeroed(sizeof(script_pkg_t));
     if (!pkg)
-        return -SE_ERR_MALLOC;
+        return EOS_ERR_MEM;
 
     pkg->type = SCRIPT_TYPE_APPLICATION;
-    if (script_engine_get_manifest(manifest_path, pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         eos_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     char script_path[EOS_FS_PATH_MAX];
@@ -382,7 +382,7 @@ static script_engine_result_t _test_app_debug_create_pkg(const char *app_id, scr
         EOS_LOG_E("Can't find script: %s", script_path);
         eos_pkg_free(pkg);
         eos_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     pkg->script_str = eos_storage_read_file(script_path);
@@ -390,14 +390,14 @@ static script_engine_result_t _test_app_debug_create_pkg(const char *app_id, scr
     {
         eos_pkg_free(pkg);
         eos_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     *out_pkg = pkg;
-    return SE_OK;
+    return EOS_OK;
 }
 
-static void _test_app_debug_show_error(lv_obj_t *scr, const char *app_id, script_engine_result_t ret)
+static void _test_app_debug_show_error(lv_obj_t *scr, const char *app_id, eos_result_t ret)
 {
     lv_obj_clean(scr);
     lv_obj_remove_style_all(scr);
@@ -430,10 +430,10 @@ static void _test_app_debug_restore_after_error(const char *app_id)
     _test_app_debug_sync_bar_pos();
 }
 
-static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
+static eos_result_t _test_app_debug_start_internal(const char *app_id)
 {
     if (!(app_id && s_test_app_debug.list_screen && lv_obj_is_valid(s_test_app_debug.list_screen)))
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
 
     if (script_engine_get_state() != SCRIPT_ENGINE_STATE_UNINITIALIZED &&
         script_engine_get_state() != SCRIPT_ENGINE_STATE_EXCEPTION)
@@ -447,7 +447,7 @@ static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
     if (!s_test_app_debug.current_app_id)
     {
         s_test_app_debug.debug_active = false;
-        return -SE_ERR_MALLOC;
+        return EOS_ERR_MEM;
     }
     s_test_app_debug.debug_active = true;
 
@@ -457,7 +457,7 @@ static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
     {
         s_test_app_debug.debug_active = false;
         _test_app_debug_clear_current_app_id();
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
@@ -465,7 +465,7 @@ static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
     {
         s_test_app_debug.debug_active = false;
         _test_app_debug_clear_current_app_id();
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     eos_activity_set_view(activity, view);
@@ -473,8 +473,8 @@ static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
     eos_activity_set_type(activity, EOS_ACTIVITY_TYPE_APP);
 
     script_pkg_t *pkg = NULL;
-    script_engine_result_t ret = _test_app_debug_create_pkg(app_id, &pkg);
-    if (ret != SE_OK)
+    eos_result_t ret = _test_app_debug_create_pkg(app_id, &pkg);
+    if (ret != EOS_OK)
     {
         s_test_app_debug.debug_active = false;
         _test_app_debug_clear_current_app_id();
@@ -483,7 +483,7 @@ static script_engine_result_t _test_app_debug_start_internal(const char *app_id)
 
     eos_activity_enter(activity);
     ret = spm_app_run(pkg);
-    if (ret != SE_OK)
+    if (ret != EOS_OK)
     {
         _test_app_debug_show_error(view, app_id, ret);
         _test_app_debug_restore_after_error(app_id);
@@ -678,7 +678,7 @@ static void _test_app_debug_app_btn_create(lv_obj_t *parent, const char *app_id)
              app_id);
 
     script_pkg_t pkg = {0};
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return;

@@ -96,7 +96,7 @@ static eos_result_t _wav_probe(const void *src, eos_audio_src_type_t src_type,
 
     while (!found_fmt && offset < sizeof(wav_riff_header_t) + 4096)
     {
-        if (eos_fs_seek(f, offset) != 0) break;
+        if (eos_fs_seek(f, offset) != EOS_OK) break;
         if (eos_fs_read(f, chunk_id, 4) != 4) break;
         if (eos_fs_read(f, &chunk_size, 4) != 4) break;
         offset += 8;
@@ -155,7 +155,7 @@ static eos_result_t _wav_open(eos_audio_decoder_dsc_t *dsc)
 
     while (offset < 0x10000000)
     {
-        if (eos_fs_seek(wd->file, offset) != 0) break;
+        if (eos_fs_seek(wd->file, offset) != EOS_OK) break;
         if (eos_fs_read(wd->file, chunk_id, 4) != 4) break;
         if (eos_fs_read(wd->file, &chunk_size, 4) != 4) break;
 

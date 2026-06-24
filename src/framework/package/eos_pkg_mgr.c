@@ -87,7 +87,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     memset(header, 0, sizeof(eos_pkg_header_t));
 
     // Read magic number
-    if (eos_storage_file_seek(fp, EOS_PKG_MAGIC_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_MAGIC_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, header->magic, 4) != 4)
     {
         eos_storage_file_close(fp);
@@ -96,7 +96,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read package name
-    if (eos_storage_file_seek(fp, EOS_PKG_NAME_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_NAME_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, header->pkg_name, EOS_PKG_NAME_LEN_MAX) != EOS_PKG_NAME_LEN_MAX)
     {
         eos_storage_file_close(fp);
@@ -106,7 +106,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_name[EOS_PKG_NAME_LEN_MAX - 1] = '\0';
 
     // Read package ID
-    if (eos_storage_file_seek(fp, EOS_PKG_ID_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_ID_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, header->pkg_id, EOS_PKG_ID_LEN_MAX) != EOS_PKG_ID_LEN_MAX)
     {
         eos_storage_file_close(fp);
@@ -116,7 +116,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_id[EOS_PKG_ID_LEN_MAX - 1] = '\0';
 
     // Read package version
-    if (eos_storage_file_seek(fp, EOS_PKG_VERSION_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_VERSION_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, header->pkg_version, EOS_PKG_VERSION_LEN_MAX) != EOS_PKG_VERSION_LEN_MAX)
     {
         eos_storage_file_close(fp);
@@ -126,7 +126,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_version[EOS_PKG_VERSION_LEN_MAX - 1] = '\0';
 
     // Read min_api_level
-    if (eos_storage_file_seek(fp, EOS_PKG_MIN_API_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_MIN_API_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, &header->min_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
     {
         eos_storage_file_close(fp);
@@ -135,7 +135,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read target_api_level
-    if (eos_storage_file_seek(fp, EOS_PKG_TARGET_API_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_TARGET_API_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, &header->target_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
     {
         eos_storage_file_close(fp);
@@ -144,7 +144,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read file_count
-    if (eos_storage_file_seek(fp, EOS_PKG_FILE_COUNT_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_FILE_COUNT_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, &header->file_count, sizeof(uint32_t)) != sizeof(uint32_t))
     {
         eos_storage_file_close(fp);
@@ -153,7 +153,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read reserved field
-    if (eos_storage_file_seek(fp, EOS_PKG_RESERVED_OFFSET) != 0 ||
+    if (eos_storage_file_seek(fp, EOS_PKG_RESERVED_OFFSET) != EOS_OK ||
         eos_storage_file_read(fp, &header->reserved, sizeof(uint32_t)) != sizeof(uint32_t))
     {
         eos_storage_file_close(fp);
@@ -218,7 +218,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
     // 获取文件大小
     uint32_t file_size = 0;
-    if (eos_storage_file_size(fp, &file_size) != 0)
+    if (eos_storage_file_size(fp, &file_size) != EOS_OK)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to get file size");
@@ -226,7 +226,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
     }
 
     // Seek to the file table position (immediately after the file header)
-    if (eos_storage_file_seek(fp, EOS_PKG_TABLE_OFFSET) != 0)
+    if (eos_storage_file_seek(fp, EOS_PKG_TABLE_OFFSET) != EOS_OK)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to seek to file table at offset %u", EOS_PKG_TABLE_OFFSET);
@@ -348,7 +348,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
             }
 
             // Seek to the file data
-            if (eos_storage_file_seek(fp, offset) != 0)
+            if (eos_storage_file_seek(fp, offset) != EOS_OK)
             {
                 eos_storage_file_close(out_fp);
                 eos_storage_file_close(fp);
@@ -384,7 +384,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
             EOS_LOG_D("Created file: %s (size: %u bytes)", full_path, size);
 
             // Restore the file table position for the next entry before reading the next file name
-            if (eos_storage_file_seek(fp, next_entry_pos) != 0)
+            if (eos_storage_file_seek(fp, next_entry_pos) != EOS_OK)
             {
                 eos_storage_file_close(fp);
                 EOS_LOG_E("Failed to restore table position after extracting %s", name);
@@ -394,7 +394,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
         if (is_dir)
         {
-            if (eos_storage_file_seek(fp, next_entry_pos) != 0)
+            if (eos_storage_file_seek(fp, next_entry_pos) != EOS_OK)
             {
                 eos_storage_file_close(fp);
                 EOS_LOG_E("Failed to seek to next table entry after creating dir %s", full_path);

@@ -107,41 +107,41 @@ int eos_fs_write(eos_file_t fp, const void *buf, size_t len)
 }
 
 /* File positioning */
-int eos_fs_seek(eos_file_t fp, uint32_t pos)
+eos_result_t eos_fs_seek(eos_file_t fp, uint32_t pos)
 {
     if (!fp)
-        return -1;
-    return fseek((FILE *)fp, (long)pos, SEEK_SET);
+        return EOS_ERR_IO;
+    return fseek((FILE *)fp, (long)pos, SEEK_SET) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Get file size */
-int eos_fs_size(eos_file_t fp, uint32_t *size)
+eos_result_t eos_fs_size(eos_file_t fp, uint32_t *size)
 {
     if (!fp || !size)
-        return -1;
+        return EOS_ERR_IO;
     long cur = ftell((FILE *)fp);
     if (cur < 0)
-        return -1;
+        return EOS_ERR_IO;
     if (fseek((FILE *)fp, 0, SEEK_END) != 0)
-        return -1;
+        return EOS_ERR_IO;
     long end = ftell((FILE *)fp);
     if (end < 0)
-        return -1;
+        return EOS_ERR_IO;
     *size = (uint32_t)end;
     fseek((FILE *)fp, cur, SEEK_SET);
-    return 0;
+    return EOS_OK;
 }
 
 /* Get current file position */
-int eos_fs_tell(eos_file_t fp, uint32_t *pos)
+eos_result_t eos_fs_tell(eos_file_t fp, uint32_t *pos)
 {
     if (!fp || !pos)
-        return -1;
+        return EOS_ERR_IO;
     long cur = ftell((FILE *)fp);
     if (cur < 0)
-        return -1;
+        return EOS_ERR_IO;
     *pos = (uint32_t)cur;
-    return 0;
+    return EOS_OK;
 }
 
 /* Close file */
@@ -152,50 +152,50 @@ void eos_fs_close(eos_file_t fp)
 }
 
 /* Create directory (single level directory) */
-int eos_fs_mkdir(const char *path)
+eos_result_t eos_fs_mkdir(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
     char resolved[FS_PATH_BUF_SIZE];
     const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
-    if (!rp) return -1;
+    if (!rp) return EOS_ERR_IO;
 #ifdef _WIN32
-    return mkdir(rp) == 0 ? 0 : -1;
+    return mkdir(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 #else
-    return mkdir(rp, 0755) == 0 ? 0 : -1;
+    return mkdir(rp, 0755) == 0 ? EOS_OK : EOS_ERR_IO;
 #endif
 }
 
 /* Remove empty directory */
-int eos_fs_rmdir(const char *path)
+eos_result_t eos_fs_rmdir(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
     char resolved[FS_PATH_BUF_SIZE];
     const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
-    if (!rp) return -1;
-    return rmdir(rp) == 0 ? 0 : -1;
+    if (!rp) return EOS_ERR_IO;
+    return rmdir(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Remove file */
-int eos_fs_remove(const char *path)
+eos_result_t eos_fs_remove(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
     char resolved[FS_PATH_BUF_SIZE];
     const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
-    if (!rp) return -1;
-    return remove(rp) == 0 ? 0 : -1;
+    if (!rp) return EOS_ERR_IO;
+    return remove(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Check if file or directory exists */
 int eos_fs_exists(const char *path)
 {
     if (!path)
-        return 0;
+        return EOS_OK;
     char resolved[FS_PATH_BUF_SIZE];
     const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
-    if (!rp) return 0;
+    if (!rp) return EOS_OK;
     struct stat st;
     return stat(rp, &st) == 0 ? 1 : 0;
 }
@@ -222,18 +222,18 @@ eos_dir_t eos_fs_opendir(const char *path)
     return opendir(rp);
 }
 
-int eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
+eos_result_t eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
 {
     if (!dir)
-        return -1;
+        return EOS_ERR_IO;
 
     struct dirent *entry = readdir(dir);
     if (!entry)
-        return -1;
+        return EOS_ERR_IO;
 
     strncpy(name, entry->d_name, max_len - 1);
     name[max_len - 1] = '\0';
-    return 0;
+    return EOS_OK;
 }
 
 void eos_fs_closedir(eos_dir_t dir)
@@ -244,24 +244,24 @@ void eos_fs_closedir(eos_dir_t dir)
     }
 }
 
-int eos_fs_mv(const char *old_path, const char *new_path)
+eos_result_t eos_fs_mv(const char *old_path, const char *new_path)
 {
-    if (!old_path || !new_path) return -1;
+    if (!old_path || !new_path) return EOS_ERR_IO;
     char old_r[FS_PATH_BUF_SIZE], new_r[FS_PATH_BUF_SIZE];
     const char *op = eos_fs_realpath(old_path, old_r, sizeof(old_r));
     const char *np = eos_fs_realpath(new_path, new_r, sizeof(new_r));
-    if (!op || !np) return -1;
+    if (!op || !np) return EOS_ERR_IO;
     if (rename(op, np) != 0)
     {
         perror("rename failed");
-        return -1;
+        return EOS_ERR_IO;
     }
-    return 0;
+    return EOS_OK;
 }
 
-int eos_fs_sync(eos_file_t fp)
+eos_result_t eos_fs_sync(eos_file_t fp)
 {
-    return fflush(fp);
+    return fflush(fp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 #endif /* EOS_FS_TYPE */

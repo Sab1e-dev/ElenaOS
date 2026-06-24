@@ -20,6 +20,7 @@ extern "C" {
 #include <stdbool.h>
 #include "lvgl.h"
 #include "jerryscript.h"
+#include "eos_error.h"
 
 /* Public macros ----------------------------------------------*/
 
@@ -73,28 +74,6 @@ typedef struct {
 } script_error_location_t;
 
 typedef enum {
-    SE_OK = 0,
-    SE_FAILED,
-    SE_ERR_NULL_PACKAGE,
-    SE_ERR_INVALID_JS,
-    SE_ERR_JERRY_EXCEPTION,
-    SE_ERR_ALREADY_RUNNING,
-    SE_ERR_JERRY_INIT_FAIL,
-    SE_ERR_NOT_INITIALIZED,
-    SE_ERR_SCRIPT_NOT_RUNNING,
-    SE_ERR_BUSY,
-    SE_ERR_VAR_NULL,
-    SE_ERR_ALREADY_INITIALIZED,
-    SE_ERR_STACK_EMPTY,
-    SE_ERR_MALLOC,
-    SE_ERR_INVALID_STATE,
-    SE_ERR_TIMEOUT,
-    SE_ERR_NO_SAVED_CONTEXT,
-    SE_ERR_SDK_VERSION,
-    SE_ERR_UNKNOWN
-} script_engine_result_t;
-
-typedef enum {
     EOS_SCRIPT_FAULT_ERROR_UNKNOWN = 0,
     EOS_SCRIPT_FAULT_ERROR_EXCEPTION,
     EOS_SCRIPT_FAULT_UNRESPONSIVE,
@@ -113,10 +92,10 @@ typedef struct script_program script_program_t;
 
 /** @name Core Lifecycle */
 /**@{*/
-script_engine_result_t script_engine_init(void);
-script_engine_result_t script_engine_stop(void);
-script_engine_result_t script_engine_request_stop(void);
-script_engine_result_t script_engine_clean_up(void);
+eos_result_t script_engine_init(void);
+eos_result_t script_engine_stop(void);
+eos_result_t script_engine_request_stop(void);
+eos_result_t script_engine_clean_up(void);
 /**@}*/
 
 /** @name Run — SPM sets current_program before calling this */
@@ -128,7 +107,7 @@ script_engine_result_t script_engine_clean_up(void);
  * Core copies the program's script_pkg_t internally and writes back
  * creado sni_ctx and realm into the program.
  */
-script_engine_result_t script_engine_run(const script_pkg_t *script_package);
+eos_result_t script_engine_run(const script_pkg_t *script_package);
 
 /**
  * @brief Set/clear the SPM program that Core is working for
@@ -220,13 +199,13 @@ uint32_t script_engine_get_gen(void);
 
 /** @name Reload */
 /**@{*/
-script_engine_result_t script_engine_reload_current_script(void);
-script_engine_result_t script_engine_reload_current_app(void);
+eos_result_t script_engine_reload_current_script(void);
+eos_result_t script_engine_reload_current_app(void);
 /**@}*/
 
 /** @name Manifest */
 /**@{*/
-script_engine_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg);
+eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg);
 /**@}*/
 
 #ifdef __cplusplus

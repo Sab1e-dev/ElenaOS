@@ -181,7 +181,7 @@ static void _write_wav_header(eos_file_t fp)
 static void _update_wav_header(eos_file_t fp)
 {
     uint32_t file_size;
-    if (eos_storage_file_size(fp, &file_size) != 0)
+    if (eos_storage_file_size(fp, &file_size) != EOS_OK)
         return;
 
     uint32_t riff_size = file_size - 8;

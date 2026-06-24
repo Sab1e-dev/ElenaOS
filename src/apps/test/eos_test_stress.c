@@ -80,7 +80,7 @@ static bool _stress_load_pkg(void)
 
     memset(&s_stress.pkg, 0, sizeof(s_stress.pkg));
     s_stress.pkg.type = SCRIPT_TYPE_APPLICATION;
-    if (script_engine_get_manifest(manifest_path, &s_stress.pkg) != SE_OK) {
+    if (script_engine_get_manifest(manifest_path, &s_stress.pkg) != EOS_OK) {
         EOS_LOG_E("[STRESS] Failed to read manifest: %s", manifest_path);
         return false;
     }
@@ -109,8 +109,8 @@ static void _stress_app_on_enter(eos_activity_t *a)
     (void)a;
     unsigned long before = _stress_get_alloc();
 
-    script_engine_result_t ret = spm_app_run(&s_stress.pkg);
-    if (ret != SE_OK) {
+    eos_result_t ret = spm_app_run(&s_stress.pkg);
+    if (ret != EOS_OK) {
         EOS_LOG_E("[STRESS] Cycle %d: run failed ret=%d", s_stress.cycle, ret);
     }
 

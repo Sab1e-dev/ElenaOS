@@ -180,7 +180,7 @@ void eos_watchface_list_enter(void)
                      watchface_id);
             script_pkg_t pkg = {0};
             pkg.type = SCRIPT_TYPE_WATCHFACE;
-            if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+            if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
             {
                 EOS_LOG_E("Read manifest failed: %s", manifest_path);
                 eos_pkg_free(&pkg);

@@ -280,7 +280,7 @@ eos_result_t eos_storage_mkdir_if_not_exist(const char *path)
 
     if (type == EOS_FS_TYPE_NOT_EXIST)
     {
-        return (eos_fs_mkdir(path) == 0) ? EOS_OK : EOS_ERR_FILE_ERROR;
+        return (eos_fs_mkdir(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
     }
 
     return EOS_ERR_FILE_ERROR;
@@ -386,7 +386,7 @@ eos_result_t eos_storage_mkdir_recursive(const char *path)
             int type = eos_fs_type(tmp);
             if (type == EOS_FS_TYPE_NOT_EXIST)
             {
-                if (eos_fs_mkdir(tmp) != 0)
+                if (eos_fs_mkdir(tmp) != EOS_OK)
                 {
                     return EOS_ERR_FILE_ERROR;
                 }
@@ -407,7 +407,7 @@ eos_result_t eos_storage_mkdir_recursive(const char *path)
     int type = eos_fs_type(tmp);
     if (type == EOS_FS_TYPE_NOT_EXIST)
     {
-        if (eos_fs_mkdir(tmp) != 0)
+        if (eos_fs_mkdir(tmp) != EOS_OK)
         {
             return EOS_ERR_FILE_ERROR;
         }
@@ -516,7 +516,7 @@ eos_result_t eos_storage_rm_recursive(const char *path)
         return EOS_OK;
 
     case EOS_FS_TYPE_FILE:
-        return (eos_storage_file_remove(path) == 0) ? EOS_OK : EOS_ERR_FILE_ERROR;
+        return (eos_storage_file_remove(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
 
     case EOS_FS_TYPE_DIR:
     {
@@ -530,7 +530,7 @@ eos_result_t eos_storage_rm_recursive(const char *path)
         char fullpath[EOS_FS_PATH_MAX];
         eos_result_t result = EOS_OK;
 
-        while (eos_storage_dir_read(dir, filename, sizeof(filename)) == 0)
+        while (eos_storage_dir_read(dir, filename, sizeof(filename)) == EOS_OK)
         {
             if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
             {
@@ -557,7 +557,7 @@ eos_result_t eos_storage_rm_recursive(const char *path)
             return result;
         }
 
-        return (eos_fs_rmdir(path) == 0) ? EOS_OK : EOS_ERR_FILE_ERROR;
+        return (eos_fs_rmdir(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
     }
 
     default:
@@ -582,11 +582,11 @@ void eos_storage_file_close(eos_file_t fp)
     eos_fs_close(fp);
 }
 
-int eos_storage_file_seek(eos_file_t fp, uint32_t offset)
+eos_result_t eos_storage_file_seek(eos_file_t fp, uint32_t offset)
 {
     if (fp == EOS_FILE_INVALID) {
         EOS_LOG_E("Invalid file handle");
-        return -1;
+        return EOS_ERR_INVALID_ARG;
     }
 
     return eos_fs_seek(fp, offset);
@@ -612,27 +612,27 @@ ssize_t eos_storage_file_write(eos_file_t fp, const void *buf, size_t size)
     return eos_fs_write(fp, buf, size);
 }
 
-int eos_storage_file_size(eos_file_t fp, uint32_t *size)
+eos_result_t eos_storage_file_size(eos_file_t fp, uint32_t *size)
 {
     if (fp == EOS_FILE_INVALID || !size) {
         EOS_LOG_E("Invalid parameters");
-        return -1;
+        return EOS_ERR_INVALID_ARG;
     }
 
     return eos_fs_size(fp, size);
 }
 
-int eos_storage_file_tell(eos_file_t fp, uint32_t *pos)
+eos_result_t eos_storage_file_tell(eos_file_t fp, uint32_t *pos)
 {
     if (fp == EOS_FILE_INVALID || !pos) {
         EOS_LOG_E("Invalid parameters");
-        return -1;
+        return EOS_ERR_INVALID_ARG;
     }
 
     return eos_fs_tell(fp, pos);
 }
 
-int eos_storage_file_remove(const char *path)
+eos_result_t eos_storage_file_remove(const char *path)
 {
     return eos_fs_remove(path);
 }
@@ -642,11 +642,11 @@ eos_dir_t eos_storage_dir_open(const char *path)
     return eos_fs_opendir(path);
 }
 
-int eos_storage_dir_read(eos_dir_t dir, char *name_buf, size_t buf_size)
+eos_result_t eos_storage_dir_read(eos_dir_t dir, char *name_buf, size_t buf_size)
 {
     if (!dir || !name_buf || buf_size == 0) {
         EOS_LOG_E("Invalid parameters");
-        return -1;
+        return EOS_ERR_INVALID_ARG;
     }
 
     return eos_fs_readdir(dir, name_buf, buf_size);

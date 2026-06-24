@@ -60,11 +60,20 @@ typedef enum
     EOS_ERR_DEV_ERROR = -602,     /**< Device error */
     EOS_ERR_DEV_OPS_NOT_SUPPORTED = -603, /**< Device operation not supported */
 
+    /* Script engine errors (-700 ~ -799) */
+    EOS_ERR_SCRIPT_NULL_PACKAGE    = -700, /**< Script package argument is NULL */
+    EOS_ERR_SCRIPT_INVALID_JS      = -701, /**< JavaScript syntax or runtime error */
+    EOS_ERR_SCRIPT_EXCEPTION       = -702, /**< JerryScript VM exception */
+    EOS_ERR_SCRIPT_ALREADY_RUNNING = -703, /**< Another script is already running */
+    EOS_ERR_SCRIPT_INIT_FAIL       = -704, /**< JerryScript VM initialization failed */
+    EOS_ERR_SCRIPT_NOT_RUNNING     = -705, /**< No script is currently running */
+    EOS_ERR_SCRIPT_NO_SAVED_CTX    = -706, /**< No saved realm/context to restore */
+    EOS_ERR_SCRIPT_SEC_ERROR       = -707, /**< Security check failed in script program */
+    EOS_ERR_SCRIPT_PROG_NOT_FOUND  = -708, /**< Script program not found in program list */
+    EOS_ERR_SCRIPT_INVALID_TYPE    = -709, /**< Invalid script program type for operation */
+
     EOS_ERR_UNKNOWN = -999,
 } eos_result_t;
-
-/* Backward compatibility alias: prefer EOS_ERR_ALREADY_EXISTS. */
-#define EOS_ERR_VAR_NOT_NULL EOS_ERR_ALREADY_EXISTS
 
 /* Public function prototypes --------------------------------*/
 

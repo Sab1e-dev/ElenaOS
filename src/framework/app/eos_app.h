@@ -47,7 +47,7 @@ typedef struct {
  * @param cfg Optional configuration for customizing error page
  */
 void eos_app_handle_script_error(eos_script_error_type_t error_type,
-                                 int32_t error_code,
+                                 eos_result_t error_code,
                                  const char *app_id,
                                  const eos_script_error_handler_cfg_t *cfg);
 

@@ -132,7 +132,7 @@ static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t star
 static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening);
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
 static int32_t _app_list_find_sys_app(const char *app_id);
-static script_engine_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
+static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
 
 static bool _anim_routes_registered = false;
@@ -166,12 +166,12 @@ static void _app_on_enter(eos_activity_t *a)
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     EOS_CHECK_PTR_RETURN(ctx);
 
-    script_engine_result_t ret = spm_app_run(&ctx->pkg);
-    if (ret != SE_OK)
+    eos_result_t ret = spm_app_run(&ctx->pkg);
+    if (ret != EOS_OK)
     {
         // Determine error type based on error code
         eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
-        if (ret == -SE_ERR_TIMEOUT) {
+        if (ret == EOS_ERR_TIMEOUT) {
             error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
         }
         else
@@ -184,7 +184,7 @@ static void _app_on_enter(eos_activity_t *a)
         }
 
         // Only handle error if it hasn't been handled already (timeout is handled inside script_engine_run)
-        if (ret != -SE_ERR_TIMEOUT) {
+        if (ret != EOS_ERR_TIMEOUT) {
             eos_app_handle_script_error(error_type, ret, ctx->app_id, NULL);
         }
         EOS_LOG_E("Application encounter a fatal error");
@@ -209,11 +209,11 @@ static int32_t _app_list_find_sys_app(const char *app_id)
     return -1;
 }
 
-static script_engine_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg)
+static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg)
 {
     if (!(app_id && pkg))
     {
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
     }
 
     char manifest_path[EOS_FS_PATH_MAX];
@@ -221,10 +221,10 @@ static script_engine_result_t _app_list_build_script_pkg(const char *app_id, scr
              app_id);
 
     pkg->type = SCRIPT_TYPE_APPLICATION;
-    if (script_engine_get_manifest(manifest_path, pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     char script_path[EOS_FS_PATH_MAX];
@@ -237,14 +237,14 @@ static script_engine_result_t _app_list_build_script_pkg(const char *app_id, scr
     if (!pkg->base_path)
     {
         eos_pkg_free(pkg);
-        return -SE_ERR_MALLOC;
+        return EOS_ERR_MEM;
     }
 
     if (!eos_storage_is_file(script_path))
     {
         EOS_LOG_E("Can't find script: %s", script_path);
         eos_pkg_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     pkg->script_str = eos_storage_read_file(script_path);
@@ -252,16 +252,16 @@ static script_engine_result_t _app_list_build_script_pkg(const char *app_id, scr
     {
         EOS_LOG_E("Failed to read script: %s", script_path);
         eos_pkg_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
-    return SE_OK;
+    return EOS_OK;
 }
 
 static eos_result_t _app_list_launch_script_app(const char *app_id)
 {
     script_pkg_t pkg = {0};
-    if (_app_list_build_script_pkg(app_id, &pkg) != SE_OK)
+    if (_app_list_build_script_pkg(app_id, &pkg) != EOS_OK)
     {
         return EOS_FAILED;
     }

@@ -102,8 +102,8 @@ static void _js_on_enter(eos_activity_t *activity)
 
     lv_obj_add_event_cb(view, _js_long_pressed_cb, LV_EVENT_LONG_PRESSED, NULL);
 
-    script_engine_result_t ret = spm_watchface_start(&self->data.js.pkg, view);
-    if (ret != SE_OK) {
+    eos_result_t ret = spm_watchface_start(&self->data.js.pkg, view);
+    if (ret != EOS_OK) {
         _js_handle_error(self, ret);
     }
 
@@ -127,15 +127,15 @@ static void _js_on_resume(eos_activity_t *activity)
 
     eos_watchface_instance_t *self = eos_activity_get_user_data(activity);
 
-    script_engine_result_t ret = spm_watchface_resume();
-    if (ret != SE_OK) {
+    eos_result_t ret = spm_watchface_resume();
+    if (ret != EOS_OK) {
         EOS_LOG_W("watchface_resume failed (%d), falling back to full reload", ret);
 
         lv_obj_t *view = eos_activity_get_view(activity);
         script_pkg_t pkg = _js_load_package_from_disk(self->id);
         if (pkg.script_str) {
             ret = spm_watchface_start(&pkg, view);
-            if (ret != SE_OK) {
+            if (ret != EOS_OK) {
                 _js_handle_error(self, ret);
             }
             eos_pkg_free(&pkg);
@@ -171,7 +171,7 @@ static script_pkg_t _js_load_package_from_disk(const char *watchface_id)
              EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
              watchface_id);
 
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK) {
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK) {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return pkg;
     }
