@@ -174,7 +174,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
 
 eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, const script_pkg_type_t pkg_type)
 {
-    // 打开包文件
+    // Open package file
     eos_file_t fp = eos_storage_file_open_read(pkg_path);
     if (fp == EOS_FILE_INVALID)
     {
@@ -182,7 +182,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         return EOS_ERR_FILE_ERROR;
     }
 
-    // 读取包头
+    // Read package header
     eos_pkg_header_t header;
     if (eos_pkg_read_header(pkg_path, &header) != EOS_OK)
     {
@@ -191,7 +191,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         return EOS_FAILED;
     }
 
-    // 校验魔数
+    // Validate magic number
     script_pkg_type_t unpack_type = SCRIPT_TYPE_UNKNOWN;
     if (memcmp(header.magic, EOS_PKG_APP_MAGIC, 4) == 0)
     {
@@ -208,7 +208,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         return EOS_ERR_FILE_ERROR;
     }
 
-    // 检查包类型是否匹配
+    // Check if package type matches
     if (unpack_type != pkg_type)
     {
         eos_storage_file_close(fp);
@@ -216,7 +216,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         return EOS_ERR_VALUE_MISMATCH;
     }
 
-    // 获取文件大小
+    // Get file size
     uint32_t file_size = 0;
     if (eos_storage_file_size(fp, &file_size) != EOS_OK)
     {
@@ -233,7 +233,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
         return EOS_ERR_FILE_ERROR;
     }
 
-    // 创建输出目录
+    // Create output directory
     if (eos_storage_mkdir_recursive(output_path) != EOS_OK)
     {
         eos_storage_file_close(fp);

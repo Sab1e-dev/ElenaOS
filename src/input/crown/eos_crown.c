@@ -185,7 +185,7 @@ static void _clear_scrollable_obj_cb(lv_event_t *e)
 static void _clear_scrollable_obj_async_cb(void *user_data)
 {
     lv_obj_t *target = (lv_obj_t *)user_data;
-    /* 延迟清理的旧滚动对象 */
+    /* Old scrollable object for deferred cleanup */
     if (target != scrollable_obj && target != scrollable_root)
         return;
 

@@ -924,12 +924,12 @@ static void _test_font(lv_event_t *e)
 {
     _create_new_scr();
 
-    const char *test_str = /* 中文符号测试 */ "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
-                                              /* 英文符号测试 */ "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
-                                              /* 希腊字母测试 */ "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
-                                              /* 英文数字测试 */ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-                                              /* 常用汉字测试 */ "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。"
-                                              /* 罕见汉字测试 */ "霡霂淅沥，薜荔葳蕤。彳亍踟蹰，睥睨娉婷。觊觎饕餮，倥偬倜傥。菡萏猗傩，蘼芜菁菁。";
+    const char *test_str = /* Chinese symbols test */ "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
+                                              /* English symbols test */ "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
+                                              /* Greek alphabet test */ "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
+                                              /* English digits test */ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+                                              /* Common Chinese chars test */ "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。"
+                                              /* Rare Chinese chars test */ "霡霂淅沥，薜荔葳蕤。彳亍踟蹰，睥睨娉婷。觊觎饕餮，倥偬倜傥。菡萏猗傩，蘼芜菁菁。";
 
     lv_obj_t *container = eos_list_create(eos_view_active());
     lv_obj_set_size(container, lv_pct(100), lv_pct(100));
@@ -1006,24 +1006,24 @@ static void _test_image_input_cb(lv_event_t *e)
 static void _test_image(lv_event_t *e)
 {
     lv_obj_t *scr = _create_new_scr();
-    // 创建图片对象但不设置源
+    // Create image object without setting source
     img = lv_image_create(scr);
     lv_obj_center(img);
     lv_obj_move_background(img);
 
-    // 创建文本输入框
+    // Create text area
     ta = lv_textarea_create(scr);
     lv_obj_set_size(ta, LV_HOR_RES - 40, 80);
     lv_obj_align(ta, LV_ALIGN_TOP_MID, 0, 20);
     lv_textarea_set_placeholder_text(ta, "Input image path here.(e.g. /flower.bin)");
     lv_textarea_set_one_line(ta, true);
 
-    // 添加键盘
+    // Add keyboard
     lv_obj_t *kb = lv_keyboard_create(scr);
     lv_keyboard_set_textarea(kb, ta);
-    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN); // 默认隐藏键盘
+    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN); // Hide keyboard by default
 
-    // 添加事件回调
+    // Add event callback
     lv_obj_add_event_cb(ta, _test_image_input_cb, LV_EVENT_ALL, kb);
 }
 
@@ -1702,7 +1702,7 @@ static void _test_show_all_lv_symbols_list(lv_event_t *e)
 {
     lv_obj_t *scr = _create_new_scr();
 
-    // 创建列表
+    // Create list
     lv_obj_t *list = lv_list_create(scr);
     lv_obj_set_size(list, lv_pct(100), lv_pct(100));
     lv_obj_set_style_pad_all(list, 5, 0);
@@ -1712,9 +1712,9 @@ static void _test_show_all_lv_symbols_list(lv_event_t *e)
         char buf[64];
         snprintf(buf, sizeof(buf), "%s  U+%04X", lv_symbols[i].symbol, lv_symbols[i].codepoint);
 
-        // 在列表中添加条目
+        // Add item to the list
         lv_obj_t *label = lv_list_add_text(list, buf);
-        // lv_obj_set_style_text_font(label, &lv_font_montserrat_30, 0); // 设置字体
+        // lv_obj_set_style_text_font(label, &lv_font_montserrat_30, 0); // Set font
     }
 }
 
@@ -1985,7 +1985,7 @@ static void _test_sensor(lv_event_t *e)
     sensor_data.table = tb;
     sensor_data.sensor_count = 0;
 
-    /* 遍历所有已注册的传感器设备 */
+    /* Iterate through all registered sensor devices */
     eos_dev_sensor_t *dev = eos_dev_sensor_get_list_head();
     while (dev && sensor_data.sensor_count < EOS_SENSOR_TYPE_MAX) {
         if (dev->name) {

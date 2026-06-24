@@ -73,7 +73,7 @@ static bool _cqueue_expand(eos_cqueue_t *cq)
 static bool _cqueue_shrink(eos_cqueue_t *cq)
 {
     EOS_CHECK_PTR_RETURN_VAL(cq, false);
-    // 没有扩容，无需收缩
+    // No expansion, no need to shrink
     if (cq->capacity <= cq->min_capacity)
         return true;
     if (cq->size > cq->capacity / _SHRINK_THRESHOLD)
@@ -146,9 +146,9 @@ void *eos_cqueue_peek(eos_cqueue_t *cq, size_t index)
     EOS_CHECK_PTR_RETURN_VAL(cq, NULL);
 
     if (index >= cq->size)
-        return NULL; // 越界
+        return NULL; // Out of bounds
 
-    // 计算真实在 buffer 中的位置
+    // Calculate actual position in buffer
     size_t real_pos = (cq->head + index) % cq->capacity;
     return cq->buffer[real_pos];
 }

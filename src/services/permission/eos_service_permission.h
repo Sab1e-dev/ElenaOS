@@ -36,10 +36,10 @@ typedef enum {
  * @brief Permission grant states (Android-like)
  */
 typedef enum {
-    EOS_PERM_STATE_DENIED = 0,         /**< 不允许 */
-    EOS_PERM_STATE_ALLOW_ONCE,         /**< 允许一次 */
-    EOS_PERM_STATE_ALLOW_FOREGROUND,   /**< 使用App时允许 */
-    EOS_PERM_STATE_ALLOW_ALWAYS,       /**< 始终允许 */
+    EOS_PERM_STATE_DENIED = 0,         /**< Not allowed */
+    EOS_PERM_STATE_ALLOW_ONCE,         /**< Allow once */
+    EOS_PERM_STATE_ALLOW_FOREGROUND,   /**< Allow while using the app */
+    EOS_PERM_STATE_ALLOW_ALWAYS,       /**< Always allow */
 } eos_perm_state_t;
 
 /* Public function prototypes --------------------------------*/

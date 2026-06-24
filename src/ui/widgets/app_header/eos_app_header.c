@@ -27,7 +27,7 @@
 
 /* Macros and Definitions -------------------------------------*/
 #define _HEADER_HEIGHT 120
-#define _HEADER_CLOCK_UPDATE_PERIOD_MINUTES 1 /**< 时钟标签文本更新间隔，单位：分钟 */
+#define _HEADER_CLOCK_UPDATE_PERIOD_MINUTES 1 /**< Clock label text update interval in minutes */
 
 #define _HEADER_MARGIN_RIGHT 30
 
@@ -390,7 +390,7 @@ void eos_app_header_hide(void)
 {
     EOS_CHECK_PTR_RETURN(app_header);
     EOS_LOG_D("Hide app header");
-    // 如果附加到View，先恢复父对象
+    // If attached to a View, restore the parent object first
     if (app_header->attached_to_view)
     {
         lv_obj_t *restore_parent = app_header->original_parent;
@@ -417,7 +417,7 @@ void eos_app_header_show(eos_activity_t *a)
 {
     EOS_CHECK_PTR_RETURN(app_header);
 
-    // 检查是否是Watchface Activity，如果是则不显示AppHeader
+    // Check if it is a Watchface Activity; if so, hide AppHeader
     eos_activity_t *target_activity = a;
     if (!target_activity)
         target_activity = eos_activity_get_current();
@@ -451,7 +451,7 @@ void eos_app_header_show(eos_activity_t *a)
         }
         app_header->attached_to_view = false;
     }
-    // 从当前 Activity 获取标题文字
+    // Get title text from current Activity
     const char *title = NULL;
     if (a)
         title = eos_activity_get_title(a);
@@ -461,7 +461,7 @@ void eos_app_header_show(eos_activity_t *a)
         lv_label_set_text(app_header->title_label, title);
     else
         lv_label_set_text(app_header->title_label, "");
-    // 从当前 Activity 获取标题颜色
+    // Get title color from current Activity
     lv_color_t color = EOS_COLOR_WHITE;
     if (a)
         color = eos_activity_get_title_color(a);
@@ -739,9 +739,9 @@ void eos_app_header_init(void)
     app_header->grad_bg_img = _create_gradient_bg();
     EOS_CHECK_PTR_RETURN_FREE(app_header->grad_bg_img, app_header);
 
-    // 半透明容器
+    // Semi-transparent container
     app_header->container = lv_obj_create(eos_overlay_get_header_layer());
-    app_header->original_parent = lv_obj_get_parent(app_header->container); // 保存原始父对象
+    app_header->original_parent = lv_obj_get_parent(app_header->container); // Save original parent object
     lv_obj_remove_style_all(app_header->container);
     lv_obj_set_size(app_header->container, EOS_DISPLAY_WIDTH, _HEADER_HEIGHT);
     lv_obj_align(app_header->container, LV_ALIGN_TOP_MID, 0, 0);
@@ -756,11 +756,11 @@ void eos_app_header_init(void)
     lv_coord_t header_h = _HEADER_HEIGHT;
     lv_coord_t header_w = lv_obj_get_width(app_header->container);
 
-    // 返回按钮
+    // Back button
     app_header->back_btn = eos_back_btn_create(app_header->container, false);
     _set_back_btn_style(app_header->back_btn);
 
-    // 时间文字
+    // Clock label
     app_header->clock_label = lv_label_create(app_header->container);
     lv_obj_add_style(app_header->clock_label, eos_theme_get_label_style(), 0);
     app_header->clock_timer = lv_timer_create(_clock_update_cb, _HEADER_CLOCK_UPDATE_PERIOD_MINUTES * 60 * 1000, app_header->clock_label);
@@ -768,12 +768,12 @@ void eos_app_header_init(void)
     _app_header_update_clock_label(app_header->clock_label);
     lv_obj_align(app_header->clock_label, LV_ALIGN_RIGHT_MID, -_HEADER_MARGIN_RIGHT, -20);
 
-    // 标题文字
+    // Title label
     app_header->title_label = lv_label_create(app_header->container);
     _set_title_style(app_header->title_label);
     lv_obj_add_event_cb(app_header->title_label, _update_title_label, LV_EVENT_REFRESH, NULL);
 
-    // 默认隐藏 app_header
+    // Hide app_header by default
     lv_obj_add_flag(app_header->container, LV_OBJ_FLAG_HIDDEN);
 
     app_header->is_anim_entering = false;

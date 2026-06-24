@@ -725,7 +725,7 @@ bool eos_anim_start(eos_anim_t *anim)
 
     eos_anim_blocker_show();
 
-    // 添加所有子动画到时间线
+    // Add all sub-animations to timeline
     switch (anim->type)
     {
     case EOS_ANIM_SCALE:

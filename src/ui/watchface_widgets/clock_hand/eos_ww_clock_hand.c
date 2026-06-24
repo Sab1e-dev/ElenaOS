@@ -26,7 +26,7 @@ static void clock_hand_second_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 秒针：60 秒一圈，支持毫秒
+    // Second hand: 60s per revolution, millisecond precision
     angle = (now.sec * 1000 + now.ms) * 3600 / 60000;
 
     lv_image_set_rotation(hand, angle);
@@ -41,7 +41,7 @@ static void clock_hand_minute_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 分针：60 分钟一圈，秒级平滑
+    // Minute hand: 60min per revolution, second-level smoothing
     angle = (now.min * 60 + now.sec) * 3600 / 3600;
 
     lv_image_set_rotation(hand, angle);
@@ -56,7 +56,7 @@ static void clock_hand_hour_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 时针：12 小时一圈，分钟级平滑
+    // Hour hand: 12h per revolution, minute-level smoothing
     angle = ((now.hour % 12) * 60 + now.min) * 3600 / 720;
 
     lv_image_set_rotation(hand, angle);

@@ -169,7 +169,7 @@ eos_result_t _create_default_cfg_json(const char *path)
     if (app_order_array)
         cJSON_AddItemToObject(root, EOS_CONFIG_KEY_APP_ORDER_ARRAY, app_order_array);
 
-    // 使用 storage 服务的 JSON 接口保存文件
+    // Save file using storage service JSON API
     eos_result_t ret = eos_storage_json_save(path, root);
 
     cJSON_Delete(root);
@@ -195,7 +195,7 @@ void eos_service_config_init()
     eos_storage_mkdir_if_not_exist(EOS_SYS_RES_IMG_DIR);
     eos_storage_mkdir_if_not_exist(EOS_SYS_RES_FONT_DIR);
 
-    // 使用 storage 服务的 JSON 接口检查并创建默认配置文件
+    // Check and create default config file using storage service JSON API
     if (!eos_storage_is_file(EOS_CONFIG_FILE_PATH))
     {
         if (_create_default_cfg_json(EOS_CONFIG_FILE_PATH) != EOS_OK)
@@ -206,7 +206,7 @@ void eos_service_config_init()
     }
     else
     {
-        // 检查配置文件是否有效
+        // Check if config file is valid
         cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
         if (!root)
         {

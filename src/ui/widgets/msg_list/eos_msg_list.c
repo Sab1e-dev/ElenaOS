@@ -579,7 +579,7 @@ static void _trigger_msg_anims(eos_msg_list_t *list)
 
         if (item)
         {
-            // 创建动画
+            // Create animation
             eos_lite_anim_fade_layered_start(item->container, LV_OPA_COVER, LV_OPA_TRANSP, 300, 0, NULL, NULL);
             eos_lite_anim_move_hor_start(
                 item->container,
@@ -601,16 +601,16 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
 {
     eos_msg_list_t *list = (eos_msg_list_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(list);
-    // 隐藏无消息标签
+    // Hide no-message label
     if (list->no_msg_label)
     {
         lv_obj_add_flag(list->no_msg_label, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // 重置动画计数
+    // Reset animation count
     list->animating_count = 0;
 
-    // 触发动画
+    // Trigger animations
     _trigger_msg_anims(list);
 }
 
