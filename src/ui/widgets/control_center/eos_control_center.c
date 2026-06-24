@@ -65,7 +65,7 @@ static void _list_scroll_cb(lv_event_t *e)
     lv_coord_t list_h = lv_obj_get_height(list);
     lv_coord_t list_y = lv_obj_get_y(list);
 
-    uint32_t count = lv_obj_get_child_cnt(list);
+    uint32_t count = lv_obj_get_child_count(list);
 
     lv_coord_t bottom_threshold = list_y + (list_h * 8) / 10;
     lv_coord_t list_bottom = list_y + list_h;

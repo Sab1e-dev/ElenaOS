@@ -91,7 +91,7 @@ static void _scrollbar_show_now(void)
 
     _scrollbar_cancel_hide();
     lv_anim_delete(scrollbar, NULL);
-    lv_obj_clear_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
 
     eos_lite_anim_fade_layered_start(scrollbar,
                                      lv_obj_get_style_opa_layered(scrollbar, 0),

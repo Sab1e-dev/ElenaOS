@@ -612,7 +612,7 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label, eos_input_close_
     lv_obj_set_style_border_side(ctx->textarea, LV_BORDER_SIDE_LEFT, LV_PART_CURSOR | LV_STATE_FOCUSED);
     lv_obj_set_style_border_color(ctx->textarea, EOS_COLOR_BLUE, LV_PART_CURSOR | LV_STATE_FOCUSED);
     lv_obj_set_style_border_opa(ctx->textarea, LV_OPA_COVER, LV_PART_CURSOR | LV_STATE_FOCUSED);
-    lv_obj_set_style_anim_time(ctx->textarea, 400, LV_PART_CURSOR | LV_STATE_FOCUSED);
+    lv_obj_set_style_anim_duration(ctx->textarea, 400, LV_PART_CURSOR | LV_STATE_FOCUSED);
 
     /* If an input label was provided, prefill the textarea with its text */
     if (ctx->label_target && lv_obj_is_valid(ctx->label_target))

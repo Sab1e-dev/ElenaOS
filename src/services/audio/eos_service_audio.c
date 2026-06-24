@@ -343,7 +343,7 @@ eos_result_t eos_service_audio_stop_recording(void)
 
     if (_rec.timer)
     {
-        lv_timer_del(_rec.timer);
+        lv_timer_delete(_rec.timer);
         _rec.timer = NULL;
     }
 

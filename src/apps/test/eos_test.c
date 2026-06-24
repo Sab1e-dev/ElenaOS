@@ -1508,7 +1508,7 @@ static void _test_audio_page(lv_event_t *e)
     lv_obj_set_style_pad_all(s_test_audio_page.progress_slider, 8, LV_PART_KNOB);
     lv_obj_set_style_bg_opa(s_test_audio_page.progress_slider, LV_OPA_COVER, LV_PART_KNOB);
     lv_obj_add_flag(s_test_audio_page.progress_slider, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(s_test_audio_page.progress_slider, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_remove_flag(s_test_audio_page.progress_slider, LV_OBJ_FLAG_SCROLL_CHAIN);
     lv_obj_add_event_cb(s_test_audio_page.progress_slider, _test_audio_seek_cb, LV_EVENT_RELEASED, NULL);
 
     s_test_audio_page.time_label = lv_label_create(list);

@@ -59,7 +59,7 @@ EOS_WEAK void eos_audio_feed_delete(eos_audio_feed_t *feed)
     if (!feed) return;
     if (feed->timer)
     {
-        lv_timer_del(feed->timer);
+        lv_timer_delete(feed->timer);
     }
     free(feed);
 }

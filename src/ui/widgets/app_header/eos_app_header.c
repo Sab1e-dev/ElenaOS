@@ -492,7 +492,7 @@ void eos_app_header_set_visible_animated(eos_activity_t *a, bool visible, uint32
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_del(container, _app_header_set_opa_anim_cb);
+    lv_anim_delete(container, _app_header_set_opa_anim_cb);
 
     lv_anim_t anim;
     lv_anim_init(&anim);
@@ -514,7 +514,7 @@ void eos_app_header_set_visible_animated(eos_activity_t *a, bool visible, uint32
 
         lv_obj_set_style_opa(container, LV_OPA_COVER, 0);
         lv_anim_set_values(&anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_ready_cb(&anim, _app_header_fade_out_ready_cb);
+        lv_anim_set_completed_cb(&anim, _app_header_fade_out_ready_cb);
         lv_anim_start(&anim);
     }
 }
@@ -554,8 +554,8 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_del(container, _app_header_set_translate_y_anim_cb);
-    lv_anim_del(container, _app_header_set_opa_anim_cb);
+    lv_anim_delete(container, _app_header_set_translate_y_anim_cb);
+    lv_anim_delete(container, _app_header_set_opa_anim_cb);
 
     int32_t header_height = lv_obj_get_height(container);
     if (header_height <= 0)
@@ -587,7 +587,7 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
 
         lv_obj_set_style_translate_y(container, 0, 0);
         lv_anim_set_values(&anim, 0, -header_height);
-        lv_anim_set_ready_cb(&anim, _app_header_slide_hide_ready_cb);
+        lv_anim_set_completed_cb(&anim, _app_header_slide_hide_ready_cb);
         lv_anim_start(&anim);
     }
 }

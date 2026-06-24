@@ -180,7 +180,7 @@ void eos_test_package_start(void)
     lv_obj_set_style_text_color(_ctx.input_field, lv_color_white(), 0);
 
     /* Create install button */
-    _ctx.install_btn = lv_btn_create(_ctx.container);
+    _ctx.install_btn = lv_button_create(_ctx.container);
     lv_obj_set_size(_ctx.install_btn, lv_pct(60), 40);
     lv_obj_add_event_cb(_ctx.install_btn, _install_btn_cb, LV_EVENT_CLICKED, NULL);
 

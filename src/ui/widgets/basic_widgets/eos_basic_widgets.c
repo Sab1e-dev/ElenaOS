@@ -463,7 +463,7 @@ static void _list_transition_list_clicked_cb(lv_event_t *e)
     }
 
     // Clear pressed state in advance to avoid residual pressed scaling after transition.
-    lv_obj_clear_state(button, LV_STATE_PRESSED);
+    lv_obj_remove_state(button, LV_STATE_PRESSED);
 
     eos_activity_t *click_activity = eos_activity_get_previous();
     if (!click_activity)
@@ -664,8 +664,8 @@ void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_
     if (back)
     {
         // Ensure list page participates in animation rendering when returning
-        lv_obj_clear_flag(list_view, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(list, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
     }
 
     lv_obj_update_layout(list_view);

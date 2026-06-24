@@ -260,7 +260,7 @@ static void _reset_view_visual_state(eos_activity_t *activity)
     lv_obj_set_style_transform_scale_y(view, 256, LV_PART_MAIN);
     lv_obj_set_style_translate_x(view, 0, LV_PART_MAIN);
     lv_obj_set_style_translate_y(view, 0, LV_PART_MAIN);
-    lv_obj_set_style_transform_angle(view, 0, LV_PART_MAIN);
+    lv_obj_set_style_transform_rotation(view, 0, LV_PART_MAIN);
     lv_obj_set_pos(view, 0, 0);
     lv_obj_set_width(view, w);
     lv_obj_set_height(view, h);

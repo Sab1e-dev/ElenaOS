@@ -128,7 +128,7 @@ static lv_obj_t *_toast_finalize(lv_obj_t *toast, const char *message)
 
     // Measure text
     lv_point_t size;
-    lv_txt_get_size(&size, message, lv_obj_get_style_text_font(label, 0), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    lv_text_get_size(&size, message, lv_obj_get_style_text_font(label, 0), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
     lv_coord_t text_width = LV_MIN(size.x, _LABEL_MAX_WIDTH);
 
     lv_obj_add_flag(mask, LV_OBJ_FLAG_EVENT_BUBBLE);

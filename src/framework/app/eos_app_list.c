@@ -623,8 +623,8 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     lv_obj_set_style_clip_corner(icon_clone, true, 0);
     lv_obj_set_style_transform_pivot_x(icon_clone, bw / 2, 0);
     lv_obj_set_style_transform_pivot_y(icon_clone, bh / 2, 0);
-    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t *icon_img_clone = lv_image_create(icon_clone);
     lv_image_set_src(icon_img_clone, img_src);
@@ -635,8 +635,8 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     lv_obj_center(icon_img_clone);
     lv_obj_set_style_bg_opa(icon_img_clone, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(icon_img_clone, 0, 0);
-    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
 
     return icon_clone;
 }

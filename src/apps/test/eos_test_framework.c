@@ -142,7 +142,7 @@ static void _sync_group_ui(int group_idx)
         if (all_sel == g->count)
             lv_obj_add_state(s_group_checkboxes[group_idx], LV_STATE_CHECKED);
         else
-            lv_obj_clear_state(s_group_checkboxes[group_idx], LV_STATE_CHECKED);
+            lv_obj_remove_state(s_group_checkboxes[group_idx], LV_STATE_CHECKED);
     }
 
     if (s_group_header_labels[group_idx]) {
@@ -161,7 +161,7 @@ static void _set_group_visible(int group_idx, bool visible)
         int idx = g->start_idx + i;
         if (s_checkboxes[idx]) {
             if (visible)
-                lv_obj_clear_flag(s_checkboxes[idx], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(s_checkboxes[idx], LV_OBJ_FLAG_HIDDEN);
             else
                 lv_obj_add_flag(s_checkboxes[idx], LV_OBJ_FLAG_HIDDEN);
         }
@@ -183,7 +183,7 @@ static void _toggle_group_select(int group_idx)
         s_entries[idx].selected = new_state;
         if (s_checkboxes[idx]) {
             if (new_state) lv_obj_add_state(s_checkboxes[idx], LV_STATE_CHECKED);
-            else lv_obj_clear_state(s_checkboxes[idx], LV_STATE_CHECKED);
+            else lv_obj_remove_state(s_checkboxes[idx], LV_STATE_CHECKED);
         }
     }
 
@@ -211,7 +211,7 @@ static void _toggle_all(bool select)
         s_entries[i].selected = select;
         if (s_checkboxes[i]) {
             if (select) lv_obj_add_state(s_checkboxes[i], LV_STATE_CHECKED);
-            else lv_obj_clear_state(s_checkboxes[i], LV_STATE_CHECKED);
+            else lv_obj_remove_state(s_checkboxes[i], LV_STATE_CHECKED);
         }
     }
     for (int g = 0; g < s_group_count; g++)
@@ -395,7 +395,7 @@ void eos_test_run_all(void)
         _update_current("Complete - all tests passed");
     }
     if (s_run_btn_label) lv_label_set_text(s_run_btn_label, "Run Tests");
-    if (s_run_btn) lv_obj_clear_state(s_run_btn, LV_STATE_DISABLED);
+    if (s_run_btn) lv_obj_remove_state(s_run_btn, LV_STATE_DISABLED);
     _force_refresh();
     s_is_running = false;
 }
@@ -472,7 +472,7 @@ static void _build_checklist_page(lv_obj_t *cont)
         s_group_expanded[g] = false;
 
     /* Select All button */
-    s_select_all_btn = lv_btn_create(cont);
+    s_select_all_btn = lv_button_create(cont);
     lv_obj_set_size(s_select_all_btn, lv_pct(100), 28);
     lv_obj_set_style_radius(s_select_all_btn, 6, 0);
     lv_obj_set_style_bg_color(s_select_all_btn, lv_color_hex(0x607D8B), 0);
@@ -608,7 +608,7 @@ void eos_test_fw_page_start(const char *title)
     lv_obj_set_width(s_summary_label, lv_pct(100));
 
     /* Run button */
-    s_run_btn = lv_btn_create(cont);
+    s_run_btn = lv_button_create(cont);
     lv_obj_set_size(s_run_btn, lv_pct(100), 36);
     lv_obj_set_style_radius(s_run_btn, 8, 0);
     lv_obj_set_style_bg_color(s_run_btn, lv_color_hex(0x2196F3), 0);

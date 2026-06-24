@@ -133,7 +133,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_set_style_pad_all(actions, 0, 0);
 
     /* ---- Allow Once button ---- */
-    p->allow_once_btn = lv_btn_create(actions);
+    p->allow_once_btn = lv_button_create(actions);
     lv_obj_set_size(p->allow_once_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->allow_once_btn, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(p->allow_once_btn, EOS_THEME_BUTTON_COLOR, 0);
@@ -146,7 +146,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_add_event_cb(p->allow_once_btn, cfg->allow_once_cb, LV_EVENT_CLICKED, p);
 
     /* ---- Allow While Using App button ---- */
-    p->allow_foreground_btn = lv_btn_create(actions);
+    p->allow_foreground_btn = lv_button_create(actions);
     lv_obj_set_size(p->allow_foreground_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->allow_foreground_btn, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(p->allow_foreground_btn, EOS_THEME_BUTTON_COLOR, 0);
@@ -159,7 +159,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_add_event_cb(p->allow_foreground_btn, cfg->allow_foreground_cb, LV_EVENT_CLICKED, p);
 
     /* ---- Don't Allow button ---- */
-    p->deny_btn = lv_btn_create(actions);
+    p->deny_btn = lv_button_create(actions);
     lv_obj_set_size(p->deny_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->deny_btn, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(p->deny_btn, EOS_THEME_BUTTON_COLOR, 0);

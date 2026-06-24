@@ -100,8 +100,8 @@ static lv_obj_t * create_demo_mask(lv_obj_t * parent, lv_color_t color, lv_opa_t
     lv_obj_t * mask = lv_obj_create(parent);
     if(mask == NULL) return NULL;
 
-    lv_obj_clear_flag(mask, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(mask, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(mask, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(mask, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_radius(mask, 0, 0);
     lv_obj_set_style_bg_color(mask, color, 0);
     lv_obj_set_style_bg_opa(mask, opa, 0);
@@ -957,13 +957,13 @@ static void refresh_icon_objects(eos_bubble_grid_t * wb)
 
         int32_t diameter = bubble_r * 2;
 
-        lv_obj_clear_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(bubble, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_size(bubble, diameter, diameter);
         lv_obj_set_pos(bubble, fx_to_int_round(x) - bubble_r, fx_to_int_round(y) - bubble_r);
         lv_obj_set_style_bg_color(bubble, bubble_color, 0);
 
         if(node->src != NULL) {
-            lv_obj_clear_flag(image, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
             lv_obj_set_size(image, diameter, diameter);
             apply_image_cover_scale(node, image, diameter, diameter);
             lv_obj_center(image);
@@ -1010,8 +1010,8 @@ static void create_icon_object(eos_bubble_grid_t * wb, icon_node_t * node)
     lv_obj_set_style_pad_all(bubble, 0, 0);
     lv_obj_set_style_clip_corner(bubble, true, 0);
     lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(bubble, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(bubble, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(bubble, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(bubble, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t * img = lv_image_create(bubble);
     node->image_obj = img;
@@ -1023,8 +1023,8 @@ static void create_icon_object(eos_bubble_grid_t * wb, icon_node_t * node)
     lv_obj_center(img);
     lv_obj_set_style_bg_opa(img, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(img, 0, 0);
-    lv_obj_clear_flag(img, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(img, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(img, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(img, LV_OBJ_FLAG_CLICKABLE);
 }
 
 static void apply_image_cover_scale(icon_node_t * node, lv_obj_t * image_obj, int32_t target_w, int32_t target_h)
@@ -1317,7 +1317,7 @@ lv_obj_t * eos_bubble_create(lv_obj_t * parent)
     lv_obj_set_style_pad_all(container, 0, 0);
 
     lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
     init_icon_slots(wb);
     update_demo_overlays(wb);

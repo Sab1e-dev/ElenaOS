@@ -319,7 +319,7 @@ static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_
         return;
     }
 
-    lv_anim_del(indicator, _flash_light_obj_opa_anim_cb);
+    lv_anim_delete(indicator, _flash_light_obj_opa_anim_cb);
 
     lv_anim_t anim;
     lv_anim_init(&anim);
@@ -341,7 +341,7 @@ static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_
 
         lv_obj_set_style_opa(indicator, LV_OPA_COVER, 0);
         lv_anim_set_values(&anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_ready_cb(&anim, _flash_light_indicator_fade_out_ready_cb);
+        lv_anim_set_completed_cb(&anim, _flash_light_indicator_fade_out_ready_cb);
         lv_anim_start(&anim);
     }
 }
