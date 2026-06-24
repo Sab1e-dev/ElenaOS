@@ -63,9 +63,6 @@
 #if defined(LV_USE_LIST) && !LV_USE_LIST
 #error "LV_USE_LIST must be enabled (required by ElenixOS)"
 #endif
-#if defined(LV_USE_LOTTIE) && !LV_USE_LOTTIE
-#error "LV_USE_LOTTIE must be enabled (required by ElenixOS)"
-#endif
 #if defined(LV_USE_MENU) && !LV_USE_MENU
 #error "LV_USE_MENU must be enabled (required by ElenixOS)"
 #endif
@@ -130,15 +127,6 @@
 #error "LV_USE_THEME_DEFAULT must be enabled (required by ElenixOS)"
 #endif
 
-/* Matrix + Float --------------------------------------------------*/
-
-#if defined(LV_USE_MATRIX) && !LV_USE_MATRIX
-#error "LV_USE_MATRIX must be enabled (required by ElenixOS)"
-#endif
-#if defined(LV_USE_FLOAT) && !LV_USE_FLOAT
-#error "LV_USE_FLOAT must be enabled (required by ElenixOS)"
-#endif
-
 /* Observer --------------------------------------------------------*/
 
 #if defined(LV_USE_OBSERVER) && !LV_USE_OBSERVER
@@ -170,18 +158,6 @@
 
 #if defined(LV_USE_LODEPNG) && !LV_USE_LODEPNG
 #error "LV_USE_LODEPNG must be enabled (required by ElenixOS)"
-#endif
-
-/* System monitors -------------------------------------------------*/
-
-#if defined(LV_USE_SYSMON) && !LV_USE_SYSMON
-#error "LV_USE_SYSMON must be enabled (required by ElenixOS)"
-#endif
-#if defined(LV_USE_PERF_MONITOR) && !LV_USE_PERF_MONITOR
-#error "LV_USE_PERF_MONITOR must be enabled (required by ElenixOS)"
-#endif
-#if defined(LV_USE_MEM_MONITOR) && !LV_USE_MEM_MONITOR
-#error "LV_USE_MEM_MONITOR must be enabled (required by ElenixOS)"
 #endif
 
 /* Default font ----------------------------------------------------*/

@@ -24,7 +24,7 @@ static lv_font_t *font_medium;
 static lv_font_t *font_small;
 static bool _font_inited = false;
 #if EOS_FONT_TTF_TYPE == EOS_FONT_TTF_FILE
-static char _font_path[128] = EOS_FONT_TTF_FILE_PATH;
+static char _font_path[128] = EOS_SYS_RES_FONT_DIR EOS_FONT_TTF_FILE_PATH;
 #endif
 /* Function Implementations -----------------------------------*/
 

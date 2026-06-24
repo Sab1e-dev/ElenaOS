@@ -18,14 +18,20 @@ menu "Build & Compilation"
 
 choice
     prompt "Compilation mode"
-    default EOS_COMPILE_MODE_DEBUG
+    default EOSCFG_COMPILE_MODE_DEBUG
 
-config EOS_COMPILE_MODE_DEBUG
+config EOSCFG_COMPILE_MODE_DEBUG
     bool "Debug mode"
 
-config EOS_COMPILE_MODE_RELEASE
+config EOSCFG_COMPILE_MODE_RELEASE
     bool "Release mode"
 endchoice
+
+config EOS_COMPILE_MODE
+    int
+    default 0 if EOSCFG_COMPILE_MODE_DEBUG
+    default 1 if EOSCFG_COMPILE_MODE_RELEASE
+    default 0
 
 config EOS_ICON_STR_BUILD_IN
     bool "Build icon strings into JerryScript"
@@ -41,22 +47,29 @@ menu "Memory"
 
 choice
     prompt "Memory allocation provider"
-    default EOS_MEM_PROVIDER_STDLIB_CLIB
+    default EOSCFG_MEM_STDLIB
 
-config EOS_MEM_PROVIDER_STDLIB_CLIB
+config EOSCFG_MEM_STDLIB
     bool "Standard C library (malloc / free)"
 
-config EOS_MEM_PROVIDER_AUTO
+config EOSCFG_MEM_AUTO
     bool "Automatic (fast pool + large pool)"
 
-config EOS_MEM_PROVIDER_CUSTOM
+config EOSCFG_MEM_CUSTOM
     bool "Custom (override eos_malloc_core etc.)"
 endchoice
+
+config EOS_MEM_ALLOC_PROVIDER
+    int
+    default 0 if EOSCFG_MEM_STDLIB
+    default 1 if EOSCFG_MEM_AUTO
+    default 2 if EOSCFG_MEM_CUSTOM
+    default 0
 
 config EOS_MEM_POOL_ALLOC_THRESHOLD
     int "Pool allocation threshold (bytes)"
     default 32768
-    depends on EOS_MEM_PROVIDER_AUTO
+    depends on EOSCFG_MEM_AUTO
 
 config EOS_OVERRIDE_LVGL_STDLIB_MALLOC_ENABLE
     bool "Override LVGL stdlib malloc with EOS allocator"
@@ -96,9 +109,11 @@ config EOS_CACHE_HEADER_COUNT
     depends on EOS_CACHE_ENABLE
 
 config EOS_CACHE_USE_DEDICATED_MEM
-    bool "Use dedicated memory pool for cache"
-    default BSP_USING_PSRAM || IMAGE_CACHE_IN_PSRAM_SIZE
-    depends on EOS_CACHE_ENABLE
+	bool "Use dedicated memory pool for cache"
+	default y if BSP_USING_PSRAM
+	default y if IMAGE_CACHE_IN_PSRAM_SIZE
+	default n
+	depends on EOS_CACHE_ENABLE
 
 endmenu
 
@@ -106,23 +121,32 @@ menu "RTOS"
 
 choice
     prompt "RTOS type"
-    default EOS_RTOS_BARE_METAL
+    default EOSCFG_RTOS_BARE_METAL
 
-config EOS_RTOS_BARE_METAL
+config EOSCFG_RTOS_BARE_METAL
     bool "Bare metal (no OS)"
 
-config EOS_RTOS_FREERTOS
+config EOSCFG_RTOS_FREERTOS
     bool "FreeRTOS"
 
-config EOS_RTOS_RTTHREAD
+config EOSCFG_RTOS_RTTHREAD
     bool "RT-Thread"
 
-config EOS_RTOS_POSIX
+config EOSCFG_RTOS_POSIX
     bool "POSIX (simulator)"
 
-config EOS_RTOS_CUSTOM
+config EOSCFG_RTOS_CUSTOM
     bool "Custom RTOS"
 endchoice
+
+config EOS_RTOS_TYPE
+    int
+    default 0 if EOSCFG_RTOS_BARE_METAL
+    default 1 if EOSCFG_RTOS_FREERTOS
+    default 2 if EOSCFG_RTOS_RTTHREAD
+    default 4 if EOSCFG_RTOS_POSIX
+    default 3 if EOSCFG_RTOS_CUSTOM
+    default 0
 
 endmenu
 
@@ -130,14 +154,20 @@ menu "Font"
 
 choice
     prompt "Font source type"
-    default EOS_FONT_TTF
+    default EOSCFG_FONT_TTF
 
-config EOS_FONT_C_MULTI
+config EOSCFG_FONT_C_MULTI
     bool "C bitmap fonts (multi-size)"
 
-config EOS_FONT_TTF
+config EOSCFG_FONT_TTF
     bool "TrueType font (file system)"
 endchoice
+
+config EOS_FONT_TYPE
+    int
+    default 0 if EOSCFG_FONT_C_MULTI
+    default 1 if EOSCFG_FONT_TTF
+    default 1
 
 config EOS_FONT_CFG_LARGE_SIZE
     int "Large font size (px)"
@@ -153,38 +183,62 @@ config EOS_FONT_CFG_SMALL_SIZE
 
 choice
     prompt "TTF data source"
-    default EOS_FONT_TTF_FILE
-    depends on EOS_FONT_TTF
+    default EOSCFG_FONT_TTF_FILE
+    depends on EOSCFG_FONT_TTF
 
-config EOS_FONT_TTF_DATA
+config EOSCFG_FONT_TTF_DATA
     bool "Compiled into firmware"
 
-config EOS_FONT_TTF_FILE
+config EOSCFG_FONT_TTF_FILE
     bool "Loaded from file system"
 endchoice
 
+config EOS_FONT_TTF_TYPE
+    int
+    default 0 if EOSCFG_FONT_TTF_DATA
+    default 1 if EOSCFG_FONT_TTF_FILE
+    default 1
+
 config EOS_FONT_TTF_FILE_PATH
-    string "TTF font file path"
-    default "font.ttf"
-    depends on EOS_FONT_TTF_FILE
-    help
-      Path to the TrueType font file, relative to the system font
-      directory (EOS_SYS_RES_FONT_DIR).  The final path is built as:
-        EOS_SYS_RES_FONT_DIR + EOS_FONT_TTF_FILE_PATH
-      e.g.  "/.sys/res/font/" + "font.ttf"  →  "/.sys/res/font/font.ttf".
+	string "TTF font file path"
+	default "font.ttf"
+	depends on EOSCFG_FONT_TTF_FILE
+	help
+	  Path to the TrueType font file, relative to the system font
+	  directory (EOS_SYS_RES_FONT_DIR).  The final path is built as:
+	    EOS_SYS_RES_FONT_DIR + EOS_FONT_TTF_FILE_PATH
+	  e.g.  "/.sys/res/font/" + "font.ttf"  →  "/.sys/res/font/font.ttf".
 
-      On MCU (Flash / SD):
-        Default "font.ttf" is usually fine — the font is placed in the
-        same directory as other system resources.
+	  On MCU (Flash / SD):
+	    Default "font.ttf" is usually fine — the font is placed in the
+	    same directory as other system resources.
 
-      On Native / WASM simulator:
-        The standard value "font.ttf" works out-of-the-box because the
-        CMake build automatically sets EOS_SYS_ROOT_DIR to point at the
-        simulator's fs/ directory.
+	  On Native / WASM simulator:
+	    The standard value "font.ttf" works out-of-the-box because the
+	    CMake build automatically sets EOS_SYS_ROOT_DIR to point at the
+	    simulator's fs/ directory.
 
-      If you need a custom absolute path, override EOS_FONT_TTF_FILE_PATH
-      via compiler flag (-D) — the Kconfig value is ignored when the
-      variable is already defined by the build system.
+	  If you need a custom absolute path, override EOS_FONT_TTF_FILE_PATH
+	  via compiler flag (-D) — the Kconfig value is ignored when the
+	  variable is already defined by the build system.
+
+config EOS_FONT_TTF_ENABLE_EXTENDED
+	bool "Enable extended TTF features"
+	default n
+	depends on EOSCFG_FONT_TTF
+	help
+	  Enables kerning adjustment and custom glyph cache size for
+	  TrueType font rendering.
+
+config EOS_FONT_TTF_KERNING
+	bool "Enable TTF kerning"
+	default n
+	depends on EOS_FONT_TTF_ENABLE_EXTENDED
+
+config EOS_FONT_TTF_CACHE_SIZE
+	int "TTF glyph cache size (entries)"
+	default 256
+	depends on EOS_FONT_TTF_ENABLE_EXTENDED
 
 endmenu
 
@@ -235,23 +289,32 @@ config EOS_SYS_ROOT_DIR
 
 choice
     prompt "File system interface"
-    default EOS_FS_POSIX
+    default EOSCFG_FS_POSIX
 
-config EOS_FS_POSIX
+config EOSCFG_FS_POSIX
     bool "POSIX"
 
-config EOS_FS_FATFS
+config EOSCFG_FS_FATFS
     bool "FatFs"
 
-config EOS_FS_LITTLEFS
+config EOSCFG_FS_LITTLEFS
     bool "LittleFS"
 
-config EOS_FS_RTTHREAD
+config EOSCFG_FS_RTTHREAD
     bool "RT-Thread DFS"
 
-config EOS_FS_CUSTOM
+config EOSCFG_FS_CUSTOM
     bool "Custom FS"
 endchoice
+
+config EOS_FS_TYPE
+    int
+    default 0 if EOSCFG_FS_POSIX
+    default 1 if EOSCFG_FS_FATFS
+    default 2 if EOSCFG_FS_LITTLEFS
+    default 3 if EOSCFG_FS_RTTHREAD
+    default 4 if EOSCFG_FS_CUSTOM
+    default 0
 
 config EOS_FS_PATH_MAX
     int "Maximum file path length"
@@ -276,14 +339,20 @@ menu "Language"
 
 choice
     prompt "Default system language"
-    default EOS_LANG_EN
+    default EOSCFG_LANG_EN
 
-config EOS_LANG_EN
+config EOSCFG_LANG_EN
     bool "English"
 
-config EOS_LANG_ZH
+config EOSCFG_LANG_ZH
     bool "简体中文"
 endchoice
+
+config EOS_CONFIG_DEFAULT_LANGUAGE
+    int
+    default 0 if EOSCFG_LANG_EN
+    default 1 if EOSCFG_LANG_ZH
+    default 0
 
 endmenu
 
