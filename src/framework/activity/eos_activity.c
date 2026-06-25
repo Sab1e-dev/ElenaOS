@@ -550,10 +550,6 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             _init_anim_timeline(anim_ctx);
             _activity_ctx.active_anim_ctx = anim_ctx;
             _activity_ctx.snapshot_capture_window = true;
-            if (cur_activity)
-            {
-                _play_title_changed_anim(cur_activity, next_activity, header_need_anim, header_reverse_anim, anim_ctx->at);
-            }
             if (anim_cb)
             {
                 anim_cb(anim_ctx->at, cur_activity, next_activity);
@@ -564,6 +560,10 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             }
             _activity_ctx.snapshot_capture_window = false;
             _activity_ctx.active_anim_ctx = NULL;
+            if (cur_activity)
+            {
+                _play_title_changed_anim(cur_activity, next_activity, header_need_anim, header_reverse_anim, anim_ctx->at);
+            }
             _anim_timeline_start(cur_activity, next_activity, anim_ctx);
         }
     }
