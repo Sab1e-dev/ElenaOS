@@ -363,6 +363,21 @@ script_program_t *spm_get_program_by_type(script_pkg_type_t type)
     return NULL;
 }
 
+script_program_t *spm_get_program_by_id(const char *id)
+{
+    if (!id) return NULL;
+    script_program_t *prog = s_program_list;
+    while (prog) {
+        if (prog->script.id && strcmp(prog->script.id, id) == 0
+            && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+        {
+            return prog;
+        }
+        prog = prog->next;
+    }
+    return NULL;
+}
+
 const char *spm_get_program_error_info(script_program_t *prog)
 {
     if (!prog || !prog->has_error) return "";

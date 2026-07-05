@@ -195,6 +195,13 @@ script_program_t *spm_get_active_program(void);
 script_program_t *spm_get_program_by_type(script_pkg_type_t type);
 
 /**
+ * @brief Find a program by its script package ID
+ * @param id Script package ID to search for
+ * @return Program pointer if found and ACTIVE, or NULL
+ */
+script_program_t *spm_get_program_by_id(const char *id);
+
+/**
  * @brief Get error info from a program
  * @param prog Program handle
  * @return Error string (lifetime bound to prog)
