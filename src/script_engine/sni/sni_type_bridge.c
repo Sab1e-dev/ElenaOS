@@ -73,14 +73,15 @@ void sni_tb_unregister_handle(sni_control_block_t *cb)
         }
     }
 
-    if (!jerry_value_is_undefined(cb->js_obj) && !jerry_value_is_null(cb->js_obj))
-    {
-        jerry_value_free(cb->js_obj);
-        cb->js_obj = jerry_undefined();
-    }
-
+    jerry_value_t tmp = cb->js_obj;
+    cb->js_obj = jerry_undefined();
     cb->ptr = NULL;
     cb->is_alive = false;
+
+    if (!jerry_value_is_undefined(tmp) && !jerry_value_is_null(tmp))
+    {
+        jerry_value_free(tmp);
+    }
 }
 
 static uint32_t sni_tb_read_bitfield(void *ptr, uint32_t bit_offset, uint32_t bit_width)
