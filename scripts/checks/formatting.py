@@ -57,7 +57,7 @@ class FormattingChecker(BaseChecker):
                 capture_output=True, text=True, timeout=10,
             )
             if out.returncode == 0:
-                m = re.match(r".*clang-format version (\d+)\.", out.stdout)
+                m = re.search(r"clang-format version (\d+)\.", out.stdout)
                 if m:
                     return int(m.group(1))
         except Exception:
