@@ -30,4 +30,4 @@ jobs:
           wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 20 clang-format clang-tidy
 
       - name: Run code quality checks
-        run: python3 scripts/check.py --json
+        run: python3 scripts/check.py --json --clang-format $(which clang-format-20)

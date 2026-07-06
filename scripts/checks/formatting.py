@@ -73,8 +73,12 @@ class FormattingChecker(BaseChecker):
             else:
                 self.log(f"Using user-specified clang-format: {self.clang_format}")
         else:
-            for path in sorted(self._find_candidates()):
+            candidates = sorted(self._find_candidates())
+            if not candidates:
+                self.log("No clang-format binaries found on system")
+            for path in candidates:
                 ver = self._parse_version(path)
+                self.log(f"Candidate {path} -> version {ver}")
                 if ver == REQUIRED_MAJOR_VERSION:
                     self.clang_format = Path(path)
                     self.log(f"Found clang-format {ver}: {path}")
