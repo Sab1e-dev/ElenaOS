@@ -18,7 +18,7 @@
 
 /* Macros and Definitions -------------------------------------*/
 
-#define _MAX_CANVAS_SIZE EOS_DISPLAY_WIDTH * EOS_DISPLAY_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_ARGB8888)
+#define _MAX_CANVAS_SIZE EOS_DISPLAY_WIDTH *EOS_DISPLAY_HEIGHT *lv_color_format_get_size(LV_COLOR_FORMAT_ARGB8888)
 
 /* Variables --------------------------------------------------*/
 
