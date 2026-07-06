@@ -48,6 +48,8 @@ def parse_args():
         help="Comma-separated checks. Options: architecture/arch, formatting/fmt, style, static_analysis/sa (default: all)",
     )
     parser.add_argument("--fix", "-f", action="store_true", help="Attempt to auto-fix issues (currently only formatting)")
+    parser.add_argument("--clang-format", dest="clang_format_bin", type=str, metavar="PATH",
+                        help="Path to clang-format binary (default: auto-detect clang-format-20)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--json", "-j", action="store_true", help="JSON output for CI")
     parser.add_argument("--warn-as-error", "-W", action="store_true", help="Treat warnings as errors")
@@ -55,7 +57,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_checkers(names: str, project_root: Path, verbose: bool, fix: bool) -> List[BaseChecker]:
+def get_checkers(names: str, project_root: Path, verbose: bool, fix: bool, clang_format_bin: str = None) -> List[BaseChecker]:
     if names == "all":
         names = "architecture,formatting,style,static_analysis"
 
@@ -64,7 +66,10 @@ def get_checkers(names: str, project_root: Path, verbose: bool, fix: bool) -> Li
         name = name.strip()
         if name in CHECKER_MAP:
             cls = CHECKER_MAP[name]
-            checkers.append(cls(project_root=project_root, verbose=verbose, fix=fix))
+            if issubclass(cls, FormattingChecker):
+                checkers.append(cls(project_root=project_root, verbose=verbose, fix=fix, clang_format_bin=clang_format_bin))
+            else:
+                checkers.append(cls(project_root=project_root, verbose=verbose, fix=fix))
         else:
             print(f"Unknown check: {name}. Use --list-checks to see available checks", file=sys.stderr)
 
@@ -168,7 +173,7 @@ def main():
     sys.path.insert(0, str(script_dir))
     project_root = script_dir.parent
 
-    checkers = get_checkers(args.check, project_root, args.verbose, args.fix)
+    checkers = get_checkers(args.check, project_root, args.verbose, args.fix, args.clang_format_bin)
     if not checkers:
         print("No valid checks to run", file=sys.stderr)
         sys.exit(EXIT_ERROR)

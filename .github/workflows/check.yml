@@ -25,9 +25,8 @@ jobs:
       - name: Install dependencies
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y clang-format clang-tidy
           pip install pyyaml
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 20 clang-format clang-tidy
 
       - name: Run code quality checks
         run: python3 scripts/check.py --json
