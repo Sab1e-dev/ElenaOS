@@ -68,8 +68,13 @@ class FormattingChecker(BaseChecker):
         if self.clang_format_bin:
             self.clang_format = Path(self.clang_format_bin)
             if not self.clang_format.exists():
-                self.log(f"clang-format not found: {self.clang_format_bin}")
-                self.clang_format = None
+                resolved = self.which(self.clang_format_bin)
+                if resolved:
+                    self.clang_format = Path(resolved)
+                    self.log(f"Using user-specified clang-format: {self.clang_format}")
+                else:
+                    self.log(f"clang-format not found: {self.clang_format_bin}")
+                    self.clang_format = None
             else:
                 self.log(f"Using user-specified clang-format: {self.clang_format}")
         else:
