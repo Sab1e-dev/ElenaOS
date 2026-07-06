@@ -71,7 +71,8 @@ static int _queue_expand(void)
 void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
 {
 #if EOS_COMPILE_MODE == DEBUG
-    if(!async_initialized)return;
+    if (!async_initialized)
+        return;
 #endif /* EOS_COMPILE_MODE */
     if (!cb)
         return;
@@ -99,10 +100,12 @@ void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
 void eos_dispatch_tick(void)
 {
 #if EOS_COMPILE_MODE == DEBUG
-    if(!async_initialized)return;
+    if (!async_initialized)
+        return;
 #endif
 
-    if (s_head == s_tail) return;
+    if (s_head == s_tail)
+        return;
 
     eos_critical_ctx_t ctx = eos_critical_enter();
 

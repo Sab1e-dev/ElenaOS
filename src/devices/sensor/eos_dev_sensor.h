@@ -25,27 +25,29 @@ extern "C" {
 /**
  * @brief Sensor type definitions
  */
-typedef enum {
+typedef enum
+{
     EOS_SENSOR_TYPE_UNKNOWN = 0,
-    EOS_SENSOR_TYPE_ACCE,       /**< Accelerometer */
-    EOS_SENSOR_TYPE_GYRO,       /**< Gyroscope */
-    EOS_SENSOR_TYPE_HR,         /**< Heart Rate Sensor */
-    EOS_SENSOR_TYPE_SPO2,       /**< SpO2 Sensor */
-    EOS_SENSOR_TYPE_LIGHT,      /**< Ambient Light Sensor */
-    EOS_SENSOR_TYPE_PROXIMITY,  /**< Proximity Sensor */
-    EOS_SENSOR_TYPE_ECG,        /**< ECG Sensor */
-    EOS_SENSOR_TYPE_TEMP,       /**< Temperature Sensor */
-    EOS_SENSOR_TYPE_MAG,        /**< Magnetometer */
-    EOS_SENSOR_TYPE_BARO,       /**< Barometer */
-    EOS_SENSOR_TYPE_CAP,        /**< Capacitance Sensor */
-    EOS_SENSOR_TYPE_STEP,       /**< Step Counter */
+    EOS_SENSOR_TYPE_ACCE, /**< Accelerometer */
+    EOS_SENSOR_TYPE_GYRO, /**< Gyroscope */
+    EOS_SENSOR_TYPE_HR, /**< Heart Rate Sensor */
+    EOS_SENSOR_TYPE_SPO2, /**< SpO2 Sensor */
+    EOS_SENSOR_TYPE_LIGHT, /**< Ambient Light Sensor */
+    EOS_SENSOR_TYPE_PROXIMITY, /**< Proximity Sensor */
+    EOS_SENSOR_TYPE_ECG, /**< ECG Sensor */
+    EOS_SENSOR_TYPE_TEMP, /**< Temperature Sensor */
+    EOS_SENSOR_TYPE_MAG, /**< Magnetometer */
+    EOS_SENSOR_TYPE_BARO, /**< Barometer */
+    EOS_SENSOR_TYPE_CAP, /**< Capacitance Sensor */
+    EOS_SENSOR_TYPE_STEP, /**< Step Counter */
     EOS_SENSOR_TYPE_MAX
 } eos_sensor_type_t;
 
 /**
  * @brief Accelerometer data
  */
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
@@ -54,7 +56,8 @@ typedef struct {
 /**
  * @brief Gyroscope data
  */
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
@@ -63,7 +66,8 @@ typedef struct {
 /**
  * @brief Magnetometer data
  */
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
@@ -72,70 +76,80 @@ typedef struct {
 /**
  * @brief Temperature data
  */
-typedef struct {
+typedef struct
+{
     int32_t temp;
 } eos_sensor_data_temp_t;
 
 /**
  * @brief Barometer data
  */
-typedef struct {
+typedef struct
+{
     int32_t pressure;
 } eos_sensor_data_baro_t;
 
 /**
  * @brief Light sensor data
  */
-typedef struct {
+typedef struct
+{
     uint32_t lux;
 } eos_sensor_data_light_t;
 
 /**
  * @brief Proximity sensor data
  */
-typedef struct {
+typedef struct
+{
     uint16_t distance_mm;
 } eos_sensor_data_proximity_t;
 
 /**
  * @brief Heart rate sensor data
  */
-typedef struct {
+typedef struct
+{
     uint16_t heart_rate;
 } eos_sensor_data_hr_t;
 
 /**
  * @brief SpO2 sensor data
  */
-typedef struct {
+typedef struct
+{
     uint16_t spo2;
 } eos_sensor_data_spo2_t;
 
 /**
  * @brief ECG sensor data
  */
-typedef struct {
+typedef struct
+{
     uint16_t ecg;
 } eos_sensor_data_ecg_t;
 
 /**
  * @brief Capacitance sensor data
  */
-typedef struct {
+typedef struct
+{
     uint16_t cap;
 } eos_sensor_data_cap_t;
 
 /**
  * @brief Step counter data
  */
-typedef struct {
+typedef struct
+{
     uint32_t steps;
 } eos_sensor_data_step_t;
 
 /**
  * @brief Battery sensor data
  */
-typedef struct {
+typedef struct
+{
     uint8_t level;
     bool charging;
 } eos_sensor_data_battery_t;
@@ -143,7 +157,8 @@ typedef struct {
 /**
  * @brief Sensor data union
  */
-typedef union {
+typedef union
+{
     eos_sensor_data_acce_t acce;
     eos_sensor_data_gyro_t gyro;
     eos_sensor_data_mag_t mag;
@@ -162,7 +177,8 @@ typedef union {
 /**
  * @brief Raw sensor data with timestamp
  */
-typedef struct {
+typedef struct
+{
     eos_sensor_type_t type;
     eos_sensor_data_t data;
     uint32_t timestamp;
@@ -186,7 +202,8 @@ typedef void (*eos_sensor_data_ready_cb_t)(eos_sensor_type_t type, uint32_t coun
  *       The last three ops are OPTIONAL (NULL = not supported). When not implemented,
  *       the service layer falls back to software-timer-based polling via the port layer.
  */
-typedef struct {
+typedef struct
+{
     /* ---- Required ops ---- */
     void (*init)(eos_dev_sensor_t *dev);
     void (*deinit)(eos_dev_sensor_t *dev);
@@ -225,7 +242,8 @@ typedef struct {
 /**
  * @brief Sensor device structure
  */
-struct eos_dev_sensor_t {
+struct eos_dev_sensor_t
+{
     const eos_dev_sensor_ops_t *ops;
     const char *name;
     eos_sensor_type_t type;

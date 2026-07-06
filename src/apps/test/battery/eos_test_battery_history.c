@@ -26,7 +26,8 @@
 
 /* Variables --------------------------------------------------*/
 
-typedef struct {
+typedef struct
+{
     lv_obj_t *chart;
     lv_obj_t *container;
     lv_obj_t *info_label;
@@ -43,7 +44,8 @@ static void _chart_update_cb(lv_timer_t *timer)
 {
     LV_UNUSED(timer);
 
-    if (!_ctx.chart || !_ctx.series) {
+    if (!_ctx.chart || !_ctx.series)
+    {
         return;
     }
 
@@ -52,15 +54,18 @@ static void _chart_update_cb(lv_timer_t *timer)
 
     /* Get history count */
     uint32_t count = eos_battery_get_history_count();
-    if (count == 0) {
-        if (_ctx.info_label) {
+    if (count == 0)
+    {
+        if (_ctx.info_label)
+        {
             lv_label_set_text(_ctx.info_label, "No battery history data");
         }
         return;
     }
 
     /* Update history count display */
-    if (_ctx.info_label) {
+    if (_ctx.info_label)
+    {
         char buf[64];
         snprintf(buf, sizeof(buf), "History: %u entries", count);
         lv_label_set_text(_ctx.info_label, buf);
@@ -71,8 +76,10 @@ static void _chart_update_cb(lv_timer_t *timer)
     uint32_t max_entries = lv_chart_get_point_count(_ctx.chart);
     uint32_t start_idx = (count > max_entries) ? (count - max_entries) : 0;
 
-    for (uint32_t i = start_idx; i < count; i++) {
-        if (eos_battery_get_history_entry(i, &entry)) {
+    for (uint32_t i = start_idx; i < count; i++)
+    {
+        if (eos_battery_get_history_entry(i, &entry))
+        {
             lv_chart_set_next_value(_ctx.chart, _ctx.series, entry.percent);
         }
     }
@@ -83,7 +90,8 @@ static void _battery_history_on_destroy(eos_activity_t *activity)
     LV_UNUSED(activity);
 
     /* Cleanup timer */
-    if (_ctx.update_timer) {
+    if (_ctx.update_timer)
+    {
         lv_timer_delete(_ctx.update_timer);
         _ctx.update_timer = NULL;
     }
@@ -96,22 +104,22 @@ static void _battery_history_on_destroy(eos_activity_t *activity)
     _ctx.history_count = 0;
 }
 
-static const eos_activity_lifecycle_t _s_battery_history_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = _battery_history_on_destroy,
-    .on_pause = NULL,
-    .on_resume = NULL
-};
+static const eos_activity_lifecycle_t _s_battery_history_lifecycle = {.on_enter = NULL,
+                                                                      .on_destroy = _battery_history_on_destroy,
+                                                                      .on_pause = NULL,
+                                                                      .on_resume = NULL};
 
 void eos_test_battery_history_start(void)
 {
     eos_activity_t *activity = eos_activity_create(&_s_battery_history_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 

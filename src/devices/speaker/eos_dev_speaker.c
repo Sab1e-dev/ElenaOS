@@ -42,9 +42,8 @@ eos_result_t eos_dev_speaker_register(const eos_dev_speaker_ops_t *ops)
         return EOS_ERR_ALREADY_EXISTS;
     }
 
-    if (ops->open == NULL || ops->borrow == NULL || ops->enqueue == NULL ||
-        ops->stop == NULL || ops->set_volume == NULL ||
-        ops->is_available == NULL)
+    if (ops->open == NULL || ops->borrow == NULL || ops->enqueue == NULL || ops->stop == NULL || ops->set_volume == NULL
+        || ops->is_available == NULL)
     {
         EOS_LOG_E("OPS incomplete: open, borrow, enqueue, stop, set_volume, is_available are required");
         return EOS_ERR_INVALID_ARG;

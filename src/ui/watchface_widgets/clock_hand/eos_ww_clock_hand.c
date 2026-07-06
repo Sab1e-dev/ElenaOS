@@ -62,18 +62,14 @@ static void clock_hand_hour_timer_cb(lv_timer_t *timer)
     lv_image_set_rotation(hand, angle);
 }
 
-void eos_clock_hand_place_pivot(lv_obj_t *hand,
-                                lv_coord_t target_x,
-                                lv_coord_t target_y)
+void eos_clock_hand_place_pivot(lv_obj_t *hand, lv_coord_t target_x, lv_coord_t target_y)
 {
     EOS_CHECK_PTR_RETURN(hand);
 
     lv_point_t pivot_pioint;
     lv_image_get_pivot(hand, &pivot_pioint);
 
-    lv_obj_set_pos(hand,
-                   target_x - pivot_pioint.x,
-                   target_y - pivot_pioint.y);
+    lv_obj_set_pos(hand, target_x - pivot_pioint.x, target_y - pivot_pioint.y);
 }
 
 void eos_clock_hand_center(lv_obj_t *hand)
@@ -119,21 +115,15 @@ lv_obj_t *eos_clock_hand_create(lv_obj_t *parent,
     lv_timer_t *t = NULL;
     if (type == EOS_CLOCK_HAND_SECOND)
     {
-        t = lv_timer_create(clock_hand_second_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_second_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_MINUTE)
     {
-        t = lv_timer_create(clock_hand_minute_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_minute_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_HOUR)
     {
-        t = lv_timer_create(clock_hand_hour_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_hour_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else
     {
@@ -183,29 +173,22 @@ static void _clock_hand_hour_style_timer_cb(lv_timer_t *timer)
     lv_obj_set_style_transform_rotation(hand, angle, 0);
 }
 
-lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
-                                  eos_clock_hand_type_t type)
+lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand, eos_clock_hand_type_t type)
 {
     EOS_CHECK_PTR_RETURN_VAL(hand, NULL);
 
     lv_timer_t *t = NULL;
     if (type == EOS_CLOCK_HAND_SECOND)
     {
-        t = lv_timer_create(_clock_hand_second_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_second_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_MINUTE)
     {
-        t = lv_timer_create(_clock_hand_minute_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_minute_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_HOUR)
     {
-        t = lv_timer_create(_clock_hand_hour_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_hour_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else
     {
@@ -221,9 +204,7 @@ lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
     return t;
 }
 
-void eos_clock_hand_center_style(lv_obj_t *hand,
-                                 lv_coord_t pivot_x,
-                                 lv_coord_t pivot_y)
+void eos_clock_hand_center_style(lv_obj_t *hand, lv_coord_t pivot_x, lv_coord_t pivot_y)
 {
     EOS_CHECK_PTR_RETURN(hand);
 

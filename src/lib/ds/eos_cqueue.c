@@ -13,7 +13,7 @@
 #include "eos_mem.h"
 /* Macros and Definitions -------------------------------------*/
 #define _SHRINK_ENABLE 1
-#define _SHRINK_THRESHOLD (4)  /**< Automatically shrink when below `_SHRINK_THRESHOLD` of capacity */
+#define _SHRINK_THRESHOLD (4) /**< Automatically shrink when below `_SHRINK_THRESHOLD` of capacity */
 #define _SHRINK_PROPORTION (2) /**< Shrink proportion, `shrinked size = capacity / _SHRINK_PROPORTION` */
 #define _CAPACITY_GROWTH 2 /**< Capacity growth factor */
 

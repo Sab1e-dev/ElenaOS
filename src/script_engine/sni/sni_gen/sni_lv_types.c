@@ -357,9 +357,7 @@ const size_t sni_lv_types_count = sizeof(sni_lv_types) / sizeof(sni_lv_types[0])
 /************************** Initialization **************************/
 void sni_lv_types_init(void)
 {
-    for (size_t i = 0;
-         i < sni_lv_types_count;
-         i++)
+    for (size_t i = 0; i < sni_lv_types_count; i++)
     {
         sni_tb_register_val_obj(sni_lv_types[i]);
     }

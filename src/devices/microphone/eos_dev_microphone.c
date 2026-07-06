@@ -39,10 +39,8 @@ eos_result_t eos_dev_microphone_register(const eos_dev_microphone_ops_t *ops)
         return EOS_ERR_ALREADY_EXISTS;
     }
 
-    if (ops->open == NULL || ops->close == NULL ||
-        ops->start == NULL || ops->stop == NULL ||
-        ops->set_buffer == NULL || ops->get_write_offset == NULL ||
-        ops->is_available == NULL)
+    if (ops->open == NULL || ops->close == NULL || ops->start == NULL || ops->stop == NULL || ops->set_buffer == NULL
+        || ops->get_write_offset == NULL || ops->is_available == NULL)
     {
         EOS_LOG_E("OPS incomplete: open/close/start/stop/set_buffer/get_write_offset/is_available required");
         return EOS_ERR_INVALID_ARG;

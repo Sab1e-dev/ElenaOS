@@ -199,8 +199,8 @@ static char *sni_image_resolve_under_root(const char *root_dir, const char *cand
         return NULL;
     }
 
-    if (!sni_image_normalize_absolute_path(root_dir, root_real, sizeof(root_real)) ||
-        !sni_image_normalize_absolute_path(candidate, candidate_real, sizeof(candidate_real)))
+    if (!sni_image_normalize_absolute_path(root_dir, root_real, sizeof(root_real))
+        || !sni_image_normalize_absolute_path(candidate, candidate_real, sizeof(candidate_real)))
     {
         return NULL;
     }
@@ -393,9 +393,7 @@ static void sni_imagebutton_replace_owned_src(lv_obj_t *obj,
     store->paths[state][slot] = owned_path;
 }
 
-static bool sni_image_js_to_src(const jerry_value_t value,
-                                const void **out_src,
-                                char **out_owned_path)
+static bool sni_image_js_to_src(const jerry_value_t value, const void **out_src, char **out_owned_path)
 {
     if (!out_src || !out_owned_path)
         return false;
@@ -550,9 +548,8 @@ jerry_value_t sni_api_lv_imagebutton_set_src(const jerry_call_info_t *call_info_
     if (state < 0 || state >= LV_IMAGEBUTTON_STATE_NUM)
         return sni_api_throw_error("Invalid imagebutton state");
 
-    if (!sni_image_js_to_src(args_p[1], &src_left, &owned_left) ||
-        !sni_image_js_to_src(args_p[2], &src_mid, &owned_mid) ||
-        !sni_image_js_to_src(args_p[3], &src_right, &owned_right))
+    if (!sni_image_js_to_src(args_p[1], &src_left, &owned_left) || !sni_image_js_to_src(args_p[2], &src_mid, &owned_mid)
+        || !sni_image_js_to_src(args_p[3], &src_right, &owned_right))
     {
         if (owned_left)
             eos_free(owned_left);
@@ -612,28 +609,19 @@ jerry_value_t sni_api_lv_imagebutton_get_src_left(const jerry_call_info_t *call_
                                                   const jerry_value_t args_p[],
                                                   const jerry_length_t args_count)
 {
-    return sni_api_lv_imagebutton_get_src_common(call_info_p,
-                                                 args_p,
-                                                 args_count,
-                                                 lv_imagebutton_get_src_left);
+    return sni_api_lv_imagebutton_get_src_common(call_info_p, args_p, args_count, lv_imagebutton_get_src_left);
 }
 
 jerry_value_t sni_api_lv_imagebutton_get_src_middle(const jerry_call_info_t *call_info_p,
                                                     const jerry_value_t args_p[],
                                                     const jerry_length_t args_count)
 {
-    return sni_api_lv_imagebutton_get_src_common(call_info_p,
-                                                 args_p,
-                                                 args_count,
-                                                 lv_imagebutton_get_src_middle);
+    return sni_api_lv_imagebutton_get_src_common(call_info_p, args_p, args_count, lv_imagebutton_get_src_middle);
 }
 
 jerry_value_t sni_api_lv_imagebutton_get_src_right(const jerry_call_info_t *call_info_p,
                                                    const jerry_value_t args_p[],
                                                    const jerry_length_t args_count)
 {
-    return sni_api_lv_imagebutton_get_src_common(call_info_p,
-                                                 args_p,
-                                                 args_count,
-                                                 lv_imagebutton_get_src_right);
+    return sni_api_lv_imagebutton_get_src_common(call_info_p, args_p, args_count, lv_imagebutton_get_src_right);
 }

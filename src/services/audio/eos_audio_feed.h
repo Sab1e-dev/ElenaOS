@@ -37,8 +37,7 @@ typedef struct eos_audio_feed eos_audio_feed_t;
  * Default implementation uses lv_timer_create (EOS_WEAK).
  * Override to use DMA ISR / RTOS timer on real hardware.
  */
-eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms,
-    eos_audio_feed_cb_t cb, void *user_data);
+eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms, eos_audio_feed_cb_t cb, void *user_data);
 
 /**
  * @brief Delete feed clock and stop callbacks

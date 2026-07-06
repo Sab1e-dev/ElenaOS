@@ -100,8 +100,10 @@ sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void 
  * @param cb Callback invoked for each entry (ptr, js_obj, type, is_alive, user_data)
  * @param user_data User pointer passed to callback
  */
-void sni_context_iterate_type(sni_context_t *ctx, sni_type_t type,
-                               void (*cb)(void *, jerry_value_t, sni_type_t, bool, void *), void *user_data);
+void sni_context_iterate_type(sni_context_t *ctx,
+                              sni_type_t type,
+                              void (*cb)(void *, jerry_value_t, sni_type_t, bool, void *),
+                              void *user_data);
 
 /* Convenience wrappers for common resource types */
 

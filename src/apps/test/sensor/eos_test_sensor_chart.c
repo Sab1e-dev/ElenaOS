@@ -24,7 +24,8 @@
  * Internal types and variables
  * ============================================ */
 
-typedef struct {
+typedef struct
+{
     lv_obj_t *chart;
     lv_obj_t *container;
     lv_chart_series_t *series_x;
@@ -47,11 +48,11 @@ static eos_sensor_data_t _test_sensor_generate_data(void)
     /* Generate sine wave data for visualization */
     static uint32_t counter = 0;
     counter++;
-    
+
     data.acce.x = (int32_t)(500 * sin(counter * 0.1f));
     data.acce.y = (int32_t)(500 * cos(counter * 0.1f));
     data.acce.z = (int32_t)(1000 + 200 * sin(counter * 0.05f));
-    
+
     return data;
 }
 
@@ -106,14 +107,16 @@ static const eos_dev_sensor_ops_t _test_sensor_ops = {
 
 static void _chart_update_cb(lv_timer_t *timer)
 {
-    if (!_ctx.chart || !_ctx.series_x || !_ctx.series_y || !_ctx.series_z) {
+    if (!_ctx.chart || !_ctx.series_x || !_ctx.series_y || !_ctx.series_z)
+    {
         return;
     }
 
     eos_sensor_raw_data_t data;
     eos_result_t result = eos_sensor_read_latest(EOS_SENSOR_TYPE_ACCE, &data);
-    
-    if (result == EOS_OK) {
+
+    if (result == EOS_OK)
+    {
         /* Add data to chart series */
         lv_chart_set_next_value(_ctx.chart, _ctx.series_x, data.data.acce.x);
         lv_chart_set_next_value(_ctx.chart, _ctx.series_y, data.data.acce.y);
@@ -129,17 +132,18 @@ static void _chart_update_cb(lv_timer_t *timer)
 static void _sensor_chart_on_destroy(eos_activity_t *activity)
 {
     LV_UNUSED(activity);
-    
+
     /* Cleanup timer */
-    if (_ctx.update_timer) {
+    if (_ctx.update_timer)
+    {
         lv_timer_delete(_ctx.update_timer);
         _ctx.update_timer = NULL;
     }
-    
+
     /* Unregister test sensor */
     /* Note: Current implementation doesn't support unregister, so we just clean up */
     _ctx.test_sensor = NULL;
-    
+
     /* Reset context */
     _ctx.chart = NULL;
     _ctx.series_x = NULL;
@@ -149,12 +153,10 @@ static void _sensor_chart_on_destroy(eos_activity_t *activity)
     _ctx.sample_count = 0;
 }
 
-static const eos_activity_lifecycle_t _s_sensor_chart_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = _sensor_chart_on_destroy,
-    .on_pause = NULL,
-    .on_resume = NULL
-};
+static const eos_activity_lifecycle_t _s_sensor_chart_lifecycle = {.on_enter = NULL,
+                                                                   .on_destroy = _sensor_chart_on_destroy,
+                                                                   .on_pause = NULL,
+                                                                   .on_resume = NULL};
 
 /* ============================================
  * Main test function
@@ -163,12 +165,14 @@ static const eos_activity_lifecycle_t _s_sensor_chart_lifecycle = {
 void eos_test_sensor_chart_start(void)
 {
     eos_activity_t *activity = eos_activity_create(&_s_sensor_chart_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -184,10 +188,13 @@ void eos_test_sensor_chart_start(void)
 
     /* Register test sensor */
     eos_result_t result = eos_dev_sensor_register("chart_acce", EOS_SENSOR_TYPE_ACCE, &_test_sensor_ops);
-    if (result == EOS_OK) {
+    if (result == EOS_OK)
+    {
         _ctx.test_sensor = eos_dev_sensor_find("chart_acce");
         EOS_LOG_I("Test sensor registered successfully");
-    } else {
+    }
+    else
+    {
         EOS_LOG_W("Test sensor registration failed, using existing sensor");
         _ctx.test_sensor = eos_dev_sensor_get_default(EOS_SENSOR_TYPE_ACCE);
     }
@@ -208,7 +215,8 @@ void eos_test_sensor_chart_start(void)
     _ctx.series_z = lv_chart_add_series(_ctx.chart, lv_color_hex(0x0000FF), LV_CHART_AXIS_PRIMARY_Y);
 
     /* Initialize series with zeros */
-    for (uint32_t i = 0; i < 50; i++) {
+    for (uint32_t i = 0; i < 50; i++)
+    {
         lv_chart_set_next_value(_ctx.chart, _ctx.series_x, 0);
         lv_chart_set_next_value(_ctx.chart, _ctx.series_y, 0);
         lv_chart_set_next_value(_ctx.chart, _ctx.series_z, 0);

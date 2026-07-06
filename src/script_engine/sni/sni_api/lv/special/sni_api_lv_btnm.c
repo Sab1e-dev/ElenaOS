@@ -145,9 +145,9 @@ static char *sni_btnm_dup_js_string(jerry_value_t js_value)
 }
 
 static bool sni_btnm_build_map_from_2d_array(jerry_value_t js_rows,
-                                              const char ***out_map,
-                                              uint32_t *out_map_size,
-                                              uint32_t *out_button_count)
+                                             const char ***out_map,
+                                             uint32_t *out_map_size,
+                                             uint32_t *out_button_count)
 {
     jerry_length_t row_len;
     uint32_t total_cells = 0;
@@ -253,9 +253,7 @@ static bool sni_btnm_build_map_from_2d_array(jerry_value_t js_rows,
     return true;
 }
 
-static bool sni_btnm_build_ctrl_map(jerry_value_t js_ctrl,
-                                    uint32_t expected_len,
-                                    lv_buttonmatrix_ctrl_t **out_ctrl)
+static bool sni_btnm_build_ctrl_map(jerry_value_t js_ctrl, uint32_t expected_len, lv_buttonmatrix_ctrl_t **out_ctrl)
 {
     jerry_length_t ctrl_len;
     lv_buttonmatrix_ctrl_t *ctrl_map;
@@ -297,7 +295,7 @@ static bool sni_btnm_build_ctrl_map(jerry_value_t js_ctrl,
     return true;
 }
 
-static uint32_t sni_btnm_count_buttons_from_map(const char * const *map)
+static uint32_t sni_btnm_count_buttons_from_map(const char *const *map)
 {
     uint32_t count = 0;
     uint32_t idx = 0;
@@ -417,7 +415,7 @@ jerry_value_t sni_api_lv_buttonmatrix_set_ctrl_map(const jerry_call_info_t *call
 {
     lv_obj_t *self_obj = NULL;
     uint32_t expected_len;
-    const char * const *map = NULL;
+    const char *const *map = NULL;
     lv_buttonmatrix_ctrl_t *ctrl_map = NULL;
 
     if (args_count != 1)

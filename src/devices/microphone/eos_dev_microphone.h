@@ -26,28 +26,27 @@ extern "C" {
 
 typedef struct
 {
-    int  (*init)(void);                                       /**< Optional */
-    int  (*deinit)(void);                                     /**< Optional */
-    int  (*open)(uint32_t sample_rate, uint8_t channels,
-                 uint8_t bits_per_sample);                    /**< Required */
-    int  (*close)(void);                                      /**< Required */
-    int  (*start)(void);                                      /**< Required: begin DMA capture */
-    int  (*stop)(void);                                       /**< Required: halt DMA capture */
-    int  (*set_gain)(uint8_t gain);                           /**< Optional, 0-100 */
-    bool (*is_available)(void);                               /**< Required */
+    int (*init)(void); /**< Optional */
+    int (*deinit)(void); /**< Optional */
+    int (*open)(uint32_t sample_rate, uint8_t channels, uint8_t bits_per_sample); /**< Required */
+    int (*close)(void); /**< Required */
+    int (*start)(void); /**< Required: begin DMA capture */
+    int (*stop)(void); /**< Required: halt DMA capture */
+    int (*set_gain)(uint8_t gain); /**< Optional, 0-100 */
+    bool (*is_available)(void); /**< Required */
     /**
      * @brief Register the ring buffer that DMA shall fill.
      * @param buf   Start of buffer (must be DMA-accessible)
      * @param size  Total buffer size in bytes (power-of-2 recommended)
      * @return 0 on success, negative on error
      */
-    int  (*set_buffer)(uint8_t *buf, uint32_t size);          /**< Required */
+    int (*set_buffer)(uint8_t *buf, uint32_t size); /**< Required */
     /**
      * @brief Return the current DMA write offset (absolute bytes from buf start).
      * Wraps at buffer size.  Thread-safe; may be called from any context.
      * Consumer calculates available bytes from (write - read + size) % size.
      */
-    uint32_t (*get_write_offset)(void);                       /**< Required */
+    uint32_t (*get_write_offset)(void); /**< Required */
 } eos_dev_microphone_ops_t;
 
 typedef struct

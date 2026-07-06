@@ -24,8 +24,8 @@
 #include "eos_port.h"
 
 /* Platform detection ----------------------------------------*/
-#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_6M__) || defined(__ARM_ARCH_7EM__) || \
-    defined(__ARMCC_VERSION) || defined(__ARM_COMPILER_VERSION) || defined(__arm__)
+#if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_6M__) || defined(__ARM_ARCH_7EM__) || defined(__ARMCC_VERSION) \
+    || defined(__ARM_COMPILER_VERSION) || defined(__arm__)
 #define EOS_BAREMETAL_ARM 1
 #elif defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || defined(_M_X64)
 #define EOS_BAREMETAL_X86 1
@@ -41,7 +41,7 @@ eos_critical_ctx_t eos_critical_enter(void)
     __asm volatile("mrs %0, primask" : "=r"(primask));
     __asm volatile("cpsid i" ::: "memory");
 #else
-    __asm volatile("mrs %0, primask\n\tcpsid i" : "=r"(primask) :: "memory");
+    __asm volatile("mrs %0, primask\n\tcpsid i" : "=r"(primask)::"memory");
 #endif
     return primask;
 #elif EOS_BAREMETAL_X86

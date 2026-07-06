@@ -20,7 +20,7 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define EOS_SENSOR_FIFO_CAPACITY    64
+#define EOS_SENSOR_FIFO_CAPACITY 64
 
 /* Public typedefs --------------------------------------------*/
 
@@ -33,27 +33,27 @@ extern "C" {
  *        now receives typed sensor data directly instead of an opaque
  *        eos_event_t pointer requiring eos_event_get_param().
  */
-typedef void (*eos_sensor_data_cb_t)(eos_sensor_type_t type,
-                                      const eos_sensor_raw_data_t *data,
-                                      void *user_data);
+typedef void (*eos_sensor_data_cb_t)(eos_sensor_type_t type, const eos_sensor_raw_data_t *data, void *user_data);
 
 /**
  * @brief Sensor operating mode — determines sampling policy
  */
-typedef enum {
-    EOS_SENSOR_MODE_NORMAL = 0,     /**< Normal operation (display on, user active) */
-    EOS_SENSOR_MODE_LOW_POWER,      /**< Low-power (AOD, battery save) */
-    EOS_SENSOR_MODE_ACTIVE,         /**< Active (workout / high-motion) */
-    EOS_SENSOR_MODE_SLEEP,          /**< Sleep (display off, no user interaction) */
+typedef enum
+{
+    EOS_SENSOR_MODE_NORMAL = 0, /**< Normal operation (display on, user active) */
+    EOS_SENSOR_MODE_LOW_POWER, /**< Low-power (AOD, battery save) */
+    EOS_SENSOR_MODE_ACTIVE, /**< Active (workout / high-motion) */
+    EOS_SENSOR_MODE_SLEEP, /**< Sleep (display off, no user interaction) */
     EOS_SENSOR_MODE_COUNT,
 } eos_sensor_mode_t;
 
 /**
  * @brief Per-mode sensor sampling policy
  */
-typedef struct {
-    uint32_t min_interval_ms;       /**< Floor for any subscriber request in this mode */
-    bool     allow_enable;          /**< Whether sensors may be powered on in this mode */
+typedef struct
+{
+    uint32_t min_interval_ms; /**< Floor for any subscriber request in this mode */
+    bool allow_enable; /**< Whether sensors may be powered on in this mode */
 } eos_sensor_policy_t;
 
 /**
@@ -61,18 +61,20 @@ typedef struct {
  *        Single source of truth for sensor data push subscribers.
  *        Used for direct callback invocation in eos_sensor_notify().
  */
-typedef struct _sensor_subscriber_t {
+typedef struct _sensor_subscriber_t
+{
     eos_sensor_data_cb_t cb;
     void *user_data;
     uint32_t min_interval_ms;
     struct _sensor_subscriber_t *next;
-    bool marked_for_delete;       /**< Deferred deletion flag for safe broadcast */
+    bool marked_for_delete; /**< Deferred deletion flag for safe broadcast */
 } sensor_subscriber_t;
 
 /**
  * @brief Sensor service instance structure
  */
-typedef struct {
+typedef struct
+{
     eos_sensor_type_t type;
     eos_dev_sensor_t *device;
     eos_fifo_t *fifo;
@@ -81,7 +83,7 @@ typedef struct {
     uint32_t sample_period_ms;
     uint32_t last_sample_time;
     bool is_active;
-    bool is_enabled;                /**< Whether the hardware device is currently enabled */
+    bool is_enabled; /**< Whether the hardware device is currently enabled */
     sensor_subscriber_t *subscribers; /**< Linked list of active subscribers */
 } eos_sensor_service_instance_t;
 
@@ -117,7 +119,10 @@ eos_result_t eos_sensor_read_latest(eos_sensor_type_t type, eos_sensor_raw_data_
  * @param min_interval_ms Minimum callback interval in milliseconds
  * @return eos_result_t Operation result
  */
-eos_result_t eos_sensor_subscribe(eos_sensor_type_t type, eos_sensor_data_cb_t cb, void *user_data, uint32_t min_interval_ms);
+eos_result_t eos_sensor_subscribe(eos_sensor_type_t type,
+                                  eos_sensor_data_cb_t cb,
+                                  void *user_data,
+                                  uint32_t min_interval_ms);
 
 /**
  * @brief Unsubscribe from sensor data

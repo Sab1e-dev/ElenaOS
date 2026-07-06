@@ -10,6 +10,7 @@
 
 /* Includes ---------------------------------------------------*/
 #include <stdlib.h>
+#include "eos_mem.h"
 #define EOS_LOG_TAG "AudioFeed"
 #include "eos_log.h"
 #include "eos_port.h"
@@ -36,11 +37,11 @@ static void _feed_timer_cb(lv_timer_t *timer)
     }
 }
 
-EOS_WEAK eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms,
-    eos_audio_feed_cb_t cb, void *user_data)
+EOS_WEAK eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms, eos_audio_feed_cb_t cb, void *user_data)
 {
-    eos_audio_feed_t *feed = calloc(1, sizeof(eos_audio_feed_t));
-    if (!feed) return NULL;
+    eos_audio_feed_t *feed = eos_malloc_zeroed(sizeof(eos_audio_feed_t));
+    if (!feed)
+        return NULL;
 
     feed->cb = cb;
     feed->user_data = user_data;
@@ -48,7 +49,7 @@ EOS_WEAK eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms,
     feed->timer = lv_timer_create(_feed_timer_cb, period_ms, feed);
     if (!feed->timer)
     {
-        free(feed);
+        eos_free(feed);
         return NULL;
     }
     return feed;
@@ -56,22 +57,25 @@ EOS_WEAK eos_audio_feed_t *eos_audio_feed_create(uint32_t period_ms,
 
 EOS_WEAK void eos_audio_feed_delete(eos_audio_feed_t *feed)
 {
-    if (!feed) return;
+    if (!feed)
+        return;
     if (feed->timer)
     {
         lv_timer_delete(feed->timer);
     }
-    free(feed);
+    eos_free(feed);
 }
 
 EOS_WEAK void eos_audio_feed_pause(eos_audio_feed_t *feed)
 {
-    if (!feed) return;
+    if (!feed)
+        return;
     feed->paused = true;
 }
 
 EOS_WEAK void eos_audio_feed_resume(eos_audio_feed_t *feed)
 {
-    if (!feed) return;
+    if (!feed)
+        return;
     feed->paused = false;
 }

@@ -179,8 +179,7 @@ eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
  * @param to_type Target page type
  * @return eos_activity_anim_cb_t Animation callback, returns NULL if not found
  */
-eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type,
-                                                   eos_activity_type_t to_type);
+eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type, eos_activity_type_t to_type);
 
 /**
  * @brief Set Activity title visibility

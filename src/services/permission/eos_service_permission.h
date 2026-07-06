@@ -19,27 +19,29 @@ extern "C" {
 /**
  * @brief Permission categories
  */
-typedef enum {
-    EOS_PERM_CATEGORY_LOCATION = 0,    /**< Location information */
-    EOS_PERM_CATEGORY_SENSOR,          /**< Sensor */
-    EOS_PERM_CATEGORY_NOTIFICATION,    /**< Notification */
-    EOS_PERM_CATEGORY_STORAGE,         /**< Storage */
-    EOS_PERM_CATEGORY_BLUETOOTH,       /**< Bluetooth */
-    EOS_PERM_CATEGORY_AUDIO,           /**< Audio/Mic */
-    EOS_PERM_CATEGORY_HEALTH,          /**< Health */
-    EOS_PERM_CATEGORY_CONTACTS,        /**< Contacts */
-    EOS_PERM_CATEGORY_CALENDAR,        /**< Calendar */
-    EOS_PERM_CATEGORY_COUNT            /**< Sentinel - must be last */
+typedef enum
+{
+    EOS_PERM_CATEGORY_LOCATION = 0, /**< Location information */
+    EOS_PERM_CATEGORY_SENSOR, /**< Sensor */
+    EOS_PERM_CATEGORY_NOTIFICATION, /**< Notification */
+    EOS_PERM_CATEGORY_STORAGE, /**< Storage */
+    EOS_PERM_CATEGORY_BLUETOOTH, /**< Bluetooth */
+    EOS_PERM_CATEGORY_AUDIO, /**< Audio/Mic */
+    EOS_PERM_CATEGORY_HEALTH, /**< Health */
+    EOS_PERM_CATEGORY_CONTACTS, /**< Contacts */
+    EOS_PERM_CATEGORY_CALENDAR, /**< Calendar */
+    EOS_PERM_CATEGORY_COUNT /**< Sentinel - must be last */
 } eos_perm_category_t;
 
 /**
  * @brief Permission grant states (Android-like)
  */
-typedef enum {
-    EOS_PERM_STATE_DENIED = 0,         /**< Not allowed */
-    EOS_PERM_STATE_ALLOW_ONCE,         /**< Allow once */
-    EOS_PERM_STATE_ALLOW_FOREGROUND,   /**< Allow while using the app */
-    EOS_PERM_STATE_ALLOW_ALWAYS,       /**< Always allow */
+typedef enum
+{
+    EOS_PERM_STATE_DENIED = 0, /**< Not allowed */
+    EOS_PERM_STATE_ALLOW_ONCE, /**< Allow once */
+    EOS_PERM_STATE_ALLOW_FOREGROUND, /**< Allow while using the app */
+    EOS_PERM_STATE_ALLOW_ALWAYS, /**< Always allow */
 } eos_perm_state_t;
 
 /* Public function prototypes --------------------------------*/

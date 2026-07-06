@@ -68,10 +68,7 @@ static void _record_test(const char *name, bool passed, const char *details)
     if (_ctx.list)
     {
         char label_text[256];
-        snprintf(label_text, sizeof(label_text),
-                 "%s: %s",
-                 name,
-                 passed ? "PASS" : "FAIL");
+        snprintf(label_text, sizeof(label_text), "%s: %s", name, passed ? "PASS" : "FAIL");
 
         lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
 
@@ -96,7 +93,8 @@ static bool _test_default_state_denied(void)
     eos_perm_state_t state = eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION);
 
     bool passed = (state == EOS_PERM_STATE_DENIED);
-    _record_test("Default State is DENIED", passed,
+    _record_test("Default State is DENIED",
+                 passed,
                  passed ? "New app permissions default to DENIED" : "Default state incorrect");
     return passed;
 }
@@ -109,8 +107,7 @@ static bool _test_set_and_get(void)
     const char *app_id = TEST_APP_ID_1;
 
     /* Set location permission to ALLOW_ALWAYS */
-    bool set_ok = eos_permission_set(app_id, EOS_PERM_CATEGORY_LOCATION,
-                                     EOS_PERM_STATE_ALLOW_ALWAYS);
+    bool set_ok = eos_permission_set(app_id, EOS_PERM_CATEGORY_LOCATION, EOS_PERM_STATE_ALLOW_ALWAYS);
     if (!set_ok)
     {
         _record_test("Set Permission", false, "Failed to set permission");
@@ -120,7 +117,8 @@ static bool _test_set_and_get(void)
     /* Read it back */
     eos_perm_state_t state = eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION);
     bool passed = (state == EOS_PERM_STATE_ALLOW_ALWAYS);
-    _record_test("Set and Get Permission", passed,
+    _record_test("Set and Get Permission",
+                 passed,
                  passed ? "Permission state persisted correctly" : "State mismatch after set");
     return passed;
 }
@@ -133,17 +131,12 @@ static bool _test_all_states(void)
     const char *app_id = "com.test.states";
     bool all_passed = true;
 
-    eos_perm_state_t test_states[] = {
-        EOS_PERM_STATE_DENIED,
-        EOS_PERM_STATE_ALLOW_ONCE,
-        EOS_PERM_STATE_ALLOW_FOREGROUND,
-        EOS_PERM_STATE_ALLOW_ALWAYS};
+    eos_perm_state_t test_states[] = {EOS_PERM_STATE_DENIED,
+                                      EOS_PERM_STATE_ALLOW_ONCE,
+                                      EOS_PERM_STATE_ALLOW_FOREGROUND,
+                                      EOS_PERM_STATE_ALLOW_ALWAYS};
 
-    const char *state_names[] = {
-        "DENIED",
-        "ALLOW_ONCE",
-        "ALLOW_FOREGROUND",
-        "ALLOW_ALWAYS"};
+    const char *state_names[] = {"DENIED", "ALLOW_ONCE", "ALLOW_FOREGROUND", "ALLOW_ALWAYS"};
 
     for (int i = 0; i < 4; i++)
     {
@@ -163,7 +156,11 @@ static bool _test_all_states(void)
     }
 
     char details[128];
-    snprintf(details, sizeof(details), "%s", all_passed ? "All 4 states can be set and read back correctly" : "State round-trip failed for one or more states");
+    snprintf(details,
+             sizeof(details),
+             "%s",
+             all_passed ? "All 4 states can be set and read back correctly"
+                        : "State round-trip failed for one or more states");
     _record_test("All Grant States", all_passed, details);
     return all_passed;
 }
@@ -174,15 +171,14 @@ static bool _test_all_states(void)
 static bool _test_app_isolation(void)
 {
     /* Set permission for app1 */
-    eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_NOTIFICATION,
-                       EOS_PERM_STATE_ALLOW_ALWAYS);
+    eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_NOTIFICATION, EOS_PERM_STATE_ALLOW_ALWAYS);
 
     /* App2 should still have default DENIED */
-    eos_perm_state_t app2_state = eos_permission_get(TEST_APP_ID_2,
-                                                     EOS_PERM_CATEGORY_NOTIFICATION);
+    eos_perm_state_t app2_state = eos_permission_get(TEST_APP_ID_2, EOS_PERM_CATEGORY_NOTIFICATION);
 
     bool passed = (app2_state == EOS_PERM_STATE_DENIED);
-    _record_test("App Isolation", passed,
+    _record_test("App Isolation",
+                 passed,
                  passed ? "Different apps have independent permission stores" : "App isolation violated");
     return passed;
 }
@@ -202,10 +198,10 @@ static bool _test_category_independence(void)
     eos_perm_state_t sto = eos_permission_get(app_id, EOS_PERM_CATEGORY_STORAGE);
     eos_perm_state_t aud = eos_permission_get(app_id, EOS_PERM_CATEGORY_AUDIO);
 
-    bool passed = (loc == EOS_PERM_STATE_ALLOW_ALWAYS &&
-                   sto == EOS_PERM_STATE_DENIED &&
-                   aud == EOS_PERM_STATE_ALLOW_FOREGROUND);
-    _record_test("Category Independence", passed,
+    bool passed =
+        (loc == EOS_PERM_STATE_ALLOW_ALWAYS && sto == EOS_PERM_STATE_DENIED && aud == EOS_PERM_STATE_ALLOW_FOREGROUND);
+    _record_test("Category Independence",
+                 passed,
                  passed ? "Each category has independent state" : "Categories not independent");
     return passed;
 }
@@ -223,9 +219,9 @@ static bool _test_revoke_all(void)
     eos_permission_set(app_id, EOS_PERM_CATEGORY_CONTACTS, EOS_PERM_STATE_ALLOW_ONCE);
 
     /* Verify they were set */
-    if (eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION) != EOS_PERM_STATE_ALLOW_ALWAYS ||
-        eos_permission_get(app_id, EOS_PERM_CATEGORY_BLUETOOTH) != EOS_PERM_STATE_ALLOW_FOREGROUND ||
-        eos_permission_get(app_id, EOS_PERM_CATEGORY_CONTACTS) != EOS_PERM_STATE_ALLOW_ONCE)
+    if (eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION) != EOS_PERM_STATE_ALLOW_ALWAYS
+        || eos_permission_get(app_id, EOS_PERM_CATEGORY_BLUETOOTH) != EOS_PERM_STATE_ALLOW_FOREGROUND
+        || eos_permission_get(app_id, EOS_PERM_CATEGORY_CONTACTS) != EOS_PERM_STATE_ALLOW_ONCE)
     {
         _record_test("Revoke All Permissions", false, "Pre-condition: failed to set permissions");
         return false;
@@ -235,15 +231,13 @@ static bool _test_revoke_all(void)
     eos_permission_revoke_all(app_id);
 
     /* Verify all are now DENIED */
-    bool loc_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION) ==
-                        EOS_PERM_STATE_DENIED);
-    bool bt_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_BLUETOOTH) ==
-                       EOS_PERM_STATE_DENIED);
-    bool contacts_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_CONTACTS) ==
-                             EOS_PERM_STATE_DENIED);
+    bool loc_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_LOCATION) == EOS_PERM_STATE_DENIED);
+    bool bt_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_BLUETOOTH) == EOS_PERM_STATE_DENIED);
+    bool contacts_revoked = (eos_permission_get(app_id, EOS_PERM_CATEGORY_CONTACTS) == EOS_PERM_STATE_DENIED);
 
     bool passed = (loc_revoked && bt_revoked && contacts_revoked);
-    _record_test("Revoke All Permissions", passed,
+    _record_test("Revoke All Permissions",
+                 passed,
                  passed ? "All permissions revoked successfully" : "Some permissions survived revocation");
     return passed;
 }
@@ -290,7 +284,9 @@ static bool _test_name_to_category(void)
     }
 
     char details[128];
-    snprintf(details, sizeof(details), "%s",
+    snprintf(details,
+             sizeof(details),
+             "%s",
              all_passed ? "All known names mapped correctly, unknown returns COUNT" : "Name mapping failed");
     _record_test("Name to Category Conversion", all_passed, details);
     return all_passed;
@@ -338,7 +334,9 @@ static bool _test_category_key(void)
     }
 
     char details[128];
-    snprintf(details, sizeof(details), "%s",
+    snprintf(details,
+             sizeof(details),
+             "%s",
              all_passed ? "All category keys correct, invalid returns NULL" : "Category key mismatch");
     _record_test("Category Key Retrieval", all_passed, details);
     return all_passed;
@@ -373,16 +371,14 @@ static bool _test_null_safety(void)
     }
 
     /* Set with invalid category should return false */
-    bool invalid_cat_set = eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_COUNT,
-                                              EOS_PERM_STATE_ALLOW_ALWAYS);
+    bool invalid_cat_set = eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_COUNT, EOS_PERM_STATE_ALLOW_ALWAYS);
     if (invalid_cat_set != false)
     {
         all_passed = false;
     }
 
     /* Set with invalid state should return false */
-    bool invalid_state_set = eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_LOCATION,
-                                                (eos_perm_state_t)99);
+    bool invalid_state_set = eos_permission_set(TEST_APP_ID_1, EOS_PERM_CATEGORY_LOCATION, (eos_perm_state_t)99);
     if (invalid_state_set != false)
     {
         all_passed = false;
@@ -399,7 +395,9 @@ static bool _test_null_safety(void)
     }
 
     char details[128];
-    snprintf(details, sizeof(details), "%s",
+    snprintf(details,
+             sizeof(details),
+             "%s",
              all_passed ? "All invalid parameters handled safely" : "Null safety violation detected");
     _record_test("Null Safety / Edge Cases", all_passed, details);
     return all_passed;
@@ -420,8 +418,7 @@ static bool _test_state_overwrite(void)
 
     eos_perm_state_t final = eos_permission_get(app_id, EOS_PERM_CATEGORY_HEALTH);
     bool passed = (final == EOS_PERM_STATE_DENIED);
-    _record_test("State Overwrite", passed,
-                 passed ? "Permission state can be overwritten" : "Overwrite failed");
+    _record_test("State Overwrite", passed, passed ? "Permission state can be overwritten" : "Overwrite failed");
     return passed;
 }
 
@@ -446,7 +443,9 @@ static bool _test_all_categories_valid(void)
     }
 
     char details[128];
-    snprintf(details, sizeof(details), "Checked %d categories%s",
+    snprintf(details,
+             sizeof(details),
+             "Checked %d categories%s",
              EOS_PERM_CATEGORY_COUNT,
              all_passed ? ", all valid" : ", some invalid");
     _record_test("All Categories Valid", all_passed, details);
@@ -461,8 +460,7 @@ static bool _test_revoke_nonexistent(void)
     /* Should not crash */
     eos_permission_revoke_all("com.test.does.not.exist");
 
-    _record_test("Revoke Non-existent App", true,
-                 "Revoking non-existent app handled gracefully");
+    _record_test("Revoke Non-existent App", true, "Revoking non-existent app handled gracefully");
     return true;
 }
 
@@ -522,29 +520,30 @@ static void _test_category_cb(lv_event_t *e)
 
     switch (category)
     {
-    case 0:
-        _run_basic_tests();
-        break;
-    case 1:
-        _run_isolation_tests();
-        break;
-    case 2:
-        _run_advanced_tests();
-        break;
-    case 3:
-        _run_basic_tests();
-        _run_isolation_tests();
-        _run_advanced_tests();
-        break;
-    default:
-        break;
+        case 0:
+            _run_basic_tests();
+            break;
+        case 1:
+            _run_isolation_tests();
+            break;
+        case 2:
+            _run_advanced_tests();
+            break;
+        case 3:
+            _run_basic_tests();
+            _run_isolation_tests();
+            _run_advanced_tests();
+            break;
+        default:
+            break;
     }
 
     /* Cleanup test data */
     _cleanup_test_data();
 
     char summary[256];
-    snprintf(summary, sizeof(summary),
+    snprintf(summary,
+             sizeof(summary),
              "Total: %u | Pass: %u | Fail: %u",
              _ctx.stats.total_tests,
              _ctx.stats.passed_tests,
@@ -589,11 +588,7 @@ void eos_test_permission_start(void)
     lv_obj_set_flex_grow(cat_list, 1);
     eos_crown_encoder_set_target_obj(cat_list);
 
-    const char *categories[] = {
-        "Basic Tests",
-        "Isolation Tests",
-        "Advanced Tests",
-        "Run All Tests"};
+    const char *categories[] = {"Basic Tests", "Isolation Tests", "Advanced Tests", "Run All Tests"};
 
     for (int i = 0; i < 4; i++)
     {

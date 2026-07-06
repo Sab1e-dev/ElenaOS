@@ -12,11 +12,11 @@
 /* Public function prototypes --------------------------------*/
 
 jerry_value_t sni_api_eos_permission_request(const jerry_call_info_t *call_info_p,
-                                              const jerry_value_t args_p[],
-                                              const jerry_length_t args_count);
+                                             const jerry_value_t args_p[],
+                                             const jerry_length_t args_count);
 
 jerry_value_t sni_api_eos_permission_check(const jerry_call_info_t *call_info_p,
-                                            const jerry_value_t args_p[],
-                                            const jerry_length_t args_count);
+                                           const jerry_value_t args_p[],
+                                           const jerry_length_t args_count);
 
 #endif /* SNI_API_EOS_PERMISSION_H */

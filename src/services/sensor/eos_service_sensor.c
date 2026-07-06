@@ -56,12 +56,16 @@ static uint32_t _recalc_min_interval(eos_sensor_service_instance_t *inst);
 static void _cleanup_marked(eos_sensor_service_instance_t *inst)
 {
     sensor_subscriber_t **curr = &inst->subscribers;
-    while (*curr) {
-        if ((*curr)->marked_for_delete) {
+    while (*curr)
+    {
+        if ((*curr)->marked_for_delete)
+        {
             sensor_subscriber_t *tmp = *curr;
             *curr = tmp->next;
             eos_free(tmp);
-        } else {
+        }
+        else
+        {
             curr = &(*curr)->next;
         }
     }
@@ -84,17 +88,17 @@ static void _on_pm_state_change(eos_event_t *e)
 
     switch (pm_state)
     {
-    case EOS_PM_DISPLAY_ON:
-        new_mode = EOS_SENSOR_MODE_NORMAL;
-        break;
-    case EOS_PM_DISPLAY_AOD:
-        new_mode = EOS_SENSOR_MODE_LOW_POWER;
-        break;
-    case EOS_PM_SLEEP:
-        new_mode = EOS_SENSOR_MODE_SLEEP;
-        break;
-    default:
-        return;
+        case EOS_PM_DISPLAY_ON:
+            new_mode = EOS_SENSOR_MODE_NORMAL;
+            break;
+        case EOS_PM_DISPLAY_AOD:
+            new_mode = EOS_SENSOR_MODE_LOW_POWER;
+            break;
+        case EOS_PM_SLEEP:
+            new_mode = EOS_SENSOR_MODE_SLEEP;
+            break;
+        default:
+            return;
     }
 
     if (new_mode == _current_mode)
@@ -148,7 +152,9 @@ static void _on_pm_state_change(eos_event_t *e)
                     inst->device->ops->set_sample_rate(inst->device, hz);
                 }
                 EOS_LOG_I("WAKE: re-enabled sensor type=%d (subscribers=%u, period=%ums)",
-                          i, inst->subscriber_count, inst->sample_period_ms);
+                          i,
+                          inst->subscriber_count,
+                          inst->sample_period_ms);
             }
         }
     }
@@ -273,7 +279,8 @@ static uint32_t _recalc_min_interval(eos_sensor_service_instance_t *inst)
  * @return Node pointer or NULL if not found
  */
 static sensor_subscriber_t *_find_subscriber(eos_sensor_service_instance_t *inst,
-                                             eos_sensor_data_cb_t cb, void *user_data)
+                                             eos_sensor_data_cb_t cb,
+                                             void *user_data)
 {
     sensor_subscriber_t *sub = inst->subscribers;
     while (sub)
@@ -287,7 +294,10 @@ static sensor_subscriber_t *_find_subscriber(eos_sensor_service_instance_t *inst
     return NULL;
 }
 
-eos_result_t eos_sensor_subscribe(eos_sensor_type_t type, eos_sensor_data_cb_t cb, void *user_data, uint32_t min_interval_ms)
+eos_result_t eos_sensor_subscribe(eos_sensor_type_t type,
+                                  eos_sensor_data_cb_t cb,
+                                  void *user_data,
+                                  uint32_t min_interval_ms)
 {
     if (!_service_initialized || !cb)
         return EOS_ERR_INVALID_ARG;
@@ -334,7 +344,10 @@ eos_result_t eos_sensor_subscribe(eos_sensor_type_t type, eos_sensor_data_cb_t c
     }
 
     EOS_LOG_I("subscribe: type=%d, min_interval=%ums, subscribers=%u, period=%ums",
-              type, min_interval_ms, inst->subscriber_count, inst->sample_period_ms);
+              type,
+              min_interval_ms,
+              inst->subscriber_count,
+              inst->sample_period_ms);
     return EOS_OK;
 }
 
@@ -375,17 +388,24 @@ eos_result_t eos_sensor_unsubscribe(eos_sensor_type_t type, eos_sensor_data_cb_t
                 /* Deferred: keep node in list, skip in notify/recalc/find */
                 sub->marked_for_delete = true;
                 EOS_LOG_I("unsubscribe: type=%d, cb=%p marked for deferred deletion (depth=%d)",
-                          type, (void *)cb, _broadcast_depth);
+                          type,
+                          (void *)cb,
+                          _broadcast_depth);
             }
             else
             {
                 /* Immediate unlink and free */
-                if (sub == inst->subscribers) {
+                if (sub == inst->subscribers)
+                {
                     inst->subscribers = sub->next;
-                } else {
+                }
+                else
+                {
                     sensor_subscriber_t *prev = inst->subscribers;
-                    while (prev && prev->next != sub) prev = prev->next;
-                    if (prev) prev->next = sub->next;
+                    while (prev && prev->next != sub)
+                        prev = prev->next;
+                    if (prev)
+                        prev->next = sub->next;
                 }
                 eos_free(sub);
                 EOS_LOG_I("unsubscribe: type=%d, cb=%p freed immediately", type, (void *)cb);
@@ -423,7 +443,9 @@ eos_result_t eos_sensor_unsubscribe(eos_sensor_type_t type, eos_sensor_data_cb_t
             eos_sensor_set_sample_period(type, new_min);
         }
         EOS_LOG_I("unsubscribe: type=%d, subscribers=%u, period recalculated=%ums",
-                  type, inst->subscriber_count, new_min);
+                  type,
+                  inst->subscriber_count,
+                  new_min);
     }
 
     return EOS_OK;
@@ -451,7 +473,10 @@ eos_result_t eos_sensor_set_sample_period(eos_sensor_type_t type, uint32_t perio
         if (policy->min_interval_ms > 0 && period_ms < policy->min_interval_ms)
         {
             EOS_LOG_I("set_sample_period: type=%d clamped %ums → %ums (mode=%d policy floor)",
-                      type, period_ms, policy->min_interval_ms, _current_mode);
+                      type,
+                      period_ms,
+                      policy->min_interval_ms,
+                      _current_mode);
             period_ms = policy->min_interval_ms;
         }
     }
@@ -529,9 +554,7 @@ void eos_sensor_notify(eos_sensor_type_t type, const eos_sensor_data_t *data, ui
     }
     inst->last_sample_time = now;
 
-    eos_sensor_raw_data_t raw_data = {
-        .type = type,
-        .timestamp = timestamp};
+    eos_sensor_raw_data_t raw_data = {.type = type, .timestamp = timestamp};
     memcpy(&raw_data.data, data, sizeof(eos_sensor_data_t));
 
     eos_critical_ctx_t ctx = eos_critical_enter();
@@ -557,9 +580,11 @@ void eos_sensor_notify(eos_sensor_type_t type, const eos_sensor_data_t *data, ui
      */
     _broadcast_depth++;
     sensor_subscriber_t *sub = inst->subscribers;
-    while (sub) {
+    while (sub)
+    {
         sensor_subscriber_t *next = sub->next;
-        if (!sub->marked_for_delete) {
+        if (!sub->marked_for_delete)
+        {
             sub->cb(type, &raw_data, sub->user_data);
         }
         sub = next;
@@ -567,7 +592,8 @@ void eos_sensor_notify(eos_sensor_type_t type, const eos_sensor_data_t *data, ui
     _broadcast_depth--;
 
     /* Deferred cleanup: free nodes marked during this broadcast */
-    if (_broadcast_depth == 0) {
+    if (_broadcast_depth == 0)
+    {
         _cleanup_marked(inst);
     }
 }
@@ -589,20 +615,20 @@ eos_result_t eos_sensor_set_mode_policy(eos_sensor_mode_t mode, const eos_sensor
         /* Reset to default */
         switch (mode)
         {
-        case EOS_SENSOR_MODE_NORMAL:
-            new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = true};
-            break;
-        case EOS_SENSOR_MODE_LOW_POWER:
-            new_policy = (eos_sensor_policy_t){.min_interval_ms = 1000, .allow_enable = true};
-            break;
-        case EOS_SENSOR_MODE_ACTIVE:
-            new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = true};
-            break;
-        case EOS_SENSOR_MODE_SLEEP:
-            new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = false};
-            break;
-        default:
-            return EOS_ERR_INVALID_ARG;
+            case EOS_SENSOR_MODE_NORMAL:
+                new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = true};
+                break;
+            case EOS_SENSOR_MODE_LOW_POWER:
+                new_policy = (eos_sensor_policy_t){.min_interval_ms = 1000, .allow_enable = true};
+                break;
+            case EOS_SENSOR_MODE_ACTIVE:
+                new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = true};
+                break;
+            case EOS_SENSOR_MODE_SLEEP:
+                new_policy = (eos_sensor_policy_t){.min_interval_ms = 0, .allow_enable = false};
+                break;
+            default:
+                return EOS_ERR_INVALID_ARG;
         }
     }
 
@@ -646,7 +672,9 @@ eos_result_t eos_sensor_set_mode_policy(eos_sensor_mode_t mode, const eos_sensor
     }
 
     EOS_LOG_I("policy set for mode %d: min_interval=%ums allow_enable=%d",
-              mode, new_policy.min_interval_ms, new_policy.allow_enable);
+              mode,
+              new_policy.min_interval_ms,
+              new_policy.allow_enable);
     return EOS_OK;
 }
 

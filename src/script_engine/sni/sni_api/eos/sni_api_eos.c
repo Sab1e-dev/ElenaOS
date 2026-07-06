@@ -131,7 +131,10 @@ static bool sni_api_eos_config_write_to_file(cJSON *root)
 
     if (script_engine_get_current_script_type() == SCRIPT_TYPE_APPLICATION)
     {
-        snprintf(config_file_path, sizeof(config_file_path), EOS_APP_DATA_DIR "%s", script_engine_get_current_script_id());
+        snprintf(config_file_path,
+                 sizeof(config_file_path),
+                 EOS_APP_DATA_DIR "%s",
+                 script_engine_get_current_script_id());
         eos_storage_mkdir_if_not_exist(config_file_path);
         snprintf(config_file_path,
                  sizeof(config_file_path),
@@ -235,21 +238,21 @@ static jerry_value_t sni_api_eos_console_write(const jerry_value_t args_p[],
 
     switch (level)
     {
-    case EOS_CONSOLE_LEVEL_LOG:
-        EOS_LOG_I("[%s] %s", CONSOLE_LOG_TAG, str);
-        break;
-    case EOS_CONSOLE_LEVEL_ERROR:
-        EOS_LOG_E("[%s] %s", CONSOLE_LOG_TAG, str);
-        break;
-    case EOS_CONSOLE_LEVEL_WARN:
-        EOS_LOG_W("[%s] %s", CONSOLE_LOG_TAG, str);
-        break;
-    case EOS_CONSOLE_LEVEL_DEBUG:
-        EOS_LOG_D("[%s] %s", CONSOLE_LOG_TAG, str);
-        break;
-    default:
-        eos_free((void *)str);
-        return sni_api_throw_error("Invalid console log level");
+        case EOS_CONSOLE_LEVEL_LOG:
+            EOS_LOG_I("[%s] %s", CONSOLE_LOG_TAG, str);
+            break;
+        case EOS_CONSOLE_LEVEL_ERROR:
+            EOS_LOG_E("[%s] %s", CONSOLE_LOG_TAG, str);
+            break;
+        case EOS_CONSOLE_LEVEL_WARN:
+            EOS_LOG_W("[%s] %s", CONSOLE_LOG_TAG, str);
+            break;
+        case EOS_CONSOLE_LEVEL_DEBUG:
+            EOS_LOG_D("[%s] %s", CONSOLE_LOG_TAG, str);
+            break;
+        default:
+            eos_free((void *)str);
+            return sni_api_throw_error("Invalid console log level");
     }
 
     eos_free((void *)str);
@@ -565,8 +568,8 @@ jerry_value_t sni_api_eos_time_get_now(const jerry_call_info_t *call_info_p,
 }
 
 jerry_value_t sni_api_eos_app_header_set_title(const jerry_call_info_t *call_info_p,
-                                                const jerry_value_t args_p[],
-                                                const jerry_length_t args_count)
+                                               const jerry_value_t args_p[],
+                                               const jerry_length_t args_count)
 {
     eos_activity_t *current;
     char *title = NULL;
@@ -682,8 +685,8 @@ jerry_value_t sni_api_eos_clock_hand_create(const jerry_call_info_t *call_info_p
         return sni_api_throw_error("Invalid object argument");
     }
 
-    if (!jerry_value_is_string(args_p[1]) || !jerry_value_is_number(args_p[2]) ||
-        !jerry_value_is_number(args_p[3]) || !jerry_value_is_number(args_p[4]))
+    if (!jerry_value_is_string(args_p[1]) || !jerry_value_is_number(args_p[2]) || !jerry_value_is_number(args_p[3])
+        || !jerry_value_is_number(args_p[4]))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -740,8 +743,8 @@ jerry_value_t sni_api_eos_clock_hand_place_pivot(const jerry_call_info_t *call_i
         return sni_api_throw_error("Usage: clockHand.placePivot(obj, x, y)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) ||
-        !jerry_value_is_number(args_p[1]) || !jerry_value_is_number(args_p[2]))
+    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) || !jerry_value_is_number(args_p[1])
+        || !jerry_value_is_number(args_p[2]))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -753,8 +756,8 @@ jerry_value_t sni_api_eos_clock_hand_place_pivot(const jerry_call_info_t *call_i
 }
 
 jerry_value_t sni_api_eos_clock_hand_attach(const jerry_call_info_t *call_info_p,
-                                             const jerry_value_t args_p[],
-                                             const jerry_length_t args_count)
+                                            const jerry_value_t args_p[],
+                                            const jerry_length_t args_count)
 {
     lv_obj_t *obj;
     int32_t type;
@@ -766,8 +769,7 @@ jerry_value_t sni_api_eos_clock_hand_attach(const jerry_call_info_t *call_info_p
         return sni_api_throw_error("Usage: clockHand.attach(obj, type)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) ||
-        !jerry_value_is_number(args_p[1]))
+    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) || !jerry_value_is_number(args_p[1]))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -778,8 +780,8 @@ jerry_value_t sni_api_eos_clock_hand_attach(const jerry_call_info_t *call_info_p
 }
 
 jerry_value_t sni_api_eos_clock_hand_center_style(const jerry_call_info_t *call_info_p,
-                                                   const jerry_value_t args_p[],
-                                                   const jerry_length_t args_count)
+                                                  const jerry_value_t args_p[],
+                                                  const jerry_length_t args_count)
 {
     lv_obj_t *obj;
     int32_t px;
@@ -792,8 +794,8 @@ jerry_value_t sni_api_eos_clock_hand_center_style(const jerry_call_info_t *call_
         return sni_api_throw_error("Usage: clockHand.centerStyle(obj, pivotX, pivotY)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) ||
-        !jerry_value_is_number(args_p[1]) || !jerry_value_is_number(args_p[2]))
+    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &obj) || !jerry_value_is_number(args_p[1])
+        || !jerry_value_is_number(args_p[2]))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -913,8 +915,7 @@ jerry_value_t sni_api_eos_activity_set_view(const jerry_call_info_t *call_info_p
         return sni_api_throw_error("Usage: activity.setView(activity, view)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) ||
-        !sni_tb_js2c(args_p[1], SNI_H_LV_OBJ, &view))
+    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) || !sni_tb_js2c(args_p[1], SNI_H_LV_OBJ, &view))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -965,8 +966,7 @@ jerry_value_t sni_api_eos_activity_set_title(const jerry_call_info_t *call_info_
         return sni_api_throw_error("Usage: activity.setTitle(activity, title)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) ||
-        !sni_api_eos_to_c_string(args_p[1], &title))
+    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) || !sni_api_eos_to_c_string(args_p[1], &title))
     {
         return sni_api_throw_error("Invalid argument type");
     }

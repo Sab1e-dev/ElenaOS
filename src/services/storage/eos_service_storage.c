@@ -53,12 +53,14 @@ bool eos_storage_is_valid_filename(const char *name)
 
 cJSON *eos_storage_json_load(const char *path)
 {
-    if (!eos_storage_is_file(path)) {
+    if (!eos_storage_is_file(path))
+    {
         return NULL;
     }
 
     char *content = eos_storage_read_file(path);
-    if (!content) {
+    if (!content)
+    {
         return NULL;
     }
 
@@ -73,7 +75,8 @@ eos_result_t eos_storage_json_save(const char *path, cJSON *root)
     EOS_CHECK_PTR_RETURN_VAL(path && root, EOS_ERR_INVALID_ARG);
 
     char *json_str = cJSON_PrintUnformatted(root);
-    if (!json_str) {
+    if (!json_str)
+    {
         return EOS_ERR_JSON_ERROR;
     }
 
@@ -86,7 +89,8 @@ eos_result_t eos_storage_json_save(const char *path, cJSON *root)
 bool eos_storage_json_get_bool(const char *path, const char *key, bool default_value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         return default_value;
     }
 
@@ -100,17 +104,22 @@ bool eos_storage_json_get_bool(const char *path, const char *key, bool default_v
 eos_result_t eos_storage_json_set_bool(const char *path, const char *key, bool value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
-        if (!root) {
+        if (!root)
+        {
             return EOS_ERR_MEM;
         }
     }
 
     cJSON *item = cJSON_GetObjectItem(root, key);
-    if (item) {
+    if (item)
+    {
         cJSON_SetBoolValue(item, value);
-    } else {
+    }
+    else
+    {
         cJSON_AddBoolToObject(root, key, value);
     }
 
@@ -123,7 +132,8 @@ eos_result_t eos_storage_json_set_bool(const char *path, const char *key, bool v
 char *eos_storage_json_get_string(const char *path, const char *key, const char *default_value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         return eos_strdup(default_value);
     }
 
@@ -137,17 +147,22 @@ char *eos_storage_json_get_string(const char *path, const char *key, const char 
 eos_result_t eos_storage_json_set_string(const char *path, const char *key, const char *value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
-        if (!root) {
+        if (!root)
+        {
             return EOS_ERR_MEM;
         }
     }
 
     cJSON *item = cJSON_GetObjectItem(root, key);
-    if (item) {
+    if (item)
+    {
         cJSON_SetValuestring(item, value);
-    } else {
+    }
+    else
+    {
         cJSON_AddStringToObject(root, key, value);
     }
 
@@ -160,7 +175,8 @@ eos_result_t eos_storage_json_set_string(const char *path, const char *key, cons
 double eos_storage_json_get_number(const char *path, const char *key, double default_value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         return default_value;
     }
 
@@ -174,17 +190,22 @@ double eos_storage_json_get_number(const char *path, const char *key, double def
 eos_result_t eos_storage_json_set_number(const char *path, const char *key, double value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
-        if (!root) {
+        if (!root)
+        {
             return EOS_ERR_MEM;
         }
     }
 
     cJSON *item = cJSON_GetObjectItem(root, key);
-    if (item) {
+    if (item)
+    {
         cJSON_SetNumberValue(item, value);
-    } else {
+    }
+    else
+    {
         cJSON_AddNumberToObject(root, key, value);
     }
 
@@ -197,12 +218,14 @@ eos_result_t eos_storage_json_set_number(const char *path, const char *key, doub
 cJSON *eos_storage_json_get_json(const char *path, const char *key)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         return NULL;
     }
 
     cJSON *item = cJSON_GetObjectItem(root, key);
-    if (!item || (!cJSON_IsObject(item) && !cJSON_IsArray(item))) {
+    if (!item || (!cJSON_IsObject(item) && !cJSON_IsArray(item)))
+    {
         cJSON_Delete(root);
         return NULL;
     }
@@ -216,17 +239,22 @@ cJSON *eos_storage_json_get_json(const char *path, const char *key)
 eos_result_t eos_storage_json_set_json(const char *path, const char *key, cJSON *json_value)
 {
     cJSON *root = eos_storage_json_load(path);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
-        if (!root) {
+        if (!root)
+        {
             return EOS_ERR_MEM;
         }
     }
 
     cJSON *item = cJSON_GetObjectItem(root, key);
-    if (item) {
+    if (item)
+    {
         cJSON_ReplaceItemInObject(root, key, json_value);
-    } else {
+    }
+    else
+    {
         cJSON_AddItemToObject(root, key, json_value);
     }
 
@@ -238,7 +266,8 @@ eos_result_t eos_storage_json_set_json(const char *path, const char *key, cJSON 
 
 eos_result_t eos_storage_json_create_if_not_exist(const char *path, const char *default_json)
 {
-    if (eos_storage_is_file(path)) {
+    if (eos_storage_is_file(path))
+    {
         return EOS_OK;
     }
 
@@ -512,56 +541,56 @@ eos_result_t eos_storage_rm_recursive(const char *path)
 
     switch (type)
     {
-    case EOS_FS_TYPE_NOT_EXIST:
-        return EOS_OK;
+        case EOS_FS_TYPE_NOT_EXIST:
+            return EOS_OK;
 
-    case EOS_FS_TYPE_FILE:
-        return (eos_storage_file_remove(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
+        case EOS_FS_TYPE_FILE:
+            return (eos_storage_file_remove(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
 
-    case EOS_FS_TYPE_DIR:
-    {
-        eos_dir_t dir = eos_storage_dir_open(path);
-        if (!dir)
+        case EOS_FS_TYPE_DIR:
         {
-            return EOS_ERR_FILE_ERROR;
-        }
-
-        char filename[_FILE_NAME_MAX_LENGTH];
-        char fullpath[EOS_FS_PATH_MAX];
-        eos_result_t result = EOS_OK;
-
-        while (eos_storage_dir_read(dir, filename, sizeof(filename)) == EOS_OK)
-        {
-            if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
+            eos_dir_t dir = eos_storage_dir_open(path);
+            if (!dir)
             {
-                continue;
+                return EOS_ERR_FILE_ERROR;
             }
+
+            char filename[_FILE_NAME_MAX_LENGTH];
+            char fullpath[EOS_FS_PATH_MAX];
+            eos_result_t result = EOS_OK;
+
+            while (eos_storage_dir_read(dir, filename, sizeof(filename)) == EOS_OK)
+            {
+                if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
+                {
+                    continue;
+                }
 
 #if EOS_FS_TYPE == EOS_FS_FATFS
-            snprintf(fullpath, sizeof(fullpath), "%s\\%s", path, filename);
+                snprintf(fullpath, sizeof(fullpath), "%s\\%s", path, filename);
 #else
-            snprintf(fullpath, sizeof(fullpath), "%s/%s", path, filename);
+                snprintf(fullpath, sizeof(fullpath), "%s/%s", path, filename);
 #endif
 
-            if (eos_storage_rm_recursive(fullpath) != EOS_OK)
-            {
-                result = EOS_ERR_FILE_ERROR;
-                break;
+                if (eos_storage_rm_recursive(fullpath) != EOS_OK)
+                {
+                    result = EOS_ERR_FILE_ERROR;
+                    break;
+                }
             }
+
+            eos_storage_dir_close(dir);
+
+            if (result != EOS_OK)
+            {
+                return result;
+            }
+
+            return (eos_fs_rmdir(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
         }
 
-        eos_storage_dir_close(dir);
-
-        if (result != EOS_OK)
-        {
-            return result;
-        }
-
-        return (eos_fs_rmdir(path) == EOS_OK) ? EOS_OK : EOS_ERR_FILE_ERROR;
-    }
-
-    default:
-        return EOS_ERR_FILE_ERROR;
+        default:
+            return EOS_ERR_FILE_ERROR;
     }
 }
 
@@ -584,7 +613,8 @@ void eos_storage_file_close(eos_file_t fp)
 
 eos_result_t eos_storage_file_seek(eos_file_t fp, uint32_t offset)
 {
-    if (fp == EOS_FILE_INVALID) {
+    if (fp == EOS_FILE_INVALID)
+    {
         EOS_LOG_E("Invalid file handle");
         return EOS_ERR_INVALID_ARG;
     }
@@ -594,7 +624,8 @@ eos_result_t eos_storage_file_seek(eos_file_t fp, uint32_t offset)
 
 ssize_t eos_storage_file_read(eos_file_t fp, void *buf, size_t size)
 {
-    if (fp == EOS_FILE_INVALID || !buf) {
+    if (fp == EOS_FILE_INVALID || !buf)
+    {
         EOS_LOG_E("Invalid parameters");
         return -1;
     }
@@ -604,7 +635,8 @@ ssize_t eos_storage_file_read(eos_file_t fp, void *buf, size_t size)
 
 ssize_t eos_storage_file_write(eos_file_t fp, const void *buf, size_t size)
 {
-    if (fp == EOS_FILE_INVALID || !buf) {
+    if (fp == EOS_FILE_INVALID || !buf)
+    {
         EOS_LOG_E("Invalid parameters");
         return -1;
     }
@@ -614,7 +646,8 @@ ssize_t eos_storage_file_write(eos_file_t fp, const void *buf, size_t size)
 
 eos_result_t eos_storage_file_size(eos_file_t fp, uint32_t *size)
 {
-    if (fp == EOS_FILE_INVALID || !size) {
+    if (fp == EOS_FILE_INVALID || !size)
+    {
         EOS_LOG_E("Invalid parameters");
         return EOS_ERR_INVALID_ARG;
     }
@@ -624,7 +657,8 @@ eos_result_t eos_storage_file_size(eos_file_t fp, uint32_t *size)
 
 eos_result_t eos_storage_file_tell(eos_file_t fp, uint32_t *pos)
 {
-    if (fp == EOS_FILE_INVALID || !pos) {
+    if (fp == EOS_FILE_INVALID || !pos)
+    {
         EOS_LOG_E("Invalid parameters");
         return EOS_ERR_INVALID_ARG;
     }
@@ -644,7 +678,8 @@ eos_dir_t eos_storage_dir_open(const char *path)
 
 eos_result_t eos_storage_dir_read(eos_dir_t dir, char *name_buf, size_t buf_size)
 {
-    if (!dir || !name_buf || buf_size == 0) {
+    if (!dir || !name_buf || buf_size == 0)
+    {
         EOS_LOG_E("Invalid parameters");
         return EOS_ERR_INVALID_ARG;
     }

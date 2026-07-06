@@ -83,9 +83,7 @@ bool sni_cb_event_remove_by_js_cb(lv_obj_t *obj, jerry_value_t js_cb);
  * @param js_user_data JS user data
  * @return uint32_t Number of removals
  */
-uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj,
-                                                jerry_value_t js_cb,
-                                                jerry_value_t js_user_data);
+uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj, jerry_value_t js_cb, jerry_value_t js_user_data);
 
 /**
  * @brief Clean up callback context through event descriptor (used for handle destroy callback)
@@ -102,9 +100,7 @@ void sni_cb_event_cleanup_descriptor(lv_event_dsc_t *dsc);
  * @param out_timer Returned created timer pointer
  * @return bool Whether successful
  */
-bool sni_cb_timer_create(jerry_value_t js_cb,
-                         uint32_t period,
-                         lv_timer_t **out_timer);
+bool sni_cb_timer_create(jerry_value_t js_cb, uint32_t period, lv_timer_t **out_timer);
 
 /**
  * @brief Replace timer's JS callback function

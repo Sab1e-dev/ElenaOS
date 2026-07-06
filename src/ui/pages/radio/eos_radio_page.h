@@ -16,7 +16,7 @@ extern "C" {
 #include "lvgl.h"
 /* Public macros ----------------------------------------------*/
 
-#define EOS_INVALID_RADIO_INDEX UINT32_MAX      /**< Invalid index value */
+#define EOS_INVALID_RADIO_INDEX UINT32_MAX /**< Invalid index value */
 
 /* Public typedefs --------------------------------------------*/
 

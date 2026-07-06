@@ -21,40 +21,52 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /************************** Log Listener Flags **************************/
-#define EOS_LOG_FLAG_SYSTEM   (1 << 0)  /**< System listener, cannot be deleted */
+#define EOS_LOG_FLAG_SYSTEM (1 << 0) /**< System listener, cannot be deleted */
 
 /************************** Colorful Log **************************/
 #if EOS_LOG_USE_COLOR
-#define EOS_LOG_COLOR_RESET   "\033[0m"
-#define EOS_LOG_COLOR_RED     "\033[31m"
-#define EOS_LOG_COLOR_GREEN   "\033[32m"
-#define EOS_LOG_COLOR_YELLOW  "\033[33m"
-#define EOS_LOG_COLOR_BLUE    "\033[34m"
-#define EOS_LOG_COLOR_CYAN    "\033[36m"
+#define EOS_LOG_COLOR_RESET "\033[0m"
+#define EOS_LOG_COLOR_RED "\033[31m"
+#define EOS_LOG_COLOR_GREEN "\033[32m"
+#define EOS_LOG_COLOR_YELLOW "\033[33m"
+#define EOS_LOG_COLOR_BLUE "\033[34m"
+#define EOS_LOG_COLOR_CYAN "\033[36m"
 #else
-#define EOS_LOG_COLOR_RESET   ""
-#define EOS_LOG_COLOR_RED     ""
-#define EOS_LOG_COLOR_GREEN   ""
-#define EOS_LOG_COLOR_YELLOW  ""
-#define EOS_LOG_COLOR_BLUE    ""
-#define EOS_LOG_COLOR_CYAN    ""
+#define EOS_LOG_COLOR_RESET ""
+#define EOS_LOG_COLOR_RED ""
+#define EOS_LOG_COLOR_GREEN ""
+#define EOS_LOG_COLOR_YELLOW ""
+#define EOS_LOG_COLOR_BLUE ""
+#define EOS_LOG_COLOR_CYAN ""
 #endif /* EOS_LOG_USE_COLOR */
 
 /************************** Log Macros **************************/
 
 #ifdef EOS_LOG_DISABLE
 
-#define EOS_LOG_D(fmt, ...) do {} while(0)
-#define EOS_LOG_I(fmt, ...) do {} while(0)
-#define EOS_LOG_W(fmt, ...) do {} while(0)
-#define EOS_LOG_E(fmt, ...) do {} while(0)
+#define EOS_LOG_D(fmt, ...) \
+    do                      \
+    {                       \
+    } while (0)
+#define EOS_LOG_I(fmt, ...) \
+    do                      \
+    {                       \
+    } while (0)
+#define EOS_LOG_W(fmt, ...) \
+    do                      \
+    {                       \
+    } while (0)
+#define EOS_LOG_E(fmt, ...) \
+    do                      \
+    {                       \
+    } while (0)
 
 #else
 
 #ifdef EOS_LOG_TAG
-    #define EOS_LOG_FMT(fmt)  "[" EOS_LOG_TAG "] " fmt
+#define EOS_LOG_FMT(fmt) "[" EOS_LOG_TAG "] " fmt
 #else
-    #define EOS_LOG_FMT(fmt)  fmt
+#define EOS_LOG_FMT(fmt) fmt
 #endif /* EOS_LOG_TAG */
 
 #define EOS_LOG_D(fmt, ...) eos_log(EOS_LOG_LEVEL_DEBUG, EOS_LOG_FMT(fmt), ##__VA_ARGS__)
@@ -65,50 +77,59 @@ extern "C" {
 #endif /* EOS_LOG_DISABLE */
 
 /************************** Pointer Check **************************/
-#define EOS_CHECK_PTR_RETURN(ptr) \
-    do { \
-        if (!(ptr)) { \
+#define EOS_CHECK_PTR_RETURN(ptr)                                                              \
+    do                                                                                         \
+    {                                                                                          \
+        if (!(ptr))                                                                            \
+        {                                                                                      \
             EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__); \
-            return; \
-        } \
-    } while(0)
+            return;                                                                            \
+        }                                                                                      \
+    } while (0)
 
-#define EOS_CHECK_PTR_RETURN_FREE(ptr,free_var) \
-    do { \
-        if (!(ptr)) { \
+#define EOS_CHECK_PTR_RETURN_FREE(ptr, free_var)                                               \
+    do                                                                                         \
+    {                                                                                          \
+        if (!(ptr))                                                                            \
+        {                                                                                      \
             EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__); \
-            eos_free(free_var); \
-            return; \
-        } \
-    } while(0)
+            eos_free(free_var);                                                                \
+            return;                                                                            \
+        }                                                                                      \
+    } while (0)
 
-#define EOS_CHECK_PTR_RETURN_VAL(ptr, ret_val) \
-    do { \
-        if (!(ptr)) { \
+#define EOS_CHECK_PTR_RETURN_VAL(ptr, ret_val)                                                 \
+    do                                                                                         \
+    {                                                                                          \
+        if (!(ptr))                                                                            \
+        {                                                                                      \
             EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__); \
-            return ret_val; \
-        } \
-    } while(0)
+            return ret_val;                                                                    \
+        }                                                                                      \
+    } while (0)
 
-
-#define EOS_CHECK_PTR_RETURN_VAL_FREE(ptr, ret_val, free_var) \
-    do { \
-        if (!(ptr)) { \
+#define EOS_CHECK_PTR_RETURN_VAL_FREE(ptr, ret_val, free_var)                                  \
+    do                                                                                         \
+    {                                                                                          \
+        if (!(ptr))                                                                            \
+        {                                                                                      \
             EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__); \
-            eos_free(free_var); \
-            return ret_val; \
-        } \
-    } while(0)
+            eos_free(free_var);                                                                \
+            return ret_val;                                                                    \
+        }                                                                                      \
+    } while (0)
 
 /************************** Assertion Macros **************************/
 #if EOS_USE_ASSERT
-#define EOS_ASSERT(expr) \
-    do { \
-        if (!(expr)) { \
+#define EOS_ASSERT(expr)                              \
+    do                                                \
+    {                                                 \
+        if (!(expr))                                  \
+        {                                             \
             EOS_LOG_E("Assertion failed: %s", #expr); \
-            EOS_ASSERT_HANDLER \
-        } \
-    } while(0)
+            EOS_ASSERT_HANDLER                        \
+        }                                             \
+    } while (0)
 #else
 #define EOS_ASSERT(expr) ((void)0)
 #endif /* EOS_USE_ASSERT */
@@ -124,11 +145,12 @@ typedef int8_t eos_log_listener_id_t;
 /**
  * @brief Log level enumeration
  */
-typedef enum {
-    EOS_LOG_LEVEL_DEBUG = 0,  /**< Debug level */
-    EOS_LOG_LEVEL_INFO,       /**< Info level */
-    EOS_LOG_LEVEL_WARN,       /**< Warning level */
-    EOS_LOG_LEVEL_ERROR       /**< Error level */
+typedef enum
+{
+    EOS_LOG_LEVEL_DEBUG = 0, /**< Debug level */
+    EOS_LOG_LEVEL_INFO, /**< Info level */
+    EOS_LOG_LEVEL_WARN, /**< Warning level */
+    EOS_LOG_LEVEL_ERROR /**< Error level */
 } eos_log_level_t;
 
 /**
@@ -138,22 +160,18 @@ typedef enum {
  * @param len Length of log message
  * @param user User data
  */
-typedef void (*eos_log_listener_cb_t)(
-    eos_log_level_t level,
-    const char *buf,
-    size_t len,
-    void *user
-);
+typedef void (*eos_log_listener_cb_t)(eos_log_level_t level, const char *buf, size_t len, void *user);
 
 /**
  * @brief Log listener structure
  */
-typedef struct {
-    const char *name;           /**< Listener name (static string) */
-    eos_log_listener_cb_t cb;   /**< Callback function */
-    void *user_data;            /**< User data */
-    uint8_t used;               /**< Whether this slot is used */
-    uint8_t flags;              /**< Listener flags */
+typedef struct
+{
+    const char *name; /**< Listener name (static string) */
+    eos_log_listener_cb_t cb; /**< Callback function */
+    void *user_data; /**< User data */
+    uint8_t used; /**< Whether this slot is used */
+    uint8_t flags; /**< Listener flags */
 } eos_log_listener_t;
 
 /* Public function prototypes --------------------------------*/
@@ -172,12 +190,10 @@ void eos_service_log_init(void);
  * @param flags Listener flags
  * @return Listener ID (>=0) on success, -1 on failure
  */
-eos_log_listener_id_t eos_log_register_listener(
-    const char *name,
-    eos_log_listener_cb_t cb,
-    void *user_data,
-    uint8_t flags
-);
+eos_log_listener_id_t eos_log_register_listener(const char *name,
+                                                eos_log_listener_cb_t cb,
+                                                void *user_data,
+                                                uint8_t flags);
 
 /**
  * @brief Unregister a log listener by ID

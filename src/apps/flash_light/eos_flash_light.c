@@ -32,7 +32,7 @@
 /* Macros and Definitions -------------------------------------*/
 #define _MASK_OPA LV_OPA_80
 #define _OPA_MAX_DIST_DIV 1 /**< Distance to reach maximum opacity */
-#define _OPA_SCALE 1000     /**< Scaling factor for proportion calculation */
+#define _OPA_SCALE 1000 /**< Scaling factor for proportion calculation */
 #define _BRIGHTNESS_SMOOTH_DURATION 300
 #define _IMMERSIVE_TAP_MAX_DISPLACEMENT 8
 #define _IMMERSIVE_FADE_DURATION 220
@@ -75,13 +75,10 @@ static void _flash_light_on_destroy(eos_activity_t *a);
 static inline void _flash_light_delete(_pressing_user_data_t *ud);
 static void _flash_light_card_pager_timer_cb(lv_timer_t *timer);
 lv_obj_t *eos_flash_light_get_touch_obj(void);
-static void _flash_light_card_pager_page_changed_cb(eos_card_pager_t *cp,
-                                                    uint8_t current_page_index,
-                                                    void *user_data);
+static void _flash_light_card_pager_page_changed_cb(eos_card_pager_t *cp, uint8_t current_page_index, void *user_data);
 static void _flash_light_card_pager_clicked_cb(lv_event_t *e);
 static lv_obj_t *_flash_light_get_indicator_for_page(eos_card_pager_t *cp, lv_obj_t *page);
-static void _flash_light_apply_page_visual_state(_flash_light_card_pager_ctx_t *ctx,
-                                                 uint8_t current_page_index);
+static void _flash_light_apply_page_visual_state(_flash_light_card_pager_ctx_t *ctx, uint8_t current_page_index);
 static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_ctx_t *ctx,
                                                         bool visible,
                                                         uint32_t duration_ms);
@@ -230,9 +227,8 @@ static void _flash_light_card_pager_timer_cb(lv_timer_t *timer)
 
     ctx->flash_to_grey = !ctx->flash_to_grey;
     lv_obj_set_style_bg_color(ctx->flash_page,
-                              ctx->flash_to_grey
-                                  ? (ctx->immersive_mode ? EOS_COLOR_BLACK : EOS_COLOR_GREY)
-                                  : EOS_COLOR_WHITE,
+                              ctx->flash_to_grey ? (ctx->immersive_mode ? EOS_COLOR_BLACK : EOS_COLOR_GREY)
+                                                 : EOS_COLOR_WHITE,
                               0);
 }
 
@@ -265,9 +261,7 @@ static void _flash_light_update_indicator_theme(_flash_light_card_pager_ctx_t *c
     }
 }
 
-static void _flash_light_card_pager_page_changed_cb(eos_card_pager_t *cp,
-                                                    uint8_t current_page_index,
-                                                    void *user_data)
+static void _flash_light_card_pager_page_changed_cb(eos_card_pager_t *cp, uint8_t current_page_index, void *user_data)
 {
     _flash_light_card_pager_ctx_t *ctx = user_data;
     EOS_CHECK_PTR_RETURN(ctx && cp);
@@ -289,13 +283,9 @@ static void _flash_light_card_pager_clicked_cb(lv_event_t *e)
 
     ctx->immersive_mode = !ctx->immersive_mode;
 
-    eos_activity_set_app_header_visible_animated(ctx->activity,
-                                                 !ctx->immersive_mode,
-                                                 _IMMERSIVE_FADE_DURATION);
+    eos_activity_set_app_header_visible_animated(ctx->activity, !ctx->immersive_mode, _IMMERSIVE_FADE_DURATION);
 
-    _flash_light_set_indicator_visible_animated(ctx,
-                                                !ctx->immersive_mode,
-                                                _IMMERSIVE_FADE_DURATION);
+    _flash_light_set_indicator_visible_animated(ctx, !ctx->immersive_mode, _IMMERSIVE_FADE_DURATION);
 
     _flash_light_apply_page_visual_state(ctx, ctx->cp->current_page_index);
 }
@@ -346,8 +336,7 @@ static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_
     }
 }
 
-static void _flash_light_apply_page_visual_state(_flash_light_card_pager_ctx_t *ctx,
-                                                 uint8_t current_page_index)
+static void _flash_light_apply_page_visual_state(_flash_light_card_pager_ctx_t *ctx, uint8_t current_page_index)
 {
     EOS_CHECK_PTR_RETURN(ctx && ctx->cp);
 
@@ -449,10 +438,7 @@ void eos_flash_light_show(void)
     lv_obj_set_height(container, 2 * EOS_DISPLAY_HEIGHT);
     lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, 0);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(container,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
     lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *row1 = lv_obj_create(container);
@@ -462,8 +448,7 @@ void eos_flash_light_show(void)
     lv_obj_t *label = lv_label_create(row1);
     lv_obj_set_height(label, LV_SIZE_CONTENT);
 
-    lv_label_set_text_fmt(label, "%s\n" RI_ARROW_DOWN_WIDE_FILL,
-                          eos_lang_get_text(STR_ID_APP_FLASH_LIGHT_DISMISS));
+    lv_label_set_text_fmt(label, "%s\n" RI_ARROW_DOWN_WIDE_FILL, eos_lang_get_text(STR_ID_APP_FLASH_LIGHT_DISMISS));
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
@@ -472,10 +457,7 @@ void eos_flash_light_show(void)
     lv_obj_set_size(flash_light, lv_pct(100), EOS_DISPLAY_HEIGHT);
     lv_obj_set_style_border_width(flash_light, 0, 0);
     lv_obj_set_style_radius(flash_light, EOS_DISPLAY_RADIUS, 0);
-    lv_obj_add_event_cb(flash_light,
-                        _flash_light_clicked_cb,
-                        LV_EVENT_CLICKED,
-                        ud);
+    lv_obj_add_event_cb(flash_light, _flash_light_clicked_cb, LV_EVENT_CLICKED, ud);
 
     _flash_light_ud = ud;
     eos_display_set_brightness(EOS_DISPLAY_BRIGHTNESS_MAX, _BRIGHTNESS_DURATION, true);
@@ -521,7 +503,8 @@ void eos_flash_light_enter(void)
 {
     eos_display_set_brightness(EOS_DISPLAY_BRIGHTNESS_MAX, _BRIGHTNESS_DURATION, true);
     eos_activity_t *a = eos_activity_create(&_flash_light_lifecycle);
-    if(!a) return;
+    if (!a)
+        return;
 
     _flash_light_card_pager_ctx_t *ctx = eos_malloc_zeroed(sizeof(_flash_light_card_pager_ctx_t));
     if (!ctx)
@@ -535,7 +518,8 @@ void eos_flash_light_enter(void)
     eos_activity_set_app_header_time_only(a, true);
 
     lv_obj_t *view = eos_activity_get_view(a);
-    if(!view) {
+    if (!view)
+    {
         eos_free(ctx);
         eos_activity_back();
         return;
@@ -550,7 +534,8 @@ void eos_flash_light_enter(void)
     lv_obj_set_style_bg_color(view, EOS_COLOR_WHITE, 0);
 
     eos_card_pager_t *cp = eos_card_pager_create(view, EOS_CARD_PAGER_DIR_HOR);
-    if(cp) {
+    if (cp)
+    {
         ctx->cp = cp;
 
         // CardPager create() already provides the first page.
@@ -575,10 +560,7 @@ void eos_flash_light_enter(void)
         lv_obj_t *sw1_touch_obj = eos_slide_widget_get_touch_obj(cp->sw);
         if (sw1_touch_obj)
         {
-            lv_obj_add_event_cb(sw1_touch_obj,
-                                _flash_light_card_pager_clicked_cb,
-                                LV_EVENT_CLICKED,
-                                ctx);
+            lv_obj_add_event_cb(sw1_touch_obj, _flash_light_card_pager_clicked_cb, LV_EVENT_CLICKED, ctx);
         }
     }
 

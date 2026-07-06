@@ -27,7 +27,7 @@ extern "C" {
  * @param message Message content
  * @return lv_obj_t* Returns the created Toast object pointer
  */
-lv_obj_t * eos_toast_show(const char *icon_src, const char *message);
+lv_obj_t *eos_toast_show(const char *icon_src, const char *message);
 
 /**
  * @brief Show a Toast message with character icon color support

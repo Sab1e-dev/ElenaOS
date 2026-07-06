@@ -19,51 +19,54 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define EOS_PANEL_CONTENT_WIDTH lv_pct(90)  /**< Panel content width (percentage) */
-#define EOS_PANEL_ICON_SIZE 50               /**< Panel icon size */
+#define EOS_PANEL_CONTENT_WIDTH lv_pct(90) /**< Panel content width (percentage) */
+#define EOS_PANEL_ICON_SIZE 50 /**< Panel icon size */
 
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Panel icon type
  */
-typedef enum {
-    EOS_PANEL_ICON_TYPE_NONE = 0,   /**< No icon */
-    EOS_PANEL_ICON_TYPE_SYMBOL,     /**< Symbol icon (text) */
-    EOS_PANEL_ICON_TYPE_IMAGE,      /**< Image icon */
+typedef enum
+{
+    EOS_PANEL_ICON_TYPE_NONE = 0, /**< No icon */
+    EOS_PANEL_ICON_TYPE_SYMBOL, /**< Symbol icon (text) */
+    EOS_PANEL_ICON_TYPE_IMAGE, /**< Image icon */
 } eos_panel_icon_type_t;
 
 /**
  * @brief Panel configuration
  */
-typedef struct {
-    lv_color_t icon_bg_color;       /**< Icon background color */
-    eos_panel_icon_type_t icon_type;/**< Icon type */
-    const void *icon_src;           /**< Icon source (symbol string or image path) */
-    lang_string_id_t title_id;      /**< Title string ID (0 for none) */
-    const char *title_text;         /**< Title text (used if title_id is 0) */
-    lang_string_id_t message_id;     /**< Message string ID (0 for none) */
-    const char *message_text;       /**< Message text (used if message_id is 0) */
+typedef struct
+{
+    lv_color_t icon_bg_color; /**< Icon background color */
+    eos_panel_icon_type_t icon_type; /**< Icon type */
+    const void *icon_src; /**< Icon source (symbol string or image path) */
+    lang_string_id_t title_id; /**< Title string ID (0 for none) */
+    const char *title_text; /**< Title text (used if title_id is 0) */
+    lang_string_id_t message_id; /**< Message string ID (0 for none) */
+    const char *message_text; /**< Message text (used if message_id is 0) */
     lang_string_id_t confirm_btn_id; /**< Confirm button string ID (0 for hidden) */
-    const char *confirm_btn_text;   /**< Confirm button text */
-    lv_event_cb_t confirm_cb;       /**< Confirm button callback (NULL for default: do nothing) */
+    const char *confirm_btn_text; /**< Confirm button text */
+    lv_event_cb_t confirm_cb; /**< Confirm button callback (NULL for default: do nothing) */
     lang_string_id_t cancel_btn_id; /**< Cancel button string ID (0 for hidden) */
-    const char *cancel_btn_text;    /**< Cancel button text */
-    lv_event_cb_t cancel_cb;        /**< Cancel button callback (NULL for default: activity_back) */
+    const char *cancel_btn_text; /**< Cancel button text */
+    lv_event_cb_t cancel_cb; /**< Cancel button callback (NULL for default: activity_back) */
 } eos_panel_cfg_t;
 
 /**
  * @brief Panel structure
  */
-typedef struct {
-    lv_obj_t *container;            /**< Main container */
-    lv_obj_t *icon;                 /**< Icon object (NULL if no icon) */
-    lv_obj_t *title;                /**< Title label */
-    lv_obj_t *message;              /**< Message label */
-    lv_obj_t *extra_slot;           /**< Extra content slot */
-    lv_obj_t *actions;             /**< Actions container */
-    lv_obj_t *confirm_btn;         /**< Confirm button (NULL if hidden) */
-    lv_obj_t *cancel_btn;          /**< Cancel button (NULL if hidden) */
+typedef struct
+{
+    lv_obj_t *container; /**< Main container */
+    lv_obj_t *icon; /**< Icon object (NULL if no icon) */
+    lv_obj_t *title; /**< Title label */
+    lv_obj_t *message; /**< Message label */
+    lv_obj_t *extra_slot; /**< Extra content slot */
+    lv_obj_t *actions; /**< Actions container */
+    lv_obj_t *confirm_btn; /**< Confirm button (NULL if hidden) */
+    lv_obj_t *cancel_btn; /**< Cancel button (NULL if hidden) */
 } eos_panel_t;
 
 /* Public function prototypes --------------------------------*/

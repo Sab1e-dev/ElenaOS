@@ -192,7 +192,9 @@ eos_result_t eos_watchface_install(const char *eapk_path)
     if (header.min_api_level > ELENIX_OS_API_LEVEL)
     {
         EOS_LOG_E("Watchface '%s' requires API level %d, OS supports %d",
-                  header.pkg_id, header.min_api_level, ELENIX_OS_API_LEVEL);
+                  header.pkg_id,
+                  header.min_api_level,
+                  ELENIX_OS_API_LEVEL);
         return EOS_ERR_SDK_VERSION;
     }
     // Construct path
@@ -311,7 +313,7 @@ static void _switch_to_watchface(const char *watchface_id)
     if (ret != EOS_OK)
     {
         EOS_LOG_E("Failed to replace root activity");
-        eos_free(new_instance);  // Free new instance on failure
+        eos_free(new_instance); // Free new instance on failure
         return;
     }
 

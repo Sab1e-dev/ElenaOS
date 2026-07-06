@@ -25,7 +25,8 @@
 
 /* Variables --------------------------------------------------*/
 
-typedef struct {
+typedef struct
+{
     char name[EOS_TEST_NAME_MAX];
     eos_test_fn_t fn;
     bool has_run;
@@ -33,7 +34,8 @@ typedef struct {
     bool selected;
 } eos_test_entry_t;
 
-typedef struct {
+typedef struct
+{
     char name[EOS_TEST_GROUP_NAME_MAX];
     int start_idx;
     int count;
@@ -77,13 +79,15 @@ static int _selected_count(void)
 {
     int n = 0;
     for (int i = 0; i < s_count; i++)
-        if (s_entries[i].selected) n++;
+        if (s_entries[i].selected)
+            n++;
     return n;
 }
 
 static void _sync_progress_range(void)
 {
-    if (!s_progress_bar) return;
+    if (!s_progress_bar)
+        return;
     int sel = _selected_count();
     lv_bar_set_range(s_progress_bar, 0, sel > 0 ? sel : 1);
     lv_bar_set_value(s_progress_bar, 0, LV_ANIM_OFF);
@@ -91,7 +95,8 @@ static void _sync_progress_range(void)
 
 static void _update_summary(void)
 {
-    if (!s_summary_label) return;
+    if (!s_summary_label)
+        return;
     int sel = _selected_count();
     char buf[64];
     snprintf(buf, sizeof(buf), "Pass: %d/%d  Fail: %d", s_passed, sel, s_failed);
@@ -100,26 +105,30 @@ static void _update_summary(void)
 
 static void _update_current(const char *status)
 {
-    if (!s_current_label) return;
+    if (!s_current_label)
+        return;
     lv_label_set_text(s_current_label, status);
 }
 
 static void _update_progress(void)
 {
-    if (!s_progress_bar) return;
+    if (!s_progress_bar)
+        return;
     lv_bar_set_value(s_progress_bar, s_total, LV_ANIM_OFF);
 }
 
 static void _set_status_icon(const char *symbol, lv_color_t color)
 {
-    if (!s_status_icon) return;
+    if (!s_status_icon)
+        return;
     lv_label_set_text(s_status_icon, symbol);
     lv_obj_set_style_text_color(s_status_icon, color, 0);
 }
 
 static void _update_info_label(void)
 {
-    if (!s_info_label) return;
+    if (!s_info_label)
+        return;
     int sel = _selected_count();
     char buf[40];
     if (sel == s_count)
@@ -131,25 +140,32 @@ static void _update_info_label(void)
 
 static void _sync_group_ui(int group_idx)
 {
-    if (group_idx < 0 || group_idx >= s_group_count) return;
+    if (group_idx < 0 || group_idx >= s_group_count)
+        return;
     eos_test_group_t *g = &s_groups[group_idx];
 
     int all_sel = 0;
     for (int i = 0; i < g->count; i++)
-        if (s_entries[g->start_idx + i].selected) all_sel++;
+        if (s_entries[g->start_idx + i].selected)
+            all_sel++;
 
-    if (s_group_checkboxes[group_idx]) {
+    if (s_group_checkboxes[group_idx])
+    {
         if (all_sel == g->count)
             lv_obj_add_state(s_group_checkboxes[group_idx], LV_STATE_CHECKED);
         else
             lv_obj_remove_state(s_group_checkboxes[group_idx], LV_STATE_CHECKED);
     }
 
-    if (s_group_header_labels[group_idx]) {
+    if (s_group_header_labels[group_idx])
+    {
         char buf[EOS_TEST_GROUP_NAME_MAX + 20];
-        snprintf(buf, sizeof(buf), "%s %s (%d)",
+        snprintf(buf,
+                 sizeof(buf),
+                 "%s %s (%d)",
                  s_group_expanded[group_idx] ? LV_SYMBOL_DOWN : LV_SYMBOL_RIGHT,
-                 g->name, g->count);
+                 g->name,
+                 g->count);
         lv_label_set_text(s_group_header_labels[group_idx], buf);
     }
 }
@@ -157,9 +173,11 @@ static void _sync_group_ui(int group_idx)
 static void _set_group_visible(int group_idx, bool visible)
 {
     eos_test_group_t *g = &s_groups[group_idx];
-    for (int i = 0; i < g->count; i++) {
+    for (int i = 0; i < g->count; i++)
+    {
         int idx = g->start_idx + i;
-        if (s_checkboxes[idx]) {
+        if (s_checkboxes[idx])
+        {
             if (visible)
                 lv_obj_remove_flag(s_checkboxes[idx], LV_OBJ_FLAG_HIDDEN);
             else
@@ -170,25 +188,33 @@ static void _set_group_visible(int group_idx, bool visible)
 
 static void _toggle_group_select(int group_idx)
 {
-    if (group_idx < 0 || group_idx >= s_group_count) return;
+    if (group_idx < 0 || group_idx >= s_group_count)
+        return;
     eos_test_group_t *g = &s_groups[group_idx];
 
     int all_sel = 0;
     for (int i = 0; i < g->count; i++)
-        if (s_entries[g->start_idx + i].selected) all_sel++;
+        if (s_entries[g->start_idx + i].selected)
+            all_sel++;
 
     bool new_state = (all_sel < g->count);
-    for (int i = 0; i < g->count; i++) {
+    for (int i = 0; i < g->count; i++)
+    {
         int idx = g->start_idx + i;
         s_entries[idx].selected = new_state;
-        if (s_checkboxes[idx]) {
-            if (new_state) lv_obj_add_state(s_checkboxes[idx], LV_STATE_CHECKED);
-            else lv_obj_remove_state(s_checkboxes[idx], LV_STATE_CHECKED);
+        if (s_checkboxes[idx])
+        {
+            if (new_state)
+                lv_obj_add_state(s_checkboxes[idx], LV_STATE_CHECKED);
+            else
+                lv_obj_remove_state(s_checkboxes[idx], LV_STATE_CHECKED);
         }
     }
 
-    if (new_state) s_all_selected = (_selected_count() == s_count);
-    else s_all_selected = false;
+    if (new_state)
+        s_all_selected = (_selected_count() == s_count);
+    else
+        s_all_selected = false;
 
     _sync_group_ui(group_idx);
     _sync_progress_range();
@@ -198,7 +224,8 @@ static void _toggle_group_select(int group_idx)
 
 static void _toggle_group_expand(int group_idx)
 {
-    if (group_idx < 0 || group_idx >= s_group_count) return;
+    if (group_idx < 0 || group_idx >= s_group_count)
+        return;
     s_group_expanded[group_idx] = !s_group_expanded[group_idx];
     _set_group_visible(group_idx, s_group_expanded[group_idx]);
     _sync_group_ui(group_idx);
@@ -207,11 +234,15 @@ static void _toggle_group_expand(int group_idx)
 static void _toggle_all(bool select)
 {
     s_all_selected = select;
-    for (int i = 0; i < s_count; i++) {
+    for (int i = 0; i < s_count; i++)
+    {
         s_entries[i].selected = select;
-        if (s_checkboxes[i]) {
-            if (select) lv_obj_add_state(s_checkboxes[i], LV_STATE_CHECKED);
-            else lv_obj_remove_state(s_checkboxes[i], LV_STATE_CHECKED);
+        if (s_checkboxes[i])
+        {
+            if (select)
+                lv_obj_add_state(s_checkboxes[i], LV_STATE_CHECKED);
+            else
+                lv_obj_remove_state(s_checkboxes[i], LV_STATE_CHECKED);
         }
     }
     for (int g = 0; g < s_group_count; g++)
@@ -234,16 +265,20 @@ static void _checkbox_cb(lv_event_t *e)
     lv_event_stop_bubbling(e);
     lv_obj_t *cb = lv_event_get_target(e);
     int idx = (int)(long)lv_event_get_user_data(e);
-    if (idx < 0 || idx >= s_count) return;
+    if (idx < 0 || idx >= s_count)
+        return;
 
     bool checked = lv_obj_has_state(cb, LV_STATE_CHECKED);
     s_entries[idx].selected = checked;
-    if (!checked) s_all_selected = false;
-    else s_all_selected = (_selected_count() == s_count);
+    if (!checked)
+        s_all_selected = false;
+    else
+        s_all_selected = (_selected_count() == s_count);
 
-    for (int g = 0; g < s_group_count; g++) {
-        if (idx >= s_groups[g].start_idx &&
-            idx < s_groups[g].start_idx + s_groups[g].count) {
+    for (int g = 0; g < s_group_count; g++)
+    {
+        if (idx >= s_groups[g].start_idx && idx < s_groups[g].start_idx + s_groups[g].count)
+        {
             _sync_group_ui(g);
             break;
         }
@@ -272,7 +307,10 @@ static void _run_cb(lv_event_t *e)
     eos_test_run_all();
 }
 
-static void _on_enter(eos_activity_t *activity) { (void)activity; }
+static void _on_enter(eos_activity_t *activity)
+{
+    (void)activity;
+}
 
 static void _on_destroy(eos_activity_t *activity)
 {
@@ -287,8 +325,10 @@ static void _on_destroy(eos_activity_t *activity)
     s_select_all_btn = NULL;
     s_select_all_label = NULL;
     s_checklist = NULL;
-    for (int i = 0; i < s_count; i++) s_checkboxes[i] = NULL;
-    for (int i = 0; i < s_group_count; i++) {
+    for (int i = 0; i < s_count; i++)
+        s_checkboxes[i] = NULL;
+    for (int i = 0; i < s_group_count; i++)
+    {
         s_group_headers[i] = NULL;
         s_group_header_labels[i] = NULL;
         s_group_checkboxes[i] = NULL;
@@ -296,18 +336,24 @@ static void _on_destroy(eos_activity_t *activity)
 }
 
 static const eos_activity_lifecycle_t s_fw_lifecycle = {
-    .on_enter = _on_enter, .on_destroy = _on_destroy,
-    .on_pause = NULL, .on_resume = NULL,
+    .on_enter = _on_enter,
+    .on_destroy = _on_destroy,
+    .on_pause = NULL,
+    .on_resume = NULL,
 };
 
 /* ---- Public API ---- */
 
 void eos_test_register(const char *name, eos_test_fn_t fn)
 {
-    if (!name || !fn) return;
-    if (s_count >= EOS_TEST_MAX) return;
-    for (int i = 0; i < s_count; i++) {
-        if (strcmp(s_entries[i].name, name) == 0) return;
+    if (!name || !fn)
+        return;
+    if (s_count >= EOS_TEST_MAX)
+        return;
+    for (int i = 0; i < s_count; i++)
+    {
+        if (strcmp(s_entries[i].name, name) == 0)
+            return;
     }
     strncpy(s_entries[s_count].name, name, EOS_TEST_NAME_MAX - 1);
     s_entries[s_count].name[EOS_TEST_NAME_MAX - 1] = '\0';
@@ -320,19 +366,25 @@ void eos_test_register(const char *name, eos_test_fn_t fn)
 
 void eos_test_record(const char *name, bool passed, const char *detail)
 {
-    EOS_LOG_I("%s: %s (%s)", name, passed ? "PASS" : "FAIL",
-              detail ? detail : "");
-    for (int i = 0; i < s_count; i++) {
-        if (strcmp(s_entries[i].name, name) == 0) {
-            if (!s_entries[i].has_run) {
+    EOS_LOG_I("%s: %s (%s)", name, passed ? "PASS" : "FAIL", detail ? detail : "");
+    for (int i = 0; i < s_count; i++)
+    {
+        if (strcmp(s_entries[i].name, name) == 0)
+        {
+            if (!s_entries[i].has_run)
+            {
                 s_entries[i].has_run = true;
                 s_entries[i].passed = passed;
-                if (passed) s_passed++; else s_failed++;
+                if (passed)
+                    s_passed++;
+                else
+                    s_failed++;
                 s_total++;
                 if (!passed)
                     EOS_LOG_E("%s: FAIL - %s", name, detail ? detail : "no details");
             }
-            _update_summary(); _update_progress();
+            _update_summary();
+            _update_progress();
             return;
         }
     }
@@ -346,81 +398,109 @@ void eos_test_reset(void)
         s_entries[i].has_run = s_entries[i].passed = false;
 
     int sel = _selected_count();
-    if (s_summary_label) {
+    if (s_summary_label)
+    {
         char buf[48];
         snprintf(buf, sizeof(buf), "Pass: 0/%d  Fail: 0", sel);
         lv_label_set_text(s_summary_label, buf);
     }
-    if (s_current_label) lv_label_set_text(s_current_label, "Idle");
-    if (s_progress_bar) {
+    if (s_current_label)
+        lv_label_set_text(s_current_label, "Idle");
+    if (s_progress_bar)
+    {
         lv_bar_set_range(s_progress_bar, 0, sel > 0 ? sel : 1);
         lv_bar_set_value(s_progress_bar, 0, LV_ANIM_OFF);
     }
-    if (s_status_icon) _set_status_icon(LV_SYMBOL_LIST, lv_color_hex(0x888888));
+    if (s_status_icon)
+        _set_status_icon(LV_SYMBOL_LIST, lv_color_hex(0x888888));
 }
 
 void eos_test_run_all(void)
 {
-    if (s_is_running) return;
+    if (s_is_running)
+        return;
     s_is_running = true;
     eos_test_reset();
 
-    if (s_run_btn_label) lv_label_set_text(s_run_btn_label, "Running...");
-    if (s_run_btn) lv_obj_add_state(s_run_btn, LV_STATE_DISABLED);
+    if (s_run_btn_label)
+        lv_label_set_text(s_run_btn_label, "Running...");
+    if (s_run_btn)
+        lv_obj_add_state(s_run_btn, LV_STATE_DISABLED);
     _set_status_icon(LV_SYMBOL_REFRESH, lv_color_hex(0x2196F3));
     _force_refresh();
 
     int selected = _selected_count();
     EOS_LOG_I("========== Running %d/%d selected tests ==========", selected, s_count);
     int run_count = 0;
-    for (int i = 0; i < s_count; i++) {
-        if (!s_entries[i].selected) continue;
+    for (int i = 0; i < s_count; i++)
+    {
+        if (!s_entries[i].selected)
+            continue;
         run_count++;
         char status[EOS_TEST_NAME_MAX + 16];
         snprintf(status, sizeof(status), "[%d/%d] %s", run_count, selected, s_entries[i].name);
-        _update_current(status); _force_refresh();
+        _update_current(status);
+        _force_refresh();
         EOS_LOG_I("[%d/%d] %s", run_count, selected, s_entries[i].name);
         bool passed = s_entries[i].fn();
         if (!s_entries[i].has_run)
             eos_test_record(s_entries[i].name, passed, passed ? "OK" : "Failed");
     }
-    EOS_LOG_I("========== Test Results: %d passed, %d failed, %d total ==========",
-              s_passed, s_failed, s_total);
+    EOS_LOG_I("========== Test Results: %d passed, %d failed, %d total ==========", s_passed, s_failed, s_total);
 
-    if (s_failed > 0) {
+    if (s_failed > 0)
+    {
         _set_status_icon(LV_SYMBOL_CLOSE, lv_color_hex(0xF44336));
         _update_current("Complete - some tests FAILED");
-    } else {
+    }
+    else
+    {
         _set_status_icon(LV_SYMBOL_OK, lv_color_hex(0x4CAF50));
         _update_current("Complete - all tests passed");
     }
-    if (s_run_btn_label) lv_label_set_text(s_run_btn_label, "Run Tests");
-    if (s_run_btn) lv_obj_remove_state(s_run_btn, LV_STATE_DISABLED);
+    if (s_run_btn_label)
+        lv_label_set_text(s_run_btn_label, "Run Tests");
+    if (s_run_btn)
+        lv_obj_remove_state(s_run_btn, LV_STATE_DISABLED);
     _force_refresh();
     s_is_running = false;
 }
 
-uint32_t eos_test_get_total(void) { return (uint32_t)s_total; }
-uint32_t eos_test_get_passed(void) { return (uint32_t)s_passed; }
-uint32_t eos_test_get_failed(void) { return (uint32_t)s_failed; }
+uint32_t eos_test_get_total(void)
+{
+    return (uint32_t)s_total;
+}
+uint32_t eos_test_get_passed(void)
+{
+    return (uint32_t)s_passed;
+}
+uint32_t eos_test_get_failed(void)
+{
+    return (uint32_t)s_failed;
+}
 
 bool eos_test_assert(bool cond, const char *file, int line, const char *msg)
 {
-    if (!cond) EOS_LOG_E("Assertion failed at %s:%d - %s", file, line, msg);
+    if (!cond)
+        EOS_LOG_E("Assertion failed at %s:%d - %s", file, line, msg);
     return cond;
 }
 
 void eos_test_run_group(const char *prefix)
 {
-    if (s_is_running || !prefix) return;
+    if (s_is_running || !prefix)
+        return;
     s_is_running = true;
     size_t prelen = strlen(prefix);
     EOS_LOG_I("========== Running group '%s' ==========", prefix);
-    for (int i = 0; i < s_count; i++) {
-        if (strncmp(s_entries[i].name, prefix, prelen) != 0) continue;
+    for (int i = 0; i < s_count; i++)
+    {
+        if (strncmp(s_entries[i].name, prefix, prelen) != 0)
+            continue;
         eos_test_entry_t *e = &s_entries[i];
         bool passed = e->fn();
-        if (!e->has_run) eos_test_record(e->name, passed, passed ? "OK" : "Failed");
+        if (!e->has_run)
+            eos_test_record(e->name, passed, passed ? "OK" : "Failed");
     }
     EOS_LOG_I("========== Group '%s' complete ==========", prefix);
     s_is_running = false;
@@ -431,12 +511,16 @@ void eos_test_run_group(const char *prefix)
 static void _extract_group_name(const char *test_name, char *group, size_t maxlen)
 {
     const char *colon = strchr(test_name, ':');
-    if (colon) {
+    if (colon)
+    {
         size_t len = colon - test_name;
-        if (len >= maxlen) len = maxlen - 1;
+        if (len >= maxlen)
+            len = maxlen - 1;
         memcpy(group, test_name, len);
         group[len] = '\0';
-    } else {
+    }
+    else
+    {
         strncpy(group, test_name, maxlen - 1);
         group[maxlen - 1] = '\0';
     }
@@ -445,16 +529,25 @@ static void _extract_group_name(const char *test_name, char *group, size_t maxle
 static void _build_groups(void)
 {
     s_group_count = 0;
-    for (int i = 0; i < s_count; i++) {
+    for (int i = 0; i < s_count; i++)
+    {
         char grp[EOS_TEST_GROUP_NAME_MAX];
         _extract_group_name(s_entries[i].name, grp, sizeof(grp));
         int found = -1;
-        for (int g = 0; g < s_group_count; g++) {
-            if (strcmp(s_groups[g].name, grp) == 0) { found = g; break; }
+        for (int g = 0; g < s_group_count; g++)
+        {
+            if (strcmp(s_groups[g].name, grp) == 0)
+            {
+                found = g;
+                break;
+            }
         }
-        if (found >= 0) {
+        if (found >= 0)
+        {
             s_groups[found].count++;
-        } else if (s_group_count < EOS_TEST_GROUP_MAX) {
+        }
+        else if (s_group_count < EOS_TEST_GROUP_MAX)
+        {
             strncpy(s_groups[s_group_count].name, grp, EOS_TEST_GROUP_NAME_MAX - 1);
             s_groups[s_group_count].start_idx = i;
             s_groups[s_group_count].count = 1;
@@ -465,7 +558,8 @@ static void _build_groups(void)
 
 static void _build_checklist_page(lv_obj_t *cont)
 {
-    if (s_count == 0) return;
+    if (s_count == 0)
+        return;
     _build_groups();
 
     for (int g = 0; g < s_group_count; g++)
@@ -493,9 +587,11 @@ static void _build_checklist_page(lv_obj_t *cont)
     lv_obj_set_scrollbar_mode(s_checklist, LV_SCROLLBAR_MODE_AUTO);
 
     int gi = 0;
-    for (int i = 0; i < s_count; i++) {
+    for (int i = 0; i < s_count; i++)
+    {
         /* Group header */
-        if (gi < s_group_count && i == s_groups[gi].start_idx) {
+        if (gi < s_group_count && i == s_groups[gi].start_idx)
+        {
             eos_test_group_t *g = &s_groups[gi];
 
             lv_obj_t *header = lv_obj_create(s_checklist);
@@ -549,9 +645,11 @@ static void _build_checklist_page(lv_obj_t *cont)
 void eos_test_fw_page_start(const char *title)
 {
     eos_activity_t *activity = eos_activity_create(&s_fw_lifecycle);
-    if (!activity) return;
+    if (!activity)
+        return;
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) return;
+    if (!view)
+        return;
 
     eos_activity_set_title(activity, title ? title : "Unit Tests");
     eos_activity_set_type(activity, EOS_ACTIVITY_TYPE_APP);

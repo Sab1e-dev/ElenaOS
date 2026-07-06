@@ -23,19 +23,20 @@ extern "C" {
 /**
  * @brief State key for battery capacity
  */
-#define EOS_STATE_KEY_CAPACITY             "battery_capacity"
+#define EOS_STATE_KEY_CAPACITY "battery_capacity"
 
 /**
  * @brief State key for battery cycle count
  */
-#define EOS_STATE_KEY_CYCLE_COUNT          "cycle_count"
+#define EOS_STATE_KEY_CYCLE_COUNT "cycle_count"
 
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Battery mode enumeration
  */
-typedef enum {
+typedef enum
+{
     EOS_BATTERY_MODE_NORMAL = 0,
     EOS_BATTERY_MODE_LOW_POWER,
     EOS_BATTERY_MODE_CHARGING,
@@ -46,7 +47,8 @@ typedef enum {
 /**
  * @brief Battery policy structure
  */
-typedef struct {
+typedef struct
+{
     uint32_t interval_ms;
     uint8_t threshold_percent;
 } eos_battery_policy_t;
@@ -57,11 +59,12 @@ typedef struct {
  * This structure contains the raw battery measurement data
  * as reported by the battery hardware device.
  */
-typedef struct {
-    int8_t percent;                   /**< Battery percentage (0-100), -1 if not available */
-    int16_t voltage_mv;                /**< Battery voltage in millivolts, -1 if not available */
-    int16_t current_ma;               /**< Battery current in milliamps, positive=discharge, negative=charge */
-    bool charging;                    /**< true if battery is charging */
+typedef struct
+{
+    int8_t percent; /**< Battery percentage (0-100), -1 if not available */
+    int16_t voltage_mv; /**< Battery voltage in millivolts, -1 if not available */
+    int16_t current_ma; /**< Battery current in milliamps, positive=discharge, negative=charge */
+    bool charging; /**< true if battery is charging */
 } eos_battery_raw_t;
 
 /**
@@ -70,13 +73,14 @@ typedef struct {
  * This structure contains the processed battery state including
  * timestamp and validity flag.
  */
-typedef struct {
-    int8_t percent;                   /**< Battery percentage (0-100) */
-    int16_t voltage_mv;               /**< Battery voltage in millivolts */
-    int16_t current_ma;               /**< Battery current in milliamps */
-    bool charging;                   /**< true if battery is charging */
-    uint32_t ts;                      /**< Timestamp when this state was recorded */
-    bool valid;                       /**< Validity flag, true if this state is valid */
+typedef struct
+{
+    int8_t percent; /**< Battery percentage (0-100) */
+    int16_t voltage_mv; /**< Battery voltage in millivolts */
+    int16_t current_ma; /**< Battery current in milliamps */
+    bool charging; /**< true if battery is charging */
+    uint32_t ts; /**< Timestamp when this state was recorded */
+    bool valid; /**< Validity flag, true if this state is valid */
 } eos_battery_state_t;
 
 /**

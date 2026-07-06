@@ -105,7 +105,8 @@ uint32_t eos_radio_page_add_item(eos_radio_page_t *rp, const char *txt)
         _radio_item_check(rp, check_label);
         eos_obj_set_corner_radius_bg(item,
                                      EOS_ROUND_TOP_LEFT | EOS_ROUND_TOP_RIGHT,
-                                     EOS_ITEM_RADIUS, EOS_THEME_BUTTON_COLOR);
+                                     EOS_ITEM_RADIUS,
+                                     EOS_THEME_BUTTON_COLOR);
     }
     else
     {
@@ -115,7 +116,8 @@ uint32_t eos_radio_page_add_item(eos_radio_page_t *rp, const char *txt)
         }
         eos_obj_set_corner_radius_bg(item,
                                      EOS_ROUND_BOTTOM_LEFT | EOS_ROUND_BOTTOM_RIGHT,
-                                     EOS_ITEM_RADIUS, EOS_THEME_BUTTON_COLOR);
+                                     EOS_ITEM_RADIUS,
+                                     EOS_THEME_BUTTON_COLOR);
         lv_obj_add_flag(check_label, LV_OBJ_FLAG_HIDDEN);
     }
 

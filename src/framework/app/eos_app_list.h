@@ -25,13 +25,13 @@ typedef void (*eos_sys_app_entry_t)(void);
 
 enum
 {
-   EOS_SYS_APP_SETTINGS = 0,
-   EOS_SYS_APP_FLASH_LIGHT,
-   /* New system apps can be added here */
+    EOS_SYS_APP_SETTINGS = 0,
+    EOS_SYS_APP_FLASH_LIGHT,
+/* New system apps can be added here */
 #ifdef EOS_ENABLE_TEST_APP
-   EOS_SYS_APP_TEST,
+    EOS_SYS_APP_TEST,
 #endif
-   EOS_SYS_APP_LAST
+    EOS_SYS_APP_LAST
 };
 
 extern const char *eos_sys_app_id_list[EOS_SYS_APP_LAST];

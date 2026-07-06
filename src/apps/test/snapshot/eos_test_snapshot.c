@@ -92,8 +92,10 @@ typedef lv_draw_buf_t *(*alloc_fn_t)(uint32_t w, uint32_t h);
 typedef void (*free_fn_t)(lv_draw_buf_t *buf);
 
 static bool _run_snapshot_test(const char *test_name,
-                               int32_t w, int32_t h,
-                               alloc_fn_t alloc_fn, free_fn_t free_fn,
+                               int32_t w,
+                               int32_t h,
+                               alloc_fn_t alloc_fn,
+                               free_fn_t free_fn,
                                bool multi_pass)
 {
     lv_obj_t *scr = lv_screen_active();
@@ -121,7 +123,8 @@ static bool _run_snapshot_test(const char *test_name,
         lv_obj_set_size(rect, w / cols, h / rows);
         lv_obj_set_pos(rect, (i % cols) * (w / cols), (i / cols) * (h / rows));
         lv_obj_set_style_bg_color(rect,
-                                  lv_color_hex(((i * 37) % 256) << 16 | ((i * 73) % 256) << 8 | ((i * 119) % 256)), 0);
+                                  lv_color_hex(((i * 37) % 256) << 16 | ((i * 73) % 256) << 8 | ((i * 119) % 256)),
+                                  0);
         lv_obj_set_style_border_width(rect, 0, 0);
         lv_obj_set_style_radius(rect, 4, 0);
     }
@@ -152,8 +155,7 @@ static bool _run_snapshot_test(const char *test_name,
                 total_ticks += (t1 - t0);
         }
         char msg[MSG_BUF_SZ];
-        snprintf(msg, sizeof(msg), "%" PRId32 "x%" PRId32 " avg %" PRIu32 " ticks (5 runs)",
-                 w, h, total_ticks / 5);
+        snprintf(msg, sizeof(msg), "%" PRId32 "x%" PRId32 " avg %" PRIu32 " ticks (5 runs)", w, h, total_ticks / 5);
         EOS_EXPECT_TRUE(ok, test_name, msg);
         free_fn(snap_buf);
         lv_obj_delete(cont);
@@ -198,10 +200,7 @@ static lv_obj_t *_create_realistic_component(lv_obj_t *parent)
         lv_obj_t *btn = lv_button_create(cont);
         lv_obj_set_size(btn, btn_w, btn_h);
         lv_obj_set_pos(btn, (EOS_DISPLAY_WIDTH - btn_w) / 2, start_y + i * (btn_h + gap));
-        lv_obj_set_style_bg_color(btn,
-                                  lv_color_hex((i == 0) ? 0x0F3460 : (i == 1) ? 0x16213E
-                                                                              : 0x533483),
-                                  0);
+        lv_obj_set_style_bg_color(btn, lv_color_hex((i == 0) ? 0x0F3460 : (i == 1) ? 0x16213E : 0x533483), 0);
         lv_obj_set_style_radius(btn, 12, 0);
         lv_obj_set_style_shadow_width(btn, 8, 0);
         lv_obj_set_style_shadow_opa(btn, LV_OPA_30, 0);
@@ -247,8 +246,11 @@ static void _anim_apply_combined(lv_obj_t *obj, int32_t step)
     lv_obj_set_style_opa(obj, op, 0);
 }
 
-static void _measure_anim(const char *test_name, lv_obj_t *target,
-                          anim_apply_fn_t apply_fn, int32_t val_start, int32_t val_end)
+static void _measure_anim(const char *test_name,
+                          lv_obj_t *target,
+                          anim_apply_fn_t apply_fn,
+                          int32_t val_start,
+                          int32_t val_end)
 {
     uint32_t max_ticks = 0;
     uint32_t min_ticks = UINT32_MAX;
@@ -271,8 +273,13 @@ static void _measure_anim(const char *test_name, lv_obj_t *target,
     }
 
     char msg[MSG_BUF_SZ];
-    snprintf(msg, sizeof(msg), "%df avg %" PRIu32 " max %" PRIu32 " min %" PRIu32 " ticks",
-             steps + 1, sum_ticks / (uint32_t)(steps + 1), max_ticks, min_ticks);
+    snprintf(msg,
+             sizeof(msg),
+             "%df avg %" PRIu32 " max %" PRIu32 " min %" PRIu32 " ticks",
+             steps + 1,
+             sum_ticks / (uint32_t)(steps + 1),
+             max_ticks,
+             min_ticks);
     EOS_EXPECT_TRUE(true, test_name, msg);
 }
 
@@ -537,27 +544,52 @@ static bool _test_anim_combined_direct(void)
  * ------------------------------------------------------------------------- */
 static bool _test_snap_direct_100(void)
 {
-    return _run_snapshot_test("Snapshot: direct heap 100x100", 100, 100, _alloc_draw_buf_direct, _free_draw_buf_direct, false);
+    return _run_snapshot_test("Snapshot: direct heap 100x100",
+                              100,
+                              100,
+                              _alloc_draw_buf_direct,
+                              _free_draw_buf_direct,
+                              false);
 }
 
 static bool _test_snap_direct_200(void)
 {
-    return _run_snapshot_test("Snapshot: direct heap 200x200", 200, 200, _alloc_draw_buf_direct, _free_draw_buf_direct, false);
+    return _run_snapshot_test("Snapshot: direct heap 200x200",
+                              200,
+                              200,
+                              _alloc_draw_buf_direct,
+                              _free_draw_buf_direct,
+                              false);
 }
 
 static bool _test_snap_direct_300(void)
 {
-    return _run_snapshot_test("Snapshot: direct heap 300x300", 300, 300, _alloc_draw_buf_direct, _free_draw_buf_direct, false);
+    return _run_snapshot_test("Snapshot: direct heap 300x300",
+                              300,
+                              300,
+                              _alloc_draw_buf_direct,
+                              _free_draw_buf_direct,
+                              false);
 }
 
 static bool _test_snap_direct_full(void)
 {
-    return _run_snapshot_test("Snapshot: direct heap fullscreen", EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT, _alloc_draw_buf_direct, _free_draw_buf_direct, false);
+    return _run_snapshot_test("Snapshot: direct heap fullscreen",
+                              EOS_DISPLAY_WIDTH,
+                              EOS_DISPLAY_HEIGHT,
+                              _alloc_draw_buf_direct,
+                              _free_draw_buf_direct,
+                              false);
 }
 
 static bool _test_snap_direct_repeat_200(void)
 {
-    return _run_snapshot_test("Snapshot: direct heap repeat 200x200", 200, 200, _alloc_draw_buf_direct, _free_draw_buf_direct, true);
+    return _run_snapshot_test("Snapshot: direct heap repeat 200x200",
+                              200,
+                              200,
+                              _alloc_draw_buf_direct,
+                              _free_draw_buf_direct,
+                              true);
 }
 
 /* ---------------------------------------------------------------------------
@@ -565,27 +597,52 @@ static bool _test_snap_direct_repeat_200(void)
  * ------------------------------------------------------------------------- */
 static bool _test_snap_cache_100(void)
 {
-    return _run_snapshot_test("Snapshot: cache heap 100x100", 100, 100, _alloc_draw_buf_cache, _free_draw_buf_cache, false);
+    return _run_snapshot_test("Snapshot: cache heap 100x100",
+                              100,
+                              100,
+                              _alloc_draw_buf_cache,
+                              _free_draw_buf_cache,
+                              false);
 }
 
 static bool _test_snap_cache_200(void)
 {
-    return _run_snapshot_test("Snapshot: cache heap 200x200", 200, 200, _alloc_draw_buf_cache, _free_draw_buf_cache, false);
+    return _run_snapshot_test("Snapshot: cache heap 200x200",
+                              200,
+                              200,
+                              _alloc_draw_buf_cache,
+                              _free_draw_buf_cache,
+                              false);
 }
 
 static bool _test_snap_cache_300(void)
 {
-    return _run_snapshot_test("Snapshot: cache heap 300x300", 300, 300, _alloc_draw_buf_cache, _free_draw_buf_cache, false);
+    return _run_snapshot_test("Snapshot: cache heap 300x300",
+                              300,
+                              300,
+                              _alloc_draw_buf_cache,
+                              _free_draw_buf_cache,
+                              false);
 }
 
 static bool _test_snap_cache_full(void)
 {
-    return _run_snapshot_test("Snapshot: cache heap fullscreen", EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT, _alloc_draw_buf_cache, _free_draw_buf_cache, false);
+    return _run_snapshot_test("Snapshot: cache heap fullscreen",
+                              EOS_DISPLAY_WIDTH,
+                              EOS_DISPLAY_HEIGHT,
+                              _alloc_draw_buf_cache,
+                              _free_draw_buf_cache,
+                              false);
 }
 
 static bool _test_snap_cache_repeat_200(void)
 {
-    return _run_snapshot_test("Snapshot: cache heap repeat 200x200", 200, 200, _alloc_draw_buf_cache, _free_draw_buf_cache, true);
+    return _run_snapshot_test("Snapshot: cache heap repeat 200x200",
+                              200,
+                              200,
+                              _alloc_draw_buf_cache,
+                              _free_draw_buf_cache,
+                              true);
 }
 
 /* ---------------------------------------------------------------------------

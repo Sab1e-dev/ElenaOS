@@ -36,12 +36,15 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_MSG_LIST_NO_MSG] = "No notifications",
     [STR_ID_MSG_LIST_ITEM_MARK_AS_READ] = "Mark as read",
     [STR_ID_BACK] = "Back",
-    [STR_ID_TEST_LANG_STR] = "On a late-summer afternoon, the wind set the chimes on the balcony jingling, like some unintentional signal.",
+    [STR_ID_TEST_LANG_STR] =
+        "On a late-summer afternoon, the wind set the chimes on the balcony jingling, like some unintentional signal.",
     [STR_ID_APP_RUN_ERR_TITLE] = "Application Stopped",
-    [STR_ID_APP_RUN_ERR] = "The application encountered a critical error and cannot continue running. Please report this issue to the developer.",
+    [STR_ID_APP_RUN_ERR] = "The application encountered a critical error and cannot continue running. Please report "
+                           "this issue to the developer.",
     [STR_ID_APP_RUN_ERR_BACKTRACE] = "Backtrace",
     [STR_ID_WATCHFACE_RUN_ERR_TITLE] = "Watchface Stopped",
-    [STR_ID_WATCHFACE_RUN_ERR] = "The watchface encountered a critical error and cannot continue running. Please report this issue to the developer.",
+    [STR_ID_WATCHFACE_RUN_ERR] = "The watchface encountered a critical error and cannot continue running. Please "
+                                 "report this issue to the developer.",
     [STR_ID_WATCHFACE_SWITCH] = "Switch Watch Face",
     [STR_ID_SETTINGS] = "Settings",
     [STR_ID_SETTINGS_BLUETOOTH] = "Bluetooth",
@@ -93,7 +96,8 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_TOAST_SHOW_UNMUTE] = "Unmuted",
     [STR_ID_SECOND] = "sec",
     [STR_ID_SYS_INIT_FAILED] = "System initialization failed",
-    [STR_ID_SYS_INIT_FAILED_CONTENT] = "An fatal error occurred during system initialization. Please restart the device. If the problem persists, contact support.",
+    [STR_ID_SYS_INIT_FAILED_CONTENT] = "An fatal error occurred during system initialization. Please restart the "
+                                       "device. If the problem persists, contact support.",
     [STR_ID_SENSOR_ACCE] = "Accelerometer",
     [STR_ID_SENSOR_GYRO] = "Gyroscope",
     [STR_ID_SENSOR_MAG] = "Magnetometer",
@@ -285,13 +289,10 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     // Add new string IDs and Chinese translations here as needed
 };
 
-static const char *const language_list[LANG_MAX_NUMBER] = {
-    [LANG_EN] = "English",
-    [LANG_ZH] = "简体中文"};
+static const char *const language_list[LANG_MAX_NUMBER] = {[LANG_EN] = "English", [LANG_ZH] = "简体中文"};
 
-static const char **current_lang = NULL;   // Current language pointer
+static const char **current_lang = NULL; // Current language pointer
 static bool lang_initialized = false; // Language system initialized flag
-
 
 /* Function Implementations -----------------------------------*/
 static void lang_event_eos_cb(eos_event_t *e);
@@ -321,15 +322,15 @@ void eos_lang_set_current_id(language_id_t lang)
 {
     switch (lang)
     {
-    case LANG_EN:
-        current_lang = lang_en;
-        break;
-    case LANG_ZH:
-        current_lang = lang_zh;
-        break;
-    default:
-        current_lang = lang_en;
-        break;
+        case LANG_EN:
+            current_lang = lang_en;
+            break;
+        case LANG_ZH:
+            current_lang = lang_zh;
+            break;
+        default:
+            current_lang = lang_en;
+            break;
     }
 
     // Use event broadcast system to refresh all labels
@@ -401,8 +402,6 @@ language_id_t eos_lang_get_current_id_with_str(const char *language_str)
 {
     return eos_lang_parse_name(language_str);
 }
-
-
 
 static void lang_event_eos_cb(eos_event_t *e)
 {

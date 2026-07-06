@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "eos_mem.h"
 #define EOS_LOG_TAG "AudioPlayer"
 #include "eos_log.h"
 #include "eos_dev_speaker.h"
@@ -16,7 +17,7 @@
 /* Macros and Definitions -------------------------------------*/
 
 #define FEED_TIMER_PERIOD_MS 30
-#define PRE_FILL_BUFFERS      8
+#define PRE_FILL_BUFFERS 8
 
 /* Variables --------------------------------------------------*/
 
@@ -27,7 +28,8 @@ static void _player_stop_internal(eos_audio_player_t *p);
 static bool _player_fill_one_buffer(eos_audio_player_t *p)
 {
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
-    if (spk == NULL || spk->ops == NULL) return false;
+    if (spk == NULL || spk->ops == NULL)
+        return false;
 
     void *buf = NULL;
     uint32_t cap = 0;
@@ -44,9 +46,8 @@ static bool _player_fill_one_buffer(eos_audio_player_t *p)
     uint32_t bytes_read = 0;
     eos_result_t res = eos_audio_decoder_read(&p->dsc, buf, cap, &bytes_read);
 
-    if (res == EOS_OK && bytes_read == 0 &&
-        p->dsc.format.total_samples > 0 &&
-        p->dsc.current_sample < p->dsc.format.total_samples)
+    if (res == EOS_OK && bytes_read == 0 && p->dsc.format.total_samples > 0
+        && p->dsc.current_sample < p->dsc.format.total_samples)
     {
         p->dsc.current_sample = p->dsc.format.total_samples;
     }
@@ -58,9 +59,12 @@ static bool _player_fill_one_buffer(eos_audio_player_t *p)
 static void _feed_cb(void *user_data)
 {
     eos_audio_player_t *p = (eos_audio_player_t *)user_data;
-    if (p->state != EOS_AUDIO_PLAYING) return;
+    if (p->state != EOS_AUDIO_PLAYING)
+        return;
 
-    while (_player_fill_one_buffer(p)) { }
+    while (_player_fill_one_buffer(p))
+    {
+    }
 
     if (p->dsc.current_sample >= p->dsc.format.total_samples && p->dsc.format.total_samples > 0)
     {
@@ -107,7 +111,8 @@ static void _player_start_feed(eos_audio_player_t *p)
 
 void eos_audio_player_init(eos_audio_player_t *p)
 {
-    if (p == NULL) return;
+    if (p == NULL)
+        return;
     memset(p, 0, sizeof(*p));
     p->state = EOS_AUDIO_IDLE;
     p->volume = 50;
@@ -115,15 +120,16 @@ void eos_audio_player_init(eos_audio_player_t *p)
     EOS_LOG_I("Audio player initialized");
 }
 
-eos_result_t eos_audio_player_play(eos_audio_player_t *p,
-    const void *src, eos_audio_src_type_t src_type)
+eos_result_t eos_audio_player_play(eos_audio_player_t *p, const void *src, eos_audio_src_type_t src_type)
 {
-    if (p == NULL || src == NULL) return EOS_ERR_INVALID_ARG;
+    if (p == NULL || src == NULL)
+        return EOS_ERR_INVALID_ARG;
 
     if (src_type == EOS_AUDIO_SRC_NONE)
     {
         src_type = eos_audio_src_get_type(src);
-        if (src_type == EOS_AUDIO_SRC_NONE) return EOS_ERR_INVALID_ARG;
+        if (src_type == EOS_AUDIO_SRC_NONE)
+            return EOS_ERR_INVALID_ARG;
     }
 
     if (p->state != EOS_AUDIO_IDLE)
@@ -133,12 +139,12 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
 
     if (p->cached_src && p->cached_src_type == EOS_AUDIO_SRC_FILE)
     {
-        free(p->cached_src);
+        eos_free(p->cached_src);
     }
     p->cached_src = NULL;
     if (src_type == EOS_AUDIO_SRC_FILE && src)
     {
-        p->cached_src = strdup((const char *)src);
+        p->cached_src = eos_strdup((const char *)src);
         p->cached_src_type = EOS_AUDIO_SRC_FILE;
     }
     else
@@ -161,9 +167,7 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
     }
     p->decoder_open = true;
 
-    int ret = spk->ops->open(p->dsc.format.sample_rate,
-                              p->dsc.format.channels,
-                              p->dsc.format.bits_per_sample);
+    int ret = spk->ops->open(p->dsc.format.sample_rate, p->dsc.format.channels, p->dsc.format.bits_per_sample);
     if (ret != 0)
     {
         EOS_LOG_E("Failed to open speaker");
@@ -180,14 +184,17 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
     int filled = 0;
     for (int i = 0; i < PRE_FILL_BUFFERS; i++)
     {
-        if (_player_fill_one_buffer(p)) filled++;
-        else break;
+        if (_player_fill_one_buffer(p))
+            filled++;
+        else
+            break;
     }
 
     if (filled == 0 && p->dsc.format.total_samples == 0)
     {
         EOS_LOG_E("Cannot play: source has no samples and unknown duration");
-        if (spk->ops->stop) spk->ops->stop();
+        if (spk->ops->stop)
+            spk->ops->stop();
         eos_audio_decoder_close(&p->dsc);
         p->decoder_open = false;
         p->state = EOS_AUDIO_IDLE;
@@ -204,11 +211,12 @@ eos_result_t eos_audio_player_play(eos_audio_player_t *p,
 
 eos_result_t eos_audio_player_stop(eos_audio_player_t *p)
 {
-    if (p == NULL) return EOS_ERR_INVALID_ARG;
+    if (p == NULL)
+        return EOS_ERR_INVALID_ARG;
     _player_stop_internal(p);
     if (p->cached_src_type == EOS_AUDIO_SRC_FILE && p->cached_src)
     {
-        free(p->cached_src);
+        eos_free(p->cached_src);
     }
     p->cached_src = NULL;
     p->cached_src_type = EOS_AUDIO_SRC_NONE;
@@ -217,8 +225,10 @@ eos_result_t eos_audio_player_stop(eos_audio_player_t *p)
 
 eos_result_t eos_audio_player_pause(eos_audio_player_t *p)
 {
-    if (p == NULL) return EOS_ERR_INVALID_ARG;
-    if (p->state != EOS_AUDIO_PLAYING) return EOS_ERR_INVALID_STATE;
+    if (p == NULL)
+        return EOS_ERR_INVALID_ARG;
+    if (p->state != EOS_AUDIO_PLAYING)
+        return EOS_ERR_INVALID_STATE;
 
     eos_audio_feed_pause(p->feed);
 
@@ -233,12 +243,15 @@ eos_result_t eos_audio_player_pause(eos_audio_player_t *p)
 
 eos_result_t eos_audio_player_resume(eos_audio_player_t *p)
 {
-    if (p == NULL) return EOS_ERR_INVALID_ARG;
-    if (p->state != EOS_AUDIO_PAUSED) return EOS_ERR_INVALID_STATE;
+    if (p == NULL)
+        return EOS_ERR_INVALID_ARG;
+    if (p->state != EOS_AUDIO_PAUSED)
+        return EOS_ERR_INVALID_STATE;
 
     for (int i = 0; i < PRE_FILL_BUFFERS; i++)
     {
-        if (!_player_fill_one_buffer(p)) break;
+        if (!_player_fill_one_buffer(p))
+            break;
     }
 
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
@@ -253,12 +266,16 @@ eos_result_t eos_audio_player_resume(eos_audio_player_t *p)
 
 eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
 {
-    if (p == NULL) return EOS_ERR_INVALID_ARG;
-    if (!p->decoder_open) return EOS_ERR_INVALID_STATE;
+    if (p == NULL)
+        return EOS_ERR_INVALID_ARG;
+    if (!p->decoder_open)
+        return EOS_ERR_INVALID_STATE;
 
     uint32_t total = p->dsc.format.total_samples;
-    if (total == 0) return EOS_ERR_INVALID_STATE;
-    if (sample >= total) sample = total - 1;
+    if (total == 0)
+        return EOS_ERR_INVALID_STATE;
+    if (sample >= total)
+        sample = total - 1;
 
     if (p->dsc.decoder && p->dsc.decoder->seek_cb)
     {
@@ -298,10 +315,11 @@ eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
     {
         uint32_t bytes_per_frame = (p->dsc.format.bits_per_sample / 8) * p->dsc.format.channels;
         uint32_t aligned_chunk = bytes_per_frame * 512;
-        if (aligned_chunk < 1024) aligned_chunk = 1024;
+        if (aligned_chunk < 1024)
+            aligned_chunk = 1024;
         uint32_t to_skip = sample * bytes_per_frame;
         uint32_t skipped = 0;
-        uint8_t *discard = malloc(aligned_chunk);
+        uint8_t *discard = eos_malloc(aligned_chunk);
 
         if (discard)
         {
@@ -310,10 +328,11 @@ eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
                 uint32_t chunk = (to_skip - skipped) > aligned_chunk ? aligned_chunk : (to_skip - skipped);
                 uint32_t bytes_read = 0;
                 res = eos_audio_decoder_read(&p->dsc, discard, chunk, &bytes_read);
-                if (res != EOS_OK || bytes_read == 0) break;
+                if (res != EOS_OK || bytes_read == 0)
+                    break;
                 skipped += bytes_read;
             }
-            free(discard);
+            eos_free(discard);
         }
     }
     p->dsc.current_sample = sample;
@@ -321,9 +340,7 @@ eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
     if (spk && spk->ops)
     {
-        int ret = spk->ops->open(p->dsc.format.sample_rate,
-                                  p->dsc.format.channels,
-                                  p->dsc.format.bits_per_sample);
+        int ret = spk->ops->open(p->dsc.format.sample_rate, p->dsc.format.channels, p->dsc.format.bits_per_sample);
         if (ret != 0)
         {
             eos_audio_decoder_close(&p->dsc);
@@ -342,7 +359,8 @@ eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
     {
         for (int i = 0; i < PRE_FILL_BUFFERS; i++)
         {
-            if (!_player_fill_one_buffer(p)) break;
+            if (!_player_fill_one_buffer(p))
+                break;
         }
     }
 
@@ -358,39 +376,46 @@ eos_result_t eos_audio_player_seek(eos_audio_player_t *p, uint32_t sample)
 
 eos_audio_player_state_t eos_audio_player_get_state(eos_audio_player_t *p)
 {
-    if (p == NULL) return EOS_AUDIO_IDLE;
+    if (p == NULL)
+        return EOS_AUDIO_IDLE;
     return p->state;
 }
 
 uint32_t eos_audio_player_get_position(eos_audio_player_t *p)
 {
-    if (p == NULL || !p->decoder_open) return 0;
+    if (p == NULL || !p->decoder_open)
+        return 0;
     return p->dsc.current_sample;
 }
 
 uint32_t eos_audio_player_get_duration(eos_audio_player_t *p)
 {
-    if (p == NULL || !p->decoder_open) return 0;
+    if (p == NULL || !p->decoder_open)
+        return 0;
     return p->dsc.format.total_samples;
 }
 
 uint32_t eos_audio_player_get_sample_rate(eos_audio_player_t *p)
 {
-    if (p == NULL || !p->decoder_open) return 0;
+    if (p == NULL || !p->decoder_open)
+        return 0;
     return p->dsc.format.sample_rate;
 }
 
 eos_result_t eos_audio_player_set_volume(eos_audio_player_t *p, uint8_t vol)
 {
-    if (p == NULL) return EOS_ERR_INVALID_ARG;
-    if (vol > 100) vol = 100;
+    if (p == NULL)
+        return EOS_ERR_INVALID_ARG;
+    if (vol > 100)
+        vol = 100;
     p->volume = vol;
     return EOS_OK;
 }
 
 void eos_audio_player_apply_volume(eos_audio_player_t *p)
 {
-    if (p == NULL) return;
+    if (p == NULL)
+        return;
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
     if (spk && spk->ops && spk->ops->set_volume)
     {
@@ -400,26 +425,30 @@ void eos_audio_player_apply_volume(eos_audio_player_t *p)
 
 void eos_audio_player_set_mute(eos_audio_player_t *p, bool mute)
 {
-    if (p == NULL) return;
+    if (p == NULL)
+        return;
     p->muted = mute;
 }
 
 bool eos_audio_player_is_muted(eos_audio_player_t *p)
 {
-    if (p == NULL) return false;
+    if (p == NULL)
+        return false;
     return p->muted;
 }
 
-void eos_audio_player_set_done_callback(eos_audio_player_t *p,
-    eos_audio_player_done_cb cb, void *user_data)
+void eos_audio_player_set_done_callback(eos_audio_player_t *p, eos_audio_player_done_cb cb, void *user_data)
 {
-    if (p == NULL) return;
+    if (p == NULL)
+        return;
     p->done_cb = cb;
     p->done_user_data = user_data;
 }
 
 void eos_audio_player_save_state(eos_audio_player_t *p,
-    void **saved_src, eos_audio_src_type_t *saved_type, uint32_t *saved_pos)
+                                 void **saved_src,
+                                 eos_audio_src_type_t *saved_type,
+                                 uint32_t *saved_pos)
 {
     if (p == NULL || saved_src == NULL || saved_type == NULL || saved_pos == NULL)
         return;
@@ -431,13 +460,18 @@ void eos_audio_player_save_state(eos_audio_player_t *p,
 }
 
 eos_result_t eos_audio_player_restore_state(eos_audio_player_t *p,
-    void *src, eos_audio_src_type_t src_type, uint32_t position)
+                                            void *src,
+                                            eos_audio_src_type_t src_type,
+                                            uint32_t position)
 {
-    if (p == NULL || src == NULL) return EOS_ERR_INVALID_ARG;
-    if (p->state != EOS_AUDIO_IDLE) return EOS_ERR_INVALID_STATE;
+    if (p == NULL || src == NULL)
+        return EOS_ERR_INVALID_ARG;
+    if (p->state != EOS_AUDIO_IDLE)
+        return EOS_ERR_INVALID_STATE;
 
     eos_result_t r = eos_audio_player_play(p, src, src_type);
-    if (r != EOS_OK) return r;
+    if (r != EOS_OK)
+        return r;
 
     if (position > 0)
     {

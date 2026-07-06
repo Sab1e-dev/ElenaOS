@@ -24,39 +24,42 @@ extern "C" {
 /**
  * @brief Fault panel icon type
  */
-typedef enum {
-    EOS_FAULT_ICON_NONE = 0,       /**< No icon */
-    EOS_FAULT_ICON_BUG,            /**< Bug icon for error */
-    EOS_FAULT_ICON_WARNING,        /**< Warning icon */
-    EOS_FAULT_ICON_INFO,           /**< Info icon */
-    EOS_FAULT_ICON_CUSTOM_SYMBOL,  /**< Custom symbol icon */
+typedef enum
+{
+    EOS_FAULT_ICON_NONE = 0, /**< No icon */
+    EOS_FAULT_ICON_BUG, /**< Bug icon for error */
+    EOS_FAULT_ICON_WARNING, /**< Warning icon */
+    EOS_FAULT_ICON_INFO, /**< Info icon */
+    EOS_FAULT_ICON_CUSTOM_SYMBOL, /**< Custom symbol icon */
 } eos_fault_icon_t;
 
 /**
  * @brief Fault panel configuration
  */
-typedef struct {
-    eos_fault_icon_t icon_type;    /**< Icon type */
-    const char *custom_icon;       /**< Custom icon symbol (used if icon_type is CUSTOM_SYMBOL) */
-    lang_string_id_t title_id;     /**< Title string ID */
-    const char *title_text;        /**< Title text (used if title_id is 0) */
-    lang_string_id_t message_id;   /**< Message string ID */
-    const char *message_text;      /**< Message text (used if message_id is 0) */
-    lang_string_id_t confirm_btn_id;/**< Confirm button string ID (0 for hidden) */
-    const char *confirm_btn_text;  /**< Confirm button text */
-    lv_event_cb_t confirm_cb;      /**< Confirm button callback (NULL for default: do nothing) */
-    lang_string_id_t cancel_btn_id;/**< Cancel button string ID (0 for hidden) */
-    const char *cancel_btn_text;   /**< Cancel button text */
-    lv_event_cb_t cancel_cb;       /**< Cancel button callback (NULL for default: activity_back) */
-    lv_color_t icon_color;         /**< Icon background color */
+typedef struct
+{
+    eos_fault_icon_t icon_type; /**< Icon type */
+    const char *custom_icon; /**< Custom icon symbol (used if icon_type is CUSTOM_SYMBOL) */
+    lang_string_id_t title_id; /**< Title string ID */
+    const char *title_text; /**< Title text (used if title_id is 0) */
+    lang_string_id_t message_id; /**< Message string ID */
+    const char *message_text; /**< Message text (used if message_id is 0) */
+    lang_string_id_t confirm_btn_id; /**< Confirm button string ID (0 for hidden) */
+    const char *confirm_btn_text; /**< Confirm button text */
+    lv_event_cb_t confirm_cb; /**< Confirm button callback (NULL for default: do nothing) */
+    lang_string_id_t cancel_btn_id; /**< Cancel button string ID (0 for hidden) */
+    const char *cancel_btn_text; /**< Cancel button text */
+    lv_event_cb_t cancel_cb; /**< Cancel button callback (NULL for default: activity_back) */
+    lv_color_t icon_color; /**< Icon background color */
 } eos_fault_cfg_t;
 
 /**
  * @brief Fault panel structure
  */
-typedef struct {
-    void *panel;                   /**< Internal panel structure */
-    lv_obj_t *extra_slot;         /**< Extra content slot for backtrace */
+typedef struct
+{
+    void *panel; /**< Internal panel structure */
+    lv_obj_t *extra_slot; /**< Extra content slot for backtrace */
 } eos_fault_panel_t;
 
 /* Public function prototypes --------------------------------*/

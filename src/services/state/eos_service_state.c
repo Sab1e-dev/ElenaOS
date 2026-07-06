@@ -23,7 +23,8 @@ static bool _initialized = false;
 
 void eos_service_state_init(void)
 {
-    if (_initialized) {
+    if (_initialized)
+    {
         return;
     }
 

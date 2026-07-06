@@ -61,8 +61,8 @@ LV_FONT_DECLARE(eos_font_resource_han_rounded_30);
 #define LV_KB_BTN(width) LV_BUTTONMATRIX_CTRL_POPOVER | width
 
 /* Variables --------------------------------------------------*/
-static lv_obj_t *img = NULL;    // Global image object
-static lv_obj_t *ta = NULL;     // Global text input object
+static lv_obj_t *img = NULL; // Global image object
+static lv_obj_t *ta = NULL; // Global text input object
 /* Function Implementations -----------------------------------*/
 
 typedef struct
@@ -109,66 +109,26 @@ typedef struct
 
 // All LVGL built-in symbols
 static const symbol_t lv_symbols[] = {
-    {LV_SYMBOL_AUDIO, 0xF001},
-    {LV_SYMBOL_VIDEO, 0xF008},
-    {LV_SYMBOL_LIST, 0xF00B},
-    {LV_SYMBOL_OK, 0xF00C},
-    {LV_SYMBOL_CLOSE, 0xF00D},
-    {LV_SYMBOL_POWER, 0xF011},
-    {LV_SYMBOL_SETTINGS, 0xF013},
-    {LV_SYMBOL_HOME, 0xF015},
-    {LV_SYMBOL_DOWNLOAD, 0xF019},
-    {LV_SYMBOL_DRIVE, 0xF01C},
-    {LV_SYMBOL_REFRESH, 0xF021},
-    {LV_SYMBOL_MUTE, 0xF026},
-    {LV_SYMBOL_VOLUME_MID, 0xF027},
-    {LV_SYMBOL_VOLUME_MAX, 0xF028},
-    {LV_SYMBOL_IMAGE, 0xF03E},
-    {LV_SYMBOL_TINT, 0xF043},
-    {LV_SYMBOL_PREV, 0xF048},
-    {LV_SYMBOL_PLAY, 0xF04B},
-    {LV_SYMBOL_PAUSE, 0xF04C},
-    {LV_SYMBOL_STOP, 0xF04D},
-    {LV_SYMBOL_NEXT, 0xF051},
-    {LV_SYMBOL_EJECT, 0xF052},
-    {LV_SYMBOL_LEFT, 0xF053},
-    {LV_SYMBOL_RIGHT, 0xF054},
-    {LV_SYMBOL_PLUS, 0xF067},
-    {LV_SYMBOL_MINUS, 0xF068},
-    {LV_SYMBOL_EYE_OPEN, 0xF06E},
-    {LV_SYMBOL_EYE_CLOSE, 0xF070},
-    {LV_SYMBOL_WARNING, 0xF071},
-    {LV_SYMBOL_SHUFFLE, 0xF074},
-    {LV_SYMBOL_UP, 0xF077},
-    {LV_SYMBOL_DOWN, 0xF078},
-    {LV_SYMBOL_LOOP, 0xF079},
-    {LV_SYMBOL_DIRECTORY, 0xF07B},
-    {LV_SYMBOL_UPLOAD, 0xF093},
-    {LV_SYMBOL_CALL, 0xF095},
-    {LV_SYMBOL_CUT, 0xF0C4},
-    {LV_SYMBOL_COPY, 0xF0C5},
-    {LV_SYMBOL_SAVE, 0xF0C7},
-    {LV_SYMBOL_BARS, 0xF0C9},
-    {LV_SYMBOL_ENVELOPE, 0xF0E0},
-    {LV_SYMBOL_CHARGE, 0xF0E7},
-    {LV_SYMBOL_PASTE, 0xF0EA},
-    {LV_SYMBOL_BELL, 0xF0F3},
-    {LV_SYMBOL_KEYBOARD, 0xF11C},
-    {LV_SYMBOL_GPS, 0xF124},
-    {LV_SYMBOL_FILE, 0xF158},
-    {LV_SYMBOL_WIFI, 0xF1EB},
-    {LV_SYMBOL_BATTERY_FULL, 0xF240},
-    {LV_SYMBOL_BATTERY_3, 0xF241},
-    {LV_SYMBOL_BATTERY_2, 0xF242},
-    {LV_SYMBOL_BATTERY_1, 0xF243},
-    {LV_SYMBOL_BATTERY_EMPTY, 0xF244},
-    {LV_SYMBOL_USB, 0xF287},
-    {LV_SYMBOL_BLUETOOTH, 0xF293},
-    {LV_SYMBOL_TRASH, 0xF2ED},
-    {LV_SYMBOL_EDIT, 0xF304},
-    {LV_SYMBOL_BACKSPACE, 0xF55A},
-    {LV_SYMBOL_SD_CARD, 0xF7C2},
-    {LV_SYMBOL_NEW_LINE, 0xF8A2},
+    {LV_SYMBOL_AUDIO, 0xF001},        {LV_SYMBOL_VIDEO, 0xF008},         {LV_SYMBOL_LIST, 0xF00B},
+    {LV_SYMBOL_OK, 0xF00C},           {LV_SYMBOL_CLOSE, 0xF00D},         {LV_SYMBOL_POWER, 0xF011},
+    {LV_SYMBOL_SETTINGS, 0xF013},     {LV_SYMBOL_HOME, 0xF015},          {LV_SYMBOL_DOWNLOAD, 0xF019},
+    {LV_SYMBOL_DRIVE, 0xF01C},        {LV_SYMBOL_REFRESH, 0xF021},       {LV_SYMBOL_MUTE, 0xF026},
+    {LV_SYMBOL_VOLUME_MID, 0xF027},   {LV_SYMBOL_VOLUME_MAX, 0xF028},    {LV_SYMBOL_IMAGE, 0xF03E},
+    {LV_SYMBOL_TINT, 0xF043},         {LV_SYMBOL_PREV, 0xF048},          {LV_SYMBOL_PLAY, 0xF04B},
+    {LV_SYMBOL_PAUSE, 0xF04C},        {LV_SYMBOL_STOP, 0xF04D},          {LV_SYMBOL_NEXT, 0xF051},
+    {LV_SYMBOL_EJECT, 0xF052},        {LV_SYMBOL_LEFT, 0xF053},          {LV_SYMBOL_RIGHT, 0xF054},
+    {LV_SYMBOL_PLUS, 0xF067},         {LV_SYMBOL_MINUS, 0xF068},         {LV_SYMBOL_EYE_OPEN, 0xF06E},
+    {LV_SYMBOL_EYE_CLOSE, 0xF070},    {LV_SYMBOL_WARNING, 0xF071},       {LV_SYMBOL_SHUFFLE, 0xF074},
+    {LV_SYMBOL_UP, 0xF077},           {LV_SYMBOL_DOWN, 0xF078},          {LV_SYMBOL_LOOP, 0xF079},
+    {LV_SYMBOL_DIRECTORY, 0xF07B},    {LV_SYMBOL_UPLOAD, 0xF093},        {LV_SYMBOL_CALL, 0xF095},
+    {LV_SYMBOL_CUT, 0xF0C4},          {LV_SYMBOL_COPY, 0xF0C5},          {LV_SYMBOL_SAVE, 0xF0C7},
+    {LV_SYMBOL_BARS, 0xF0C9},         {LV_SYMBOL_ENVELOPE, 0xF0E0},      {LV_SYMBOL_CHARGE, 0xF0E7},
+    {LV_SYMBOL_PASTE, 0xF0EA},        {LV_SYMBOL_BELL, 0xF0F3},          {LV_SYMBOL_KEYBOARD, 0xF11C},
+    {LV_SYMBOL_GPS, 0xF124},          {LV_SYMBOL_FILE, 0xF158},          {LV_SYMBOL_WIFI, 0xF1EB},
+    {LV_SYMBOL_BATTERY_FULL, 0xF240}, {LV_SYMBOL_BATTERY_3, 0xF241},     {LV_SYMBOL_BATTERY_2, 0xF242},
+    {LV_SYMBOL_BATTERY_1, 0xF243},    {LV_SYMBOL_BATTERY_EMPTY, 0xF244}, {LV_SYMBOL_USB, 0xF287},
+    {LV_SYMBOL_BLUETOOTH, 0xF293},    {LV_SYMBOL_TRASH, 0xF2ED},         {LV_SYMBOL_EDIT, 0xF304},
+    {LV_SYMBOL_BACKSPACE, 0xF55A},    {LV_SYMBOL_SD_CARD, 0xF7C2},       {LV_SYMBOL_NEW_LINE, 0xF8A2},
     {LV_SYMBOL_DUMMY, 0xFFFF},
 };
 
@@ -206,24 +166,28 @@ static void _test_activity_on_resume(eos_activity_t *activity)
     LV_UNUSED(activity);
 }
 
-static const eos_activity_lifecycle_t s_test_activity_lifecycle = {
-    .on_enter = _test_activity_on_enter,
-    .on_destroy = _test_activity_on_destroy,
-    .on_pause = _test_activity_on_pause,
-    .on_resume = _test_activity_on_resume
-};
+static const eos_activity_lifecycle_t s_test_activity_lifecycle = {.on_enter = _test_activity_on_enter,
+                                                                   .on_destroy = _test_activity_on_destroy,
+                                                                   .on_pause = _test_activity_on_pause,
+                                                                   .on_resume = _test_activity_on_resume};
 
 static void _test_app_debug_clamp_bar_pos(int32_t *x, int32_t *y, int32_t w, int32_t h)
 {
     if (!(x && y))
         return;
 
-    if (*x < 0) *x = 0;
-    if (*y < 0) *y = 0;
-    if (*x + w > EOS_DISPLAY_WIDTH) *x = EOS_DISPLAY_WIDTH - w;
-    if (*y + h > EOS_DISPLAY_HEIGHT) *y = EOS_DISPLAY_HEIGHT - h;
-    if (*x < 0) *x = 0;
-    if (*y < 0) *y = 0;
+    if (*x < 0)
+        *x = 0;
+    if (*y < 0)
+        *y = 0;
+    if (*x + w > EOS_DISPLAY_WIDTH)
+        *x = EOS_DISPLAY_WIDTH - w;
+    if (*y + h > EOS_DISPLAY_HEIGHT)
+        *y = EOS_DISPLAY_HEIGHT - h;
+    if (*x < 0)
+        *x = 0;
+    if (*y < 0)
+        *y = 0;
 }
 
 static void _test_app_debug_set_global_bar_pos(int32_t x, int32_t y, int32_t w, int32_t h)
@@ -243,8 +207,10 @@ static void _test_app_debug_save_bar_pos(lv_obj_t *bar)
     int32_t y = lv_obj_get_y(bar);
     int32_t w = lv_obj_get_width(bar);
     int32_t h = lv_obj_get_height(bar);
-    if (w <= 0) w = TEST_APP_DEBUG_BAR_W;
-    if (h <= 0) h = TEST_APP_DEBUG_BAR_H;
+    if (w <= 0)
+        w = TEST_APP_DEBUG_BAR_W;
+    if (h <= 0)
+        h = TEST_APP_DEBUG_BAR_H;
 
     _test_app_debug_set_global_bar_pos(x, y, w, h);
 }
@@ -331,9 +297,7 @@ static void _test_app_debug_register_global_cb(void)
     // eos_event_add_global_cb(_test_app_debug_global_screen_loaded_cb,
     //                         EOS_EVENT_GLOBAL_SCREEN_LOADED,
     //                         NULL);
-    eos_event_subscribe(EOS_EVENT_SCRIPT_EXITED,
-                            _test_app_debug_script_exited_cb,
-                            NULL);
+    eos_event_subscribe(EOS_EVENT_SCRIPT_EXITED, _test_app_debug_script_exited_cb, NULL);
     s_test_app_debug.global_cb_registered = true;
 }
 
@@ -354,8 +318,7 @@ static eos_result_t _test_app_debug_create_pkg(const char *app_id, script_pkg_t 
         return EOS_ERR_SCRIPT_NULL_PACKAGE;
 
     char manifest_path[EOS_FS_PATH_MAX];
-    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
-             app_id);
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME, app_id);
 
     script_pkg_t *pkg = eos_malloc_zeroed(sizeof(script_pkg_t));
     if (!pkg)
@@ -370,8 +333,7 @@ static eos_result_t _test_app_debug_create_pkg(const char *app_id, script_pkg_t 
     }
 
     char script_path[EOS_FS_PATH_MAX];
-    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
-             app_id);
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME, app_id);
 
     char base_path[EOS_FS_PATH_MAX];
     snprintf(base_path, sizeof(base_path), EOS_APP_INSTALLED_DIR "%s/", app_id);
@@ -403,18 +365,14 @@ static void _test_app_debug_show_error(lv_obj_t *scr, const char *app_id, eos_re
     lv_obj_remove_style_all(scr);
     // lv_obj_add_style(scr, eos_theme_get_view_style(), 0);
 
-    lv_obj_t *list = eos_std_info_create(
-        scr,
-        EOS_THEME_DANGEROS_COLOR,
-        RI_BUG_LINE,
-        eos_lang_get_text(STR_ID_APP_RUN_ERR_TITLE),
-        eos_lang_get_text(STR_ID_APP_RUN_ERR));
+    lv_obj_t *list = eos_std_info_create(scr,
+                                         EOS_THEME_DANGEROS_COLOR,
+                                         RI_BUG_LINE,
+                                         eos_lang_get_text(STR_ID_APP_RUN_ERR_TITLE),
+                                         eos_lang_get_text(STR_ID_APP_RUN_ERR));
 
     char info_str[1024];
-    snprintf(info_str, sizeof(info_str), "Code: %d\nAppID: %s\nError: %s",
-             ret,
-             app_id,
-             script_engine_get_error_info());
+    snprintf(info_str, sizeof(info_str), "Code: %d\nAppID: %s\nError: %s", ret, app_id, script_engine_get_error_info());
     eos_list_add_comment(list, info_str);
 }
 
@@ -435,8 +393,8 @@ static eos_result_t _test_app_debug_start_internal(const char *app_id)
     if (!(app_id && s_test_app_debug.list_screen && lv_obj_is_valid(s_test_app_debug.list_screen)))
         return EOS_ERR_SCRIPT_NULL_PACKAGE;
 
-    if (script_engine_get_state() != SCRIPT_ENGINE_STATE_UNINITIALIZED &&
-        script_engine_get_state() != SCRIPT_ENGINE_STATE_EXCEPTION)
+    if (script_engine_get_state() != SCRIPT_ENGINE_STATE_UNINITIALIZED
+        && script_engine_get_state() != SCRIPT_ENGINE_STATE_EXCEPTION)
     {
         script_engine_request_stop();
     }
@@ -500,9 +458,9 @@ static void _test_app_debug_safe_nav_cleanup(void)
 
 static void _test_app_debug_exit_current_app(void)
 {
-    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_RUNNING ||
-        script_engine_get_state() == SCRIPT_ENGINE_STATE_IDLE ||
-        script_engine_get_state() == SCRIPT_ENGINE_STATE_EXCEPTION)
+    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_RUNNING
+        || script_engine_get_state() == SCRIPT_ENGINE_STATE_IDLE
+        || script_engine_get_state() == SCRIPT_ENGINE_STATE_EXCEPTION)
     {
         script_engine_request_stop();
     }
@@ -524,9 +482,9 @@ static void _test_app_debug_restart_current_app(void)
     if (!app_id)
         return;
 
-    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_RUNNING ||
-        script_engine_get_state() == SCRIPT_ENGINE_STATE_IDLE ||
-        script_engine_get_state() == SCRIPT_ENGINE_STATE_EXCEPTION)
+    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_RUNNING
+        || script_engine_get_state() == SCRIPT_ENGINE_STATE_IDLE
+        || script_engine_get_state() == SCRIPT_ENGINE_STATE_EXCEPTION)
     {
         script_engine_request_stop();
     }
@@ -553,32 +511,43 @@ static void _test_app_debug_drag_handle_cb(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t *handle = lv_event_get_target(e);
-    lv_obj_t *bar    = lv_obj_get_parent(handle);
+    lv_obj_t *bar = lv_obj_get_parent(handle);
 
-    if (code == LV_EVENT_PRESSING) {
+    if (code == LV_EVENT_PRESSING)
+    {
         lv_indev_t *indev = lv_indev_active();
-        if (!indev) return;
+        if (!indev)
+            return;
         lv_point_t vect;
         lv_indev_get_vect(indev, &vect);
-        if (vect.x == 0 && vect.y == 0) return;
+        if (vect.x == 0 && vect.y == 0)
+            return;
 
-        int32_t new_x  = lv_obj_get_x(bar) + vect.x;
-        int32_t new_y  = lv_obj_get_y(bar) + vect.y;
-        int32_t bar_w  = lv_obj_get_width(bar);
-        int32_t bar_h  = lv_obj_get_height(bar);
+        int32_t new_x = lv_obj_get_x(bar) + vect.x;
+        int32_t new_y = lv_obj_get_y(bar) + vect.y;
+        int32_t bar_w = lv_obj_get_width(bar);
+        int32_t bar_h = lv_obj_get_height(bar);
 
-        if (new_x < 0) new_x = 0;
-        if (new_y < 0) new_y = 0;
-        if (new_x + bar_w > EOS_DISPLAY_WIDTH)  new_x = EOS_DISPLAY_WIDTH  - bar_w;
-        if (new_y + bar_h > EOS_DISPLAY_HEIGHT) new_y = EOS_DISPLAY_HEIGHT - bar_h;
+        if (new_x < 0)
+            new_x = 0;
+        if (new_y < 0)
+            new_y = 0;
+        if (new_x + bar_w > EOS_DISPLAY_WIDTH)
+            new_x = EOS_DISPLAY_WIDTH - bar_w;
+        if (new_y + bar_h > EOS_DISPLAY_HEIGHT)
+            new_y = EOS_DISPLAY_HEIGHT - bar_h;
 
         lv_obj_set_pos(bar, new_x, new_y);
         _test_app_debug_set_global_bar_pos(new_x, new_y, bar_w, bar_h);
-    } else if (code == LV_EVENT_PRESSED) {
+    }
+    else if (code == LV_EVENT_PRESSED)
+    {
         lv_obj_set_style_bg_color(handle, lv_color_hex(0x3A4550), 0);
         lv_obj_set_style_bg_opa(handle, LV_OPA_COVER, 0);
         lv_obj_set_style_text_color(handle, lv_color_hex(0xFFFFFF), 0);
-    } else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+    }
+    else if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST)
+    {
         _test_app_debug_save_bar_pos(bar);
         lv_obj_set_style_bg_opa(handle, LV_OPA_TRANSP, 0);
         lv_obj_set_style_text_color(handle, lv_color_hex(0x8090A0), 0);
@@ -616,10 +585,7 @@ static void _test_app_debug_create_bar(void)
     lv_obj_set_style_pad_column(bar, 8, 0);
     lv_obj_set_layout(bar, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(bar,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     _test_app_debug_set_global_bar_pos(bar_x, bar_y, bar_w, bar_h);
 
@@ -666,16 +632,14 @@ static void _test_app_debug_app_btn_cb(lv_event_t *e)
 static void _test_app_debug_app_btn_create(lv_obj_t *parent, const char *app_id)
 {
     char icon_path[EOS_FS_PATH_MAX];
-    snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-             app_id);
+    snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
     if (!eos_storage_is_file(icon_path))
     {
         memcpy(icon_path, EOS_IMG_APP, sizeof(EOS_IMG_APP));
     }
 
     char manifest_path[EOS_FS_PATH_MAX];
-    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
-             app_id);
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME, app_id);
 
     script_pkg_t pkg = {0};
     if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
@@ -741,12 +705,14 @@ static void _test_app_debugger(void)
     s_test_app_debug.launcher_screen = eos_view_active();
 
     eos_activity_t *activity = eos_activity_create(&s_test_activity_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -760,10 +726,7 @@ static void _test_app_debugger(void)
     lv_obj_add_event_cb(scr, _test_app_debug_list_delete_cb, LV_EVENT_DELETE, NULL);
     lv_obj_set_layout(scr, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(scr,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_START);
+    lv_obj_set_flex_align(scr, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
     lv_obj_set_style_pad_all(scr, 18, 0);
     lv_obj_set_style_pad_row(scr, 10, 0);
 
@@ -804,12 +767,14 @@ static void _test_app_debugger(void)
 lv_obj_t *_create_new_scr()
 {
     eos_activity_t *activity = eos_activity_create(&s_test_activity_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return NULL;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return NULL;
     }
 
@@ -872,12 +837,14 @@ static void _test_nav_cb_1(lv_event_t *e)
     static int32_t nav_counter = 0;
 
     eos_activity_t *activity = eos_activity_create(&s_test_activity_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -924,12 +891,14 @@ static void _test_font(lv_event_t *e)
 {
     _create_new_scr();
 
-    const char *test_str = /* Chinese symbols test */ "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
-                                              /* English symbols test */ "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
-                                              /* Greek alphabet test */ "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
-                                              /* English digits test */ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-                                              /* Common Chinese chars test */ "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。"
-                                              /* Rare Chinese chars test */ "霡霂淅沥，薜荔葳蕤。彳亍踟蹰，睥睨娉婷。觊觎饕餮，倥偬倜傥。菡萏猗傩，蘼芜菁菁。";
+    const char *test_str = /* Chinese symbols test */
+        "，。、：；？！“”‘’（）【】《》〈〉——……·＋－×÷＝≠＞＜≥≤≈±￥％‰℃°＠＃＆☆★●○■□▲△▼▽"
+        /* English symbols test */ "~!@#$%^&*()-_=+[]{}\\|;:'\",./<>?`©®™"
+        /* Greek alphabet test */ "ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσΤτΥυΦφΧχΨψΩω"
+        /* English digits test */ "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+        /* Common Chinese chars test */ "在夏末的午后，风把阳台上的风铃吹得叮当作响，像是某种不经意的暗号。"
+        /* Rare Chinese chars test */ "霡霂淅沥，薜荔葳蕤。彳亍踟蹰，睥睨娉婷。觊觎饕餮，倥偬倜傥。菡萏猗傩，蘼芜菁菁"
+        "。";
 
     lv_obj_t *container = eos_list_create(eos_view_active());
     lv_obj_set_size(container, lv_pct(100), lv_pct(100));
@@ -971,8 +940,6 @@ static void _test_lang(lv_event_t *e)
     lv_obj_add_event_cb(btn, _test_lang_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -20);
 }
-
-
 
 static void _test_image_input_cb(lv_event_t *e)
 {
@@ -1056,7 +1023,8 @@ static void _test_toast(lv_event_t *e)
 static void _test_panel_basic(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1079,7 +1047,8 @@ static void _test_panel_basic(lv_event_t *e)
     };
 
     eos_panel_t *panel = eos_panel_create(view, &cfg);
-    if (panel) {
+    if (panel)
+    {
         EOS_LOG_I("Basic panel created successfully");
     }
 }
@@ -1087,7 +1056,8 @@ static void _test_panel_basic(lv_event_t *e)
 static void _test_panel_with_extra_slot(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1110,9 +1080,11 @@ static void _test_panel_with_extra_slot(lv_event_t *e)
     };
 
     eos_panel_t *panel = eos_panel_create(view, &cfg);
-    if (panel) {
+    if (panel)
+    {
         lv_obj_t *extra_slot = eos_panel_get_extra_slot(panel);
-        if (extra_slot) {
+        if (extra_slot)
+        {
             lv_obj_t *switch_label = lv_label_create(extra_slot);
             lv_label_set_text(switch_label, "Option 1: Sample Switch");
             lv_obj_set_width(switch_label, EOS_PANEL_CONTENT_WIDTH);
@@ -1127,7 +1099,8 @@ static void _test_panel_with_extra_slot(lv_event_t *e)
 static void _test_fault_panel_bug(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1149,7 +1122,8 @@ static void _test_fault_panel_bug(lv_event_t *e)
     };
 
     eos_fault_panel_t *fault_panel = eos_fault_panel_create_on_activity(NULL, &cfg);
-    if (fault_panel) {
+    if (fault_panel)
+    {
         EOS_LOG_I("Bug fault panel created successfully");
     }
 }
@@ -1157,7 +1131,8 @@ static void _test_fault_panel_bug(lv_event_t *e)
 static void _test_fault_panel_warning(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1179,7 +1154,8 @@ static void _test_fault_panel_warning(lv_event_t *e)
     };
 
     eos_fault_panel_t *fault_panel = eos_fault_panel_create_on_activity(NULL, &cfg);
-    if (fault_panel) {
+    if (fault_panel)
+    {
         EOS_LOG_I("Warning fault panel created successfully");
     }
 }
@@ -1187,7 +1163,8 @@ static void _test_fault_panel_warning(lv_event_t *e)
 static void _test_fault_panel_info(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1209,7 +1186,8 @@ static void _test_fault_panel_info(lv_event_t *e)
     };
 
     eos_fault_panel_t *fault_panel = eos_fault_panel_create_on_activity(NULL, &cfg);
-    if (fault_panel) {
+    if (fault_panel)
+    {
         EOS_LOG_I("Info fault panel created successfully");
     }
 }
@@ -1217,7 +1195,8 @@ static void _test_fault_panel_info(lv_event_t *e)
 static void _test_panel_no_icon(lv_event_t *e)
 {
     lv_obj_t *view = _create_new_scr();
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Failed to create view");
         return;
     }
@@ -1240,7 +1219,8 @@ static void _test_panel_no_icon(lv_event_t *e)
     };
 
     eos_panel_t *panel = eos_panel_create(view, &cfg);
-    if (panel) {
+    if (panel)
+    {
         EOS_LOG_I("No icon panel created successfully");
     }
 }
@@ -1248,13 +1228,15 @@ static void _test_panel_no_icon(lv_event_t *e)
 static void _test_panel_list(lv_event_t *e)
 {
     eos_activity_t *activity = eos_activity_get_current();
-    if (!activity) {
+    if (!activity)
+    {
         EOS_LOG_E("No current activity");
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -1316,15 +1298,15 @@ static void _test_audio_sync_ui(void)
     const char *status_text;
     switch (state)
     {
-    case DEV_STATE_BUSY:
-        status_text = "Audio status: playing";
-        break;
-    case DEV_STATE_READY:
-        status_text = "Audio status: ready";
-        break;
-    default:
-        status_text = "Audio status: idle";
-        break;
+        case DEV_STATE_BUSY:
+            status_text = "Audio status: playing";
+            break;
+        case DEV_STATE_READY:
+            status_text = "Audio status: ready";
+            break;
+        default:
+            status_text = "Audio status: idle";
+            break;
     }
 
     lv_label_set_text_fmt(ctx->status_label,
@@ -1349,9 +1331,7 @@ static void _test_audio_sync_ui(void)
         }
 
         lv_label_set_text(ctx->play_btn_label,
-                          (p_state == EOS_AUDIO_PLAYING)
-                              ? (LV_SYMBOL_PAUSE " Pause")
-                              : (LV_SYMBOL_PLAY " Play"));
+                          (p_state == EOS_AUDIO_PLAYING) ? (LV_SYMBOL_PAUSE " Pause") : (LV_SYMBOL_PLAY " Play"));
     }
 
     uint32_t pos = eos_audio_player_get_position(player);
@@ -1378,9 +1358,12 @@ static void _test_audio_sync_ui(void)
         {
             uint32_t pos_sec = pos / rate;
             uint32_t dur_sec = dur / rate;
-            lv_label_set_text_fmt(ctx->time_label, "%u:%02u / %u:%02u",
-                                  pos_sec / 60, pos_sec % 60,
-                                  dur_sec / 60, dur_sec % 60);
+            lv_label_set_text_fmt(ctx->time_label,
+                                  "%u:%02u / %u:%02u",
+                                  pos_sec / 60,
+                                  pos_sec % 60,
+                                  dur_sec / 60,
+                                  dur_sec % 60);
             lv_obj_remove_flag(ctx->time_label, LV_OBJ_FLAG_HIDDEN);
         }
         else
@@ -1553,11 +1536,7 @@ static void _test_recording_sync_ui(void)
     bool mic_avail = eos_service_audio_microphone_available();
     const char *status = ctx->is_recording ? "Recording..." : "Idle";
 
-    lv_label_set_text_fmt(ctx->status_label,
-                          "%s\nMic: %s\nFile: %s",
-                          status,
-                          mic_avail ? "yes" : "no",
-                          RECORDING_PATH);
+    lv_label_set_text_fmt(ctx->status_label, "%s\nMic: %s\nFile: %s", status, mic_avail ? "yes" : "no", RECORDING_PATH);
 
     if (ctx->record_btn_label && lv_obj_is_valid(ctx->record_btn_label))
     {
@@ -1669,8 +1648,7 @@ static void _test_recording_page(lv_event_t *e)
     /* Record button */
     s_test_recording_page.record_btn = lv_button_create(list);
     lv_obj_set_size(s_test_recording_page.record_btn, lv_pct(100), 56);
-    lv_obj_add_event_cb(s_test_recording_page.record_btn,
-                        _test_recording_record_btn_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(s_test_recording_page.record_btn, _test_recording_record_btn_cb, LV_EVENT_CLICKED, NULL);
 
     s_test_recording_page.record_btn_label = lv_label_create(s_test_recording_page.record_btn);
     lv_label_set_text(s_test_recording_page.record_btn_label, RI_RECORD_CIRCLE_FILL " Record");
@@ -1679,10 +1657,8 @@ static void _test_recording_page(lv_event_t *e)
     /* Playback button */
     s_test_recording_page.playback_btn = lv_button_create(list);
     lv_obj_set_size(s_test_recording_page.playback_btn, lv_pct(100), 56);
-    lv_obj_add_event_cb(s_test_recording_page.playback_btn,
-                        _test_recording_playback_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_set_style_bg_color(s_test_recording_page.playback_btn,
-                               lv_color_hex(0x2F80ED), LV_PART_MAIN);
+    lv_obj_add_event_cb(s_test_recording_page.playback_btn, _test_recording_playback_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_style_bg_color(s_test_recording_page.playback_btn, lv_color_hex(0x2F80ED), LV_PART_MAIN);
 
     lv_obj_t *play_label = lv_label_create(s_test_recording_page.playback_btn);
     lv_label_set_text(play_label, LV_SYMBOL_PLAY " Play Recording");
@@ -1748,7 +1724,8 @@ static lv_obj_t *_add_slide_wdiget(lv_obj_t *parent)
     lv_obj_update_layout(obj);
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
 
-    eos_slide_widget_t *sw = eos_slide_widget_create_with_touch(obj, obj, EOS_SLIDE_DIR_HOR, EOS_DISPLAY_WIDTH, EOS_THRESHOLD_30);
+    eos_slide_widget_t *sw =
+        eos_slide_widget_create_with_touch(obj, obj, EOS_SLIDE_DIR_HOR, EOS_DISPLAY_WIDTH, EOS_THRESHOLD_30);
     eos_slide_widget_set_bidirectional(sw, true);
     eos_slide_widget_add_event_cb_reached_threshold(sw, _slide_widget_reached_threshold_cb, sw);
 
@@ -1805,7 +1782,8 @@ static void _test_font_size(lv_event_t *e)
     eos_label_set_font_size(label, EOS_FONT_SIZE_LARGE);
 }
 
-typedef struct {
+typedef struct
+{
     lv_obj_t *table;
     eos_dev_sensor_t *sensors[EOS_SENSOR_TYPE_MAX];
     uint8_t sensor_count;
@@ -1816,15 +1794,18 @@ static _sensor_test_data_t sensor_data;
 
 static void _sensor_update_table(_sensor_test_data_t *data)
 {
-    if (!data || !data->table) {
+    if (!data || !data->table)
+    {
         return;
     }
 
     const uint8_t _SENSOR_VAL_COL = 1;
 
-    for (uint8_t i = 0; i < data->sensor_count; i++) {
+    for (uint8_t i = 0; i < data->sensor_count; i++)
+    {
         eos_dev_sensor_t *dev = data->sensors[i];
-        if (!dev) {
+        if (!dev)
+        {
             lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL, "N/A");
             continue;
         }
@@ -1832,81 +1813,99 @@ static void _sensor_update_table(_sensor_test_data_t *data)
         eos_sensor_raw_data_t raw_data;
         eos_result_t result = eos_sensor_read_latest(dev->type, &raw_data);
 
-        if (result != EOS_OK) {
+        if (result != EOS_OK)
+        {
             lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL, "N/A");
             continue;
         }
 
-        switch (dev->type) {
-        case EOS_SENSOR_TYPE_ACCE:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "X=%d Y=%d Z=%d",
-                                        raw_data.data.acce.x,
-                                        raw_data.data.acce.y,
-                                        raw_data.data.acce.z);
-            break;
+        switch (dev->type)
+        {
+            case EOS_SENSOR_TYPE_ACCE:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "X=%d Y=%d Z=%d",
+                                            raw_data.data.acce.x,
+                                            raw_data.data.acce.y,
+                                            raw_data.data.acce.z);
+                break;
 
-        case EOS_SENSOR_TYPE_GYRO:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "X=%d Y=%d Z=%d",
-                                        raw_data.data.gyro.x,
-                                        raw_data.data.gyro.y,
-                                        raw_data.data.gyro.z);
-            break;
+            case EOS_SENSOR_TYPE_GYRO:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "X=%d Y=%d Z=%d",
+                                            raw_data.data.gyro.x,
+                                            raw_data.data.gyro.y,
+                                            raw_data.data.gyro.z);
+                break;
 
-        case EOS_SENSOR_TYPE_MAG:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "X=%d Y=%d Z=%d",
-                                        raw_data.data.mag.x,
-                                        raw_data.data.mag.y,
-                                        raw_data.data.mag.z);
-            break;
+            case EOS_SENSOR_TYPE_MAG:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "X=%d Y=%d Z=%d",
+                                            raw_data.data.mag.x,
+                                            raw_data.data.mag.y,
+                                            raw_data.data.mag.z);
+                break;
 
-        case EOS_SENSOR_TYPE_TEMP:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "%.2f C",
-                                        raw_data.data.temp.temp / 100.0f);
-            break;
+            case EOS_SENSOR_TYPE_TEMP:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "%.2f C",
+                                            raw_data.data.temp.temp / 100.0f);
+                break;
 
-        case EOS_SENSOR_TYPE_BARO:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "%.2f hPa",
-                                        raw_data.data.baro.pressure / 100.0f);
-            break;
+            case EOS_SENSOR_TYPE_BARO:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "%.2f hPa",
+                                            raw_data.data.baro.pressure / 100.0f);
+                break;
 
-        case EOS_SENSOR_TYPE_LIGHT:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "%u lux",
-                                        (unsigned int)raw_data.data.light.lux);
-            break;
+            case EOS_SENSOR_TYPE_LIGHT:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "%u lux",
+                                            (unsigned int)raw_data.data.light.lux);
+                break;
 
-        case EOS_SENSOR_TYPE_PROXIMITY:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "%u mm",
-                                        raw_data.data.proximity.distance_mm);
-            break;
+            case EOS_SENSOR_TYPE_PROXIMITY:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "%u mm",
+                                            raw_data.data.proximity.distance_mm);
+                break;
 
-        case EOS_SENSOR_TYPE_HR:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "HR=%u bpm",
-                                        raw_data.data.hr.heart_rate);
-            break;
+            case EOS_SENSOR_TYPE_HR:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "HR=%u bpm",
+                                            raw_data.data.hr.heart_rate);
+                break;
 
-        case EOS_SENSOR_TYPE_SPO2:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "SpO2=%u%%",
-                                        raw_data.data.spo2.spo2);
-            break;
+            case EOS_SENSOR_TYPE_SPO2:
+                lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL, "SpO2=%u%%", raw_data.data.spo2.spo2);
+                break;
 
-        case EOS_SENSOR_TYPE_STEP:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL,
-                                        "%lu steps",
-                                        (unsigned long)raw_data.data.step.steps);
-            break;
+            case EOS_SENSOR_TYPE_STEP:
+                lv_table_set_cell_value_fmt(data->table,
+                                            i + 1,
+                                            _SENSOR_VAL_COL,
+                                            "%lu steps",
+                                            (unsigned long)raw_data.data.step.steps);
+                break;
 
-        default:
-            lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL, "-");
-            break;
+            default:
+                lv_table_set_cell_value_fmt(data->table, i + 1, _SENSOR_VAL_COL, "-");
+                break;
         }
     }
 }
@@ -1914,15 +1913,18 @@ static void _sensor_update_table(_sensor_test_data_t *data)
 static void _sensor_timer_cb(lv_timer_t *t)
 {
     _sensor_test_data_t *data = (_sensor_test_data_t *)lv_timer_get_user_data(t);
-    if (data && data->table && data->timer == t) {
+    if (data && data->table && data->timer == t)
+    {
         _sensor_update_table(data);
     }
 }
 
 static void _sensor_cleanup(_sensor_test_data_t *data)
 {
-    if (data) {
-        if (data->timer) {
+    if (data)
+    {
+        if (data->timer)
+        {
             lv_timer_delete(data->timer);
             data->timer = NULL;
         }
@@ -1936,22 +1938,22 @@ static void _sensor_test_on_destroy(eos_activity_t *activity)
     _sensor_cleanup(&sensor_data);
 }
 
-static const eos_activity_lifecycle_t _s_sensor_test_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = _sensor_test_on_destroy,
-    .on_pause = NULL,
-    .on_resume = NULL
-};
+static const eos_activity_lifecycle_t _s_sensor_test_lifecycle = {.on_enter = NULL,
+                                                                  .on_destroy = _sensor_test_on_destroy,
+                                                                  .on_pause = NULL,
+                                                                  .on_resume = NULL};
 
 static lv_obj_t *_create_sensor_test_scr(void)
 {
     eos_activity_t *activity = eos_activity_create(&_s_sensor_test_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return NULL;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return NULL;
     }
 
@@ -1965,7 +1967,8 @@ static lv_obj_t *_create_sensor_test_scr(void)
 static void _test_sensor(lv_event_t *e)
 {
     lv_obj_t *scr = _create_sensor_test_scr();
-    if (!scr) {
+    if (!scr)
+    {
         return;
     }
 
@@ -1987,8 +1990,10 @@ static void _test_sensor(lv_event_t *e)
 
     /* Iterate through all registered sensor devices */
     eos_dev_sensor_t *dev = eos_dev_sensor_get_list_head();
-    while (dev && sensor_data.sensor_count < EOS_SENSOR_TYPE_MAX) {
-        if (dev->name) {
+    while (dev && sensor_data.sensor_count < EOS_SENSOR_TYPE_MAX)
+    {
+        if (dev->name)
+        {
             sensor_data.sensors[sensor_data.sensor_count++] = dev;
             lv_table_set_cell_value(tb, sensor_data.sensor_count, 0, dev->name);
             lv_table_set_cell_value(tb, sensor_data.sensor_count, 1, "N/A");
@@ -1996,7 +2001,8 @@ static void _test_sensor(lv_event_t *e)
         dev = dev->_next;
     }
 
-    if (sensor_data.sensor_count > 0) {
+    if (sensor_data.sensor_count > 0)
+    {
         lv_table_set_row_count(tb, sensor_data.sensor_count + 1);
     }
 
@@ -2042,12 +2048,14 @@ static void _test_unit_runner_cb(lv_event_t *e)
 void eos_test_start(void)
 {
     eos_activity_t *activity = eos_activity_create(&s_test_activity_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 

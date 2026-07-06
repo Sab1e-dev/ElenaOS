@@ -43,8 +43,7 @@ static bool _test_spk_get_instance(void)
 {
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
     bool passed = (spk != NULL);
-    _record_test("Speaker: get_instance non-null", passed,
-                 passed ? "Instance exists" : "get_instance returned NULL");
+    _record_test("Speaker: get_instance non-null", passed, passed ? "Instance exists" : "get_instance returned NULL");
     return passed;
 }
 
@@ -55,8 +54,7 @@ static bool _test_spk_initial_state(void)
 {
     eos_dev_state_t state = eos_dev_speaker_get_state();
     bool passed = (state == DEV_STATE_READY);
-    _record_test("Speaker: state is READY", passed,
-                 passed ? "State is DEV_STATE_READY" : "State incorrect");
+    _record_test("Speaker: state is READY", passed, passed ? "State is DEV_STATE_READY" : "State incorrect");
     return passed;
 }
 
@@ -67,8 +65,7 @@ static bool _test_spk_register_null_ops(void)
 {
     eos_result_t ret = eos_dev_speaker_register(NULL);
     bool passed = (ret != EOS_OK);
-    _record_test("Speaker: reject NULL ops", passed,
-                 passed ? "NULL ops rejected" : "NULL ops accepted");
+    _record_test("Speaker: reject NULL ops", passed, passed ? "NULL ops rejected" : "NULL ops accepted");
     return passed;
 }
 
@@ -81,7 +78,8 @@ static bool _test_spk_register_incomplete_ops(void)
     /* All required fields are NULL */
     eos_result_t ret = eos_dev_speaker_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Speaker: reject incomplete ops", passed,
+    _record_test("Speaker: reject incomplete ops",
+                 passed,
                  passed ? "Incomplete ops rejected" : "Incomplete ops accepted");
     return passed;
 }
@@ -101,8 +99,7 @@ static bool _test_spk_register_missing_open(void)
     };
     eos_result_t ret = eos_dev_speaker_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Speaker: reject missing open", passed,
-                 passed ? "Missing open rejected" : "Should have rejected");
+    _record_test("Speaker: reject missing open", passed, passed ? "Missing open rejected" : "Should have rejected");
     return passed;
 }
 
@@ -121,7 +118,8 @@ static bool _test_spk_register_missing_is_available(void)
     };
     eos_result_t ret = eos_dev_speaker_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Speaker: reject missing is_available", passed,
+    _record_test("Speaker: reject missing is_available",
+                 passed,
                  passed ? "Missing is_available rejected" : "Should have rejected");
     return passed;
 }
@@ -135,14 +133,14 @@ static bool _test_spk_register_duplicate(void)
     eos_dev_speaker_t *spk = eos_dev_speaker_get_instance();
     if (spk == NULL || spk->ops == NULL)
     {
-        _record_test("Speaker: reject duplicate register", false,
-                     "Pre-condition: no ops registered yet");
+        _record_test("Speaker: reject duplicate register", false, "Pre-condition: no ops registered yet");
         return false;
     }
 
     eos_result_t ret = eos_dev_speaker_register(spk->ops);
     bool passed = (ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Speaker: reject duplicate register", passed,
+    _record_test("Speaker: reject duplicate register",
+                 passed,
                  passed ? "Duplicate rejected with EOS_ERR_ALREADY_EXISTS" : "Duplicate should have been rejected");
     return passed;
 }
@@ -167,8 +165,7 @@ static bool _test_spk_state_transitions(void)
     eos_dev_state_t back = eos_dev_speaker_get_state();
 
     bool passed = (busy == DEV_STATE_BUSY && back == DEV_STATE_READY);
-    _record_test("Speaker: state transitions", passed,
-                 passed ? "READY -> BUSY -> READY" : "State transition failed");
+    _record_test("Speaker: state transitions", passed, passed ? "READY -> BUSY -> READY" : "State transition failed");
     return passed;
 }
 
@@ -180,7 +177,8 @@ static bool _test_spk_report_state_same(void)
     eos_dev_speaker_report_state(DEV_STATE_READY);
     eos_dev_state_t state = eos_dev_speaker_get_state();
     bool passed = (state == DEV_STATE_READY);
-    _record_test("Speaker: report_state same no-op", passed,
+    _record_test("Speaker: report_state same no-op",
+                 passed,
                  passed ? "Same state is no-op" : "State changed unexpectedly");
     return passed;
 }
@@ -192,8 +190,7 @@ static bool _test_mic_get_instance(void)
 {
     eos_dev_microphone_t *mic = eos_dev_microphone_get_instance();
     bool passed = (mic != NULL);
-    _record_test("Mic: get_instance non-null", passed,
-                 passed ? "Instance exists" : "get_instance returned NULL");
+    _record_test("Mic: get_instance non-null", passed, passed ? "Instance exists" : "get_instance returned NULL");
     return passed;
 }
 
@@ -204,8 +201,7 @@ static bool _test_mic_initial_state(void)
 {
     eos_dev_state_t state = eos_dev_microphone_get_state();
     bool passed = (state == DEV_STATE_READY);
-    _record_test("Mic: state is READY", passed,
-                 passed ? "State is DEV_STATE_READY" : "State incorrect");
+    _record_test("Mic: state is READY", passed, passed ? "State is DEV_STATE_READY" : "State incorrect");
     return passed;
 }
 
@@ -216,8 +212,7 @@ static bool _test_mic_register_null_ops(void)
 {
     eos_result_t ret = eos_dev_microphone_register(NULL);
     bool passed = (ret != EOS_OK);
-    _record_test("Mic: reject NULL ops", passed,
-                 passed ? "NULL ops rejected" : "NULL ops accepted");
+    _record_test("Mic: reject NULL ops", passed, passed ? "NULL ops rejected" : "NULL ops accepted");
     return passed;
 }
 
@@ -229,8 +224,7 @@ static bool _test_mic_register_incomplete_ops(void)
     eos_dev_microphone_ops_t ops = {0};
     eos_result_t ret = eos_dev_microphone_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Mic: reject incomplete ops", passed,
-                 passed ? "Incomplete ops rejected" : "Incomplete ops accepted");
+    _record_test("Mic: reject incomplete ops", passed, passed ? "Incomplete ops rejected" : "Incomplete ops accepted");
     return passed;
 }
 
@@ -246,7 +240,8 @@ static bool _test_mic_register_missing_set_buffer(void)
     };
     eos_result_t ret = eos_dev_microphone_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Mic: reject missing set_buffer", passed,
+    _record_test("Mic: reject missing set_buffer",
+                 passed,
                  passed ? "Missing set_buffer rejected" : "Should have rejected");
     return passed;
 }
@@ -263,7 +258,8 @@ static bool _test_mic_register_missing_is_available(void)
     };
     eos_result_t ret = eos_dev_microphone_register(&ops);
     bool passed = (ret == EOS_ERR_INVALID_ARG || ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Mic: reject missing is_available", passed,
+    _record_test("Mic: reject missing is_available",
+                 passed,
                  passed ? "Missing is_available rejected" : "Should have rejected");
     return passed;
 }
@@ -276,14 +272,14 @@ static bool _test_mic_register_duplicate(void)
     eos_dev_microphone_t *mic = eos_dev_microphone_get_instance();
     if (mic == NULL || mic->ops == NULL)
     {
-        _record_test("Mic: reject duplicate register", false,
-                     "Pre-condition: no ops registered yet");
+        _record_test("Mic: reject duplicate register", false, "Pre-condition: no ops registered yet");
         return false;
     }
 
     eos_result_t ret = eos_dev_microphone_register(mic->ops);
     bool passed = (ret == EOS_ERR_ALREADY_EXISTS);
-    _record_test("Mic: reject duplicate register", passed,
+    _record_test("Mic: reject duplicate register",
+                 passed,
                  passed ? "Duplicate rejected with EOS_ERR_ALREADY_EXISTS" : "Duplicate should have been rejected");
     return passed;
 }
@@ -307,8 +303,7 @@ static bool _test_mic_state_transitions(void)
     eos_dev_state_t back = eos_dev_microphone_get_state();
 
     bool passed = (busy == DEV_STATE_BUSY && back == DEV_STATE_READY);
-    _record_test("Mic: state transitions", passed,
-                 passed ? "READY -> BUSY -> READY" : "State transition failed");
+    _record_test("Mic: state transitions", passed, passed ? "READY -> BUSY -> READY" : "State transition failed");
     return passed;
 }
 
@@ -319,8 +314,7 @@ static bool _test_service_set_volume_valid(void)
 {
     eos_result_t ret = eos_service_audio_set_volume(50);
     bool passed = (ret == EOS_OK);
-    _record_test("Service: set_volume 50", passed,
-                 passed ? "Volume set successfully" : "set_volume failed");
+    _record_test("Service: set_volume 50", passed, passed ? "Volume set successfully" : "set_volume failed");
     return passed;
 }
 
@@ -331,8 +325,7 @@ static bool _test_service_set_volume_min(void)
 {
     eos_result_t ret = eos_service_audio_set_volume(0);
     bool passed = (ret == EOS_OK);
-    _record_test("Service: set_volume 0 (min)", passed,
-                 passed ? "Min volume set" : "set_volume failed");
+    _record_test("Service: set_volume 0 (min)", passed, passed ? "Min volume set" : "set_volume failed");
     return passed;
 }
 
@@ -343,8 +336,7 @@ static bool _test_service_set_volume_max(void)
 {
     eos_result_t ret = eos_service_audio_set_volume(100);
     bool passed = (ret == EOS_OK);
-    _record_test("Service: set_volume 100 (max)", passed,
-                 passed ? "Max volume set" : "set_volume failed");
+    _record_test("Service: set_volume 100 (max)", passed, passed ? "Max volume set" : "set_volume failed");
     return passed;
 }
 
@@ -356,7 +348,8 @@ static bool _test_service_set_volume_clamped(void)
     eos_result_t ret = eos_service_audio_set_volume(200);
     /* Should succeed because it gets clamped to 100 */
     bool passed = (ret == EOS_OK);
-    _record_test("Service: set_volume 200 clamped to 100", passed,
+    _record_test("Service: set_volume 200 clamped to 100",
+                 passed,
                  passed ? "Out-of-range clamped" : "Should clamp and succeed");
     return passed;
 }
@@ -369,8 +362,7 @@ static bool _test_service_get_volume(void)
     eos_service_audio_set_volume(75);
     uint8_t vol = eos_service_audio_get_volume();
     bool passed = (vol == 75);
-    _record_test("Service: get_volume after set", passed,
-                 passed ? "Volume persisted correctly" : "Volume mismatch");
+    _record_test("Service: get_volume after set", passed, passed ? "Volume persisted correctly" : "Volume mismatch");
     return passed;
 }
 
@@ -383,8 +375,7 @@ static bool _test_service_mute_on(void)
     eos_service_audio_set_mute(true);
     bool is_muted = eos_service_audio_is_muted();
     bool passed = (is_muted == true);
-    _record_test("Service: mute on", passed,
-                 passed ? "Mute enabled" : "Mute not set");
+    _record_test("Service: mute on", passed, passed ? "Mute enabled" : "Mute not set");
     return passed;
 }
 
@@ -396,8 +387,7 @@ static bool _test_service_mute_off(void)
     eos_service_audio_set_mute(false);
     bool is_muted = eos_service_audio_is_muted();
     bool passed = (is_muted == false);
-    _record_test("Service: mute off", passed,
-                 passed ? "Mute disabled" : "Mute still set");
+    _record_test("Service: mute off", passed, passed ? "Mute disabled" : "Mute still set");
     return passed;
 }
 
@@ -410,8 +400,7 @@ static bool _test_service_mute_default(void)
     eos_service_audio_set_mute(false);
     bool is_muted = eos_service_audio_is_muted();
     bool passed = (is_muted == false);
-    _record_test("Service: default mute = false", passed,
-                 passed ? "Mute defaults to false" : "Mute default incorrect");
+    _record_test("Service: default mute = false", passed, passed ? "Mute defaults to false" : "Mute default incorrect");
     return passed;
 }
 
@@ -422,7 +411,8 @@ static bool _test_service_play_null(void)
 {
     eos_result_t ret = eos_service_audio_play(NULL);
     bool passed = (ret == EOS_ERR_INVALID_ARG);
-    _record_test("Service: play NULL path rejected", passed,
+    _record_test("Service: play NULL path rejected",
+                 passed,
                  passed ? "NULL path returns EOS_ERR_INVALID_ARG" : "Should reject NULL");
     return passed;
 }
@@ -437,7 +427,8 @@ static bool _test_service_play_valid(void)
      * on host, or audio format may be unsupported). The important
      * thing is the call doesn't crash and returns a valid error code. */
     bool passed = (ret == EOS_OK || ret == EOS_ERR_DEV_ERROR || ret == EOS_ERR_NOT_FOUND);
-    _record_test("Service: play file API works", passed,
+    _record_test("Service: play file API works",
+                 passed,
                  passed ? "Play API call handled cleanly" : "Play failed unexpectedly");
     return passed;
 }
@@ -449,8 +440,7 @@ static bool _test_service_stop(void)
 {
     eos_result_t ret = eos_service_audio_stop();
     bool passed = (ret == EOS_OK);
-    _record_test("Service: stop", passed,
-                 passed ? "Stop succeeded" : "Stop failed");
+    _record_test("Service: stop", passed, passed ? "Stop succeeded" : "Stop failed");
     return passed;
 }
 
@@ -461,7 +451,8 @@ static bool _test_service_play_tone_unsupported(void)
 {
     eos_result_t ret = eos_service_audio_play_tone(440, 500);
     bool passed = (ret == EOS_ERR_DEV_OPS_NOT_SUPPORTED);
-    _record_test("Service: play_tone unsupported", passed,
+    _record_test("Service: play_tone unsupported",
+                 passed,
                  passed ? "Returns EOS_ERR_DEV_OPS_NOT_SUPPORTED" : "Should report unsupported");
     return passed;
 }
@@ -473,7 +464,8 @@ static bool _test_service_record_null(void)
 {
     eos_result_t ret = eos_service_audio_start_recording(NULL);
     bool passed = (ret == EOS_ERR_INVALID_ARG);
-    _record_test("Service: record NULL path rejected", passed,
+    _record_test("Service: record NULL path rejected",
+                 passed,
                  passed ? "NULL path returns EOS_ERR_INVALID_ARG" : "Should reject NULL");
     return passed;
 }
@@ -486,9 +478,11 @@ static bool _test_service_record_start(void)
     eos_result_t ret = eos_service_audio_start_recording(RECORD_TEST_PATH);
     /* Accept EOS_OK, or EOS_ERR_DEV_ERROR (permission denied / no input device) */
     bool passed = (ret == EOS_OK || ret == EOS_ERR_DEV_ERROR);
-    _record_test("Service: start recording", passed,
-                 passed ? (ret == EOS_OK ? "Recording started" : "Permission/mic not available (expected on some systems)")
-                        : "Start recording failed");
+    _record_test("Service: start recording",
+                 passed,
+                 passed
+                     ? (ret == EOS_OK ? "Recording started" : "Permission/mic not available (expected on some systems)")
+                     : "Start recording failed");
     return passed;
 }
 
@@ -500,8 +494,7 @@ static bool _test_service_record_stop(void)
     eos_result_t ret = eos_service_audio_stop_recording();
     /* Stop is safe to call even if not recording */
     bool passed = (ret == EOS_OK);
-    _record_test("Service: stop recording", passed,
-                 passed ? "Recording stopped" : "Stop recording failed");
+    _record_test("Service: stop recording", passed, passed ? "Recording stopped" : "Stop recording failed");
     return passed;
 }
 
@@ -513,7 +506,8 @@ static bool _test_service_record_playback(void)
     eos_result_t ret = eos_service_audio_play(RECORD_TEST_PATH);
     /* Accept EOS_OK or EOS_ERR_DEV_ERROR (file may not exist if recording failed) */
     bool passed = (ret == EOS_OK || ret == EOS_ERR_DEV_ERROR);
-    _record_test("Service: play back recording", passed,
+    _record_test("Service: play back recording",
+                 passed,
                  passed ? "Playback API call handled cleanly" : "Playback failed unexpectedly");
     return passed;
 }
@@ -526,7 +520,8 @@ static bool _test_service_speaker_available(void)
     bool avail = eos_service_audio_speaker_available();
     /* On simulator with port audio registered, speaker should be available */
     bool passed = (avail == true);
-    _record_test("Service: speaker available", passed,
+    _record_test("Service: speaker available",
+                 passed,
                  passed ? "Speaker is available" : "Speaker not available (port may not be registered)");
     return passed;
 }
@@ -538,7 +533,8 @@ static bool _test_service_microphone_available(void)
 {
     bool avail = eos_service_audio_microphone_available();
     bool passed = (avail == true);
-    _record_test("Service: microphone available", passed,
+    _record_test("Service: microphone available",
+                 passed,
                  passed ? "Microphone is available" : "Mic should be available");
     return passed;
 }
@@ -551,8 +547,7 @@ static bool _test_service_set_volume_idempotent(void)
     eos_service_audio_set_volume(30);
     eos_result_t ret1 = eos_service_audio_set_volume(30);
     bool passed = (ret1 == EOS_OK);
-    _record_test("Service: set_volume idempotent", passed,
-                 passed ? "Repeated call succeeds" : "Repeated call failed");
+    _record_test("Service: set_volume idempotent", passed, passed ? "Repeated call succeeds" : "Repeated call failed");
     return passed;
 }
 
@@ -564,8 +559,7 @@ static bool _test_spk_get_instance_consistent(void)
     eos_dev_speaker_t *spk1 = eos_dev_speaker_get_instance();
     eos_dev_speaker_t *spk2 = eos_dev_speaker_get_instance();
     bool passed = (spk1 == spk2);
-    _record_test("Speaker: get_instance consistent", passed,
-                 passed ? "Same pointer returned" : "Different pointers");
+    _record_test("Speaker: get_instance consistent", passed, passed ? "Same pointer returned" : "Different pointers");
     return passed;
 }
 
@@ -577,8 +571,7 @@ static bool _test_mic_get_instance_consistent(void)
     eos_dev_microphone_t *mic1 = eos_dev_microphone_get_instance();
     eos_dev_microphone_t *mic2 = eos_dev_microphone_get_instance();
     bool passed = (mic1 == mic2);
-    _record_test("Mic: get_instance consistent", passed,
-                 passed ? "Same pointer returned" : "Different pointers");
+    _record_test("Mic: get_instance consistent", passed, passed ? "Same pointer returned" : "Different pointers");
     return passed;
 }
 
@@ -592,7 +585,8 @@ static bool _test_spk_register_required_only(void)
      * even though optional ops (deinit, pause, resume) are NULL. */
     eos_dev_state_t state = eos_dev_speaker_get_state();
     bool passed = (state == DEV_STATE_READY);
-    _record_test("Speaker: register with optional NULL ops", passed,
+    _record_test("Speaker: register with optional NULL ops",
+                 passed,
                  passed ? "Registration accepted with optional ops NULL" : "State is not READY");
     return passed;
 }
@@ -604,7 +598,8 @@ static bool _test_mic_register_required_only(void)
 {
     eos_dev_state_t state = eos_dev_microphone_get_state();
     bool passed = (state == DEV_STATE_READY);
-    _record_test("Mic: register with optional NULL ops", passed,
+    _record_test("Mic: register with optional NULL ops",
+                 passed,
                  passed ? "Registration accepted with optional ops NULL" : "State is not READY");
     return passed;
 }
@@ -617,8 +612,7 @@ static bool _test_service_stop_idle(void)
     /* Already stopped, call again */
     eos_result_t ret = eos_service_audio_stop();
     bool passed = (ret == EOS_OK);
-    _record_test("Service: stop when idle", passed,
-                 passed ? "Idle stop handled gracefully" : "Idle stop failed");
+    _record_test("Service: stop when idle", passed, passed ? "Idle stop handled gracefully" : "Idle stop failed");
     return passed;
 }
 
@@ -632,8 +626,7 @@ static bool _test_spk_report_state_error(void)
     bool passed = (state == DEV_STATE_ERROR);
     /* Restore to READY */
     eos_dev_speaker_report_state(DEV_STATE_READY);
-    _record_test("Speaker: report_state ERROR", passed,
-                 passed ? "State set to ERROR" : "State not ERROR");
+    _record_test("Speaker: report_state ERROR", passed, passed ? "State set to ERROR" : "State not ERROR");
     return passed;
 }
 
@@ -646,8 +639,7 @@ static bool _test_mic_report_state_error(void)
     eos_dev_state_t state = eos_dev_microphone_get_state();
     bool passed = (state == DEV_STATE_ERROR);
     eos_dev_microphone_report_state(DEV_STATE_READY);
-    _record_test("Mic: report_state ERROR", passed,
-                 passed ? "State set to ERROR" : "State not ERROR");
+    _record_test("Mic: report_state ERROR", passed, passed ? "State set to ERROR" : "State not ERROR");
     return passed;
 }
 

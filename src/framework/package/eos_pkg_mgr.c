@@ -64,13 +64,15 @@ void eos_pkg_free(script_pkg_t *pkg)
 eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
 {
     // Validate input parameters
-    if (!pkg_path || !header) {
+    if (!pkg_path || !header)
+    {
         EOS_LOG_E("Invalid parameters: pkg_path=%p, header=%p", pkg_path, header);
         return EOS_ERR_VAR_NULL;
     }
 
     // Check if it's a regular file
-    if (!eos_storage_is_file(pkg_path)) {
+    if (!eos_storage_is_file(pkg_path))
+    {
         EOS_LOG_E("Path is not a file: %s", pkg_path);
         return EOS_ERR_FILE_ERROR;
     }
@@ -87,8 +89,7 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     memset(header, 0, sizeof(eos_pkg_header_t));
 
     // Read magic number
-    if (eos_storage_file_seek(fp, EOS_PKG_MAGIC_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, header->magic, 4) != 4)
+    if (eos_storage_file_seek(fp, EOS_PKG_MAGIC_OFFSET) != EOS_OK || eos_storage_file_read(fp, header->magic, 4) != 4)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read magic number");
@@ -96,8 +97,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read package name
-    if (eos_storage_file_seek(fp, EOS_PKG_NAME_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, header->pkg_name, EOS_PKG_NAME_LEN_MAX) != EOS_PKG_NAME_LEN_MAX)
+    if (eos_storage_file_seek(fp, EOS_PKG_NAME_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, header->pkg_name, EOS_PKG_NAME_LEN_MAX) != EOS_PKG_NAME_LEN_MAX)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read package name");
@@ -106,8 +107,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_name[EOS_PKG_NAME_LEN_MAX - 1] = '\0';
 
     // Read package ID
-    if (eos_storage_file_seek(fp, EOS_PKG_ID_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, header->pkg_id, EOS_PKG_ID_LEN_MAX) != EOS_PKG_ID_LEN_MAX)
+    if (eos_storage_file_seek(fp, EOS_PKG_ID_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, header->pkg_id, EOS_PKG_ID_LEN_MAX) != EOS_PKG_ID_LEN_MAX)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read package id");
@@ -116,8 +117,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_id[EOS_PKG_ID_LEN_MAX - 1] = '\0';
 
     // Read package version
-    if (eos_storage_file_seek(fp, EOS_PKG_VERSION_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, header->pkg_version, EOS_PKG_VERSION_LEN_MAX) != EOS_PKG_VERSION_LEN_MAX)
+    if (eos_storage_file_seek(fp, EOS_PKG_VERSION_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, header->pkg_version, EOS_PKG_VERSION_LEN_MAX) != EOS_PKG_VERSION_LEN_MAX)
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read package version");
@@ -126,8 +127,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     header->pkg_version[EOS_PKG_VERSION_LEN_MAX - 1] = '\0';
 
     // Read min_api_level
-    if (eos_storage_file_seek(fp, EOS_PKG_MIN_API_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, &header->min_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
+    if (eos_storage_file_seek(fp, EOS_PKG_MIN_API_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, &header->min_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read min_api_level");
@@ -135,8 +136,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read target_api_level
-    if (eos_storage_file_seek(fp, EOS_PKG_TARGET_API_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, &header->target_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
+    if (eos_storage_file_seek(fp, EOS_PKG_TARGET_API_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, &header->target_api_level, sizeof(uint16_t)) != sizeof(uint16_t))
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read target_api_level");
@@ -144,8 +145,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read file_count
-    if (eos_storage_file_seek(fp, EOS_PKG_FILE_COUNT_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, &header->file_count, sizeof(uint32_t)) != sizeof(uint32_t))
+    if (eos_storage_file_seek(fp, EOS_PKG_FILE_COUNT_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, &header->file_count, sizeof(uint32_t)) != sizeof(uint32_t))
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read file count");
@@ -153,8 +154,8 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
     }
 
     // Read reserved field
-    if (eos_storage_file_seek(fp, EOS_PKG_RESERVED_OFFSET) != EOS_OK ||
-        eos_storage_file_read(fp, &header->reserved, sizeof(uint32_t)) != sizeof(uint32_t))
+    if (eos_storage_file_seek(fp, EOS_PKG_RESERVED_OFFSET) != EOS_OK
+        || eos_storage_file_read(fp, &header->reserved, sizeof(uint32_t)) != sizeof(uint32_t))
     {
         eos_storage_file_close(fp);
         EOS_LOG_E("Failed to read reserved field");
@@ -166,8 +167,10 @@ eos_result_t eos_pkg_read_header(const char *pkg_path, eos_pkg_header_t *header)
               "Magic: %s | Pkg Name: %s | Pkg Version: %s\n"
               "File Count: %d | Table Offset: %d\n"
               "=============================",
-              header->magic, header->pkg_name,
-              header->pkg_version, header->file_count,
+              header->magic,
+              header->pkg_name,
+              header->pkg_version,
+              header->file_count,
               EOS_PKG_HEADER_LENGTH);
     return EOS_OK;
 }
@@ -278,9 +281,9 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
 
         // Read the remaining entry fields
         uint32_t is_dir, offset, size;
-        if (eos_storage_file_read(fp, &is_dir, sizeof(uint32_t)) != sizeof(uint32_t) ||
-            eos_storage_file_read(fp, &offset, sizeof(uint32_t)) != sizeof(uint32_t) ||
-            eos_storage_file_read(fp, &size, sizeof(uint32_t)) != sizeof(uint32_t))
+        if (eos_storage_file_read(fp, &is_dir, sizeof(uint32_t)) != sizeof(uint32_t)
+            || eos_storage_file_read(fp, &offset, sizeof(uint32_t)) != sizeof(uint32_t)
+            || eos_storage_file_read(fp, &size, sizeof(uint32_t)) != sizeof(uint32_t))
         {
             eos_storage_file_close(fp);
             EOS_LOG_E("Failed to read entry fields for %s", name);
@@ -319,8 +322,7 @@ eos_result_t eos_pkg_mgr_unpack(const char *pkg_path, const char *output_path, c
             if (offset + size > file_size)
             {
                 eos_storage_file_close(fp);
-                EOS_LOG_E("File size overflow: %u+%u=%u for %s",
-                          offset, size, offset + size, name);
+                EOS_LOG_E("File size overflow: %u+%u=%u for %s", offset, size, offset + size, name);
                 return EOS_ERR_FILE_ERROR;
             }
 

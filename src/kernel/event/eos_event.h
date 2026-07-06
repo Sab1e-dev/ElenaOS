@@ -39,16 +39,16 @@ typedef void (*eos_event_cb_t)(eos_event_t *e);
 typedef enum
 {
     EOS_EVENT_UNKNOWN = 0,
-    EOS_EVENT_APP_UNINSTALLED,                  /**< Application has been uninstalled */
-    EOS_EVENT_APP_INSTALLED,                    /**< Application has been installed */
-    EOS_EVENT_SYSTEM_SLEEP,                     /**< System entered sleep mode */
-    EOS_EVENT_SYSTEM_DISPLAY_ON,                /**< System has been awakened */
-    EOS_EVENT_SYSTEM_DISPLAY_AOD,               /**< Screen always-on mode has been activated */
-    EOS_EVENT_SYSTEM_CONFIG_UPDATE,             /**< Configuration file has been updated */
-    EOS_EVENT_SCRIPT_STARTED,                   /**< Script has started */
-    EOS_EVENT_SCRIPT_EXITED,                    /**< Script has exited */
-    EOS_EVENT_ACTIVITY_SCREEN_SWITCHED,         /**< Activity page transition completed, param is current activity view */
-    EOS_EVENT_LANGUAGE_CHANGED,                 /**< Language has been changed */
+    EOS_EVENT_APP_UNINSTALLED, /**< Application has been uninstalled */
+    EOS_EVENT_APP_INSTALLED, /**< Application has been installed */
+    EOS_EVENT_SYSTEM_SLEEP, /**< System entered sleep mode */
+    EOS_EVENT_SYSTEM_DISPLAY_ON, /**< System has been awakened */
+    EOS_EVENT_SYSTEM_DISPLAY_AOD, /**< Screen always-on mode has been activated */
+    EOS_EVENT_SYSTEM_CONFIG_UPDATE, /**< Configuration file has been updated */
+    EOS_EVENT_SCRIPT_STARTED, /**< Script has started */
+    EOS_EVENT_SCRIPT_EXITED, /**< Script has exited */
+    EOS_EVENT_ACTIVITY_SCREEN_SWITCHED, /**< Activity page transition completed, param is current activity view */
+    EOS_EVENT_LANGUAGE_CHANGED, /**< Language has been changed */
     EOS_EVENT_LAST
 } eos_event_code_t;
 

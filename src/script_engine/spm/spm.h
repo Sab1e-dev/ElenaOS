@@ -28,26 +28,28 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define SPM_ERROR_INFO_MAX         256
-#define SPM_BACKTRACE_MAX_FRAMES   16
-#define SPM_BACKTRACE_SOURCE_SIZE  128
+#define SPM_ERROR_INFO_MAX 256
+#define SPM_BACKTRACE_MAX_FRAMES 16
+#define SPM_BACKTRACE_SOURCE_SIZE 128
 
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Script program state
  */
-typedef enum {
-    SCRIPT_PROGRAM_STATE_TERMINATED,  /* Fully terminated, all resources freed */
-    SCRIPT_PROGRAM_STATE_STOPPING,    /* Stopping, no callbacks allowed, cleaning up */
-    SCRIPT_PROGRAM_STATE_ACTIVE,      /* Active and healthy */
-    SCRIPT_PROGRAM_STATE_SUSPENDED,   /* Suspended, no code execution, resumable */
+typedef enum
+{
+    SCRIPT_PROGRAM_STATE_TERMINATED, /* Fully terminated, all resources freed */
+    SCRIPT_PROGRAM_STATE_STOPPING, /* Stopping, no callbacks allowed, cleaning up */
+    SCRIPT_PROGRAM_STATE_ACTIVE, /* Active and healthy */
+    SCRIPT_PROGRAM_STATE_SUSPENDED, /* Suspended, no code execution, resumable */
 } script_program_state_t;
 
 /**
  * @brief Script error record (copied from Core on failure)
  */
-typedef struct {
+typedef struct
+{
     char error_info[SPM_ERROR_INFO_MAX];
     eos_script_error_type_t error_type;
     script_error_location_t error_location;
@@ -61,7 +63,8 @@ typedef struct {
  * Each running or suspended script program is represented by one
  * script_program_t node in SPM's program_list doubly-linked list.
  */
-typedef struct script_program {
+typedef struct script_program
+{
     struct script_program *next;
     struct script_program *prev;
 

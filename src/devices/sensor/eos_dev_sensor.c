@@ -26,8 +26,10 @@ eos_result_t eos_dev_sensor_register(const char *name, eos_sensor_type_t type, c
     eos_critical_ctx_t ctx = eos_critical_enter();
 
     eos_dev_sensor_t *iter = _sensor_list;
-    while (iter) {
-        if (strcmp(iter->name, name) == 0) {
+    while (iter)
+    {
+        if (strcmp(iter->name, name) == 0)
+        {
             eos_critical_leave(ctx);
             return EOS_ERR_ALREADY_EXISTS;
         }
@@ -35,7 +37,8 @@ eos_result_t eos_dev_sensor_register(const char *name, eos_sensor_type_t type, c
     }
 
     eos_dev_sensor_t *sensor = (eos_dev_sensor_t *)eos_malloc(sizeof(eos_dev_sensor_t));
-    if (!sensor) {
+    if (!sensor)
+    {
         eos_critical_leave(ctx);
         return EOS_ERR_MEM;
     }
@@ -49,7 +52,8 @@ eos_result_t eos_dev_sensor_register(const char *name, eos_sensor_type_t type, c
     sensor->_next = _sensor_list;
     _sensor_list = sensor;
 
-    if (_default_sensors[type] == NULL) {
+    if (_default_sensors[type] == NULL)
+    {
         _default_sensors[type] = sensor;
     }
 
@@ -65,8 +69,10 @@ eos_dev_sensor_t *eos_dev_sensor_find(const char *name)
     eos_critical_ctx_t ctx = eos_critical_enter();
 
     eos_dev_sensor_t *iter = _sensor_list;
-    while (iter) {
-        if (strcmp(iter->name, name) == 0) {
+    while (iter)
+    {
+        if (strcmp(iter->name, name) == 0)
+        {
             eos_critical_leave(ctx);
             return iter;
         }
@@ -85,8 +91,10 @@ eos_dev_sensor_t *eos_dev_sensor_find_by_type(eos_sensor_type_t type)
     eos_critical_ctx_t ctx = eos_critical_enter();
 
     eos_dev_sensor_t *iter = _sensor_list;
-    while (iter) {
-        if (iter->type == type) {
+    while (iter)
+    {
+        if (iter->type == type)
+        {
             eos_critical_leave(ctx);
             return iter;
         }

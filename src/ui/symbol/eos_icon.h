@@ -3012,7 +3012,6 @@ extern "C" {
 #define RI_ELENIX_WATCH "\uEBF5"
 #define RI_ARROW_LEFT_S_LINE_LARGE "\uEBF6"
 
-
 void eos_icon_register(void);
 
 #ifdef __cplusplus

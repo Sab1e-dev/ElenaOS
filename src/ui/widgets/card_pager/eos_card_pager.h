@@ -28,12 +28,10 @@ typedef enum
     EOS_CARD_PAGER_DIR_HOR
 } eos_card_pager_dir_t;
 
-typedef struct eos_card_pager_node_t eos_card_pager_node_t;     // Forward declaration
+typedef struct eos_card_pager_node_t eos_card_pager_node_t; // Forward declaration
 typedef struct eos_card_pager_t eos_card_pager_t;
 
-typedef void (*eos_card_pager_page_changed_cb_t)(eos_card_pager_t *cp,
-                                                  uint8_t current_page_index,
-                                                  void *user_data);
+typedef void (*eos_card_pager_page_changed_cb_t)(eos_card_pager_t *cp, uint8_t current_page_index, void *user_data);
 
 /**
  * @brief Doubly linked list for storing pages
@@ -135,9 +133,7 @@ void eos_card_pager_move_page(eos_card_pager_t *cp, uint8_t page_index);
  */
 bool eos_card_pager_move_node(eos_card_pager_t *cp, uint8_t from_index, uint8_t to_index);
 
-void eos_card_pager_set_page_changed_cb(eos_card_pager_t *cp,
-                                        eos_card_pager_page_changed_cb_t cb,
-                                        void *user_data);
+void eos_card_pager_set_page_changed_cb(eos_card_pager_t *cp, eos_card_pager_page_changed_cb_t cb, void *user_data);
 #ifdef __cplusplus
 }
 #endif

@@ -80,8 +80,16 @@ static void _list_transition_list_delete_cb(lv_event_t *e);
 static void _list_transition_cancel_anims_for_list(lv_obj_t *list);
 static void _list_transition_set_scale_cb(void *var, int32_t value);
 static void _list_transition_set_translate_x_cb(void *var, int32_t value);
-static void _list_transition_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _list_transition_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
+static void _list_transition_init_scale_anim(lv_anim_t *anim,
+                                             lv_obj_t *obj,
+                                             int32_t start,
+                                             int32_t end,
+                                             uint32_t duration);
+static void _list_transition_init_translate_x_anim(lv_anim_t *anim,
+                                                   lv_obj_t *obj,
+                                                   int32_t start,
+                                                   int32_t end,
+                                                   uint32_t duration);
 static bool _list_transition_is_obj_visible_in_list(lv_obj_t *list, lv_obj_t *obj);
 static bool _list_transition_is_descendant_of(lv_obj_t *obj, lv_obj_t *ancestor);
 static uint32_t _list_transition_collect_visible_children(lv_obj_t *list, lv_obj_t **out_objs, uint32_t cap);
@@ -133,10 +141,7 @@ lv_obj_t *eos_button_create_ex(lv_obj_t *parent,
     return btn;
 }
 
-lv_obj_t *eos_button_create(lv_obj_t *parent,
-                            const char *txt,
-                            lv_event_cb_t clicked_cb,
-                            void *event_user_data)
+lv_obj_t *eos_button_create(lv_obj_t *parent, const char *txt, lv_event_cb_t clicked_cb, void *event_user_data)
 {
     return eos_button_create_ex(parent, EOS_THEME_SECONDARY_COLOR, txt, EOS_COLOR_WHITE, clicked_cb, event_user_data);
 }
@@ -305,9 +310,8 @@ static void _list_transition_select_state_from_tree(lv_obj_t *root,
     if (lv_obj_check_type(root, &lv_list_class))
     {
         eos_list_transition_state_t *state = _list_transition_get_state(root);
-        if (state && state->button && lv_obj_is_valid(state->button) &&
-            _list_transition_is_descendant_of(state->button, state->list) &&
-            state->sequence >= *best_sequence)
+        if (state && state->button && lv_obj_is_valid(state->button)
+            && _list_transition_is_descendant_of(state->button, state->list) && state->sequence >= *best_sequence)
         {
             *best_sequence = state->sequence;
             *best_state = state;
@@ -498,7 +502,9 @@ bool eos_list_transition_should_animate(eos_activity_t *from, eos_activity_t *to
 
     if (_list_transition_state->activity != expected_activity)
     {
-        EOS_LOG_D("should_animate: activity mismatch tolerated, saved=%p, expected=%p", _list_transition_state->activity, expected_activity);
+        EOS_LOG_D("should_animate: activity mismatch tolerated, saved=%p, expected=%p",
+                  _list_transition_state->activity,
+                  expected_activity);
     }
 
     EOS_LOG_D("should_animate: PASS - will animate");
@@ -523,7 +529,11 @@ static void _list_transition_set_translate_x_cb(void *var, int32_t value)
     lv_obj_set_style_translate_x((lv_obj_t *)var, value, 0);
 }
 
-static void _list_transition_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+static void _list_transition_init_scale_anim(lv_anim_t *anim,
+                                             lv_obj_t *obj,
+                                             int32_t start,
+                                             int32_t end,
+                                             uint32_t duration)
 {
     lv_anim_init(anim);
     lv_anim_set_var(anim, obj);
@@ -533,7 +543,11 @@ static void _list_transition_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int
     lv_anim_set_duration(anim, duration);
 }
 
-static void _list_transition_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+static void _list_transition_init_translate_x_anim(lv_anim_t *anim,
+                                                   lv_obj_t *obj,
+                                                   int32_t start,
+                                                   int32_t end,
+                                                   uint32_t duration)
 {
     lv_anim_init(anim);
     lv_anim_set_var(anim, obj);
@@ -560,8 +574,8 @@ static bool _list_transition_is_obj_visible_in_list(lv_obj_t *list, lv_obj_t *ob
     lv_obj_get_coords(list, &list_area);
     lv_obj_get_coords(obj, &obj_area);
 
-    if (obj_area.x2 < list_area.x1 || obj_area.x1 > list_area.x2 ||
-        obj_area.y2 < list_area.y1 || obj_area.y1 > list_area.y2)
+    if (obj_area.x2 < list_area.x1 || obj_area.x1 > list_area.x2 || obj_area.y2 < list_area.y1
+        || obj_area.y1 > list_area.y2)
     {
         return false;
     }
@@ -675,13 +689,15 @@ void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_
     lv_obj_get_coords(button, &btn_area);
 
     lv_obj_t *visible_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
-    uint32_t visible_item_cnt = _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+    uint32_t visible_item_cnt =
+        _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
     lv_obj_t *all_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
     uint32_t all_item_cnt = 0U;
     if (back && visible_item_cnt == 0U)
     {
         // In some return sequences, visible area collection may fail, fallback to all child objects under list
-        visible_item_cnt = _list_transition_collect_all_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+        visible_item_cnt =
+            _list_transition_collect_all_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
     }
     if (back)
     {
@@ -766,15 +782,27 @@ void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_
             lv_obj_set_style_transform_pivot_x(obj, lv_obj_get_width(obj) / 2, 0);
             lv_obj_set_style_transform_pivot_y(obj, lv_obj_get_height(obj) / 2, 0);
             lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_HALF_SCALE, 0);
-            _list_transition_init_scale_anim(&list_scale_anims[i], obj, _LIST_TRANSITION_HALF_SCALE, _LIST_TRANSITION_NORMAL_SCALE, total_duration);
+            _list_transition_init_scale_anim(&list_scale_anims[i],
+                                             obj,
+                                             _LIST_TRANSITION_HALF_SCALE,
+                                             _LIST_TRANSITION_NORMAL_SCALE,
+                                             total_duration);
             lv_anim_timeline_add(at, 0, &list_scale_anims[i]);
         }
 
         lv_obj_set_style_translate_x(button, button_start_x, 0);
         lv_obj_set_style_translate_x(page_snapshot, page_start_x, 0);
 
-        _list_transition_init_translate_x_anim(&button_translate_anim, button, button_start_x, button_end_x, page_duration);
-        _list_transition_init_translate_x_anim(&page_translate_anim, page_snapshot, page_start_x, page_end_x, total_duration);
+        _list_transition_init_translate_x_anim(&button_translate_anim,
+                                               button,
+                                               button_start_x,
+                                               button_end_x,
+                                               page_duration);
+        _list_transition_init_translate_x_anim(&page_translate_anim,
+                                               page_snapshot,
+                                               page_start_x,
+                                               page_end_x,
+                                               total_duration);
 
         lv_anim_timeline_add(at, page_delay, &button_translate_anim);
         lv_anim_timeline_add(at, 0, &page_translate_anim);
@@ -787,15 +815,27 @@ void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_
             lv_obj_set_style_transform_pivot_x(obj, lv_obj_get_width(obj) / 2, 0);
             lv_obj_set_style_transform_pivot_y(obj, lv_obj_get_height(obj) / 2, 0);
             lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_NORMAL_SCALE, 0);
-            _list_transition_init_scale_anim(&list_scale_anims[i], obj, _LIST_TRANSITION_NORMAL_SCALE, _LIST_TRANSITION_HALF_SCALE, total_duration);
+            _list_transition_init_scale_anim(&list_scale_anims[i],
+                                             obj,
+                                             _LIST_TRANSITION_NORMAL_SCALE,
+                                             _LIST_TRANSITION_HALF_SCALE,
+                                             total_duration);
             lv_anim_timeline_add(at, 0, &list_scale_anims[i]);
         }
 
         lv_obj_set_style_translate_x(button, button_start_x, 0);
         lv_obj_set_style_translate_x(page_snapshot, page_start_x, 0);
 
-        _list_transition_init_translate_x_anim(&button_translate_anim, button, button_start_x, button_end_x, total_duration);
-        _list_transition_init_translate_x_anim(&page_translate_anim, page_snapshot, page_start_x, page_end_x, page_duration);
+        _list_transition_init_translate_x_anim(&button_translate_anim,
+                                               button,
+                                               button_start_x,
+                                               button_end_x,
+                                               total_duration);
+        _list_transition_init_translate_x_anim(&page_translate_anim,
+                                               page_snapshot,
+                                               page_start_x,
+                                               page_end_x,
+                                               page_duration);
 
         lv_anim_timeline_add(at, 0, &button_translate_anim);
         lv_anim_timeline_add(at, page_delay, &page_translate_anim);
@@ -824,10 +864,7 @@ lv_obj_t *_list_btn_container_create(lv_obj_t *list)
     _list_container_common_style(btn);
     lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW); // Horizontal layout
-    lv_obj_set_flex_align(btn,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(btn, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     lv_obj_update_layout(btn);
     lv_obj_set_style_transform_pivot_x(btn, lv_obj_get_width(btn) / 2, 0);
@@ -907,7 +944,10 @@ lv_obj_t *eos_list_add_round_icon_button(lv_obj_t *list, lv_color_t bg_color, co
     return btn;
 }
 
-lv_obj_t *eos_list_add_round_icon_button_str_id(lv_obj_t *list, lv_color_t bg_color, const void *icon_src, lang_string_id_t id)
+lv_obj_t *eos_list_add_round_icon_button_str_id(lv_obj_t *list,
+                                                lv_color_t bg_color,
+                                                const void *icon_src,
+                                                lang_string_id_t id)
 {
     // Create button
     lv_obj_t *btn = _list_btn_container_create(list);
@@ -984,10 +1024,7 @@ lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt)
     lv_obj_t *container = _list_btn_container_create(list);
     lv_obj_set_size(container, lv_pct(100), EOS_LIST_CONTAINER_HEIGHT);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW); // Horizontal layout
-    lv_obj_set_flex_align(container,
-                          LV_FLEX_ALIGN_START,
-                          LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     // Text
     lv_obj_t *label = lv_label_create(container);
@@ -1054,10 +1091,10 @@ lv_obj_t *eos_list_add_title_container(lv_obj_t *list, const char *title)
 {
     // Create outer transparent container
     lv_obj_t *outer_container = lv_obj_create(list);
-    lv_obj_remove_style_all(outer_container);                       // Remove default style
+    lv_obj_remove_style_all(outer_container); // Remove default style
     lv_obj_set_size(outer_container, lv_pct(100), LV_SIZE_CONTENT); // Height adaptive
-    lv_obj_set_style_bg_opa(outer_container, LV_OPA_TRANSP, 0);     // Set transparent background
-    lv_obj_set_flex_flow(outer_container, LV_FLEX_FLOW_COLUMN);     // Vertical layout
+    lv_obj_set_style_bg_opa(outer_container, LV_OPA_TRANSP, 0); // Set transparent background
+    lv_obj_set_flex_flow(outer_container, LV_FLEX_FLOW_COLUMN); // Vertical layout
 
     // Add top-left label
     lv_obj_t *txt_label = eos_list_add_title(outer_container, title);
@@ -1079,19 +1116,23 @@ static void _slider_button_clicked_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(ls);
     if (ls->minus_btn == target)
     {
-        eos_anim_transform_scale_start_ex(
-            ls->minus_label,
-            ls->minus_label_scale,
-            ls->minus_label_scale - scale_diff,
-            duration, duration, 1, false);
+        eos_anim_transform_scale_start_ex(ls->minus_label,
+                                          ls->minus_label_scale,
+                                          ls->minus_label_scale - scale_diff,
+                                          duration,
+                                          duration,
+                                          1,
+                                          false);
     }
     else if (ls->plus_btn == target)
     {
-        eos_anim_transform_scale_start_ex(
-            ls->plus_label,
-            ls->plus_label_scale,
-            ls->plus_label_scale - scale_diff,
-            duration, duration, 1, false);
+        eos_anim_transform_scale_start_ex(ls->plus_label,
+                                          ls->plus_label_scale,
+                                          ls->plus_label_scale - scale_diff,
+                                          duration,
+                                          duration,
+                                          1,
+                                          false);
     }
 }
 
@@ -1186,7 +1227,9 @@ eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt)
     lv_obj_center(list_slider->slider);
     lv_obj_set_style_bg_opa(list_slider->slider, LV_OPA_TRANSP, LV_PART_KNOB);
     lv_obj_set_style_border_opa(list_slider->slider, LV_OPA_TRANSP, LV_PART_KNOB);
-    lv_obj_set_style_bg_color(list_slider->slider, lv_color_darken(EOS_COLOR_GREEN, slider_main_bg_darken_lvl), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(list_slider->slider,
+                              lv_color_darken(EOS_COLOR_GREEN, slider_main_bg_darken_lvl),
+                              LV_PART_MAIN);
 
     return list_slider;
 }
@@ -1195,7 +1238,8 @@ lv_obj_t *eos_row_create(lv_obj_t *parent,
                          const char *left_text,
                          const char *right_text,
                          const char *left_img_path,
-                         int icon_w, int icon_h)
+                         int icon_w,
+                         int icon_h)
 {
     lv_obj_t *row = lv_obj_create(parent);
     lv_obj_remove_style_all(row);
@@ -1204,7 +1248,7 @@ lv_obj_t *eos_row_create(lv_obj_t *parent,
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row,
                           LV_FLEX_ALIGN_SPACE_BETWEEN, // Main axis space between
-                          LV_FLEX_ALIGN_CENTER,        // Cross axis center
+                          LV_FLEX_ALIGN_CENTER, // Cross axis center
                           LV_FLEX_ALIGN_CENTER);
 
     // Left image

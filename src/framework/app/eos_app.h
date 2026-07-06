@@ -21,7 +21,7 @@ extern "C" {
 #include "script_engine_core.h"
 
 /* Public macros ----------------------------------------------*/
-#define EOS_APP_ICON_FILE_NAME  "icon.bin"
+#define EOS_APP_ICON_FILE_NAME "icon.bin"
 #define EOS_APP_MANIFEST_FILE_NAME "manifest.json"
 #define EOS_APP_SCRIPT_ENTRY_FILE_NAME "main.js"
 /* Public typedefs --------------------------------------------*/
@@ -29,12 +29,13 @@ extern "C" {
 /**
  * @brief Script error handler configuration
  */
-typedef struct {
-    const char *title_text;            /**< Error title text (NULL for default) */
-    lang_string_id_t title_id;         /**< Error title string ID (0 for default) */
-    const char *button_text;           /**< Button text (NULL for default) */
-    lang_string_id_t button_id;        /**< Button string ID (0 for default) */
-    lv_event_cb_t button_callback;     /**< Button click callback (NULL for default back) */
+typedef struct
+{
+    const char *title_text; /**< Error title text (NULL for default) */
+    lang_string_id_t title_id; /**< Error title string ID (0 for default) */
+    const char *button_text; /**< Button text (NULL for default) */
+    lang_string_id_t button_id; /**< Button string ID (0 for default) */
+    lv_event_cb_t button_callback; /**< Button click callback (NULL for default back) */
 } eos_script_error_handler_cfg_t;
 
 /* Public function prototypes --------------------------------*/
@@ -67,14 +68,14 @@ uint32_t eos_app_get_installed(void);
  * @param index Index value (0-based)
  * @return const char* id string
  */
-const char* eos_app_list_get_id(size_t index);
+const char *eos_app_list_get_id(size_t index);
 /**
  * @brief Check if app with specified id exists in the list
  * @param app_id id string
  * @return true
  * @return false
  */
-bool eos_app_list_contains(const char* app_id);
+bool eos_app_list_contains(const char *app_id);
 /**
  * @brief Get existing ID from app list that matches input string (avoid duplicate memory allocation)
  * @param id Original ID to find (e.g., header.pkg_id)

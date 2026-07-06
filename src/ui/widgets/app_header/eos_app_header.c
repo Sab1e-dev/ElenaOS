@@ -191,11 +191,14 @@ static void _ah_set_opa_layered_cb(void *var, int32_t v)
     lv_obj_set_style_opa_layered((lv_obj_t *)var, (lv_opa_t)v, 0);
 }
 
-void _play_title_changed_anim(eos_activity_t *from, eos_activity_t *to, bool need_anim, bool reverse_anim, lv_anim_timeline_t *at)
+void _play_title_changed_anim(eos_activity_t *from,
+                              eos_activity_t *to,
+                              bool need_anim,
+                              bool reverse_anim,
+                              lv_anim_timeline_t *at)
 {
     EOS_CHECK_PTR_RETURN(app_header);
-    if (!(lv_obj_is_valid(app_header->title_label) &&
-          lv_obj_has_class(app_header->title_label, &lv_label_class)))
+    if (!(lv_obj_is_valid(app_header->title_label) && lv_obj_has_class(app_header->title_label, &lv_label_class)))
         return;
 
     bool from_time_only = from ? eos_activity_is_app_header_time_only(from) : false;
@@ -229,9 +232,12 @@ void _play_title_changed_anim(eos_activity_t *from, eos_activity_t *to, bool nee
     app_header->old_fading_title = NULL;
     app_header->old_fading_back_btn = NULL;
 
-    if (reverse_anim) {
+    if (reverse_anim)
+    {
         app_header->is_anim_entering = false;
-    } else {
+    }
+    else
+    {
         app_header->is_anim_entering = true;
     }
 
@@ -697,7 +703,7 @@ static lv_image_dsc_t *_create_gradient_bg(void)
             p[0] = 0x00; // B
             p[1] = 0x00; // G
             p[2] = 0x00; // R
-            p[3] = opa;  // A
+            p[3] = opa; // A
         }
     }
 
@@ -763,7 +769,8 @@ void eos_app_header_init(void)
     // Clock label
     app_header->clock_label = lv_label_create(app_header->container);
     lv_obj_add_style(app_header->clock_label, eos_theme_get_label_style(), 0);
-    app_header->clock_timer = lv_timer_create(_clock_update_cb, _HEADER_CLOCK_UPDATE_PERIOD_MINUTES * 60 * 1000, app_header->clock_label);
+    app_header->clock_timer =
+        lv_timer_create(_clock_update_cb, _HEADER_CLOCK_UPDATE_PERIOD_MINUTES * 60 * 1000, app_header->clock_label);
     lv_timer_set_repeat_count(app_header->clock_timer, -1);
     _app_header_update_clock_label(app_header->clock_label);
     lv_obj_align(app_header->clock_label, LV_ALIGN_RIGHT_MID, -_HEADER_MARGIN_RIGHT, -20);

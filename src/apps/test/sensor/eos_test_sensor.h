@@ -17,13 +17,15 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
-typedef struct {
+typedef struct
+{
     const char *name;
     bool passed;
     char details[128];
 } eos_sensor_test_result_t;
 
-typedef struct {
+typedef struct
+{
     uint32_t total_tests;
     uint32_t passed_tests;
     uint32_t failed_tests;

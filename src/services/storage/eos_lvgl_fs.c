@@ -18,7 +18,7 @@
 /* Macros and Definitions -------------------------------------*/
 
 #if !defined(EOS_LVGL_FS_LETTER)
-    #error "EOS_LVGL_FS_LETTER is not defined in eos_config.h"
+#error "EOS_LVGL_FS_LETTER is not defined in eos_config.h"
 #endif
 
 /**
@@ -210,7 +210,6 @@ static lv_fs_res_t _drv_tell_cb(lv_fs_drv_t *drv, void *file_p, uint32_t *pos_p)
     return LV_FS_RES_OK;
 }
 
-
 static void *_drv_dir_open_cb(lv_fs_drv_t *drv, const char *path)
 {
     (void)drv; // unused
@@ -280,19 +279,19 @@ void eos_lvgl_fs_register(void)
 {
     lv_fs_drv_init(&fs_drv); /*Basic initialization*/
 
-    fs_drv.letter = EOS_LVGL_FS_LETTER;  /*An uppercase letter to identify the drive */
+    fs_drv.letter = EOS_LVGL_FS_LETTER; /*An uppercase letter to identify the drive */
     fs_drv.cache_size = 0; /*Cache size for reading in bytes. 0 to not cache.*/
 
-    fs_drv.ready_cb = NULL;          /*Callback to tell if the drive is ready to use */
-    fs_drv.open_cb = _drv_open_cb;   /*Callback to open a file */
+    fs_drv.ready_cb = NULL; /*Callback to tell if the drive is ready to use */
+    fs_drv.open_cb = _drv_open_cb; /*Callback to open a file */
     fs_drv.close_cb = _drv_close_cb; /*Callback to close a file */
-    fs_drv.read_cb = _drv_read_cb;   /*Callback to read a file */
+    fs_drv.read_cb = _drv_read_cb; /*Callback to read a file */
     fs_drv.write_cb = _drv_write_cb; /*Callback to write a file */
-    fs_drv.seek_cb = _drv_seek_cb;   /*Callback to seek in a file (Move cursor) */
-    fs_drv.tell_cb = _drv_tell_cb;   /*Callback to tell the cursor position  */
+    fs_drv.seek_cb = _drv_seek_cb; /*Callback to seek in a file (Move cursor) */
+    fs_drv.tell_cb = _drv_tell_cb; /*Callback to tell the cursor position  */
 
-    fs_drv.dir_open_cb = _drv_dir_open_cb;   /*Callback to open directory to read its content */
-    fs_drv.dir_read_cb = _drv_dir_read_cb;   /*Callback to read a directory's content */
+    fs_drv.dir_open_cb = _drv_dir_open_cb; /*Callback to open directory to read its content */
+    fs_drv.dir_read_cb = _drv_dir_read_cb; /*Callback to read a directory's content */
     fs_drv.dir_close_cb = _drv_dir_close_cb; /*Callback to close a directory */
 
     fs_drv.user_data = NULL; /*Any custom data if required*/

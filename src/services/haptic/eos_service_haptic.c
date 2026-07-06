@@ -45,13 +45,13 @@ static void _haptic_common(uint32_t period, uint8_t strength)
 
     switch (strength_option)
     {
-    case EOS_HAPTIC_STRENGTH_OFF:
-        return;
-    case EOS_HAPTIC_STRENGTH_INTENSE:
-        strength += 25;
-        break;
-    default:
-        break;
+        case EOS_HAPTIC_STRENGTH_OFF:
+            return;
+        case EOS_HAPTIC_STRENGTH_INTENSE:
+            strength += 25;
+            break;
+        default:
+            break;
     }
     EOS_CLAMP(strength, 0, 255);
 

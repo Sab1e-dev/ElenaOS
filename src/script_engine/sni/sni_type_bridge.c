@@ -36,11 +36,10 @@
 static sni_val_obj_t sni_val_objs[__SNI_TYPE_MAX] = {0};
 static void sni_control_block_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
 static void sni_obj_deleted_cb(lv_event_t *e);
-static const jerry_object_native_info_t sni_native_info =
-    {
-        .free_cb = sni_control_block_free_cb,
-        .number_of_references = 0,
-        .offset_of_references = 0,
+static const jerry_object_native_info_t sni_native_info = {
+    .free_cb = sni_control_block_free_cb,
+    .number_of_references = 0,
+    .offset_of_references = 0,
 };
 static sni_handle_destroy_cb_t sni_handle_destroy_cb[SNI_HANDLE_COUNT] = {0};
 
@@ -88,11 +87,13 @@ static uint32_t sni_tb_read_bitfield(void *ptr, uint32_t bit_offset, uint32_t bi
 {
     uint8_t *bytes = (uint8_t *)ptr;
     uint32_t result = 0;
-    for (uint32_t i = 0; i < bit_width; i++) {
+    for (uint32_t i = 0; i < bit_width; i++)
+    {
         uint32_t total_bit = bit_offset + i;
         uint32_t byte_idx = total_bit / 8;
         uint32_t bit_idx = total_bit % 8;
-        if (bytes[byte_idx] & (1u << bit_idx)) {
+        if (bytes[byte_idx] & (1u << bit_idx))
+        {
             result |= (1u << i);
         }
     }
@@ -102,13 +103,17 @@ static uint32_t sni_tb_read_bitfield(void *ptr, uint32_t bit_offset, uint32_t bi
 static void sni_tb_write_bitfield(void *ptr, uint32_t bit_offset, uint32_t bit_width, uint32_t value)
 {
     uint8_t *bytes = (uint8_t *)ptr;
-    for (uint32_t i = 0; i < bit_width; i++) {
+    for (uint32_t i = 0; i < bit_width; i++)
+    {
         uint32_t total_bit = bit_offset + i;
         uint32_t byte_idx = total_bit / 8;
         uint32_t bit_idx = total_bit % 8;
-        if (value & (1u << i)) {
+        if (value & (1u << i))
+        {
             bytes[byte_idx] |= (1u << bit_idx);
-        } else {
+        }
+        else
+        {
             bytes[byte_idx] &= ~(1u << bit_idx);
         }
     }
@@ -116,7 +121,8 @@ static void sni_tb_write_bitfield(void *ptr, uint32_t bit_offset, uint32_t bit_w
 
 static sni_control_block_t *sni_cb_from_obj(void *ptr)
 {
-    if (!ptr) return NULL;
+    if (!ptr)
+        return NULL;
     return (sni_control_block_t *)lv_obj_get_user_data((lv_obj_t *)ptr);
 }
 
@@ -124,12 +130,14 @@ static void sni_obj_deleted_cb(lv_event_t *e);
 
 static void *sni_node_from_native(void *ptr, sni_type_t type)
 {
-    if (!ptr) return NULL;
+    if (!ptr)
+        return NULL;
 
     if (SNI_TYPE_IS_TREE_NODE(type))
     {
         sni_control_block_t *cb = sni_cb_from_obj(ptr);
-        if (!cb) return NULL;
+        if (!cb)
+            return NULL;
         /* Stale control block from a previous engine session — the
          * cb->js_obj handle refers to a destroyed JerryScript heap.
          * Clear the LVGL link, remove stale callbacks, free the old
@@ -237,12 +245,12 @@ static void sni_control_block_free_cb(void *native_p, struct jerry_object_native
     {
         switch (cb->type)
         {
-        case SNI_H_LV_OBJ:
-        {
-            lv_obj_t *obj = (lv_obj_t *)cb->ptr;
-            if (lv_obj_is_valid(obj))
+            case SNI_H_LV_OBJ:
             {
-                /* Do NOT call lv_obj_remove_event_cb here.
+                lv_obj_t *obj = (lv_obj_t *)cb->ptr;
+                if (lv_obj_is_valid(obj))
+                {
+                    /* Do NOT call lv_obj_remove_event_cb here.
                    The event descriptor lifecycle is managed by
                    LVGL's obj_delete_core → lv_event_remove_all.
                    If this free_cb is triggered during
@@ -250,12 +258,12 @@ static void sni_control_block_free_cb(void *native_p, struct jerry_object_native
                    → jerry_value_free → GC, the descriptor has
                    already been freed by lv_event_remove_all,
                    causing a double-free in lv_tlsf_free. */
-                lv_obj_set_user_data(obj, NULL);
+                    lv_obj_set_user_data(obj, NULL);
+                }
+                break;
             }
-            break;
-        }
-        default:
-            break;
+            default:
+                break;
         }
     }
 
@@ -290,11 +298,10 @@ static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native
     eos_free(node);
 }
 
-static const jerry_object_native_info_t sni_resource_native_info =
-    {
-        .free_cb = sni_resource_node_free_cb,
-        .number_of_references = 0,
-        .offset_of_references = 0,
+static const jerry_object_native_info_t sni_resource_native_info = {
+    .free_cb = sni_resource_node_free_cb,
+    .number_of_references = 0,
+    .offset_of_references = 0,
 };
 
 /************************** Type bridge functions **************************/
@@ -314,11 +321,7 @@ const char *sni_tb_js2c_string(jerry_value_t js_val)
         return NULL;
     }
 
-    jerry_string_to_buffer(
-        js_val,
-        JERRY_ENCODING_UTF8,
-        (jerry_char_t *)string,
-        str_len);
+    jerry_string_to_buffer(js_val, JERRY_ENCODING_UTF8, (jerry_char_t *)string, str_len);
 
     string[str_len] = '\0';
     return string;
@@ -338,92 +341,92 @@ bool sni_tb_js2c(jerry_value_t js_val, sni_type_t type, void *out_obj)
 
     switch (type)
     {
-    case SNI_T_UINT8:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(uint8_t *)out_obj = (uint8_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_UINT8:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(uint8_t *)out_obj = (uint8_t)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_INT8:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(int8_t *)out_obj = (int8_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_INT8:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(int8_t *)out_obj = (int8_t)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_UINT16:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(uint16_t *)out_obj = (uint16_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_UINT16:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(uint16_t *)out_obj = (uint16_t)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_INT16:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(int16_t *)out_obj = (int16_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_INT16:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(int16_t *)out_obj = (int16_t)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_UINT32:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(uint32_t *)out_obj = (uint32_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_UINT32:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(uint32_t *)out_obj = (uint32_t)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_INT32:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(int32_t *)out_obj = jerry_value_as_int32(js_val);
-        return true;
+        case SNI_T_INT32:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(int32_t *)out_obj = jerry_value_as_int32(js_val);
+            return true;
 
-    case SNI_T_DOUBLE:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(double *)out_obj = jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_DOUBLE:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(double *)out_obj = jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_FLOAT:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(float *)out_obj = (float)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_FLOAT:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(float *)out_obj = (float)jerry_value_as_number(js_val);
+            return true;
 
-    case SNI_T_BOOL:
-        *(bool *)out_obj = jerry_value_to_boolean(js_val);
-        return true;
+        case SNI_T_BOOL:
+            *(bool *)out_obj = jerry_value_to_boolean(js_val);
+            return true;
 
-    case SNI_T_STRING:
-        if (!jerry_value_is_string(js_val))
-        {
-            return false;
-        }
-        *(const char **)out_obj = sni_tb_js2c_string(js_val);
-        return (*(const char **)out_obj != NULL);
+        case SNI_T_STRING:
+            if (!jerry_value_is_string(js_val))
+            {
+                return false;
+            }
+            *(const char **)out_obj = sni_tb_js2c_string(js_val);
+            return (*(const char **)out_obj != NULL);
 
-    case SNI_T_PTR:
-        if (!jerry_value_is_number(js_val))
-        {
-            return false;
-        }
-        *(void **)out_obj = (void *)(uintptr_t)jerry_value_as_number(js_val);
-        return true;
+        case SNI_T_PTR:
+            if (!jerry_value_is_number(js_val))
+            {
+                return false;
+            }
+            *(void **)out_obj = (void *)(uintptr_t)jerry_value_as_number(js_val);
+            return true;
 
-    default:
-        break;
+        default:
+            break;
     }
 
     if (type == SNI_V_LV_COLOR)
@@ -455,8 +458,7 @@ bool sni_tb_js2c(jerry_value_t js_val, sni_type_t type, void *out_obj)
         {
             const sni_val_prop_t *prop = &val_obj->props[i];
 
-            jerry_value_t js_prop =
-                jerry_object_get_sz(js_val, prop->name);
+            jerry_value_t js_prop = jerry_object_get_sz(js_val, prop->name);
 
             if (jerry_value_is_exception(js_prop))
             {
@@ -487,10 +489,7 @@ bool sni_tb_js2c(jerry_value_t js_val, sni_type_t type, void *out_obj)
             }
             else
             {
-                ok = sni_tb_js2c(
-                    js_prop,
-                    prop->type,
-                    field_ptr);
+                ok = sni_tb_js2c(js_prop, prop->type, field_ptr);
             }
 
             jerry_value_free(js_prop);
@@ -519,8 +518,7 @@ bool sni_tb_js2c(jerry_value_t js_val, sni_type_t type, void *out_obj)
 
         if (SNI_TYPE_IS_TREE_NODE(type))
         {
-            sni_control_block_t *cb =
-                jerry_object_get_native_ptr(js_val, &sni_native_info);
+            sni_control_block_t *cb = jerry_object_get_native_ptr(js_val, &sni_native_info);
 
             if (!cb || !cb->is_alive || cb->type != type)
             {
@@ -533,8 +531,7 @@ bool sni_tb_js2c(jerry_value_t js_val, sni_type_t type, void *out_obj)
 
         if (SNI_TYPE_IS_MANAGED_RESOURCE(type))
         {
-            sni_managed_resource_node_t *node =
-                jerry_object_get_native_ptr(js_val, &sni_resource_native_info);
+            sni_managed_resource_node_t *node = jerry_object_get_native_ptr(js_val, &sni_resource_native_info);
 
             if (!node || !node->is_alive || node->type != type)
             {
@@ -607,41 +604,41 @@ jerry_value_t sni_tb_c2js(void *c_val, sni_type_t type)
 
     switch (type)
     {
-    case SNI_T_UINT8:
-        return jerry_number((double)*(uint8_t *)c_val);
+        case SNI_T_UINT8:
+            return jerry_number((double)*(uint8_t *)c_val);
 
-    case SNI_T_INT8:
-        return jerry_number((double)*(int8_t *)c_val);
+        case SNI_T_INT8:
+            return jerry_number((double)*(int8_t *)c_val);
 
-    case SNI_T_UINT16:
-        return jerry_number((double)*(uint16_t *)c_val);
+        case SNI_T_UINT16:
+            return jerry_number((double)*(uint16_t *)c_val);
 
-    case SNI_T_INT16:
-        return jerry_number((double)*(int16_t *)c_val);
+        case SNI_T_INT16:
+            return jerry_number((double)*(int16_t *)c_val);
 
-    case SNI_T_UINT32:
-        return jerry_number((double)*(uint32_t *)c_val);
+        case SNI_T_UINT32:
+            return jerry_number((double)*(uint32_t *)c_val);
 
-    case SNI_T_INT32:
-        return jerry_number((double)*(int32_t *)c_val);
+        case SNI_T_INT32:
+            return jerry_number((double)*(int32_t *)c_val);
 
-    case SNI_T_DOUBLE:
-        return jerry_number(*(double *)c_val);
+        case SNI_T_DOUBLE:
+            return jerry_number(*(double *)c_val);
 
-    case SNI_T_FLOAT:
-        return jerry_number((double)*(float *)c_val);
+        case SNI_T_FLOAT:
+            return jerry_number((double)*(float *)c_val);
 
-    case SNI_T_BOOL:
-        return jerry_boolean(*(bool *)c_val);
+        case SNI_T_BOOL:
+            return jerry_boolean(*(bool *)c_val);
 
-    case SNI_T_STRING:
-        return jerry_string_sz(*(const char **)c_val);
+        case SNI_T_STRING:
+            return jerry_string_sz(*(const char **)c_val);
 
-    case SNI_T_PTR:
-        return jerry_number((double)(uintptr_t)*(void **)c_val);
+        case SNI_T_PTR:
+            return jerry_number((double)(uintptr_t)*(void **)c_val);
 
-    default:
-        break;
+        default:
+            break;
     }
 
     if (SNI_TYPE_IS_VALUE(type))

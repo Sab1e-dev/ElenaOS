@@ -22,8 +22,8 @@ typedef struct eos_stack_t eos_stack_t;
 
 typedef enum
 {
-	EOS_STACK_CAPACITY_FIXED = 0,
-	EOS_STACK_CAPACITY_DYNAMIC,
+    EOS_STACK_CAPACITY_FIXED = 0,
+    EOS_STACK_CAPACITY_DYNAMIC,
 } eos_stack_capacity_mode_t;
 /* Public function prototypes --------------------------------*/
 

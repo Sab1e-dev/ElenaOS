@@ -22,17 +22,19 @@ extern "C" {
 /**
  * @brief SwipePanel drag direction
  */
-typedef enum{
-    EOS_SWIPE_DIR_UP=0,      // Slide up to reveal swipe_obj
-    EOS_SWIPE_DIR_DOWN=1,    // Slide down to reveal swipe_obj
-    EOS_SWIPE_DIR_LEFT=2,    // Slide left to reveal swipe_obj
-    EOS_SWIPE_DIR_RIGHT=3,   // Slide right to reveal swipe_obj
-    EOS_SWIPE_DIR_COUNT      // Total number of directions
+typedef enum
+{
+    EOS_SWIPE_DIR_UP = 0, // Slide up to reveal swipe_obj
+    EOS_SWIPE_DIR_DOWN = 1, // Slide down to reveal swipe_obj
+    EOS_SWIPE_DIR_LEFT = 2, // Slide left to reveal swipe_obj
+    EOS_SWIPE_DIR_RIGHT = 3, // Slide right to reveal swipe_obj
+    EOS_SWIPE_DIR_COUNT // Total number of directions
 } eos_swipe_dir_t;
 /**
  * @brief SwipePanel structure definition
  */
-typedef struct {
+typedef struct
+{
     eos_slide_widget_t *sw;
     lv_obj_t *swipe_obj;
     lv_obj_t *handle_bar;

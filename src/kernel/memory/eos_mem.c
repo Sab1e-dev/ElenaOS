@@ -57,7 +57,8 @@ static void eos_mem_track_add(void *ptr, size_t size)
             _mem_track[i].size = size; // Update LVGL memory monitor
             mon.total_size += size;
             mon.used_cnt++;
-            mon.max_used = mon.total_size - mon.free_size > mon.max_used ? mon.total_size - mon.free_size : mon.max_used;
+            mon.max_used =
+                mon.total_size - mon.free_size > mon.max_used ? mon.total_size - mon.free_size : mon.max_used;
             return;
         }
     }

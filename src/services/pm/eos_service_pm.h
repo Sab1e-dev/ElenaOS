@@ -20,9 +20,9 @@ extern "C" {
 
 typedef enum
 {
-    EOS_PM_DISPLAY_ON,      /**< Wake mode */
-    EOS_PM_DISPLAY_AOD,     /**< Screen always-on (Always-On Display) mode */
-    EOS_PM_SLEEP,           /**< Sleep mode */
+    EOS_PM_DISPLAY_ON, /**< Wake mode */
+    EOS_PM_DISPLAY_AOD, /**< Screen always-on (Always-On Display) mode */
+    EOS_PM_SLEEP, /**< Sleep mode */
 } eos_pm_state_t;
 
 /* Public function prototypes --------------------------------*/

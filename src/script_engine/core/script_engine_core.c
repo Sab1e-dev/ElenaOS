@@ -114,12 +114,10 @@ static void _track_main_module(jerry_value_t module)
 
     if (_tracked_module_count >= _tracked_module_capacity)
     {
-        int new_cap = _tracked_module_capacity > 0
-                          ? _tracked_module_capacity * 2
-                          : TRACKED_MODULES_INIT_CAPACITY;
-        jerry_value_t *new_arr = eos_realloc(_tracked_modules,
-                                             new_cap * sizeof(jerry_value_t));
-        if (!new_arr) return;
+        int new_cap = _tracked_module_capacity > 0 ? _tracked_module_capacity * 2 : TRACKED_MODULES_INIT_CAPACITY;
+        jerry_value_t *new_arr = eos_realloc(_tracked_modules, new_cap * sizeof(jerry_value_t));
+        if (!new_arr)
+            return;
         _tracked_modules = new_arr;
         _tracked_module_capacity = new_cap;
     }
@@ -150,7 +148,10 @@ static void _release_all_tracked_modules(void)
     jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 }
 
-static script_program_t *_get_prog(void) { return engine_rt.current_program; }
+static script_program_t *_get_prog(void)
+{
+    return engine_rt.current_program;
+}
 
 static const script_pkg_t *_get_pkg(void)
 {
@@ -272,10 +273,8 @@ static void _pkg_free_fields(script_pkg_t *p)
     }
 }
 
-static jerry_value_t _module_import_cb(const jerry_value_t specifier,
-                                       const jerry_value_t user_value, void *user_p);
-static jerry_value_t _module_resolve_cb(const jerry_value_t specifier,
-                                        const jerry_value_t referrer, void *user_p);
+static jerry_value_t _module_import_cb(const jerry_value_t specifier, const jerry_value_t user_value, void *user_p);
+static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jerry_value_t referrer, void *user_p);
 static jerry_value_t _read_and_parse_module(const char *file_path);
 static void _process_module_queue(void);
 static void _cleanup_module_queue(void);
@@ -306,8 +305,7 @@ static jerry_value_t _realm_create(void)
 static void _realm_save_and_switch(jerry_value_t new_realm)
 {
     engine_rt.old_realm = jerry_set_realm(new_realm);
-    EOS_LOG_D("_realm_save_and_switch: old_realm=%p, new_realm=%p",
-              (void *)engine_rt.old_realm, (void *)new_realm);
+    EOS_LOG_D("_realm_save_and_switch: old_realm=%p, new_realm=%p", (void *)engine_rt.old_realm, (void *)new_realm);
 }
 
 static void _realm_assign_to_program(script_program_t *prog, jerry_value_t realm)
@@ -322,8 +320,7 @@ static void _realm_assign_to_program(script_program_t *prog, jerry_value_t realm
     }
 
     prog->realm = jerry_value_copy(realm);
-    EOS_LOG_D("_realm_assign_to_program: prog=%p, realm=%p (ref copied)",
-              (void *)prog, (void *)prog->realm);
+    EOS_LOG_D("_realm_assign_to_program: prog=%p, realm=%p (ref copied)", (void *)prog, (void *)prog->realm);
 }
 
 static void _realm_release_program(script_program_t *prog)
@@ -333,8 +330,7 @@ static void _realm_release_program(script_program_t *prog)
 
     if (jerry_value_is_object(prog->realm))
     {
-        EOS_LOG_D("_realm_release_program: freeing realm=%p for prog=%p",
-                  (void *)prog->realm, (void *)prog);
+        EOS_LOG_D("_realm_release_program: freeing realm=%p for prog=%p", (void *)prog->realm, (void *)prog);
         jerry_value_free(prog->realm);
         prog->realm = jerry_undefined();
     }
@@ -348,7 +344,8 @@ static void _realm_restore_and_cleanup(void)
         if (jerry_value_is_object(current))
         {
             EOS_LOG_D("_realm_restore_and_cleanup: restoring old_realm=%p, freed current=%p",
-                      (void *)engine_rt.old_realm, (void *)current);
+                      (void *)engine_rt.old_realm,
+                      (void *)current);
             jerry_value_free(current);
         }
         engine_rt.old_realm = jerry_undefined();
@@ -376,36 +373,38 @@ static eos_result_t _change_state(script_engine_state_t new_state)
 {
     switch (engine_rt.state)
     {
-    case SCRIPT_ENGINE_STATE_UNINITIALIZED:
-        if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_RUNNING)
-        {
-            EOS_LOG_E("Invalid transition UNINITIALIZED->%d", new_state);
+        case SCRIPT_ENGINE_STATE_UNINITIALIZED:
+            if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_RUNNING)
+            {
+                EOS_LOG_E("Invalid transition UNINITIALIZED->%d", new_state);
+                return EOS_ERR_INVALID_STATE;
+            }
+            break;
+        case SCRIPT_ENGINE_STATE_RUNNING:
+            if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_EXCEPTION
+                && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
+            {
+                EOS_LOG_E("Invalid transition RUNNING->%d", new_state);
+                return EOS_ERR_INVALID_STATE;
+            }
+            break;
+        case SCRIPT_ENGINE_STATE_IDLE:
+            if (new_state != SCRIPT_ENGINE_STATE_RUNNING && new_state != SCRIPT_ENGINE_STATE_EXCEPTION
+                && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
+            {
+                EOS_LOG_E("Invalid transition IDLE->%d", new_state);
+                return EOS_ERR_INVALID_STATE;
+            }
+            break;
+        case SCRIPT_ENGINE_STATE_EXCEPTION:
+            if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
+            {
+                EOS_LOG_E("Invalid transition EXCEPTION->%d", new_state);
+                return EOS_ERR_INVALID_STATE;
+            }
+            break;
+        default:
             return EOS_ERR_INVALID_STATE;
-        }
-        break;
-    case SCRIPT_ENGINE_STATE_RUNNING:
-        if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_EXCEPTION && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
-        {
-            EOS_LOG_E("Invalid transition RUNNING->%d", new_state);
-            return EOS_ERR_INVALID_STATE;
-        }
-        break;
-    case SCRIPT_ENGINE_STATE_IDLE:
-        if (new_state != SCRIPT_ENGINE_STATE_RUNNING && new_state != SCRIPT_ENGINE_STATE_EXCEPTION && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
-        {
-            EOS_LOG_E("Invalid transition IDLE->%d", new_state);
-            return EOS_ERR_INVALID_STATE;
-        }
-        break;
-    case SCRIPT_ENGINE_STATE_EXCEPTION:
-        if (new_state != SCRIPT_ENGINE_STATE_IDLE && new_state != SCRIPT_ENGINE_STATE_UNINITIALIZED)
-        {
-            EOS_LOG_E("Invalid transition EXCEPTION->%d", new_state);
-            return EOS_ERR_INVALID_STATE;
-        }
-        break;
-    default:
-        return EOS_ERR_INVALID_STATE;
     }
     engine_rt.state = new_state;
     return EOS_OK;
@@ -417,8 +416,7 @@ static void _check_mem(void)
         return;
     jerry_heap_stats_t stats = {0};
     if (jerry_heap_stats(&stats))
-        EOS_LOG_D("Heap: size=%d alloc=%d peak=%d",
-                  stats.size, stats.allocated_bytes, stats.peak_allocated_bytes);
+        EOS_LOG_D("Heap: size=%d alloc=%d peak=%d", stats.size, stats.allocated_bytes, stats.peak_allocated_bytes);
 }
 
 static void _collect_script_garbage(void)
@@ -438,9 +436,11 @@ static void _set_error_info(const char *msg)
     if (!msg)
         return;
     size_t len = strlen(msg);
-    if (len > 4096) len = 4096;
+    if (len > 4096)
+        len = 4096;
     engine_rt.error_info = eos_malloc(len + 1);
-    if (engine_rt.error_info) {
+    if (engine_rt.error_info)
+    {
         memcpy(engine_rt.error_info, msg, len);
         engine_rt.error_info[len] = '\0';
     }
@@ -477,9 +477,7 @@ static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array)
      * property, and we'd lose it. */
     _clear_error_location();
 
-    uint32_t max_frames = (array_len > SCRIPT_BACKTRACE_MAX_FRAMES)
-                              ? SCRIPT_BACKTRACE_MAX_FRAMES
-                              : array_len;
+    uint32_t max_frames = (array_len > SCRIPT_BACKTRACE_MAX_FRAMES) ? SCRIPT_BACKTRACE_MAX_FRAMES : array_len;
     for (uint32_t i = 0; i < max_frames; i++)
     {
         jerry_value_t element = jerry_object_get_index(backtrace_array, i);
@@ -489,8 +487,8 @@ static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array)
             continue;
         }
         jerry_char_t buffer[SCRIPT_ERROR_STACK_BUF_SIZE];
-        jerry_size_t copied = jerry_string_to_buffer(element, JERRY_ENCODING_UTF8,
-                                                     buffer, SCRIPT_ERROR_STACK_BUF_SIZE - 1);
+        jerry_size_t copied =
+            jerry_string_to_buffer(element, JERRY_ENCODING_UTF8, buffer, SCRIPT_ERROR_STACK_BUF_SIZE - 1);
         buffer[copied] = '\0';
         jerry_value_free(element);
         const char *str = (const char *)buffer;
@@ -646,8 +644,14 @@ const char *script_engine_get_error_info(void)
     return engine_rt.error_info ? engine_rt.error_info : "";
 }
 
-const script_error_location_t *script_engine_get_error_location(void) { return &engine_rt.error_location; }
-uint32_t script_engine_get_backtrace_count(void) { return engine_rt.backtrace_count; }
+const script_error_location_t *script_engine_get_error_location(void)
+{
+    return &engine_rt.error_location;
+}
+uint32_t script_engine_get_backtrace_count(void)
+{
+    return engine_rt.backtrace_count;
+}
 
 const script_error_location_t *script_engine_get_error_backtrace(uint32_t *count)
 {
@@ -676,9 +680,11 @@ script_pkg_type_t script_engine_get_current_script_type(void)
 
 bool script_engine_has_permission(const char *perm_name)
 {
-    if (!perm_name) return false;
+    if (!perm_name)
+        return false;
     const script_pkg_t *p = _get_pkg();
-    if (!p || !p->permissions || p->permission_count == 0) return false;
+    if (!p || !p->permissions || p->permission_count == 0)
+        return false;
     for (uint8_t i = 0; i < p->permission_count; i++)
     {
         if (p->permissions[i] && strcmp(p->permissions[i], perm_name) == 0)
@@ -696,7 +702,8 @@ jerry_value_t script_engine_throw_error(const char *message)
 }
 
 void script_engine_register_functions(jerry_value_t parent,
-                                      const script_engine_func_entry_t *entries, size_t funcs_count)
+                                      const script_engine_func_entry_t *entries,
+                                      size_t funcs_count)
 {
     for (size_t i = 0; i < funcs_count; ++i)
     {
@@ -724,11 +731,12 @@ void script_engine_register_functions(jerry_value_t parent,
     }
 }
 
-
 /* ---- JS Call (raw — SPM gates) ---- */
 
-jerry_value_t script_engine_call_raw(jerry_value_t func, jerry_value_t this_val,
-                                     const jerry_value_t args_p[], const jerry_length_t args_count)
+jerry_value_t script_engine_call_raw(jerry_value_t func,
+                                     jerry_value_t this_val,
+                                     const jerry_value_t args_p[],
+                                     const jerry_length_t args_count)
 {
     script_engine_state_t prev_state = engine_rt.state;
     if (prev_state != SCRIPT_ENGINE_STATE_RUNNING && prev_state != SCRIPT_ENGINE_STATE_IDLE)
@@ -770,8 +778,14 @@ jerry_value_t script_engine_call_raw(jerry_value_t func, jerry_value_t this_val,
 
 /* ---- Timeout ---- */
 
-void script_engine_set_timeout(uint32_t timeout_ms) { engine_rt.script_timeout_ms = timeout_ms; }
-uint32_t script_engine_get_timeout(void) { return engine_rt.script_timeout_ms; }
+void script_engine_set_timeout(uint32_t timeout_ms)
+{
+    engine_rt.script_timeout_ms = timeout_ms;
+}
+uint32_t script_engine_get_timeout(void)
+{
+    return engine_rt.script_timeout_ms;
+}
 
 /* ---- VM halt callback ---- */
 
@@ -809,7 +823,8 @@ eos_result_t script_engine_init(void)
 {
     if (engine_rt.initialized)
         return EOS_ERR_ALREADY_INITIALIZED;
-    if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP) || !jerry_feature_enabled(JERRY_FEATURE_REALM) || !jerry_feature_enabled(JERRY_FEATURE_MODULE))
+    if (!jerry_feature_enabled(JERRY_FEATURE_VM_EXEC_STOP) || !jerry_feature_enabled(JERRY_FEATURE_REALM)
+        || !jerry_feature_enabled(JERRY_FEATURE_MODULE))
     {
         EOS_LOG_E("Required JerryScript features not enabled");
         return EOS_ERR_SCRIPT_INIT_FAIL;
@@ -828,8 +843,7 @@ eos_result_t script_engine_init(void)
 
 /* ---- Module system ---- */
 
-static jerry_value_t _module_import_cb(const jerry_value_t specifier,
-                                       const jerry_value_t user_value, void *user_p)
+static jerry_value_t _module_import_cb(const jerry_value_t specifier, const jerry_value_t user_value, void *user_p)
 {
     (void)user_p;
     if (!_module_queue)
@@ -856,14 +870,13 @@ static jerry_value_t _module_import_cb(const jerry_value_t specifier,
     return promise;
 }
 
-static jerry_value_t _module_resolve_cb(const jerry_value_t specifier,
-                                        const jerry_value_t referrer, void *user_p)
+static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jerry_value_t referrer, void *user_p)
 {
     (void)referrer;
     (void)user_p;
     jerry_char_t specifier_buffer[256];
-    jerry_size_t copied_bytes = jerry_string_to_buffer(specifier, JERRY_ENCODING_UTF8,
-                                                       specifier_buffer, sizeof(specifier_buffer) - 1);
+    jerry_size_t copied_bytes =
+        jerry_string_to_buffer(specifier, JERRY_ENCODING_UTF8, specifier_buffer, sizeof(specifier_buffer) - 1);
     specifier_buffer[copied_bytes] = '\0';
 
     char full_path[512];
@@ -887,7 +900,8 @@ static jerry_value_t _module_resolve_cb(const jerry_value_t specifier,
     jerry_value_free(parse_options.user_value);
     eos_free(source_str);
 
-    if (jerry_value_is_exception(result)) {
+    if (jerry_value_is_exception(result))
+    {
         EOS_LOG_E("DEP PARSE FAILED: %s", specifier_buffer);
     }
     /* Dependency modules are NOT tracked here. Their lifetime is managed by
@@ -924,8 +938,10 @@ static void _process_module_queue(void)
         if (!task)
             continue;
         jerry_char_t specifier_buffer[256];
-        jerry_size_t copied_bytes = jerry_string_to_buffer(task->specifier, JERRY_ENCODING_UTF8,
-                                                           specifier_buffer, sizeof(specifier_buffer) - 1);
+        jerry_size_t copied_bytes = jerry_string_to_buffer(task->specifier,
+                                                           JERRY_ENCODING_UTF8,
+                                                           specifier_buffer,
+                                                           sizeof(specifier_buffer) - 1);
         specifier_buffer[copied_bytes] = '\0';
 
         jerry_value_t module_value = _read_and_parse_module((const char *)specifier_buffer);
@@ -1014,7 +1030,9 @@ eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t 
     cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
     cJSON *author = cJSON_GetObjectItemCaseSensitive(root, "author");
     cJSON *description = cJSON_GetObjectItemCaseSensitive(root, "description");
-    if (!cJSON_IsString(id) || !id->valuestring || !cJSON_IsString(name) || !name->valuestring || !cJSON_IsString(version) || !version->valuestring || !cJSON_IsString(author) || !author->valuestring || !cJSON_IsString(description) || !description->valuestring)
+    if (!cJSON_IsString(id) || !id->valuestring || !cJSON_IsString(name) || !name->valuestring
+        || !cJSON_IsString(version) || !version->valuestring || !cJSON_IsString(author) || !author->valuestring
+        || !cJSON_IsString(description) || !description->valuestring)
     {
         cJSON_Delete(root);
         return EOS_FAILED;
@@ -1054,10 +1072,16 @@ eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t 
         if (perm_count > 0)
         {
             /* Known permission names for validation */
-            static const char *known_perms[] = {
-                "location", "sensor", "notification", "storage",
-                "bluetooth", "audio", "health", "contacts", "calendar", NULL
-            };
+            static const char *known_perms[] = {"location",
+                                                "sensor",
+                                                "notification",
+                                                "storage",
+                                                "bluetooth",
+                                                "audio",
+                                                "health",
+                                                "contacts",
+                                                "calendar",
+                                                NULL};
 
             pkg->permissions = (const char **)eos_malloc(sizeof(const char *) * (perm_count + 1));
             if (pkg->permissions)
@@ -1138,7 +1162,8 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     {
         EOS_LOG_E("Package '%s' requires API level %d, OS only supports %d",
                   script_package->id ? script_package->id : "unknown",
-                  script_package->min_api_level, ELENIX_OS_API_LEVEL);
+                  script_package->min_api_level,
+                  ELENIX_OS_API_LEVEL);
         return EOS_ERR_SDK_VERSION;
     }
 
@@ -1156,13 +1181,26 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     {
         EOS_LOG_W("Engine recovered from fatal error (code=%d)", fatal_code);
         const char *fatal_desc;
-        switch (fatal_code) {
-        case 10:  fatal_desc = "Out of memory";        break;
-        case 12:  fatal_desc = "Ref count limit";      break;
-        case 13:  fatal_desc = "Disabled byte code";   break;
-        case 14:  fatal_desc = "GC loop limit";        break;
-        case 120: fatal_desc = "Assertion failed";     break;
-        default:  fatal_desc = "Unknown";              break;
+        switch (fatal_code)
+        {
+            case 10:
+                fatal_desc = "Out of memory";
+                break;
+            case 12:
+                fatal_desc = "Ref count limit";
+                break;
+            case 13:
+                fatal_desc = "Disabled byte code";
+                break;
+            case 14:
+                fatal_desc = "GC loop limit";
+                break;
+            case 120:
+                fatal_desc = "Assertion failed";
+                break;
+            default:
+                fatal_desc = "Unknown";
+                break;
         }
         char fatal_msg[64];
         snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d, %s)", fatal_code, fatal_desc);
@@ -1234,12 +1272,11 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     jerry_parse_options_t parse_options;
     parse_options.options = JERRY_PARSE_MODULE | JERRY_PARSE_HAS_SOURCE_NAME | JERRY_PARSE_HAS_USER_VALUE;
     parse_options.source_name = jerry_string_sz("main.js");
-    parse_options.user_value = jerry_string_sz(engine_rt.owned_script.base_path
-                                                   ? engine_rt.owned_script.base_path
-                                                   : "/");
-    jerry_value_t parsed_code = jerry_parse(
-        (const jerry_char_t *)script_package->script_str,
-        strlen(script_package->script_str), &parse_options);
+    parse_options.user_value =
+        jerry_string_sz(engine_rt.owned_script.base_path ? engine_rt.owned_script.base_path : "/");
+    jerry_value_t parsed_code = jerry_parse((const jerry_char_t *)script_package->script_str,
+                                            strlen(script_package->script_str),
+                                            &parse_options);
     jerry_value_free(parse_options.source_name);
     jerry_value_free(parse_options.user_value);
     if (!jerry_value_is_exception(parsed_code))
@@ -1247,7 +1284,6 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
 
     eos_free((void *)engine_rt.owned_script.script_str);
     engine_rt.owned_script.script_str = NULL;
-
 
     eos_result_t result = EOS_OK;
 
@@ -1366,7 +1402,6 @@ static eos_result_t _script_engine_stop_and_cleanup(void)
     EOS_LOG_I("Script stop cleanup: state=%d prog=%p", engine_rt.state, (void *)_get_prog());
     script_program_t *prog = _get_prog();
 
-
     _collect_script_garbage();
     _check_mem();
 
@@ -1403,14 +1438,14 @@ eos_result_t script_engine_stop(void)
     EOS_LOG_I("Stop script (sync) state=%d", engine_rt.state);
     switch (engine_rt.state)
     {
-    case SCRIPT_ENGINE_STATE_UNINITIALIZED:
-        return EOS_OK;
-    case SCRIPT_ENGINE_STATE_RUNNING:
-    case SCRIPT_ENGINE_STATE_EXCEPTION:
-    case SCRIPT_ENGINE_STATE_IDLE:
-        return _script_engine_stop_and_cleanup();
-    default:
-        return EOS_ERR_INVALID_STATE;
+        case SCRIPT_ENGINE_STATE_UNINITIALIZED:
+            return EOS_OK;
+        case SCRIPT_ENGINE_STATE_RUNNING:
+        case SCRIPT_ENGINE_STATE_EXCEPTION:
+        case SCRIPT_ENGINE_STATE_IDLE:
+            return _script_engine_stop_and_cleanup();
+        default:
+            return EOS_ERR_INVALID_STATE;
     }
 }
 
@@ -1419,18 +1454,18 @@ eos_result_t script_engine_request_stop(void)
     EOS_LOG_I("Request stop script state=%d", engine_rt.state);
     switch (engine_rt.state)
     {
-    case SCRIPT_ENGINE_STATE_UNINITIALIZED:
-        return EOS_OK;
-    case SCRIPT_ENGINE_STATE_RUNNING:
-        engine_rt.stop_is_timeout = false;
-        engine_rt.pending_stop = true;
-        eos_dispatcher_call((eos_dispatcher_cb_t)_script_engine_stop_and_cleanup, NULL);
-        return EOS_OK;
-    case SCRIPT_ENGINE_STATE_IDLE:
-    case SCRIPT_ENGINE_STATE_EXCEPTION:
-        return _script_engine_stop_and_cleanup();
-    default:
-        return EOS_ERR_INVALID_STATE;
+        case SCRIPT_ENGINE_STATE_UNINITIALIZED:
+            return EOS_OK;
+        case SCRIPT_ENGINE_STATE_RUNNING:
+            engine_rt.stop_is_timeout = false;
+            engine_rt.pending_stop = true;
+            eos_dispatcher_call((eos_dispatcher_cb_t)_script_engine_stop_and_cleanup, NULL);
+            return EOS_OK;
+        case SCRIPT_ENGINE_STATE_IDLE:
+        case SCRIPT_ENGINE_STATE_EXCEPTION:
+            return _script_engine_stop_and_cleanup();
+        default:
+            return EOS_ERR_INVALID_STATE;
     }
 }
 
@@ -1465,12 +1500,10 @@ eos_result_t script_engine_reload_current_script(void)
 
     script_pkg_t pkg = {0};
     pkg.type = p->type;
-    const char *mf = (pkg.type == SCRIPT_TYPE_APPLICATION)
-                         ? EOS_APP_MANIFEST_FILE_NAME
-                         : EOS_WATCHFACE_MANIFEST_FILE_NAME;
-    const char *ef = (pkg.type == SCRIPT_TYPE_APPLICATION)
-                         ? EOS_APP_SCRIPT_ENTRY_FILE_NAME
-                         : EOS_WATCHFACE_SCRIPT_ENTRY_FILE_NAME;
+    const char *mf =
+        (pkg.type == SCRIPT_TYPE_APPLICATION) ? EOS_APP_MANIFEST_FILE_NAME : EOS_WATCHFACE_MANIFEST_FILE_NAME;
+    const char *ef =
+        (pkg.type == SCRIPT_TYPE_APPLICATION) ? EOS_APP_SCRIPT_ENTRY_FILE_NAME : EOS_WATCHFACE_SCRIPT_ENTRY_FILE_NAME;
     char base_path_buf[EOS_FS_PATH_MAX];
     snprintf(base_path_buf, sizeof(base_path_buf), "%s", p->base_path);
     char manifest_path[EOS_FS_PATH_MAX];
@@ -1525,5 +1558,7 @@ void JERRY_ATTR_NORETURN script_engine_fatal_longjmp(int code)
 {
     longjmp(engine_rt.fatal_jmp_buf, code);
     /* unreachable */
-    while (1) { }
+    while (1)
+    {
+    }
 }

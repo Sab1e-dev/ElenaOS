@@ -90,7 +90,7 @@ static void _print_boot_info(void)
     EOS_LOG_I("System initializing...");
     EOS_LOG_I("ElenixOS v" ELENIX_OS_VERSION_FULL);
     EOS_LOG_I("build: %s %s", build_date, __TIME__);
-    EOS_LOG_I("build mode: %s", EOS_COMPILE_MODE==DEBUG?"DEBUG":"RELEASE");
+    EOS_LOG_I("build mode: %s", EOS_COMPILE_MODE == DEBUG ? "DEBUG" : "RELEASE");
 }
 
 static lv_indev_t *_get_key_indev()
@@ -111,13 +111,13 @@ void _sys_init_err_handler(const char *err_msg)
 {
     EOS_LOG_E("System initialization failed: %s", err_msg);
     lv_obj_t *list = eos_std_info_create(lv_layer_sys(),
-                                         EOS_COLOR_RED, RI_BUG_LINE,
+                                         EOS_COLOR_RED,
+                                         RI_BUG_LINE,
                                          eos_lang_get_text(STR_ID_SYS_INIT_FAILED),
                                          eos_lang_get_text(STR_ID_SYS_INIT_FAILED_CONTENT));
     lv_obj_set_style_pad_top(list, 80, 0);
     char info_str[1024];
-    snprintf(info_str, sizeof(info_str),
-             "Error: %s", err_msg);
+    snprintf(info_str, sizeof(info_str), "Error: %s", err_msg);
     lv_obj_t *err_label = eos_list_add_comment(list, info_str);
     (void)err_label;
 
@@ -182,9 +182,7 @@ void eos_init(void)
     lv_font_t *default_font = eos_font_init();
     if (!default_font)
         _sys_init_err_handler("Failed to initialize default font");
-    eos_theme_set(lv_palette_main(LV_PALETTE_BLUE),
-                  lv_palette_main(LV_PALETTE_RED),
-                  default_font);
+    eos_theme_set(lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), default_font);
     eos_app_init();
     eos_watchface_init();
     eos_overlay_layer_init();

@@ -150,15 +150,9 @@ lv_display_t *eos_virtual_display_create(lv_obj_t *parent, lv_coord_t hor_res, l
     lv_obj_add_flag(vd->canvas, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(vd->canvas, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(vd->canvas, LV_OBJ_FLAG_IGNORE_LAYOUT);
-    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb,
-                        LV_EVENT_PRESSED,
-                        vd);
-    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb,
-                        LV_EVENT_PRESSING,
-                        vd);
-    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb,
-                        LV_EVENT_RELEASED,
-                        vd);
+    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb, LV_EVENT_PRESSED, vd);
+    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb, LV_EVENT_PRESSING, vd);
+    lv_obj_add_event_cb(vd->canvas, _canvas_event_cb, LV_EVENT_RELEASED, vd);
 
     // Create LVGL display
     vd->disp = lv_display_create(hor_res, ver_res);

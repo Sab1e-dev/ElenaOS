@@ -42,7 +42,8 @@ typedef struct
 {
     const char *name;
     sni_constant_type_t type;
-    union {
+    union
+    {
         int32_t i;
         double f;
         const char *s;
@@ -55,12 +56,12 @@ struct sni_class_desc_t
 {
     const char *name;
 
-    jerry_external_handler_t constructor;   /**< Constructor; when NULL, the class is exported as a static class */
+    jerry_external_handler_t constructor; /**< Constructor; when NULL, the class is exported as a static class */
 
     const sni_class_desc_t *base_class;
 
-    const sni_method_desc_t *methods;       /**< Instance methods */
-    const sni_property_desc_t *properties;  /**< Properties */
+    const sni_method_desc_t *methods; /**< Instance methods */
+    const sni_property_desc_t *properties; /**< Properties */
 
     const sni_method_desc_t *static_methods;
     const sni_constant_desc_t *constants;

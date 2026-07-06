@@ -268,11 +268,8 @@ static void _control_center_brightness_btn_clicked_cb(lv_event_t *e)
 {
     lv_obj_t *slider = _control_center_slider_create(RI_SUN_LINE);
     lv_slider_set_range(slider, EOS_DISPLAY_BRIGHTNESS_MIN, EOS_DISPLAY_BRIGHTNESS_MAX);
-    lv_slider_set_value(slider,
-                        eos_config_get_number(EOS_CONFIG_KEY_DISPLAY_BRIGHTNESS_NUMBER, 50),
-                        LV_ANIM_ON);
-    lv_obj_add_event_cb(slider,
-                        _control_center_brightness_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_slider_set_value(slider, eos_config_get_number(EOS_CONFIG_KEY_DISPLAY_BRIGHTNESS_NUMBER, 50), LV_ANIM_ON);
+    lv_obj_add_event_cb(slider, _control_center_brightness_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(slider, _control_center_brightness_slider_delete_cb, LV_EVENT_DELETE, NULL);
 }
 
@@ -382,11 +379,8 @@ static void _control_center_volume_btn_clicked_cb(lv_event_t *e)
     lv_obj_t *slider = _control_center_slider_create(_control_center_volume_get_icon_by_value(volume));
     lv_slider_set_range(slider, EOS_SPEAKER_VOLUME_MIN, EOS_SPEAKER_VOLUME_MAX);
 
-    lv_slider_set_value(slider,
-                        volume,
-                        LV_ANIM_ON);
-    lv_obj_add_event_cb(slider,
-                        _control_center_volume_value_changed_cb, LV_EVENT_VALUE_CHANGED, cc);
+    lv_slider_set_value(slider, volume, LV_ANIM_ON);
+    lv_obj_add_event_cb(slider, _control_center_volume_value_changed_cb, LV_EVENT_VALUE_CHANGED, cc);
     lv_obj_add_event_cb(slider, _control_center_volume_slider_delete_cb, LV_EVENT_DELETE, NULL);
 }
 
@@ -431,9 +425,7 @@ static void _control_center_closed_cb(lv_event_t *e)
     eos_activity_t *act = eos_activity_get_current();
     if (!act || eos_activity_get_type(act) != EOS_ACTIVITY_TYPE_WATCHFACE)
     {
-        lv_obj_add_flag(eos_slide_widget_get_touch_obj(
-                            control_center_instance->swipe_panel->sw),
-                        LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(eos_slide_widget_get_touch_obj(control_center_instance->swipe_panel->sw), LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -513,10 +505,11 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
     lv_obj_set_style_pad_column(container, 20, 0); // Column spacing
     lv_obj_set_style_pad_row(container, 8, 0);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(container,
-                          LV_FLEX_ALIGN_CENTER, // Main axis (horizontal direction) starts from the beginning (left-aligned)
-                          LV_FLEX_ALIGN_CENTER, // Cross axis (vertical direction) centered
-                          LV_FLEX_ALIGN_START);
+    lv_obj_set_flex_align(
+        container,
+        LV_FLEX_ALIGN_CENTER, // Main axis (horizontal direction) starts from the beginning (left-aligned)
+        LV_FLEX_ALIGN_CENTER, // Cross axis (vertical direction) centered
+        LV_FLEX_ALIGN_START);
     lv_obj_add_flag(container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_event_cb(container, _list_scroll_cb, LV_EVENT_SCROLL, container);

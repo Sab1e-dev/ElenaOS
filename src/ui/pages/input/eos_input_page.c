@@ -32,52 +32,156 @@
 #define KB_SWITCH_TO_SYMBOL "#+="
 #define KB_SPACE "SPACE"
 
-static const char *const _keyboard_map_lower[] = {
-    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "\n",
-    "a", "s", "d", "f", "g", "h", "j", "k", "l", "\n",
-    KB_SWITCH_TO_UPPER, "z", "x", "c", "v", "b", "n", "m", KB_SWITCH_TO_NUMBER, "\n",
-    LV_SYMBOL_LEFT, KB_SPACE, LV_SYMBOL_RIGHT, ""};
+static const char *const _keyboard_map_lower[] = {"q",      "w",
+                                                  "e",      "r",
+                                                  "t",      "y",
+                                                  "u",      "i",
+                                                  "o",      "p",
+                                                  "\n",     "a",
+                                                  "s",      "d",
+                                                  "f",      "g",
+                                                  "h",      "j",
+                                                  "k",      "l",
+                                                  "\n",     KB_SWITCH_TO_UPPER,
+                                                  "z",      "x",
+                                                  "c",      "v",
+                                                  "b",      "n",
+                                                  "m",      KB_SWITCH_TO_NUMBER,
+                                                  "\n",     LV_SYMBOL_LEFT,
+                                                  KB_SPACE, LV_SYMBOL_RIGHT,
+                                                  ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_lower[] = {
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED, KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_upper[] = {
-    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "\n",
-    "A", "S", "D", "F", "G", "H", "J", "K", "L", "\n",
-    KB_SWITCH_TO_LOWER, "Z", "X", "C", "V", "B", "N", "M", KB_SWITCH_TO_NUMBER, "\n",
-    LV_SYMBOL_LEFT, KB_SPACE, LV_SYMBOL_RIGHT, ""};
+static const char *const _keyboard_map_upper[] = {"Q",      "W",
+                                                  "E",      "R",
+                                                  "T",      "Y",
+                                                  "U",      "I",
+                                                  "O",      "P",
+                                                  "\n",     "A",
+                                                  "S",      "D",
+                                                  "F",      "G",
+                                                  "H",      "J",
+                                                  "K",      "L",
+                                                  "\n",     KB_SWITCH_TO_LOWER,
+                                                  "Z",      "X",
+                                                  "C",      "V",
+                                                  "B",      "N",
+                                                  "M",      KB_SWITCH_TO_NUMBER,
+                                                  "\n",     LV_SYMBOL_LEFT,
+                                                  KB_SPACE, LV_SYMBOL_RIGHT,
+                                                  ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_upper[] = {
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED, KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_number[] = {
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "\n",
-    "-", "/", ":", ";", "(", ")", "$", "@", "\"", "\"", "\n",
-    KB_SWITCH_TO_SYMBOL, ".", ",", "?", "!", "\'", KB_SWITCH_TO_LOWER, "\n",
-    LV_SYMBOL_LEFT, KB_SPACE, LV_SYMBOL_RIGHT, ""};
+static const char *const _keyboard_map_number[] = {"1",
+                                                   "2",
+                                                   "3",
+                                                   "4",
+                                                   "5",
+                                                   "6",
+                                                   "7",
+                                                   "8",
+                                                   "9",
+                                                   "0",
+                                                   "\n",
+                                                   "-",
+                                                   "/",
+                                                   ":",
+                                                   ";",
+                                                   "(",
+                                                   ")",
+                                                   "$",
+                                                   "@",
+                                                   "\"",
+                                                   "\"",
+                                                   "\n",
+                                                   KB_SWITCH_TO_SYMBOL,
+                                                   ".",
+                                                   ",",
+                                                   "?",
+                                                   "!",
+                                                   "\'",
+                                                   KB_SWITCH_TO_LOWER,
+                                                   "\n",
+                                                   LV_SYMBOL_LEFT,
+                                                   KB_SPACE,
+                                                   LV_SYMBOL_RIGHT,
+                                                   ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_number[] = {
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(1) | LV_BUTTONMATRIX_CTRL_CHECKED, KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_symbol[] = {
-    "[", "]", "{", "}", "#", "%", "^", "*", "+", "=", "\n",
-    "-", "\\", "|", "~", "<", ">", "€", "£", "¥", "•", "\n",
-    KB_SWITCH_TO_SYMBOL, ".", ",", "?", "!", "\'", KB_SWITCH_TO_UPPER, "\n",
-    LV_SYMBOL_LEFT, KB_SPACE, LV_SYMBOL_RIGHT, ""};
+static const char *const _keyboard_map_symbol[] = {"[",
+                                                   "]",
+                                                   "{",
+                                                   "}",
+                                                   "#",
+                                                   "%",
+                                                   "^",
+                                                   "*",
+                                                   "+",
+                                                   "=",
+                                                   "\n",
+                                                   "-",
+                                                   "\\",
+                                                   "|",
+                                                   "~",
+                                                   "<",
+                                                   ">",
+                                                   "€",
+                                                   "£",
+                                                   "¥",
+                                                   "•",
+                                                   "\n",
+                                                   KB_SWITCH_TO_SYMBOL,
+                                                   ".",
+                                                   ",",
+                                                   "?",
+                                                   "!",
+                                                   "\'",
+                                                   KB_SWITCH_TO_UPPER,
+                                                   "\n",
+                                                   LV_SYMBOL_LEFT,
+                                                   KB_SPACE,
+                                                   LV_SYMBOL_RIGHT,
+                                                   ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_symbol[] = {
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
-    KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED, KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
+    KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
 /* Variables --------------------------------------------------*/
@@ -260,7 +364,10 @@ static void _input_page_register_transition_anim_route(void)
 
     if (!close_route_registered)
     {
-        if (eos_activity_register_anim_route(EOS_ACTIVITY_TYPE_INPUT_PAGE, EOS_ACTIVITY_TYPE_APP, _input_page_slide_out_anim_cb) == EOS_OK)
+        if (eos_activity_register_anim_route(EOS_ACTIVITY_TYPE_INPUT_PAGE,
+                                             EOS_ACTIVITY_TYPE_APP,
+                                             _input_page_slide_out_anim_cb)
+            == EOS_OK)
         {
             close_route_registered = true;
         }
@@ -268,7 +375,10 @@ static void _input_page_register_transition_anim_route(void)
 
     if (!open_route_registered)
     {
-        if (eos_activity_register_anim_route(EOS_ACTIVITY_TYPE_APP, EOS_ACTIVITY_TYPE_INPUT_PAGE, _input_page_slide_in_anim_cb) == EOS_OK)
+        if (eos_activity_register_anim_route(EOS_ACTIVITY_TYPE_APP,
+                                             EOS_ACTIVITY_TYPE_INPUT_PAGE,
+                                             _input_page_slide_in_anim_cb)
+            == EOS_OK)
         {
             open_route_registered = true;
         }
@@ -502,7 +612,9 @@ eos_result_t eos_input_page_open(lv_obj_t *label)
     return eos_input_page_open_with_callback(label, NULL, NULL);
 }
 
-eos_result_t eos_input_page_open_with_callback(lv_obj_t *label, eos_input_close_callback_t close_callback, void *user_data)
+eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
+                                               eos_input_close_callback_t close_callback,
+                                               void *user_data)
 {
     /* Create Activity */
     eos_activity_t *activity = eos_activity_create(&_input_page_lifecycle);

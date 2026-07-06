@@ -41,9 +41,7 @@ lv_obj_t *eos_std_info_create(lv_obj_t *scr,
  * @param title Title content
  * @param comment Comment content
  */
-void eos_std_title_comment_create(lv_obj_t *parent,
-                                  const char *title,
-                                  const char *comment);
+void eos_std_title_comment_create(lv_obj_t *parent, const char *title, const char *comment);
 #ifdef __cplusplus
 }
 #endif

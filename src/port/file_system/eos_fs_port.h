@@ -19,22 +19,22 @@ extern "C" {
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-typedef FILE* eos_file_t;
-typedef DIR* eos_dir_t;
+typedef FILE *eos_file_t;
+typedef DIR *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
 #elif EOS_FS_TYPE == EOS_FS_FATFS
 #include "ff.h"
-typedef FIL* eos_file_t;
-typedef FF_DIR* eos_dir_t;
+typedef FIL *eos_file_t;
+typedef FF_DIR *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
 #elif EOS_FS_TYPE == EOS_FS_LITTLEFS
 #include "lfs.h"
-typedef lfs_file_t* eos_file_t;
-typedef lfs_dir_t* eos_dir_t;
+typedef lfs_file_t *eos_file_t;
+typedef lfs_dir_t *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
@@ -44,7 +44,7 @@ typedef lfs_dir_t* eos_dir_t;
 #include <sys/stat.h>
 #include <unistd.h>
 typedef int eos_file_t;
-typedef DIR* eos_dir_t;
+typedef DIR *eos_dir_t;
 #define EOS_FILE_INVALID (-1)
 #define EOS_DIR_INVALID NULL
 
@@ -53,7 +53,8 @@ typedef EOS_FS_FILE_TYPE eos_file_t;
 typedef EOS_FS_DIR_TYPE eos_dir_t;
 #endif /* EOS_FS_TYPE */
 /* Public typedefs --------------------------------------------*/
-typedef enum {
+typedef enum
+{
     EOS_FS_TYPE_NOT_EXIST = 0,
     EOS_FS_TYPE_FILE = 1,
     EOS_FS_TYPE_DIR = 2

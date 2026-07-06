@@ -22,7 +22,8 @@ struct eos_audio_feed;
 
 /* Public typedefs --------------------------------------------*/
 
-typedef enum {
+typedef enum
+{
     EOS_AUDIO_IDLE,
     EOS_AUDIO_PLAYING,
     EOS_AUDIO_PAUSED,
@@ -59,8 +60,7 @@ struct eos_audio_player_t
  */
 void eos_audio_player_init(eos_audio_player_t *p);
 
-eos_result_t eos_audio_player_play(eos_audio_player_t *player,
-    const void *src, eos_audio_src_type_t src_type);
+eos_result_t eos_audio_player_play(eos_audio_player_t *player, const void *src, eos_audio_src_type_t src_type);
 eos_result_t eos_audio_player_stop(eos_audio_player_t *player);
 eos_result_t eos_audio_player_pause(eos_audio_player_t *player);
 eos_result_t eos_audio_player_resume(eos_audio_player_t *player);
@@ -84,8 +84,7 @@ void eos_audio_player_apply_volume(eos_audio_player_t *player);
  * @brief Set a callback invoked when playback reaches end naturally.
  * Not called on explicit stop() or pause().
  */
-void eos_audio_player_set_done_callback(eos_audio_player_t *player,
-    eos_audio_player_done_cb cb, void *user_data);
+void eos_audio_player_set_done_callback(eos_audio_player_t *player, eos_audio_player_done_cb cb, void *user_data);
 
 /**
  * @brief Save playback state for later restoration (interrupt/resume pattern).
@@ -95,14 +94,18 @@ void eos_audio_player_set_done_callback(eos_audio_player_t *player,
  * @param[out] saved_pos   Current sample position
  */
 void eos_audio_player_save_state(eos_audio_player_t *player,
-    void **saved_src, eos_audio_src_type_t *saved_type, uint32_t *saved_pos);
+                                 void **saved_src,
+                                 eos_audio_src_type_t *saved_type,
+                                 uint32_t *saved_pos);
 
 /**
  * @brief Restore playback from a previously saved state.
  * Player must be in IDLE state.
  */
 eos_result_t eos_audio_player_restore_state(eos_audio_player_t *player,
-    void *src, eos_audio_src_type_t src_type, uint32_t position);
+                                            void *src,
+                                            eos_audio_src_type_t src_type,
+                                            uint32_t position);
 
 #ifdef __cplusplus
 }

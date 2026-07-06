@@ -21,23 +21,17 @@ extern "C" {
 #define EOS_TEST_NAME_MAX 80
 #define EOS_TEST_MAX 256
 
-#define EOS_EXPECT_TRUE(cond, name, msg) \
-    eos_test_record(name, (cond), msg)
+#define EOS_EXPECT_TRUE(cond, name, msg) eos_test_record(name, (cond), msg)
 
-#define EOS_EXPECT_FALSE(cond, name, msg) \
-    eos_test_record(name, !(cond), msg)
+#define EOS_EXPECT_FALSE(cond, name, msg) eos_test_record(name, !(cond), msg)
 
-#define EOS_EXPECT_EQ(a, b, name, msg) \
-    eos_test_record(name, (a) == (b), msg)
+#define EOS_EXPECT_EQ(a, b, name, msg) eos_test_record(name, (a) == (b), msg)
 
-#define EOS_EXPECT_NE(a, b, name, msg) \
-    eos_test_record(name, (a) != (b), msg)
+#define EOS_EXPECT_NE(a, b, name, msg) eos_test_record(name, (a) != (b), msg)
 
-#define EOS_EXPECT_NOT_NULL(ptr, name, msg) \
-    eos_test_record(name, (ptr) != NULL, msg)
+#define EOS_EXPECT_NOT_NULL(ptr, name, msg) eos_test_record(name, (ptr) != NULL, msg)
 
-#define EOS_EXPECT_NULL(ptr, name, msg) \
-    eos_test_record(name, (ptr) == NULL, msg)
+#define EOS_EXPECT_NULL(ptr, name, msg) eos_test_record(name, (ptr) == NULL, msg)
 
 /* Public typedefs --------------------------------------------*/
 typedef bool (*eos_test_fn_t)(void);

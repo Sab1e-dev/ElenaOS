@@ -7,8 +7,7 @@
 #define EOS_PKG_MGR_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /* Includes ---------------------------------------------------*/
@@ -19,22 +18,22 @@ extern "C"
 #include "eos_watchface.h"
 #include "script_engine_core.h"
 /* Public macros ----------------------------------------------*/
-#define EOS_PKG_APP_MAGIC           "EAPK"
-#define EOS_PKG_WATCHFACE_MAGIC     "EWPK"
-#define EOS_PKG_READ_BLOCK          512     /*< Block size for data reading */
-#define EOS_PKG_NAME_LEN_MAX        256     /*< Last byte is forced to "\0", maximum name length 255 bytes */
-#define EOS_PKG_ID_LEN_MAX          256     /*< Last byte is forced to "\0", maximum name length 255 bytes */
-#define EOS_PKG_VERSION_LEN_MAX     256     /*< Last byte is forced to "\0", maximum name length 255 bytes */
+#define EOS_PKG_APP_MAGIC "EAPK"
+#define EOS_PKG_WATCHFACE_MAGIC "EWPK"
+#define EOS_PKG_READ_BLOCK 512 /*< Block size for data reading */
+#define EOS_PKG_NAME_LEN_MAX 256 /*< Last byte is forced to "\0", maximum name length 255 bytes */
+#define EOS_PKG_ID_LEN_MAX 256 /*< Last byte is forced to "\0", maximum name length 255 bytes */
+#define EOS_PKG_VERSION_LEN_MAX 256 /*< Last byte is forced to "\0", maximum name length 255 bytes */
 
-#define EOS_PKG_MAGIC_OFFSET        0
-#define EOS_PKG_NAME_OFFSET         EOS_PKG_MAGIC_OFFSET + 4
-#define EOS_PKG_ID_OFFSET           EOS_PKG_NAME_OFFSET + EOS_PKG_NAME_LEN_MAX
-#define EOS_PKG_VERSION_OFFSET      EOS_PKG_ID_OFFSET + EOS_PKG_ID_LEN_MAX
-#define EOS_PKG_MIN_API_OFFSET      EOS_PKG_VERSION_OFFSET + EOS_PKG_VERSION_LEN_MAX
-#define EOS_PKG_TARGET_API_OFFSET   EOS_PKG_MIN_API_OFFSET + 2
-#define EOS_PKG_FILE_COUNT_OFFSET   EOS_PKG_TARGET_API_OFFSET + 2
-#define EOS_PKG_RESERVED_OFFSET     EOS_PKG_FILE_COUNT_OFFSET + 4
-#define EOS_PKG_TABLE_OFFSET        EOS_PKG_RESERVED_OFFSET + 4
+#define EOS_PKG_MAGIC_OFFSET 0
+#define EOS_PKG_NAME_OFFSET EOS_PKG_MAGIC_OFFSET + 4
+#define EOS_PKG_ID_OFFSET EOS_PKG_NAME_OFFSET + EOS_PKG_NAME_LEN_MAX
+#define EOS_PKG_VERSION_OFFSET EOS_PKG_ID_OFFSET + EOS_PKG_ID_LEN_MAX
+#define EOS_PKG_MIN_API_OFFSET EOS_PKG_VERSION_OFFSET + EOS_PKG_VERSION_LEN_MAX
+#define EOS_PKG_TARGET_API_OFFSET EOS_PKG_MIN_API_OFFSET + 2
+#define EOS_PKG_FILE_COUNT_OFFSET EOS_PKG_TARGET_API_OFFSET + 2
+#define EOS_PKG_RESERVED_OFFSET EOS_PKG_FILE_COUNT_OFFSET + 4
+#define EOS_PKG_TABLE_OFFSET EOS_PKG_RESERVED_OFFSET + 4
 
 /* Public typedefs --------------------------------------------*/
 /**
@@ -42,14 +41,14 @@ extern "C"
  */
 typedef struct
 {
-    char magic[4];                              // Magic Number
-    char pkg_name[EOS_PKG_NAME_LEN_MAX];        // Package name
-    char pkg_id[EOS_PKG_ID_LEN_MAX];            // Software ID
-    char pkg_version[EOS_PKG_VERSION_LEN_MAX];  // Software version
-    uint16_t min_api_level;                     // Minimum required API level
-    uint16_t target_api_level;                  // Target API level
-    uint32_t file_count;                        // File count
-    uint32_t reserved;                          // Reserved field for future expansion
+    char magic[4]; // Magic Number
+    char pkg_name[EOS_PKG_NAME_LEN_MAX]; // Package name
+    char pkg_id[EOS_PKG_ID_LEN_MAX]; // Software ID
+    char pkg_version[EOS_PKG_VERSION_LEN_MAX]; // Software version
+    uint16_t min_api_level; // Minimum required API level
+    uint16_t target_api_level; // Target API level
+    uint32_t file_count; // File count
+    uint32_t reserved; // Reserved field for future expansion
 } eos_pkg_header_t;
 
 /**

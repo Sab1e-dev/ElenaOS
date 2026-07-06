@@ -28,7 +28,7 @@ typedef enum
 
 typedef struct
 {
-    uint8_t type;                                  /**< Memory type */
+    uint8_t type; /**< Memory type */
     uint8_t pad[sizeof(void *) - sizeof(uint8_t)]; /**< Memory alignment */
 } eos_mem_header_t;
 
@@ -51,7 +51,9 @@ void *eos_malloc_core(size_t size)
 
     hdr->type = (size < EOS_MEM_POOL_ALLOC_THRESHOLD) ? EOS_MEM_POOL_FAST : EOS_MEM_POOL_LARGE;
 
-    EOS_LOG_D("Auto memory alloc: [%s]%d", hdr->type == EOS_MEM_POOL_FAST ? "EOS_MEM_POOL_FAST" : "EOS_MEM_POOL_LARGE", total);
+    EOS_LOG_D("Auto memory alloc: [%s]%d",
+              hdr->type == EOS_MEM_POOL_FAST ? "EOS_MEM_POOL_FAST" : "EOS_MEM_POOL_LARGE",
+              total);
 
     return (void *)(hdr + 1);
 }
@@ -82,15 +84,15 @@ void eos_free_core(void *ptr)
 
     switch (hdr->type)
     {
-    case EOS_MEM_POOL_FAST:
-        EOS_MEM_FREE_FAST(hdr);
-        break;
-    case EOS_MEM_POOL_LARGE:
-        EOS_MEM_FREE_LARGE(hdr);
-        break;
-    default:
-        EOS_LOG_E("Unknown memory type");
-        break;
+        case EOS_MEM_POOL_FAST:
+            EOS_MEM_FREE_FAST(hdr);
+            break;
+        case EOS_MEM_POOL_LARGE:
+            EOS_MEM_FREE_LARGE(hdr);
+            break;
+        default:
+            EOS_LOG_E("Unknown memory type");
+            break;
     }
 }
 

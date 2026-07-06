@@ -16,14 +16,15 @@
 #define EOS_LOG_BUFFER_SIZE 1024
 
 /* Variables --------------------------------------------------*/
-static eos_log_listener_t s_listeners[EOS_LOG_MAX_LISTENERS]={0};
+static eos_log_listener_t s_listeners[EOS_LOG_MAX_LISTENERS] = {0};
 static bool _initialized = false;
 
 /* Function Implementations -----------------------------------*/
 
 void eos_service_log_init(void)
 {
-    if (_initialized) {
+    if (_initialized)
+    {
         return;
     }
 
@@ -34,19 +35,20 @@ void eos_service_log_init(void)
 #endif
 }
 
-eos_log_listener_id_t eos_log_register_listener(
-    const char *name,
-    eos_log_listener_cb_t cb,
-    void *user_data,
-    uint8_t flags
-)
+eos_log_listener_id_t eos_log_register_listener(const char *name,
+                                                eos_log_listener_cb_t cb,
+                                                void *user_data,
+                                                uint8_t flags)
 {
-    if (!_initialized || !name || !cb) {
+    if (!_initialized || !name || !cb)
+    {
         return -1;
     }
 
-    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++) {
-        if (!s_listeners[i].used) {
+    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++)
+    {
+        if (!s_listeners[i].used)
+        {
             s_listeners[i].name = name;
             s_listeners[i].cb = cb;
             s_listeners[i].user_data = user_data;
@@ -61,15 +63,18 @@ eos_log_listener_id_t eos_log_register_listener(
 
 eos_result_t eos_log_unregister_listener(eos_log_listener_id_t id)
 {
-    if (!_initialized || id < 0 || id >= EOS_LOG_MAX_LISTENERS) {
+    if (!_initialized || id < 0 || id >= EOS_LOG_MAX_LISTENERS)
+    {
         return EOS_ERR_INVALID_ARG;
     }
 
-    if (!s_listeners[id].used) {
+    if (!s_listeners[id].used)
+    {
         return EOS_ERR_INVALID_ARG;
     }
 
-    if (s_listeners[id].flags & EOS_LOG_FLAG_SYSTEM) {
+    if (s_listeners[id].flags & EOS_LOG_FLAG_SYSTEM)
+    {
         return EOS_ERR_INVALID_ARG;
     }
 
@@ -79,13 +84,15 @@ eos_result_t eos_log_unregister_listener(eos_log_listener_id_t id)
 
 eos_log_listener_id_t eos_log_find_listener(const char *name)
 {
-    if (!_initialized || !name) {
+    if (!_initialized || !name)
+    {
         return -1;
     }
 
-    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++) {
-        if (s_listeners[i].used && s_listeners[i].name &&
-            strcmp(s_listeners[i].name, name) == 0) {
+    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++)
+    {
+        if (s_listeners[i].used && s_listeners[i].name && strcmp(s_listeners[i].name, name) == 0)
+        {
             return i;
         }
     }
@@ -95,11 +102,13 @@ eos_log_listener_id_t eos_log_find_listener(const char *name)
 
 eos_result_t eos_log_get_listener(eos_log_listener_id_t id, eos_log_listener_t *listener)
 {
-    if (!_initialized || !listener || id < 0 || id >= EOS_LOG_MAX_LISTENERS) {
+    if (!_initialized || !listener || id < 0 || id >= EOS_LOG_MAX_LISTENERS)
+    {
         return EOS_ERR_INVALID_ARG;
     }
 
-    if (!s_listeners[id].used) {
+    if (!s_listeners[id].used)
+    {
         return EOS_ERR_INVALID_ARG;
     }
 
@@ -109,15 +118,18 @@ eos_result_t eos_log_get_listener(eos_log_listener_id_t id, eos_log_listener_t *
 
 void eos_log_dispatch(eos_log_level_t level, const char *buf, size_t len)
 {
-    if (!_initialized || !buf || len == 0) {
+    if (!_initialized || !buf || len == 0)
+    {
         return;
     }
 
     eos_log_listener_t snapshot[EOS_LOG_MAX_LISTENERS];
     memcpy(snapshot, s_listeners, sizeof(snapshot));
 
-    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++) {
-        if (snapshot[i].used && snapshot[i].cb) {
+    for (int i = 0; i < EOS_LOG_MAX_LISTENERS; i++)
+    {
+        if (snapshot[i].used && snapshot[i].cb)
+        {
             snapshot[i].cb(level, buf, len, snapshot[i].user_data);
         }
     }
@@ -125,7 +137,8 @@ void eos_log_dispatch(eos_log_level_t level, const char *buf, size_t len)
 
 void eos_log(eos_log_level_t level, const char *fmt, ...)
 {
-    if (!_initialized || !fmt) {
+    if (!_initialized || !fmt)
+    {
         return;
     }
 
@@ -136,7 +149,8 @@ void eos_log(eos_log_level_t level, const char *fmt, ...)
     int len = vsnprintf(buffer, EOS_LOG_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    if (len > 0 && len < EOS_LOG_BUFFER_SIZE) {
+    if (len > 0 && len < EOS_LOG_BUFFER_SIZE)
+    {
         eos_log_dispatch(level, buffer, (size_t)len);
     }
 }

@@ -31,26 +31,26 @@ typedef struct
     uint8_t channels;
     uint8_t bits_per_sample;
     uint32_t total_samples; /**< 0 if unknown (streaming) */
-    uint32_t duration_ms;   /**< 0 if unknown */
+    uint32_t duration_ms; /**< 0 if unknown */
 } eos_audio_format_t;
 
 struct eos_audio_decoder_t;
 struct eos_audio_decoder_dsc_t;
 
-typedef eos_result_t (*eos_audio_decoder_probe_f_t)(
-    const void *src, eos_audio_src_type_t src_type, eos_audio_format_t *format);
+typedef eos_result_t (*eos_audio_decoder_probe_f_t)(const void *src,
+                                                    eos_audio_src_type_t src_type,
+                                                    eos_audio_format_t *format);
 
-typedef eos_result_t (*eos_audio_decoder_open_f_t)(
-    struct eos_audio_decoder_dsc_t *dsc);
+typedef eos_result_t (*eos_audio_decoder_open_f_t)(struct eos_audio_decoder_dsc_t *dsc);
 
-typedef eos_result_t (*eos_audio_decoder_read_f_t)(
-    struct eos_audio_decoder_dsc_t *dsc, void *buf, uint32_t buf_size, uint32_t *bytes_read);
+typedef eos_result_t (*eos_audio_decoder_read_f_t)(struct eos_audio_decoder_dsc_t *dsc,
+                                                   void *buf,
+                                                   uint32_t buf_size,
+                                                   uint32_t *bytes_read);
 
-typedef void (*eos_audio_decoder_close_f_t)(
-    struct eos_audio_decoder_dsc_t *dsc);
+typedef void (*eos_audio_decoder_close_f_t)(struct eos_audio_decoder_dsc_t *dsc);
 
-typedef eos_result_t (*eos_audio_decoder_seek_f_t)(
-    struct eos_audio_decoder_dsc_t *dsc, uint32_t sample);
+typedef eos_result_t (*eos_audio_decoder_seek_f_t)(struct eos_audio_decoder_dsc_t *dsc, uint32_t sample);
 
 typedef struct eos_audio_decoder_dsc_t
 {
@@ -101,10 +101,8 @@ void eos_audio_decoder_set_read_cb(eos_audio_decoder_t *d, eos_audio_decoder_rea
 void eos_audio_decoder_set_close_cb(eos_audio_decoder_t *d, eos_audio_decoder_close_f_t cb);
 void eos_audio_decoder_set_seek_cb(eos_audio_decoder_t *d, eos_audio_decoder_seek_f_t cb);
 
-eos_result_t eos_audio_decoder_open(eos_audio_decoder_dsc_t *dsc,
-    const void *src, eos_audio_src_type_t src_type);
-eos_result_t eos_audio_decoder_read(eos_audio_decoder_dsc_t *dsc,
-    void *buf, uint32_t buf_size, uint32_t *bytes_read);
+eos_result_t eos_audio_decoder_open(eos_audio_decoder_dsc_t *dsc, const void *src, eos_audio_src_type_t src_type);
+eos_result_t eos_audio_decoder_read(eos_audio_decoder_dsc_t *dsc, void *buf, uint32_t buf_size, uint32_t *bytes_read);
 eos_result_t eos_audio_decoder_seek(eos_audio_decoder_dsc_t *dsc, uint32_t sample);
 void eos_audio_decoder_close(eos_audio_decoder_dsc_t *dsc);
 

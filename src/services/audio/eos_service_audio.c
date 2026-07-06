@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "eos_mem.h"
 #define EOS_LOG_TAG "AudioService"
 #include "eos_log.h"
 #include "eos_dev_speaker.h"
@@ -22,11 +23,11 @@
 
 /* Macros and Definitions -------------------------------------*/
 
-#define MIC_RING_BUFFER_SIZE  32768
-#define MIC_POLL_PERIOD_MS    50
+#define MIC_RING_BUFFER_SIZE 32768
+#define MIC_POLL_PERIOD_MS 50
 #define MIC_DEFAULT_SAMPLE_RATE 16000
-#define MIC_DEFAULT_CHANNELS    1
-#define MIC_DEFAULT_BITS        16
+#define MIC_DEFAULT_CHANNELS 1
+#define MIC_DEFAULT_BITS 16
 
 /* Variables --------------------------------------------------*/
 static bool _initialized = false;
@@ -38,7 +39,8 @@ static bool _initialized = false;
 static eos_audio_player_t _player_media;
 
 /* Recording state */
-static struct {
+static struct
+{
     bool active;
     eos_file_t file;
     uint8_t *ring_buf;
@@ -159,13 +161,17 @@ static void _write_wav_header(eos_file_t fp)
     /* hdr[4..7] = riff size (placeholder, 0) */
     memcpy(hdr + 8, "WAVE", 4);
     memcpy(hdr + 12, "fmt ", 4);
-    hdr[16] = 16;                    /* fmt chunk size = 16 (PCM) */
-    hdr[20] = 1;                     /* audio format = 1 (PCM) */
+    hdr[16] = 16; /* fmt chunk size = 16 (PCM) */
+    hdr[20] = 1; /* audio format = 1 (PCM) */
     hdr[22] = channels & 0xFF;
-    hdr[24] = sample_rate & 0xFF;    hdr[25] = (sample_rate >> 8) & 0xFF;
-    hdr[26] = (sample_rate >> 16) & 0xFF; hdr[27] = (sample_rate >> 24) & 0xFF;
-    hdr[28] = byte_rate & 0xFF;      hdr[29] = (byte_rate >> 8) & 0xFF;
-    hdr[30] = (byte_rate >> 16) & 0xFF; hdr[31] = (byte_rate >> 24) & 0xFF;
+    hdr[24] = sample_rate & 0xFF;
+    hdr[25] = (sample_rate >> 8) & 0xFF;
+    hdr[26] = (sample_rate >> 16) & 0xFF;
+    hdr[27] = (sample_rate >> 24) & 0xFF;
+    hdr[28] = byte_rate & 0xFF;
+    hdr[29] = (byte_rate >> 8) & 0xFF;
+    hdr[30] = (byte_rate >> 16) & 0xFF;
+    hdr[31] = (byte_rate >> 24) & 0xFF;
     hdr[32] = block_align;
     hdr[34] = bits;
     memcpy(hdr + 36, "data", 4);
@@ -188,20 +194,25 @@ static void _update_wav_header(eos_file_t fp)
     uint32_t data_size = file_size - WAV_HEADER_SIZE;
 
     uint8_t buf[4];
-    buf[0] = riff_size & 0xFF;       buf[1] = (riff_size >> 8) & 0xFF;
-    buf[2] = (riff_size >> 16) & 0xFF; buf[3] = (riff_size >> 24) & 0xFF;
+    buf[0] = riff_size & 0xFF;
+    buf[1] = (riff_size >> 8) & 0xFF;
+    buf[2] = (riff_size >> 16) & 0xFF;
+    buf[3] = (riff_size >> 24) & 0xFF;
     eos_storage_file_seek(fp, 4);
     eos_storage_file_write(fp, buf, 4);
 
-    buf[0] = data_size & 0xFF;       buf[1] = (data_size >> 8) & 0xFF;
-    buf[2] = (data_size >> 16) & 0xFF; buf[3] = (data_size >> 24) & 0xFF;
+    buf[0] = data_size & 0xFF;
+    buf[1] = (data_size >> 8) & 0xFF;
+    buf[2] = (data_size >> 16) & 0xFF;
+    buf[3] = (data_size >> 24) & 0xFF;
     eos_storage_file_seek(fp, 40);
     eos_storage_file_write(fp, buf, 4);
 }
 
 static void _ensure_parent_dir(const char *file_path)
 {
-    if (!file_path) return;
+    if (!file_path)
+        return;
     char tmp[128];
     strncpy(tmp, file_path, sizeof(tmp) - 1);
     tmp[sizeof(tmp) - 1] = '\0';
@@ -227,7 +238,8 @@ static void _recording_timer_cb(lv_timer_t *timer)
 
     uint32_t write_off = mic->ops->get_write_offset();
     uint32_t avail = (write_off - _rec.read_offset + _rec.ring_buf_size) % _rec.ring_buf_size;
-    if (avail == 0) return;
+    if (avail == 0)
+        return;
 
     uint32_t read_mod = _rec.read_offset % _rec.ring_buf_size;
 
@@ -272,7 +284,7 @@ eos_result_t eos_service_audio_start_recording(const char *file_path)
         return EOS_ERR_DEV_NOT_FOUND;
     }
 
-    _rec.ring_buf = malloc(MIC_RING_BUFFER_SIZE);
+    _rec.ring_buf = eos_malloc(MIC_RING_BUFFER_SIZE);
     if (!_rec.ring_buf)
     {
         return EOS_ERR_MEM;
@@ -284,7 +296,7 @@ eos_result_t eos_service_audio_start_recording(const char *file_path)
     if (mic->ops->set_buffer(_rec.ring_buf, _rec.ring_buf_size) != 0)
     {
         EOS_LOG_E("Failed to set mic ring buffer");
-        free(_rec.ring_buf);
+        eos_free(_rec.ring_buf);
         _rec.ring_buf = NULL;
         return EOS_ERR_DEV_ERROR;
     }
@@ -293,7 +305,7 @@ eos_result_t eos_service_audio_start_recording(const char *file_path)
     if (ret != 0)
     {
         EOS_LOG_E("Failed to open mic: %d", ret);
-        free(_rec.ring_buf);
+        eos_free(_rec.ring_buf);
         _rec.ring_buf = NULL;
         return EOS_ERR_DEV_ERROR;
     }
@@ -305,7 +317,7 @@ eos_result_t eos_service_audio_start_recording(const char *file_path)
     {
         EOS_LOG_E("Cannot open recording file: %s", file_path);
         mic->ops->close();
-        free(_rec.ring_buf);
+        eos_free(_rec.ring_buf);
         _rec.ring_buf = NULL;
         return EOS_ERR_DEV_ERROR;
     }
@@ -320,7 +332,7 @@ eos_result_t eos_service_audio_start_recording(const char *file_path)
         eos_storage_file_close(_rec.file);
         _rec.file = EOS_FILE_INVALID;
         mic->ops->close();
-        free(_rec.ring_buf);
+        eos_free(_rec.ring_buf);
         _rec.ring_buf = NULL;
         return EOS_ERR_DEV_ERROR;
     }
@@ -363,7 +375,7 @@ eos_result_t eos_service_audio_stop_recording(void)
         _rec.file = EOS_FILE_INVALID;
     }
 
-    free(_rec.ring_buf);
+    eos_free(_rec.ring_buf);
     _rec.ring_buf = NULL;
     _rec.active = false;
 

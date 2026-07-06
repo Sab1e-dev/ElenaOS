@@ -23,19 +23,19 @@ extern "C" {
  * @brief Function weak definition macro
  */
 #ifdef __CC_ARM /* ARM Compiler */
-    #define EOS_WEAK __weak
+#define EOS_WEAK __weak
 #elif defined(__IAR_SYSTEMS_ICC__) /* for IAR Compiler */
-    #define EOS_WEAK __weak
+#define EOS_WEAK __weak
 #elif defined(__GNUC__) && !defined(__MINGW32__) /* GNU GCC Compiler */
-    #define EOS_WEAK __attribute__((weak))
+#define EOS_WEAK __attribute__((weak))
 #elif defined(__ADSPBLACKFIN__) /* for VisualDSP++ Compiler */
-    #define EOS_WEAK __attribute__((weak))
+#define EOS_WEAK __attribute__((weak))
 #elif defined(_MSC_VER) || defined(__MINGW32__)
-    #define EOS_WEAK
+#define EOS_WEAK
 #elif defined(__TI_COMPILER_VERSION__)
-    #define EOS_WEAK
+#define EOS_WEAK
 #else
-    #error not supported tool chain
+#error not supported tool chain
 #endif
 
 #ifndef EOS_TIMEOUT_INFINITE

@@ -26,15 +26,16 @@ extern "C" {
 #define EOS_WATCHFACE_MANIFEST_FILE_NAME "manifest.json"
 #define EOS_WATCHFACE_SNAPSHOT_FILE_NAME "snapshot.bin"
 #define EOS_WATCHFACE_SCRIPT_ENTRY_FILE_NAME "main.js"
-#define EOS_WATCHFACE_ID_LEN_MAX 256  /*< Watchface ID maximum length */
+#define EOS_WATCHFACE_ID_LEN_MAX 256 /*< Watchface ID maximum length */
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Watchface type enumeration
  */
-typedef enum {
-    EOS_WATCHFACE_TYPE_BUILTIN,  /**< Built-in fallback watchface */
-    EOS_WATCHFACE_TYPE_JS,       /**< JavaScript script watchface */
+typedef enum
+{
+    EOS_WATCHFACE_TYPE_BUILTIN, /**< Built-in fallback watchface */
+    EOS_WATCHFACE_TYPE_JS, /**< JavaScript script watchface */
 } eos_watchface_type_t;
 
 /**
@@ -43,20 +44,24 @@ typedef enum {
  * Each watchface instance owns its own Activity and manages its lifecycle.
  * Switching watchfaces = destroy old instance + create new instance.
  */
-typedef struct eos_watchface_instance {
-    eos_watchface_type_t type;           /**< Watchface type */
-    char id[EOS_WATCHFACE_ID_LEN_MAX];   /**< Watchface ID */
+typedef struct eos_watchface_instance
+{
+    eos_watchface_type_t type; /**< Watchface type */
+    char id[EOS_WATCHFACE_ID_LEN_MAX]; /**< Watchface ID */
 
-    eos_activity_t *activity;            /**< Owned Activity (created and managed by instance) */
-    const eos_activity_lifecycle_t *lifecycle;  /**< Activity lifecycle callbacks */
+    eos_activity_t *activity; /**< Owned Activity (created and managed by instance) */
+    const eos_activity_lifecycle_t *lifecycle; /**< Activity lifecycle callbacks */
 
-    union {
-        struct {
-            lv_timer_t *time_update_timer;  /**< Time update timer for builtin watchface */
+    union
+    {
+        struct
+        {
+            lv_timer_t *time_update_timer; /**< Time update timer for builtin watchface */
         } builtin;
 
-        struct {
-            script_pkg_t pkg;               /**< Script package information for JS watchface */
+        struct
+        {
+            script_pkg_t pkg; /**< Script package information for JS watchface */
         } js;
     } data;
 } eos_watchface_instance_t;
@@ -72,14 +77,14 @@ size_t eos_watchface_list_size(void);
  * @param index Index value (0-based)
  * @return const char* id string
  */
-const char* eos_watchface_list_get_id(size_t index);
+const char *eos_watchface_list_get_id(size_t index);
 /**
  * @brief Check if watchface with specified id exists in the list
  * @param watchface_id id string
  * @return true
  * @return false
  */
-bool eos_watchface_list_contains(const char* watchface_id);
+bool eos_watchface_list_contains(const char *watchface_id);
 /**
  * @brief Install watchface
  * @param eapk_path eapk package path

@@ -47,7 +47,8 @@ static eos_result_t _eos_config_save_and_broadcast(cJSON *root)
     eos_result_t ret = eos_storage_json_save(EOS_CONFIG_FILE_PATH, root);
     cJSON_Delete(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         eos_event_post(EOS_EVENT_SYSTEM_CONFIG_UPDATE, NULL, NULL);
     }
 
@@ -61,7 +62,8 @@ eos_result_t eos_config_set_bool(const char *key, bool value)
     EOS_LOG_I("Try set \"%s\" = \"%s\"", key, value ? "true" : "false");
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -75,7 +77,8 @@ eos_result_t eos_config_set_bool(const char *key, bool value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%s", key, value ? "true" : "false");
     }
 
@@ -89,7 +92,8 @@ eos_result_t eos_config_set_string(const char *key, const char *value)
     EOS_LOG_I("Try set \"%s\" = \"%s\"", key, value);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -103,7 +107,8 @@ eos_result_t eos_config_set_string(const char *key, const char *value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%s", key, value);
     }
 
@@ -117,7 +122,8 @@ eos_result_t eos_config_set_number(const char *key, double value)
     EOS_LOG_I("Try set \"%s\" = \"%f\"", key, value);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -131,7 +137,8 @@ eos_result_t eos_config_set_number(const char *key, double value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%f", key, value);
     }
 
@@ -253,7 +260,8 @@ void eos_service_config_init()
         EOS_LOG_I("Volume: %d", volume);
     }
 
-    uint8_t strength = (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_VIBRATOR_STRENGTH_NUMBER, EOS_HAPTIC_STRENGTH_NORMAL);
+    uint8_t strength =
+        (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_VIBRATOR_STRENGTH_NUMBER, EOS_HAPTIC_STRENGTH_NORMAL);
     eos_haptic_set_strength(strength);
     EOS_LOG_I("Vibrator strength: %d", strength);
 }
@@ -294,7 +302,8 @@ eos_result_t eos_config_set_json(const char *key, cJSON *json_value)
     EOS_LOG_I("Try set JSON \"%s\"", key);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -308,7 +317,8 @@ eos_result_t eos_config_set_json(const char *key, cJSON *json_value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set JSON config item: %s", key);
     }
 

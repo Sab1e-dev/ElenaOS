@@ -434,9 +434,7 @@ void eos_card_pager_move_page(eos_card_pager_t *cp, uint8_t page_index)
     EOS_LOG_I("Page moved to %d / %d", page_index + 1, cp->page_count);
 }
 
-void eos_card_pager_set_page_changed_cb(eos_card_pager_t *cp,
-                                        eos_card_pager_page_changed_cb_t cb,
-                                        void *user_data)
+void eos_card_pager_set_page_changed_cb(eos_card_pager_t *cp, eos_card_pager_page_changed_cb_t cb, void *user_data)
 {
     EOS_CHECK_PTR_RETURN(cp);
 
@@ -612,34 +610,48 @@ eos_card_pager_t *eos_card_pager_create(lv_obj_t *parent, eos_card_pager_dir_t d
 
     switch (dir)
     {
-    case EOS_CARD_PAGER_DIR_VER:
-    {
-        lv_obj_set_size(indicator_container, LV_SIZE_CONTENT, EOS_DISPLAY_HEIGHT);
-        lv_obj_align(indicator_container, LV_ALIGN_RIGHT_MID, 0, 0);
-        lv_obj_set_style_bg_opa(indicator_container, LV_OPA_TRANSP, 0);
-        lv_obj_set_style_pad_all(indicator_container, 0, 0);
-        lv_obj_set_flex_flow(indicator_container, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_flex_align(indicator_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_remove_flag(indicator_container, LV_OBJ_FLAG_SCROLLABLE);
+        case EOS_CARD_PAGER_DIR_VER:
+        {
+            lv_obj_set_size(indicator_container, LV_SIZE_CONTENT, EOS_DISPLAY_HEIGHT);
+            lv_obj_align(indicator_container, LV_ALIGN_RIGHT_MID, 0, 0);
+            lv_obj_set_style_bg_opa(indicator_container, LV_OPA_TRANSP, 0);
+            lv_obj_set_style_pad_all(indicator_container, 0, 0);
+            lv_obj_set_flex_flow(indicator_container, LV_FLEX_FLOW_COLUMN);
+            lv_obj_set_flex_align(indicator_container,
+                                  LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER);
+            lv_obj_remove_flag(indicator_container, LV_OBJ_FLAG_SCROLLABLE);
 
-        cp->sw = eos_slide_widget_create_with_touch(touch_area, page, EOS_SLIDE_DIR_VER, EOS_DISPLAY_HEIGHT, EOS_THRESHOLD_30);
-        eos_slide_widget_set_bidirectional(cp->sw, true);
-        break;
-    }
-    case EOS_CARD_PAGER_DIR_HOR:
-    {
-        lv_obj_set_size(indicator_container, EOS_DISPLAY_WIDTH, LV_SIZE_CONTENT);
-        lv_obj_align(indicator_container, LV_ALIGN_BOTTOM_MID, 0, 0);
-        lv_obj_set_style_bg_opa(indicator_container, LV_OPA_TRANSP, 0);
-        lv_obj_set_style_pad_all(indicator_container, 0, 0);
-        lv_obj_set_flex_flow(indicator_container, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(indicator_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_remove_flag(indicator_container, LV_OBJ_FLAG_SCROLLABLE);
+            cp->sw = eos_slide_widget_create_with_touch(touch_area,
+                                                        page,
+                                                        EOS_SLIDE_DIR_VER,
+                                                        EOS_DISPLAY_HEIGHT,
+                                                        EOS_THRESHOLD_30);
+            eos_slide_widget_set_bidirectional(cp->sw, true);
+            break;
+        }
+        case EOS_CARD_PAGER_DIR_HOR:
+        {
+            lv_obj_set_size(indicator_container, EOS_DISPLAY_WIDTH, LV_SIZE_CONTENT);
+            lv_obj_align(indicator_container, LV_ALIGN_BOTTOM_MID, 0, 0);
+            lv_obj_set_style_bg_opa(indicator_container, LV_OPA_TRANSP, 0);
+            lv_obj_set_style_pad_all(indicator_container, 0, 0);
+            lv_obj_set_flex_flow(indicator_container, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_align(indicator_container,
+                                  LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER,
+                                  LV_FLEX_ALIGN_CENTER);
+            lv_obj_remove_flag(indicator_container, LV_OBJ_FLAG_SCROLLABLE);
 
-        cp->sw = eos_slide_widget_create_with_touch(touch_area, page, EOS_SLIDE_DIR_HOR, EOS_DISPLAY_WIDTH, EOS_THRESHOLD_30);
-        eos_slide_widget_set_bidirectional(cp->sw, true);
-        break;
-    }
+            cp->sw = eos_slide_widget_create_with_touch(touch_area,
+                                                        page,
+                                                        EOS_SLIDE_DIR_HOR,
+                                                        EOS_DISPLAY_WIDTH,
+                                                        EOS_THRESHOLD_30);
+            eos_slide_widget_set_bidirectional(cp->sw, true);
+            break;
+        }
     }
 
     eos_slide_widget_set_range(cp->sw, 0, (dir == EOS_CARD_PAGER_DIR_VER) ? EOS_DISPLAY_HEIGHT : EOS_DISPLAY_WIDTH);

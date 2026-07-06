@@ -219,11 +219,7 @@ void eos_theme_set(lv_color_t primary_color, lv_color_t secondary_color, lv_font
     _init_style_slider();
     _init_style_roller();
 
-    lv_theme_t *th_act = lv_theme_default_init(lv_display_get_default(),
-                                               primary_color,
-                                               secondary_color,
-                                               true,
-                                               font);
+    lv_theme_t *th_act = lv_theme_default_init(lv_display_get_default(), primary_color, secondary_color, true, font);
 
     static lv_theme_t th_new;
     th_new = *th_act;
