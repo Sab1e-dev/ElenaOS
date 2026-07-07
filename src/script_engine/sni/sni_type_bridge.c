@@ -36,8 +36,14 @@
 static sni_val_obj_t sni_val_objs[__SNI_TYPE_MAX] = {0};
 static void sni_control_block_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
 static void sni_obj_deleted_cb(lv_event_t *e);
+static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
 static const jerry_object_native_info_t sni_native_info = {
     .free_cb = sni_control_block_free_cb,
+    .number_of_references = 0,
+    .offset_of_references = 0,
+};
+static const jerry_object_native_info_t sni_resource_native_info = {
+    .free_cb = sni_resource_node_free_cb,
     .number_of_references = 0,
     .offset_of_references = 0,
 };
@@ -220,6 +226,28 @@ static void sni_obj_deleted_cb(lv_event_t *e)
        prevents use-after-free of cb after it is freed by free_cb. */
     cb->is_alive = false;
 
+    /* Cascade-invalidate sub-resource handles.  LVGL destroys
+       sub-resource native objects when the parent is deleted
+       (e.g., chart series/cursors disappear with the chart), so
+       their pointers are now dangling.  Mark them dead so future
+       JS access is rejected. */
+    sni_managed_resource_node_t *sub = cb->sub_resource_head;
+    while (sub)
+    {
+        sni_managed_resource_node_t *next = sub->next;
+        sub->is_alive = false;
+        sub->parent_cb = NULL;
+        sub->ptr = NULL;
+        if (!jerry_value_is_undefined(sub->js_obj) && !jerry_value_is_null(sub->js_obj))
+        {
+            jerry_object_set_native_ptr(sub->js_obj, &sni_resource_native_info, NULL);
+            jerry_value_free(sub->js_obj);
+            sub->js_obj = jerry_undefined();
+        }
+        sub = next;
+    }
+    cb->sub_resource_head = NULL;
+
     jerry_value_t js_obj = cb->js_obj;
     cb->js_obj = jerry_undefined();
 
@@ -297,12 +325,6 @@ static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native
 
     eos_free(node);
 }
-
-static const jerry_object_native_info_t sni_resource_native_info = {
-    .free_cb = sni_resource_node_free_cb,
-    .number_of_references = 0,
-    .offset_of_references = 0,
-};
 
 /************************** Type bridge functions **************************/
 
@@ -863,6 +885,81 @@ void sni_tb_register_handle_destroy_cb(sni_type_t type, sni_handle_destroy_cb_t 
 void sni_tb_clear_resource_native_ptr(jerry_value_t obj)
 {
     jerry_object_set_native_ptr(obj, &sni_resource_native_info, NULL);
+}
+
+void sni_tb_link_sub_resource(void *parent_ptr, void *sub_ptr, sni_type_t sub_type)
+{
+    if (!parent_ptr || !sub_ptr)
+    {
+        return;
+    }
+
+    sni_control_block_t *parent_cb = sni_cb_from_obj(parent_ptr);
+    if (!parent_cb || !parent_cb->is_alive)
+    {
+        return;
+    }
+
+    sni_context_t *ctx = sni_get_current_context();
+    if (!ctx)
+    {
+        return;
+    }
+
+    sni_managed_resource_node_t *sub_node = sni_context_find_resource(ctx, sub_ptr, sub_type);
+    if (!sub_node)
+    {
+        return;
+    }
+
+    /* Guard: if already linked to the same parent, skip to avoid cycles */
+    if (sub_node->parent_cb == parent_cb)
+    {
+        return;
+    }
+
+    sub_node->parent_cb = parent_cb;
+    sub_node->next = parent_cb->sub_resource_head;
+    parent_cb->sub_resource_head = sub_node;
+}
+
+void sni_tb_unlink_sub_resource(void *sub_ptr, sni_type_t sub_type)
+{
+    if (!sub_ptr)
+    {
+        return;
+    }
+
+    sni_context_t *ctx = sni_get_current_context();
+    if (!ctx)
+    {
+        return;
+    }
+
+    sni_managed_resource_node_t *sub_node = sni_context_find_resource(ctx, sub_ptr, sub_type);
+    if (!sub_node)
+    {
+        return;
+    }
+
+    sni_control_block_t *parent_cb = sub_node->parent_cb;
+    if (!parent_cb)
+    {
+        return;
+    }
+
+    sni_managed_resource_node_t **prev = &parent_cb->sub_resource_head;
+    while (*prev)
+    {
+        if (*prev == sub_node)
+        {
+            *prev = sub_node->next;
+            break;
+        }
+        prev = &(*prev)->next;
+    }
+
+    sub_node->parent_cb = NULL;
 }
 
 void sni_tb_init(void)

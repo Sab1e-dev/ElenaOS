@@ -177,6 +177,7 @@ class ApiFunction:
     return_type: str
     return_bridge: TypeBridge
     args: List[FuncArg]
+    lifecycle_class: str = ""
 
 
 @dataclass
@@ -923,6 +924,8 @@ def build_api_function(
     pending_updates: Dict[str, str],
     context: str,
     function_blacklist: Optional[List[str]] = None,
+    lifecycle_map: Optional[Dict[str, str]] = None,
+    is_constructor: bool = False,
 ) -> ApiFunction:
     name = str(item.get("name", "")).strip()
     if not name:
@@ -933,7 +936,40 @@ def build_api_function(
 
     manual_signature = should_skip_manual_signature_bridges(name, context)
     ret_type = normalize_c_type(item.get("type"))
+
+    # Pre-bridge lifecycle check: reject unsafe return types before build_bridge_from_type
+    # runs (which may trigger interactive prompts for unknown types).
+    if lifecycle_map:
+        ret_normalized = normalize_type_key(ret_type)
+        ret_pointee = get_pointer_pointee_type(ret_normalized)
+        lc = lifecycle_map.get(ret_pointee) or lifecycle_map.get(ret_normalized) or ""
+
+        if lc == "no_lifecycle":
+            raise SkipFunctionError(
+                name,
+                f"type '{ret_pointee}' has no observable lifecycle boundary and must not be exported as handle; use a manual wrapper that returns a value object instead",
+                add_to_blacklist=True,
+            )
+        if lc == "controlled_resource" and not is_constructor:
+            raise SkipFunctionError(
+                name,
+                f"controlled resource '{ret_pointee}' can only be returned from constructors (not from {context})",
+                add_to_blacklist=True,
+            )
+
     ret_bridge = build_bridge_from_type(ret_type, lv_type_entries, pending_updates, True, f"{context} return value", name)
+
+    # Post-bridge lifecycle log: warn about sub_resources and unclassified handles
+    ret_lifecycle_class = ""
+    if lifecycle_map and ret_bridge.sni_type and ret_bridge.sni_type.startswith("SNI_H_"):
+        ret_normalized = normalize_type_key(ret_type)
+        ret_pointee = get_pointer_pointee_type(ret_normalized)
+        ret_lifecycle_class = lifecycle_map.get(ret_pointee) or lifecycle_map.get(ret_normalized) or ""
+
+        if ret_lifecycle_class == "sub_resource":
+            velog(f"[Lifecycle] sub_resource '{ret_pointee}' ({ret_bridge.sni_type}) returned by {name} — ensure cascade destroy is covered")
+        elif not ret_lifecycle_class:
+            velog(f"[Lifecycle] handle type '{ret_pointee}' ({ret_bridge.sni_type}) has no lifecycle_class in lv_types.json — allowed but should be classified")
 
     args_raw = normalize_args(item.get("args", []))
     args: List[FuncArg] = []
@@ -956,7 +992,7 @@ def build_api_function(
             )
         args.append(FuncArg(name=arg_name, c_type=arg_type, bridge=arg_bridge))
 
-    return ApiFunction(name=name, return_type=ret_type, return_bridge=ret_bridge, args=args)
+    return ApiFunction(name=name, return_type=ret_type, return_bridge=ret_bridge, args=args, lifecycle_class=ret_lifecycle_class)
 
 
 def render_arg_conversion(
@@ -1113,6 +1149,18 @@ def get_special_constructor_wrapper_name(cls: "ApiClass") -> "Optional[str]":
     return SPECIAL_CONSTRUCTOR_WRAPPERS.get(cls.name)
 
 
+def _is_create_method_for_sub_resource(func_name: str) -> bool:
+    """Return True if the function creates a sub-resource (add/init/create pattern).
+
+    Sub-resources created by parent methods (e.g., lv_chart_add_series)
+    need cascade-destroy linking.  Getters that merely return an existing
+    sub-resource (e.g., lv_canvas_get_draw_buf) should NOT re-link.
+    """
+    lower = func_name.lower()
+    create_keywords = ("add_", "create_", "init_", "new_", "alloc_")
+    return any(kw in lower for kw in create_keywords)
+
+
 def get_special_method_wrapper_name(func: ApiFunction) -> Optional[str]:
     return SPECIAL_METHOD_WRAPPERS.get(func.name)
 
@@ -1168,6 +1216,8 @@ def render_method_wrapper(cls: ApiClass, func: ApiFunction) -> str:
         return "\n".join(lines)
 
     lines.append(f"    {func.return_type} result = {func.name}({call_text});")
+    if func.lifecycle_class == "sub_resource" and _is_create_method_for_sub_resource(func.name):
+        lines.append(f"    sni_tb_link_sub_resource(self_obj, result, {func.return_bridge.sni_type});")
     if post_call_lines:
         lines.extend(post_call_lines)
     render_return_conversion(lines, func, "result")
@@ -1443,6 +1493,29 @@ def load_type_entries(lv_types_data: Dict[str, Any]) -> Dict[str, str]:
             result[name] = ""
         else:
             result[name] = str(object_type).strip()
+    return result
+
+
+def load_lifecycle_map(lv_types_data: Dict[str, Any]) -> Dict[str, str]:
+    """Extract lifecycle_class from lv_types.json entries.
+
+    Returns a dict mapping type name -> lifecycle_class.
+    Only types with an explicit lifecycle_class are included.
+    """
+    entries = lv_types_data.get("types")
+    if not isinstance(entries, list):
+        return {}
+
+    result: Dict[str, str] = {}
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        lc = item.get("lifecycle_class")
+        if lc and str(lc).strip():
+            result[name] = str(lc).strip()
     return result
 
 
@@ -1985,6 +2058,7 @@ def main() -> None:
     classes_dict = parse_api_classes(api_table_data)
     classes = topo_sort_classes(classes_dict)
     lv_type_entries = load_type_entries(lv_types_data)
+    lifecycle_map = load_lifecycle_map(lv_types_data)
     function_index = build_function_index(lvgl_data)
     constant_index = build_constant_index(lvgl_data)
 
@@ -2015,6 +2089,8 @@ def main() -> None:
                     pending_updates,
                     f"classes.{cls.name}.constructor",
                     func_blacklist,
+                    lifecycle_map=lifecycle_map,
+                    is_constructor=True,
                 )
             except SkipFunctionError as exc:
                 handle_skip_exception(exc, func_blacklist)
@@ -2035,6 +2111,7 @@ def main() -> None:
                             pending_updates,
                             f"classes.{cls.name}.methods",
                             func_blacklist,
+                            lifecycle_map=lifecycle_map,
                         )
                     except SkipFunctionError as exc:
                         handle_skip_exception(exc, func_blacklist)
@@ -2067,6 +2144,7 @@ def main() -> None:
                         pending_updates,
                         f"classes.{cls.name}.static_methods",
                         func_blacklist,
+                        lifecycle_map=lifecycle_map,
                     )
                 except SkipFunctionError as exc:
                     handle_skip_exception(exc, func_blacklist)
@@ -2095,6 +2173,7 @@ def main() -> None:
                         pending_updates,
                         f"classes.{cls.name}.property_getter.{prop.name}",
                         func_blacklist,
+                        lifecycle_map=lifecycle_map,
                     )
                 except SkipFunctionError as exc:
                     handle_skip_exception(exc, func_blacklist)
@@ -2121,6 +2200,7 @@ def main() -> None:
                         pending_updates,
                         f"classes.{cls.name}.property_setter.{prop.name}",
                         func_blacklist,
+                        lifecycle_map=lifecycle_map,
                     )
                 except SkipFunctionError as exc:
                     handle_skip_exception(exc, func_blacklist)

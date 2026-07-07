@@ -160,7 +160,13 @@ typedef struct
  *
  * Note: Managed Resources do NOT use control blocks. They store data directly
  * in sni_managed_resource_node_t for flattened memory layout.
+ *
+ * Sub-resources (e.g., chart series added via lv_chart_add_series) are
+ * managed resource nodes linked via sub_resource_head.  When the parent
+ * object is deleted (LV_EVENT_DELETE) the sub-resource list is walked
+ * and every sub-handle is marked dead.
  */
+struct sni_managed_resource_node;
 typedef struct sni_control_block
 {
     void *ptr; /**< Pointer to native C object */
@@ -170,6 +176,7 @@ typedef struct sni_control_block
     void *aux; /**< Module-private auxiliary context */
     struct sni_context *owner_ctx; /**< Owning SNI context (Realm) */
     uint32_t engine_gen; /**< Engine generation at creation time */
+    struct sni_managed_resource_node *sub_resource_head; /**< Linked list of sub-resource handles */
 } sni_control_block_t;
 
 typedef void (*sni_handle_destroy_cb_t)(void *native_ptr);
@@ -192,6 +199,7 @@ typedef struct sni_managed_resource_node
     sni_type_t type; /**< Resource type (was in control block) */
     bool is_alive; /**< Lifecycle status (was in control block) */
     struct sni_managed_resource_node *next; /**< Next node in type-specific list */
+    struct sni_control_block *parent_cb; /**< Parent control block (only for sub-resources) */
 } sni_managed_resource_node_t;
 
 /**

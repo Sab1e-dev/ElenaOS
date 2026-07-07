@@ -96,6 +96,30 @@ void sni_tb_unregister_handle(sni_control_block_t *handle);
 
 void sni_tb_clear_resource_native_ptr(jerry_value_t obj);
 
+/**
+ * @brief Link a sub-resource handle to its parent tree-node's control block.
+ *
+ * After a sub-resource is created (e.g., lv_chart_add_series), call this
+ * to register it under the parent object so that when the parent is deleted
+ * the sub-resource handle is cascadingly marked dead.
+ *
+ * @param parent_ptr Raw pointer to the parent LVGL object (tree node)
+ * @param sub_ptr   Raw pointer to the sub-resource
+ * @param sub_type  SNI handle type of the sub-resource
+ */
+void sni_tb_link_sub_resource(void *parent_ptr, void *sub_ptr, sni_type_t sub_type);
+
+/**
+ * @brief Unlink a sub-resource handle from its parent after explicit deletion.
+ *
+ * Called when the sub-resource is explicitly removed (e.g., lv_chart_remove_series)
+ * before the parent is destroyed.
+ *
+ * @param sub_ptr  Raw pointer to the sub-resource
+ * @param sub_type SNI handle type of the sub-resource
+ */
+void sni_tb_unlink_sub_resource(void *sub_ptr, sni_type_t sub_type);
+
 void sni_tb_init(void);
 
 #ifdef __cplusplus
