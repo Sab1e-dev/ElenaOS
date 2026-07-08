@@ -120,7 +120,7 @@
     },
     {
       "name": "lv_cache_compare_res_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_cache_entry_t",
@@ -779,7 +779,7 @@
     },
     {
       "name": "lv_ll_node_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_ll_t",
@@ -787,7 +787,7 @@
     },
     {
       "name": "lv_log_level_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_matrix_t",
@@ -895,7 +895,7 @@
     },
     {
       "name": "lv_opa_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_palette_t",
@@ -931,7 +931,7 @@
     },
     {
       "name": "lv_rb_compare_res_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_rb_node_t",
@@ -1023,7 +1023,7 @@
     },
     {
       "name": "lv_state_t",
-      "object_type": "uint"
+      "object_type": "uint16"
     },
     {
       "name": "lv_style_const_prop_t",
@@ -1031,7 +1031,7 @@
     },
     {
       "name": "lv_style_prop_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_style_res_t",

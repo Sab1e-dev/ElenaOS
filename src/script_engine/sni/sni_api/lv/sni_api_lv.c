@@ -4293,7 +4293,7 @@ jerry_value_t sni_api_lv_obj_get_style_bg_opa(const jerry_call_info_t* call_info
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_bg_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_bg_grad_color(const jerry_call_info_t* call_info_p,
@@ -4473,7 +4473,7 @@ jerry_value_t sni_api_lv_obj_get_style_bg_main_opa(const jerry_call_info_t* call
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_bg_main_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_bg_grad_opa(const jerry_call_info_t* call_info_p,
@@ -4503,7 +4503,7 @@ jerry_value_t sni_api_lv_obj_get_style_bg_grad_opa(const jerry_call_info_t* call
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_bg_grad_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_bg_image_src(const jerry_call_info_t* call_info_p,
@@ -4563,7 +4563,7 @@ jerry_value_t sni_api_lv_obj_get_style_bg_image_opa(const jerry_call_info_t* cal
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_bg_image_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_bg_image_recolor(const jerry_call_info_t* call_info_p,
@@ -4653,7 +4653,7 @@ jerry_value_t sni_api_lv_obj_get_style_bg_image_recolor_opa(const jerry_call_inf
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_bg_image_recolor_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_bg_image_tiled(const jerry_call_info_t* call_info_p,
@@ -4773,7 +4773,7 @@ jerry_value_t sni_api_lv_obj_get_style_border_opa(const jerry_call_info_t* call_
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_border_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_border_width(const jerry_call_info_t* call_info_p,
@@ -4983,7 +4983,7 @@ jerry_value_t sni_api_lv_obj_get_style_outline_opa(const jerry_call_info_t* call
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_outline_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_outline_pad(const jerry_call_info_t* call_info_p,
@@ -5223,7 +5223,7 @@ jerry_value_t sni_api_lv_obj_get_style_shadow_opa(const jerry_call_info_t* call_
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_shadow_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_image_opa(const jerry_call_info_t* call_info_p,
@@ -5253,7 +5253,7 @@ jerry_value_t sni_api_lv_obj_get_style_image_opa(const jerry_call_info_t* call_i
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_image_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_image_recolor(const jerry_call_info_t* call_info_p,
@@ -5343,7 +5343,7 @@ jerry_value_t sni_api_lv_obj_get_style_image_recolor_opa(const jerry_call_info_t
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_image_recolor_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_line_width(const jerry_call_info_t* call_info_p,
@@ -5553,7 +5553,7 @@ jerry_value_t sni_api_lv_obj_get_style_line_opa(const jerry_call_info_t* call_in
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_line_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_arc_width(const jerry_call_info_t* call_info_p,
@@ -5703,7 +5703,7 @@ jerry_value_t sni_api_lv_obj_get_style_arc_opa(const jerry_call_info_t* call_inf
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_arc_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_arc_image_src(const jerry_call_info_t* call_info_p,
@@ -5823,7 +5823,7 @@ jerry_value_t sni_api_lv_obj_get_style_text_opa(const jerry_call_info_t* call_in
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_text_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_text_letter_space(const jerry_call_info_t* call_info_p,
@@ -6033,7 +6033,7 @@ jerry_value_t sni_api_lv_obj_get_style_opa(const jerry_call_info_t* call_info_p,
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_opa_layered(const jerry_call_info_t* call_info_p,
@@ -6063,7 +6063,7 @@ jerry_value_t sni_api_lv_obj_get_style_opa_layered(const jerry_call_info_t* call
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_opa_layered(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_color_filter_opa(const jerry_call_info_t* call_info_p,
@@ -6093,7 +6093,7 @@ jerry_value_t sni_api_lv_obj_get_style_color_filter_opa(const jerry_call_info_t*
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_color_filter_opa(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_anim_duration(const jerry_call_info_t* call_info_p,
@@ -6183,7 +6183,7 @@ jerry_value_t sni_api_lv_obj_get_style_layout(const jerry_call_info_t* call_info
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     uint16_t result = lv_obj_get_style_layout(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT16);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_base_dir(const jerry_call_info_t* call_info_p,
@@ -6423,7 +6423,7 @@ jerry_value_t sni_api_lv_obj_get_style_flex_grow(const jerry_call_info_t* call_i
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     uint8_t result = lv_obj_get_style_flex_grow(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_get_style_grid_column_align(const jerry_call_info_t* call_info_p,
@@ -11340,7 +11340,7 @@ jerry_value_t sni_api_lv_obj_get_style_opa_recursive(const jerry_call_info_t* ca
     arg_part = sni_tb_js2c_uint32(args_p[0]);
 
     lv_opa_t result = lv_obj_get_style_opa_recursive(self_obj, arg_part);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT8);
 }
 
 jerry_value_t sni_api_lv_obj_calculate_ext_draw_size(const jerry_call_info_t* call_info_p,
@@ -11815,7 +11815,7 @@ jerry_value_t sni_api_lv_obj_get_state(const jerry_call_info_t* call_info_p,
     }
 
     lv_state_t result = lv_obj_get_state(self_obj);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT16);
 }
 
 jerry_value_t sni_api_lv_obj_has_state(const jerry_call_info_t* call_info_p,
@@ -12956,7 +12956,7 @@ jerry_value_t sni_api_prop_get_obj_state(const jerry_call_info_t* call_info_p,
     }
 
     lv_state_t result = lv_obj_get_state(self_obj);
-    return sni_tb_c2js(&result, SNI_T_UINT32);
+    return sni_tb_c2js(&result, SNI_T_UINT16);
 }
 
 jerry_value_t sni_api_prop_get_obj_width(const jerry_call_info_t* call_info_p,

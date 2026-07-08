@@ -1458,17 +1458,17 @@ def make_default_type_map() -> Dict[str, str]:
         "double": "SNI_T_DOUBLE",
         "float": "SNI_T_FLOAT",
         "int": "SNI_T_INT32",
-        "int16_t": "SNI_T_INT32",
+        "int16_t": "SNI_T_INT16",
         "int32_t": "SNI_T_INT32",
         "int64_t": "SNI_T_INT32",
-        "int8_t": "SNI_T_INT32",
+        "int8_t": "SNI_T_INT8",
         "long": "SNI_T_INT32",
         "short": "SNI_T_INT32",
         "size_t": "SNI_T_UINT32",
-        "uint16_t": "SNI_T_UINT32",
+        "uint16_t": "SNI_T_UINT16",
         "uint32_t": "SNI_T_UINT32",
         "uint64_t": "SNI_T_UINT32",
-        "uint8_t": "SNI_T_UINT32",
+        "uint8_t": "SNI_T_UINT8",
         "unsigned": "SNI_T_UINT32",
         "unsigned int": "SNI_T_UINT32",
         "unsigned long": "SNI_T_UINT32",
@@ -1627,6 +1627,10 @@ def build_bridge_from_type(
             return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_int32", sni_type, "bridge", None)
         if sni_type == "SNI_T_UINT32":
             return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_uint32", sni_type, "bridge", None)
+        if sni_type in {"SNI_T_INT8", "SNI_T_INT16"}:
+            return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_int32", sni_type, "bridge", None)
+        if sni_type in {"SNI_T_UINT8", "SNI_T_UINT16"}:
+            return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_uint32", sni_type, "bridge", None)
         if sni_type == "SNI_T_PTR":
             return TypeBridge(c_type, "jerry_value_is_object", "bridge", None, sni_type, "bridge", None)
 
@@ -1671,6 +1675,18 @@ def build_bridge_from_type(
             func_name,
         )
         return TypeBridge(c_type, primitive_bridge.js_check, primitive_bridge.js2c_mode, primitive_bridge.js2c_expr, primitive_bridge.sni_type, primitive_bridge.c2js_mode, primitive_bridge.c2js_expr)
+
+    if object_type == "int8":
+        return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_int32", "SNI_T_INT8", "bridge", None)
+
+    if object_type == "uint8":
+        return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_uint32", "SNI_T_UINT8", "bridge", None)
+
+    if object_type == "int16":
+        return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_int32", "SNI_T_INT16", "bridge", None)
+
+    if object_type == "uint16":
+        return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_uint32", "SNI_T_UINT16", "bridge", None)
 
     if object_type == "int":
         return TypeBridge(c_type, "jerry_value_is_number", "macro", "sni_tb_js2c_int32", "SNI_T_INT32", "bridge", None)
