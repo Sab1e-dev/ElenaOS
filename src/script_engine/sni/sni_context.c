@@ -498,11 +498,22 @@ void sni_context_sweep_all(sni_context_t *ctx)
 
     _SWEEP_HEAP_LOG("sweep start");
 
+    /* Clear all native pointers from JS objects BEFORE releasing JS
+     * references.  This prevents subsequent jerry_heap_gc (triggered by
+     * sni_context_sweep_js_refs) from calling sni_resource_node_free_cb
+     * which would free linked-list nodes while they are still referenced
+     * by the context's resource_heads lists — causing a use-after-free
+     * in Phase 2 below.
+     *
+     * This call is idempotent and safe to re-execute even if the caller
+     * already cleared native pointers. */
+    sni_context_clear_native_ptrs_all(ctx);
+
     /* Phase 1: Release all JS values only.
-     * Native pointers were already cleared by sni_context_clear_native_ptrs_all()
-     * called before engine shutdown, so jerry_value_free will not trigger
-     * any native free callbacks. All JS releases are batched here, separate
-     * from native resource destruction.
+     * Native pointers are now cleared, so jerry_value_free and the
+     * subsequent jerry_heap_gc will not trigger any native free
+     * callbacks. All JS releases are batched here, separate from
+     * native resource destruction.
      *
      * This phase is idempotent: if sni_context_sweep_js_refs was already
      * called before engine stop, re-running this phase is a no-op because
