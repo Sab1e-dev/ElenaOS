@@ -112,7 +112,7 @@ static void sni_cb_event_free_ctx(sni_event_callback_ctx_t *ctx)
 
     ctx->alive = false;
 
-    if (ctx->dsc && ctx->owner_ctx)
+    if (ctx->owner_ctx)
     {
         sni_event_callback_ctx_t **pp = sni_cb_event_list_ptr(ctx->owner_ctx);
         while (*pp)
@@ -305,8 +305,8 @@ bool sni_cb_event_remove_dsc(lv_obj_t *obj, lv_event_dsc_t *dsc)
         return false;
     }
 
-    bool removed = lv_obj_remove_event_dsc(obj, dsc);
     sni_cb_event_cleanup_descriptor(dsc);
+    bool removed = lv_obj_remove_event_dsc(obj, dsc);
     return removed;
 }
 
@@ -337,6 +337,7 @@ bool sni_cb_event_remove_by_js_cb(lv_obj_t *obj, jerry_value_t js_cb)
         }
 
         lv_obj_remove_event_dsc(obj, ctx->dsc);
+        ctx->dsc = NULL;
         sni_cb_event_free_ctx(ctx);
         removed_any = true;
         ctx = next;
@@ -378,6 +379,7 @@ uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj, jerry_value_t js_
         }
 
         lv_obj_remove_event_dsc(obj, ctx->dsc);
+        ctx->dsc = NULL;
         sni_cb_event_free_ctx(ctx);
         removed++;
         ctx = next;
@@ -718,6 +720,12 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
         sni_event_callback_ctx_t *next = event_ctx->next;
 
         event_ctx->alive = false;
+
+        if (event_ctx->dsc && event_ctx->owner)
+        {
+            lv_obj_remove_event_dsc(event_ctx->owner, event_ctx->dsc);
+            event_ctx->dsc = NULL;
+        }
 
         sni_cb_safe_jerry_value_free(&event_ctx->js_cb);
         sni_cb_safe_jerry_value_free(&event_ctx->js_user_data);
