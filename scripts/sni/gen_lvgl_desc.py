@@ -939,7 +939,8 @@ def build_api_function(
 
     # Pre-bridge lifecycle check: reject unsafe return types before build_bridge_from_type
     # runs (which may trigger interactive prompts for unknown types).
-    if lifecycle_map:
+    # Manual wrappers (SPECIAL_METHOD_WRAPPERS) already handle lifecycle internally.
+    if lifecycle_map and name not in SPECIAL_METHOD_WRAPPERS:
         ret_normalized = normalize_type_key(ret_type)
         ret_pointee = get_pointer_pointee_type(ret_normalized)
         lc = lifecycle_map.get(ret_pointee) or lifecycle_map.get(ret_normalized) or ""
