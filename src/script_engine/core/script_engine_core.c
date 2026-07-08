@@ -281,7 +281,7 @@ static void _cleanup_module_queue(void);
 static void _set_error_info(const char *msg);
 static void _clear_error_info(void);
 static void _clear_error_location(void);
-static void _capture_error_backtrace(void);
+static bool _capture_error_backtrace(void);
 static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array);
 static void _extract_error_location_from_exception(jerry_value_t exception_value);
 static void _script_engine_exception_handler(const char *tag, jerry_value_t result);
@@ -514,23 +514,21 @@ static void _parse_backtrace_from_js_array(jerry_value_t backtrace_array)
         engine_rt.error_location = engine_rt.backtrace[0];
 }
 
-static void _capture_error_backtrace(void)
+static bool _capture_error_backtrace(void)
 {
     if (!jerry_feature_enabled(JERRY_FEATURE_LINE_INFO))
     {
-        /* Don't clear — _extract_error_location_from_exception may have
-         * already populated the backtrace from the exception.stack property. */
-        return;
+        return false;
     }
     jerry_value_t backtrace_array = jerry_backtrace(SCRIPT_BACKTRACE_MAX_FRAMES);
     if (jerry_value_is_exception(backtrace_array))
     {
         jerry_value_free(backtrace_array);
-        /* Don't clear — preserve what _extract_error_location_from_exception set. */
-        return;
+        return false;
     }
     _parse_backtrace_from_js_array(backtrace_array);
     jerry_value_free(backtrace_array);
+    return true;
 }
 
 static void _extract_error_location_from_exception(jerry_value_t exception_value)
@@ -622,7 +620,13 @@ static void _script_engine_exception_handler(const char *tag, jerry_value_t resu
         jerry_value_free(final_str_val);
     _extract_error_location_from_exception(value);
     jerry_value_free(value);
-    _capture_error_backtrace();
+    if (!_capture_error_backtrace())
+    {
+        if (!jerry_feature_enabled(JERRY_FEATURE_LINE_INFO))
+            EOS_LOG_E("Backtrace disabled (JERRY_LINE_INFO=OFF), enable for stack traces");
+        if (!jerry_feature_enabled(JERRY_FEATURE_ERROR_MESSAGES))
+            EOS_LOG_E("Error details limited (JERRY_ERROR_MESSAGES=OFF)");
+    }
     if (engine_rt.backtrace_count > 0)
     {
         EOS_LOG_E("Backtrace (%u frames):", engine_rt.backtrace_count);
@@ -634,6 +638,10 @@ static void _script_engine_exception_handler(const char *tag, jerry_value_t resu
                       engine_rt.backtrace[i].line,
                       engine_rt.backtrace[i].column);
         }
+    }
+    else if (jerry_feature_enabled(JERRY_FEATURE_LINE_INFO))
+    {
+        EOS_LOG_E("(no backtrace frames captured)");
     }
 }
 
