@@ -233,9 +233,9 @@ void eos_storage_file_close(eos_file_t fp);
  * @brief Seek to offset in file
  * @param fp File handle
  * @param offset Offset to seek to
- * @return 0 on success, negative error code on failure
+ * @return EOS_OK on success, error code on failure
  */
-int eos_storage_file_seek(eos_file_t fp, uint32_t offset);
+eos_result_t eos_storage_file_seek(eos_file_t fp, uint32_t offset);
 
 /**
  * @brief Read data from file
@@ -259,24 +259,24 @@ ssize_t eos_storage_file_write(eos_file_t fp, const void *buf, size_t size);
  * @brief Get file size
  * @param fp File handle
  * @param size Output pointer for file size
- * @return 0 on success, negative error code on failure
+ * @return EOS_OK on success, error code on failure
  */
-int eos_storage_file_size(eos_file_t fp, uint32_t *size);
+eos_result_t eos_storage_file_size(eos_file_t fp, uint32_t *size);
 
 /**
  * @brief Get current file position
  * @param fp File handle
  * @param pos Output pointer for current position
- * @return 0 on success, negative error code on failure
+ * @return EOS_OK on success, error code on failure
  */
-int eos_storage_file_tell(eos_file_t fp, uint32_t *pos);
+eos_result_t eos_storage_file_tell(eos_file_t fp, uint32_t *pos);
 
 /**
  * @brief Remove file with path validation
  * @param path File path
- * @return 0 on success, negative error code on failure
+ * @return EOS_OK on success, error code on failure
  */
-int eos_storage_file_remove(const char *path);
+eos_result_t eos_storage_file_remove(const char *path);
 
 /**
  * @brief Open directory with path validation
@@ -290,9 +290,9 @@ eos_dir_t eos_storage_dir_open(const char *path);
  * @param dir Directory handle
  * @param name_buf Buffer to store entry name
  * @param buf_size Size of buffer
- * @return 0 on success, negative error code on failure
+ * @return EOS_OK on success, error code on failure
  */
-int eos_storage_dir_read(eos_dir_t dir, char *name_buf, size_t buf_size);
+eos_result_t eos_storage_dir_read(eos_dir_t dir, char *name_buf, size_t buf_size);
 
 /**
  * @brief Close directory handle

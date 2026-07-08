@@ -86,9 +86,7 @@ jerry_value_t sni_api_lv_anim_set_values(const jerry_call_info_t *call_info_p,
         return sni_api_throw_error("Invalid argument type");
     }
 
-    lv_anim_set_values(sni_cb_anim_get_lv_anim(ctx),
-                       sni_tb_js2c_int32(args_p[0]),
-                       sni_tb_js2c_int32(args_p[1]));
+    lv_anim_set_values(sni_cb_anim_get_lv_anim(ctx), sni_tb_js2c_int32(args_p[0]), sni_tb_js2c_int32(args_p[1]));
     return jerry_undefined();
 }
 

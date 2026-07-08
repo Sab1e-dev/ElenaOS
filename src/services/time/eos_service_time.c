@@ -43,13 +43,8 @@ eos_datetime_t eos_time_get(void)
     eos_datetime_t now = dev->ops->get_datetime();
     uint32_t tick = eos_tick_get();
 
-    if (!initialized ||
-        now.sec  != last_sec_time.sec ||
-        now.min  != last_sec_time.min ||
-        now.hour != last_sec_time.hour ||
-        now.day  != last_sec_time.day ||
-        now.month!= last_sec_time.month ||
-        now.year != last_sec_time.year)
+    if (!initialized || now.sec != last_sec_time.sec || now.min != last_sec_time.min || now.hour != last_sec_time.hour
+        || now.day != last_sec_time.day || now.month != last_sec_time.month || now.year != last_sec_time.year)
     {
         sec_base_tick = tick;
         last_sec_time = now;

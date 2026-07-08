@@ -26,7 +26,7 @@ static void clock_hand_second_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 秒针：60 秒一圈，支持毫秒
+    // Second hand: 60s per revolution, millisecond precision
     angle = (now.sec * 1000 + now.ms) * 3600 / 60000;
 
     lv_image_set_rotation(hand, angle);
@@ -41,7 +41,7 @@ static void clock_hand_minute_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 分针：60 分钟一圈，秒级平滑
+    // Minute hand: 60min per revolution, second-level smoothing
     angle = (now.min * 60 + now.sec) * 3600 / 3600;
 
     lv_image_set_rotation(hand, angle);
@@ -56,24 +56,20 @@ static void clock_hand_hour_timer_cb(lv_timer_t *timer)
 
     int32_t angle;
 
-    // 时针：12 小时一圈，分钟级平滑
+    // Hour hand: 12h per revolution, minute-level smoothing
     angle = ((now.hour % 12) * 60 + now.min) * 3600 / 720;
 
     lv_image_set_rotation(hand, angle);
 }
 
-void eos_clock_hand_place_pivot(lv_obj_t *hand,
-                                lv_coord_t target_x,
-                                lv_coord_t target_y)
+void eos_clock_hand_place_pivot(lv_obj_t *hand, lv_coord_t target_x, lv_coord_t target_y)
 {
     EOS_CHECK_PTR_RETURN(hand);
 
     lv_point_t pivot_pioint;
     lv_image_get_pivot(hand, &pivot_pioint);
 
-    lv_obj_set_pos(hand,
-                   target_x - pivot_pioint.x,
-                   target_y - pivot_pioint.y);
+    lv_obj_set_pos(hand, target_x - pivot_pioint.x, target_y - pivot_pioint.y);
 }
 
 void eos_clock_hand_center(lv_obj_t *hand)
@@ -119,21 +115,15 @@ lv_obj_t *eos_clock_hand_create(lv_obj_t *parent,
     lv_timer_t *t = NULL;
     if (type == EOS_CLOCK_HAND_SECOND)
     {
-        t = lv_timer_create(clock_hand_second_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_second_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_MINUTE)
     {
-        t = lv_timer_create(clock_hand_minute_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_minute_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_HOUR)
     {
-        t = lv_timer_create(clock_hand_hour_timer_cb,
-                        LV_DEF_REFR_PERIOD,
-                        hand);
+        t = lv_timer_create(clock_hand_hour_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else
     {
@@ -183,29 +173,22 @@ static void _clock_hand_hour_style_timer_cb(lv_timer_t *timer)
     lv_obj_set_style_transform_rotation(hand, angle, 0);
 }
 
-lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
-                                  eos_clock_hand_type_t type)
+lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand, eos_clock_hand_type_t type)
 {
     EOS_CHECK_PTR_RETURN_VAL(hand, NULL);
 
     lv_timer_t *t = NULL;
     if (type == EOS_CLOCK_HAND_SECOND)
     {
-        t = lv_timer_create(_clock_hand_second_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_second_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_MINUTE)
     {
-        t = lv_timer_create(_clock_hand_minute_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_minute_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else if (type == EOS_CLOCK_HAND_HOUR)
     {
-        t = lv_timer_create(_clock_hand_hour_style_timer_cb,
-                            LV_DEF_REFR_PERIOD,
-                            hand);
+        t = lv_timer_create(_clock_hand_hour_style_timer_cb, LV_DEF_REFR_PERIOD, hand);
     }
     else
     {
@@ -221,9 +204,7 @@ lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
     return t;
 }
 
-void eos_clock_hand_center_style(lv_obj_t *hand,
-                                 lv_coord_t pivot_x,
-                                 lv_coord_t pivot_y)
+void eos_clock_hand_center_style(lv_obj_t *hand, lv_coord_t pivot_x, lv_coord_t pivot_y)
 {
     EOS_CHECK_PTR_RETURN(hand);
 

@@ -18,7 +18,8 @@
     },
     {
       "name": "int32_t*",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_align_t",
@@ -38,11 +39,8 @@
     },
     {
       "name": "lv_anim_t",
-      "object_type": "handle_object"
-    },
-    {
-      "name": "lv_anim_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_anim_timeline_t",
@@ -122,7 +120,7 @@
     },
     {
       "name": "lv_cache_compare_res_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_cache_entry_t",
@@ -146,7 +144,8 @@
     },
     {
       "name": "lv_calendar_date_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_calendar_t",
@@ -162,11 +161,13 @@
     },
     {
       "name": "lv_chart_cursor_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "sub_resource"
     },
     {
       "name": "lv_chart_series_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "sub_resource"
     },
     {
       "name": "lv_chart_t",
@@ -198,11 +199,8 @@
     },
     {
       "name": "lv_color_filter_dsc_t",
-      "object_type": "undefined"
-    },
-    {
-      "name": "lv_color_filter_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_color_format_t",
@@ -254,11 +252,13 @@
     },
     {
       "name": "lv_display_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_draw_arc_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_draw_border_dsc_t",
@@ -278,11 +278,8 @@
     },
     {
       "name": "lv_draw_buf_t",
-      "object_type": "undefined"
-    },
-    {
-      "name": "lv_draw_buf_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "sub_resource"
     },
     {
       "name": "lv_draw_dsc_base_t",
@@ -298,7 +295,8 @@
     },
     {
       "name": "lv_draw_image_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_draw_image_sup_t",
@@ -306,7 +304,8 @@
     },
     {
       "name": "lv_draw_label_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_draw_label_hint_t",
@@ -314,7 +313,8 @@
     },
     {
       "name": "lv_draw_line_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_draw_mask_rect_dsc_t",
@@ -326,7 +326,8 @@
     },
     {
       "name": "lv_draw_rect_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_draw_sw_blend_dsc_t",
@@ -414,7 +415,8 @@
     },
     {
       "name": "lv_event_cb_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_event_code_t",
@@ -422,7 +424,8 @@
     },
     {
       "name": "lv_event_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_event_list_t",
@@ -430,7 +433,8 @@
     },
     {
       "name": "lv_event_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_ffmpeg_player_t",
@@ -494,18 +498,11 @@
     },
     {
       "name": "lv_font_t",
-      "object_type": "handle_object"
-    },
-    {
-      "name": "lv_font_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_fpoint_t",
-      "object_type": ""
-    },
-    {
-      "name": "lv_fragment_class_t",
       "object_type": ""
     },
     {
@@ -518,10 +515,6 @@
     },
     {
       "name": "lv_fragment_manager_t",
-      "object_type": ""
-    },
-    {
-      "name": "lv_fragment_t",
       "object_type": ""
     },
     {
@@ -606,7 +599,8 @@
     },
     {
       "name": "lv_grad_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_grad_extend_t",
@@ -634,7 +628,8 @@
     },
     {
       "name": "lv_group_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_hit_test_info_t",
@@ -666,7 +661,8 @@
     },
     {
       "name": "lv_image_dsc_t*",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_image_flags_t",
@@ -754,11 +750,8 @@
     },
     {
       "name": "lv_layer_t",
-      "object_type": ""
-    },
-    {
-      "name": "lv_layer_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_layer_type_t",
@@ -786,7 +779,7 @@
     },
     {
       "name": "lv_ll_node_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_ll_t",
@@ -794,7 +787,7 @@
     },
     {
       "name": "lv_log_level_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_matrix_t",
@@ -854,7 +847,8 @@
     },
     {
       "name": "lv_obj_class_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_obj_class_theme_inheritable_t",
@@ -882,11 +876,13 @@
     },
     {
       "name": "lv_obj_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "tree_node"
     },
     {
       "name": "lv_obj_tree_walk_cb_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_obj_tree_walk_res_t",
@@ -894,11 +890,12 @@
     },
     {
       "name": "lv_observer_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_opa_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_palette_t",
@@ -934,7 +931,7 @@
     },
     {
       "name": "lv_rb_compare_res_t",
-      "object_type": "int"
+      "object_type": "int8"
     },
     {
       "name": "lv_rb_node_t",
@@ -1026,7 +1023,7 @@
     },
     {
       "name": "lv_state_t",
-      "object_type": "uint"
+      "object_type": "uint16"
     },
     {
       "name": "lv_style_const_prop_t",
@@ -1034,7 +1031,7 @@
     },
     {
       "name": "lv_style_prop_t",
-      "object_type": "uint"
+      "object_type": "uint8"
     },
     {
       "name": "lv_style_res_t",
@@ -1050,19 +1047,23 @@
     },
     {
       "name": "lv_style_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_style_transition_dsc_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_style_value_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "no_lifecycle"
     },
     {
       "name": "lv_subject_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_subject_type_t",
@@ -1138,7 +1139,8 @@
     },
     {
       "name": "lv_timer_t",
-      "object_type": "handle_object"
+      "object_type": "handle_object",
+      "lifecycle_class": "controlled_resource"
     },
     {
       "name": "lv_uintptr_t",

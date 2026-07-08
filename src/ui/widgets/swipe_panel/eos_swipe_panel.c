@@ -24,7 +24,8 @@
 #define HANDLE_BAR_HEIGHT 10
 #define SWIPE_ANIM_DURATION 200
 
-typedef struct {
+typedef struct
+{
     eos_slide_widget_dir_t slide_dir;
     lv_coord_t target_base;
     lv_coord_t target_target;
@@ -38,54 +39,58 @@ typedef struct {
 } _direction_config_t;
 
 static const _direction_config_t _dir_configs[] = {
-    [EOS_SWIPE_DIR_UP] = {
-        .slide_dir = EOS_SLIDE_DIR_VER,
-        .target_base = EOS_DISPLAY_HEIGHT,
-        .target_target = 0,
-        .touch_base = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
-        .touch_target = 0,
-        .swipe_obj_x = 0,
-        .swipe_obj_y = EOS_DISPLAY_HEIGHT,
-        .touch_obj_x = 0,
-        .touch_obj_y = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
-        .pull_back_target = EOS_DISPLAY_HEIGHT,
-    },
-    [EOS_SWIPE_DIR_DOWN] = {
-        .slide_dir = EOS_SLIDE_DIR_VER,
-        .target_base = -EOS_DISPLAY_HEIGHT,
-        .target_target = 0,
-        .touch_base = 0,
-        .touch_target = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
-        .swipe_obj_x = 0,
-        .swipe_obj_y = -EOS_DISPLAY_HEIGHT,
-        .touch_obj_x = 0,
-        .touch_obj_y = 0,
-        .pull_back_target = -EOS_DISPLAY_HEIGHT,
-    },
-    [EOS_SWIPE_DIR_LEFT] = {
-        .slide_dir = EOS_SLIDE_DIR_HOR,
-        .target_base = EOS_DISPLAY_WIDTH,
-        .target_target = 0,
-        .touch_base = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
-        .touch_target = 0,
-        .swipe_obj_x = EOS_DISPLAY_WIDTH,
-        .swipe_obj_y = 0,
-        .touch_obj_x = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
-        .touch_obj_y = 0,
-        .pull_back_target = EOS_DISPLAY_WIDTH,
-    },
-    [EOS_SWIPE_DIR_RIGHT] = {
-        .slide_dir = EOS_SLIDE_DIR_HOR,
-        .target_base = -EOS_DISPLAY_WIDTH,
-        .target_target = 0,
-        .touch_base = 0,
-        .touch_target = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
-        .swipe_obj_x = -EOS_DISPLAY_WIDTH,
-        .swipe_obj_y = 0,
-        .touch_obj_x = 0,
-        .touch_obj_y = 0,
-        .pull_back_target = -EOS_DISPLAY_WIDTH,
-    },
+    [EOS_SWIPE_DIR_UP] =
+        {
+            .slide_dir = EOS_SLIDE_DIR_VER,
+            .target_base = EOS_DISPLAY_HEIGHT,
+            .target_target = 0,
+            .touch_base = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
+            .touch_target = 0,
+            .swipe_obj_x = 0,
+            .swipe_obj_y = EOS_DISPLAY_HEIGHT,
+            .touch_obj_x = 0,
+            .touch_obj_y = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
+            .pull_back_target = EOS_DISPLAY_HEIGHT,
+        },
+    [EOS_SWIPE_DIR_DOWN] =
+        {
+            .slide_dir = EOS_SLIDE_DIR_VER,
+            .target_base = -EOS_DISPLAY_HEIGHT,
+            .target_target = 0,
+            .touch_base = 0,
+            .touch_target = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
+            .swipe_obj_x = 0,
+            .swipe_obj_y = -EOS_DISPLAY_HEIGHT,
+            .touch_obj_x = 0,
+            .touch_obj_y = 0,
+            .pull_back_target = -EOS_DISPLAY_HEIGHT,
+        },
+    [EOS_SWIPE_DIR_LEFT] =
+        {
+            .slide_dir = EOS_SLIDE_DIR_HOR,
+            .target_base = EOS_DISPLAY_WIDTH,
+            .target_target = 0,
+            .touch_base = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
+            .touch_target = 0,
+            .swipe_obj_x = EOS_DISPLAY_WIDTH,
+            .swipe_obj_y = 0,
+            .touch_obj_x = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
+            .touch_obj_y = 0,
+            .pull_back_target = EOS_DISPLAY_WIDTH,
+        },
+    [EOS_SWIPE_DIR_RIGHT] =
+        {
+            .slide_dir = EOS_SLIDE_DIR_HOR,
+            .target_base = -EOS_DISPLAY_WIDTH,
+            .target_target = 0,
+            .touch_base = 0,
+            .touch_target = EOS_DISPLAY_WIDTH - GESTURE_AREA_HEIGHT,
+            .swipe_obj_x = -EOS_DISPLAY_WIDTH,
+            .swipe_obj_y = 0,
+            .touch_obj_x = 0,
+            .touch_obj_y = 0,
+            .pull_back_target = -EOS_DISPLAY_WIDTH,
+        },
 };
 /* Variables --------------------------------------------------*/
 
@@ -97,33 +102,33 @@ static void _update_handle_bar_position(eos_swipe_panel_t *sp, eos_swipe_dir_t d
     EOS_CHECK_PTR_RETURN(sp && sp->handle_bar);
     switch (dir)
     {
-    case EOS_SWIPE_DIR_UP:
-        lv_obj_align(sp->handle_bar, LV_ALIGN_TOP_MID, 0, TOUCH_BAR_MARGIN);
-        break;
-    case EOS_SWIPE_DIR_DOWN:
-        lv_obj_align(sp->handle_bar, LV_ALIGN_BOTTOM_MID, 0, -TOUCH_BAR_MARGIN);
-        break;
-    case EOS_SWIPE_DIR_LEFT:
-        lv_obj_align(sp->handle_bar, LV_ALIGN_RIGHT_MID, -TOUCH_BAR_MARGIN, 0);
-        break;
-    case EOS_SWIPE_DIR_RIGHT:
-        lv_obj_align(sp->handle_bar, LV_ALIGN_LEFT_MID, TOUCH_BAR_MARGIN, 0);
-        break;
+        case EOS_SWIPE_DIR_UP:
+            lv_obj_align(sp->handle_bar, LV_ALIGN_TOP_MID, 0, TOUCH_BAR_MARGIN);
+            break;
+        case EOS_SWIPE_DIR_DOWN:
+            lv_obj_align(sp->handle_bar, LV_ALIGN_BOTTOM_MID, 0, -TOUCH_BAR_MARGIN);
+            break;
+        case EOS_SWIPE_DIR_LEFT:
+            lv_obj_align(sp->handle_bar, LV_ALIGN_RIGHT_MID, -TOUCH_BAR_MARGIN, 0);
+            break;
+        case EOS_SWIPE_DIR_RIGHT:
+            lv_obj_align(sp->handle_bar, LV_ALIGN_LEFT_MID, TOUCH_BAR_MARGIN, 0);
+            break;
     }
 
     switch (dir)
     {
-    case EOS_SWIPE_DIR_UP:
-    case EOS_SWIPE_DIR_DOWN:
-        lv_obj_set_size(sp->handle_bar, HANDLE_BAR_WIDTH, HANDLE_BAR_HEIGHT);
-        break;
-    case EOS_SWIPE_DIR_LEFT:
-    case EOS_SWIPE_DIR_RIGHT:
-        lv_obj_set_size(sp->handle_bar, HANDLE_BAR_HEIGHT, HANDLE_BAR_WIDTH);
-        break;
+        case EOS_SWIPE_DIR_UP:
+        case EOS_SWIPE_DIR_DOWN:
+            lv_obj_set_size(sp->handle_bar, HANDLE_BAR_WIDTH, HANDLE_BAR_HEIGHT);
+            break;
+        case EOS_SWIPE_DIR_LEFT:
+        case EOS_SWIPE_DIR_RIGHT:
+            lv_obj_set_size(sp->handle_bar, HANDLE_BAR_HEIGHT, HANDLE_BAR_WIDTH);
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 }
 
@@ -142,9 +147,7 @@ void eos_swipe_panel_pull_back(eos_swipe_panel_t *sp)
         return;
 
     int32_t target = _dir_configs[sp->dir].pull_back_target;
-    eos_slide_widget_set_anim_transition(sp->sw,
-                                         EOS_SLIDE_WIDGET_STATE_REVERTING,
-                                         EOS_SLIDE_WIDGET_STATE_IDLE);
+    eos_slide_widget_set_anim_transition(sp->sw, EOS_SLIDE_WIDGET_STATE_REVERTING, EOS_SLIDE_WIDGET_STATE_IDLE);
     eos_swipe_panel_move(sp, target, true);
     eos_slide_widget_reverse(sp->sw);
 }
@@ -186,14 +189,12 @@ void eos_swipe_panel_set_dir(eos_swipe_panel_t *sp, const eos_swipe_dir_t dir)
 
     _update_handle_bar_position(sp, dir);
 
-    eos_slide_widget_config_t config = {
-        .target_base = cfg->target_base,
-        .target_target = cfg->target_target,
-        .touch_base = cfg->touch_base,
-        .touch_target = cfg->touch_target,
-        .threshold = EOS_THRESHOLD_40,
-        .sync_touch_obj = true
-    };
+    eos_slide_widget_config_t config = {.target_base = cfg->target_base,
+                                        .target_target = cfg->target_target,
+                                        .touch_base = cfg->touch_base,
+                                        .touch_target = cfg->touch_target,
+                                        .threshold = EOS_THRESHOLD_40,
+                                        .sync_touch_obj = true};
     eos_slide_widget_configure(sp->sw, &config);
 }
 
@@ -218,9 +219,7 @@ static void _slide_widget_move_done_cb(lv_event_t *e)
 
         if (closing_from_open)
         {
-            eos_slide_widget_set_anim_transition(sp->sw,
-                                                 EOS_SLIDE_WIDGET_STATE_REVERTING,
-                                                 EOS_SLIDE_WIDGET_STATE_IDLE);
+            eos_slide_widget_set_anim_transition(sp->sw, EOS_SLIDE_WIDGET_STATE_REVERTING, EOS_SLIDE_WIDGET_STATE_IDLE);
         }
     }
 }
@@ -285,14 +284,12 @@ eos_swipe_panel_t *eos_swipe_panel_create(lv_obj_t *parent)
 
     sp->sw = eos_slide_widget_create(parent, sp->swipe_obj, EOS_SLIDE_DIR_VER, 0, EOS_THRESHOLD_40);
 
-    eos_slide_widget_config_t config = {
-        .target_base = -EOS_DISPLAY_HEIGHT,
-        .target_target = 0,
-        .touch_base = 0,
-        .touch_target = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
-        .threshold = EOS_THRESHOLD_40,
-        .sync_touch_obj = true
-    };
+    eos_slide_widget_config_t config = {.target_base = -EOS_DISPLAY_HEIGHT,
+                                        .target_target = 0,
+                                        .touch_base = 0,
+                                        .touch_target = EOS_DISPLAY_HEIGHT - GESTURE_AREA_HEIGHT,
+                                        .threshold = EOS_THRESHOLD_40,
+                                        .sync_touch_obj = true};
     eos_slide_widget_configure(sp->sw, &config);
 
     sp->dir = EOS_SWIPE_DIR_DOWN;

@@ -21,8 +21,9 @@ extern "C" {
 /**
  * @brief Language type
  */
-typedef enum{
-    LANG_EN=0,
+typedef enum
+{
+    LANG_EN = 0,
     LANG_ZH,
     LANG_MAX_NUMBER
 } language_id_t;
@@ -31,7 +32,8 @@ typedef enum{
  * @brief String index
  * @note New string IDs can be added here
  */
-typedef enum {
+typedef enum
+{
     STR_ID_LANGUAGE,
     STR_ID_ERROR,
     STR_ID_OK,
@@ -100,20 +102,20 @@ typedef enum {
     STR_ID_SYS_INIT_FAILED,
     STR_ID_SYS_INIT_FAILED_CONTENT,
     STR_ID_SENSOR_START,
-    STR_ID_SENSOR_ACCE,      /**< Accelerometer sensor     */
-    STR_ID_SENSOR_GYRO,      /**< Gyroscope sensor       */
-    STR_ID_SENSOR_MAG,       /**< Magnetometer sensor         */
-    STR_ID_SENSOR_TEMP,      /**< Temperature sensor       */
-    STR_ID_SENSOR_HUMI,      /**< Relative humidity sensor   */
-    STR_ID_SENSOR_BARO,      /**< Barometric sensor       */
-    STR_ID_SENSOR_LIGHT,     /**< Ambient light sensor     */
+    STR_ID_SENSOR_ACCE, /**< Accelerometer sensor     */
+    STR_ID_SENSOR_GYRO, /**< Gyroscope sensor       */
+    STR_ID_SENSOR_MAG, /**< Magnetometer sensor         */
+    STR_ID_SENSOR_TEMP, /**< Temperature sensor       */
+    STR_ID_SENSOR_HUMI, /**< Relative humidity sensor   */
+    STR_ID_SENSOR_BARO, /**< Barometric sensor       */
+    STR_ID_SENSOR_LIGHT, /**< Ambient light sensor     */
     STR_ID_SENSOR_PROXIMITY, /**< Proximity sensor       */
-    STR_ID_SENSOR_HR,        /**< Heart rate sensor       */
-    STR_ID_SENSOR_TVOC,      /**< TVOC sensor       */
-    STR_ID_SENSOR_NOISE,     /**< Noise sensor       */
-    STR_ID_SENSOR_STEP,      /**< Step counter sensor       */
-    STR_ID_SENSOR_FORCE,     /**< Force sensor         */
-    STR_ID_SENSOR_BAT,        /**< Battery level sensor    */
+    STR_ID_SENSOR_HR, /**< Heart rate sensor       */
+    STR_ID_SENSOR_TVOC, /**< TVOC sensor       */
+    STR_ID_SENSOR_NOISE, /**< Noise sensor       */
+    STR_ID_SENSOR_STEP, /**< Step counter sensor       */
+    STR_ID_SENSOR_FORCE, /**< Force sensor         */
+    STR_ID_SENSOR_BAT, /**< Battery level sensor    */
     STR_ID_SETTINGS_PASSWORD,
     STR_ID_SETTINGS_PASSWORD_ENABLE,
     STR_ID_SETTINGS_PASSWORD_DISABLE,
@@ -155,7 +157,7 @@ typedef enum {
     STR_ID_PERM_MANAGEMENT,
     STR_ID_PERM_TITLE,
     /* New string IDs can be added here */
-    STR_ID_MAX_NUMBER   /**< Maximum string ID */
+    STR_ID_MAX_NUMBER /**< Maximum string ID */
 } lang_string_id_t;
 
 /* Public function prototypes --------------------------------*/

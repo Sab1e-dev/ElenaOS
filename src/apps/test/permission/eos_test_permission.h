@@ -11,13 +11,16 @@ extern "C" {
 #endif
 
 /* Includes ---------------------------------------------------*/
+#include <stdint.h>
+#include <stdbool.h>
+
+/* Public macros ----------------------------------------------*/
+
+/* Public typedefs --------------------------------------------*/
 
 /* Public function prototypes --------------------------------*/
-
-/**
- * @brief Start the permission system test activity
- */
 void eos_test_permission_start(void);
+void eos_test_permission_register_tests(void);
 
 #ifdef __cplusplus
 }

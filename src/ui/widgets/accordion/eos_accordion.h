@@ -23,7 +23,7 @@ extern "C" {
 typedef enum
 {
     EOS_ACCORDION_STATE_CLOSED, /**< Accordion is closed */
-    EOS_ACCORDION_STATE_OPEN    /**< Accordion is open */
+    EOS_ACCORDION_STATE_OPEN /**< Accordion is open */
 } eos_accordion_state_t;
 
 /**
@@ -31,13 +31,13 @@ typedef enum
  */
 typedef struct
 {
-    lv_obj_t *container;       /**< Main container object */
-    lv_obj_t *title_bar;       /**< Title bar object */
-    lv_obj_t *title_label;     /**< Title label object */
-    lv_obj_t *arrow_label;     /**< Arrow icon label object */
-    lv_obj_t *content;         /**< Content object */
+    lv_obj_t *container; /**< Main container object */
+    lv_obj_t *title_bar; /**< Title bar object */
+    lv_obj_t *title_label; /**< Title label object */
+    lv_obj_t *arrow_label; /**< Arrow icon label object */
+    lv_obj_t *content; /**< Content object */
     eos_accordion_state_t state; /**< Current accordion state */
-    lv_coord_t content_height;  /**< Cached content height */
+    lv_coord_t content_height; /**< Cached content height */
 } eos_accordion_t;
 
 /* Public function prototypes --------------------------------*/

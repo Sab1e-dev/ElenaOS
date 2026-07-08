@@ -28,40 +28,28 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define SPM_ERROR_INFO_MAX         256
-#define SPM_BACKTRACE_MAX_FRAMES   16
-#define SPM_BACKTRACE_SOURCE_SIZE  128
+#define SPM_ERROR_INFO_MAX 256
+#define SPM_BACKTRACE_MAX_FRAMES 16
+#define SPM_BACKTRACE_SOURCE_SIZE 128
 
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Script program state
  */
-typedef enum {
-    SCRIPT_PROGRAM_STATE_TERMINATED,  /* Fully terminated, all resources freed */
-    SCRIPT_PROGRAM_STATE_STOPPING,    /* Stopping, no callbacks allowed, cleaning up */
-    SCRIPT_PROGRAM_STATE_ACTIVE,      /* Active and healthy */
-    SCRIPT_PROGRAM_STATE_SUSPENDED,   /* Suspended, no code execution, resumable */
+typedef enum
+{
+    SCRIPT_PROGRAM_STATE_TERMINATED, /* Fully terminated, all resources freed */
+    SCRIPT_PROGRAM_STATE_STOPPING, /* Stopping, no callbacks allowed, cleaning up */
+    SCRIPT_PROGRAM_STATE_ACTIVE, /* Active and healthy */
+    SCRIPT_PROGRAM_STATE_SUSPENDED, /* Suspended, no code execution, resumable */
 } script_program_state_t;
-
-/**
- * @brief SPM operation result codes
- */
-typedef enum {
-    SPM_OK = 0,
-    SPM_ERR_NULL_PACKAGE,
-    SPM_ERR_SEC_ERROR,
-    SPM_ERR_ALREADY_RUNNING,
-    SPM_ERR_PROGRAM_NOT_FOUND,
-    SPM_ERR_INVALID_STATE,
-    SPM_ERR_INVALID_TYPE,
-    SPM_ERR_MALLOC,
-} spm_result_t;
 
 /**
  * @brief Script error record (copied from Core on failure)
  */
-typedef struct {
+typedef struct
+{
     char error_info[SPM_ERROR_INFO_MAX];
     eos_script_error_type_t error_type;
     script_error_location_t error_location;
@@ -75,7 +63,8 @@ typedef struct {
  * Each running or suspended script program is represented by one
  * script_program_t node in SPM's program_list doubly-linked list.
  */
-typedef struct script_program {
+typedef struct script_program
+{
     struct script_program *next;
     struct script_program *prev;
 
@@ -98,10 +87,10 @@ typedef struct script_program {
 /**@{*/
 /**
  * @brief Initialize the Script Program Manager
- * @return SPM_OK on success
+ * @return EOS_OK on success
  * @note Must be called after script_engine_init()
  */
-spm_result_t spm_init(void);
+eos_result_t spm_init(void);
 
 /**
  * @brief Emergency destroy all programs during engine fatal recovery
@@ -132,33 +121,33 @@ script_program_t *spm_start_program(const script_pkg_t *pkg);
 /**
  * @brief Suspend a script program (WatchFace only)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Preconditions: prog->type == SCRIPT_TYPE_WATCHFACE, prog->state == ACTIVE, Core == IDLE
  * Operations: save realm to prog, pause SNI callbacks, prog->state = SUSPENDED
  */
-spm_result_t spm_suspend_program(script_program_t *prog);
+eos_result_t spm_suspend_program(script_program_t *prog);
 
 /**
  * @brief Resume a script program (WatchFace only)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Preconditions: prog->state == SUSPENDED, Core == IDLE
  * Operations: restore realm to Core, resume SNI callbacks, prog->state = ACTIVE
  */
-spm_result_t spm_resume_program(script_program_t *prog);
+eos_result_t spm_resume_program(script_program_t *prog);
 
 /**
  * @brief Terminate a script program (async safe)
  * @param prog Program handle
- * @return SPM_OK on success
+ * @return EOS_OK on success
  *
  * Terminal entry point:
  *   - ACTIVE -> STOPPING (async wait for Core stop) -> TERMINATED
  *   - SUSPENDED -> STOPPING (direct cleanup) -> TERMINATED
  */
-spm_result_t spm_terminate_program(script_program_t *prog);
+eos_result_t spm_terminate_program(script_program_t *prog);
 
 /**
  * @brief Terminate all programs of a given type
@@ -209,6 +198,13 @@ script_program_t *spm_get_active_program(void);
 script_program_t *spm_get_program_by_type(script_pkg_type_t type);
 
 /**
+ * @brief Find a program by its script package ID
+ * @param id Script package ID to search for
+ * @return Program pointer if found and ACTIVE, or NULL
+ */
+script_program_t *spm_get_program_by_id(const char *id);
+
+/**
  * @brief Get error info from a program
  * @param prog Program handle
  * @return Error string (lifetime bound to prog)
@@ -238,18 +234,18 @@ const spm_error_t *spm_get_last_error(void);
 
 /** @name Simplified WatchFace APIs */
 /**@{*/
-script_engine_result_t spm_watchface_start(const script_pkg_t *pkg, void *view);
+eos_result_t spm_watchface_start(const script_pkg_t *pkg, void *view);
 void spm_watchface_set_view_cleanup(void *view);
-script_engine_result_t spm_watchface_pause(void);
-script_engine_result_t spm_watchface_resume(void);
-script_engine_result_t spm_watchface_destroy(void);
+eos_result_t spm_watchface_pause(void);
+eos_result_t spm_watchface_resume(void);
+eos_result_t spm_watchface_destroy(void);
 bool spm_watchface_has_context(void);
 /**@}*/
 
 /** @name Simplified Application APIs */
 /**@{*/
-script_engine_result_t spm_app_run(const script_pkg_t *pkg);
-script_engine_result_t spm_app_stop(void);
+eos_result_t spm_app_run(const script_pkg_t *pkg);
+eos_result_t spm_app_stop(void);
 /**@}*/
 
 #ifdef __cplusplus

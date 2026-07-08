@@ -1,0 +1,21 @@
+rules:
+  - name: "jerry_call gate"
+    description: "jerry_call() may only be called from script_engine/core/script_engine_core.c"
+    pattern: "\\bjerry_call\\s*\\("
+    allowed_files:
+      - "src/script_engine/core/script_engine_core.c"
+    severity: error
+
+  - name: "malloc gate"
+    description: "Use eos_malloc() instead of malloc() (except in port/ layer)"
+    pattern: "\\bmalloc\\s*\\("
+    allowed_files:
+      - "src/port/**"
+    severity: error
+
+  - name: "free gate"
+    description: "Use eos_free() instead of free() (except in port/ layer)"
+    pattern: "\\bfree\\s*\\("
+    allowed_files:
+      - "src/port/**"
+    severity: error

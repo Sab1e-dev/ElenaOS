@@ -19,6 +19,7 @@
 #include "eos_basic_widgets.h"
 #include "eos_event.h"
 #include "eos_service_display.h"
+#include "eos_service_audio.h"
 #include "eos_test.h"
 #include "eos_version.h"
 #include "eos_port.h"
@@ -46,7 +47,8 @@ static eos_result_t _eos_config_save_and_broadcast(cJSON *root)
     eos_result_t ret = eos_storage_json_save(EOS_CONFIG_FILE_PATH, root);
     cJSON_Delete(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         eos_event_post(EOS_EVENT_SYSTEM_CONFIG_UPDATE, NULL, NULL);
     }
 
@@ -60,7 +62,8 @@ eos_result_t eos_config_set_bool(const char *key, bool value)
     EOS_LOG_I("Try set \"%s\" = \"%s\"", key, value ? "true" : "false");
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -74,7 +77,8 @@ eos_result_t eos_config_set_bool(const char *key, bool value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%s", key, value ? "true" : "false");
     }
 
@@ -88,7 +92,8 @@ eos_result_t eos_config_set_string(const char *key, const char *value)
     EOS_LOG_I("Try set \"%s\" = \"%s\"", key, value);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -102,7 +107,8 @@ eos_result_t eos_config_set_string(const char *key, const char *value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%s", key, value);
     }
 
@@ -116,7 +122,8 @@ eos_result_t eos_config_set_number(const char *key, double value)
     EOS_LOG_I("Try set \"%s\" = \"%f\"", key, value);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -130,7 +137,8 @@ eos_result_t eos_config_set_number(const char *key, double value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set config item: %s=%f", key, value);
     }
 
@@ -168,7 +176,7 @@ eos_result_t _create_default_cfg_json(const char *path)
     if (app_order_array)
         cJSON_AddItemToObject(root, EOS_CONFIG_KEY_APP_ORDER_ARRAY, app_order_array);
 
-    // 使用 storage 服务的 JSON 接口保存文件
+    // Save file using storage service JSON API
     eos_result_t ret = eos_storage_json_save(path, root);
 
     cJSON_Delete(root);
@@ -194,7 +202,7 @@ void eos_service_config_init()
     eos_storage_mkdir_if_not_exist(EOS_SYS_RES_IMG_DIR);
     eos_storage_mkdir_if_not_exist(EOS_SYS_RES_FONT_DIR);
 
-    // 使用 storage 服务的 JSON 接口检查并创建默认配置文件
+    // Check and create default config file using storage service JSON API
     if (!eos_storage_is_file(EOS_CONFIG_FILE_PATH))
     {
         if (_create_default_cfg_json(EOS_CONFIG_FILE_PATH) != EOS_OK)
@@ -205,7 +213,7 @@ void eos_service_config_init()
     }
     else
     {
-        // 检查配置文件是否有效
+        // Check if config file is valid
         cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
         if (!root)
         {
@@ -242,17 +250,18 @@ void eos_service_config_init()
     bool mute = eos_config_get_bool(EOS_CONFIG_KEY_MUTE_BOOL, false);
     if (mute)
     {
-        eos_speaker_set_volume(0);
+        eos_service_audio_set_mute(true);
         EOS_LOG_I("Silent mode ON");
     }
     else
     {
         uint8_t volume = (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_SPEAKER_VOLUME_NUMBER, 20);
-        eos_speaker_set_volume(volume);
+        eos_service_audio_set_volume(volume);
         EOS_LOG_I("Volume: %d", volume);
     }
 
-    uint8_t strength = (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_VIBRATOR_STRENGTH_NUMBER, EOS_HAPTIC_STRENGTH_NORMAL);
+    uint8_t strength =
+        (uint8_t)eos_config_get_number(EOS_CONFIG_KEY_VIBRATOR_STRENGTH_NUMBER, EOS_HAPTIC_STRENGTH_NORMAL);
     eos_haptic_set_strength(strength);
     EOS_LOG_I("Vibrator strength: %d", strength);
 }
@@ -293,7 +302,8 @@ eos_result_t eos_config_set_json(const char *key, cJSON *json_value)
     EOS_LOG_I("Try set JSON \"%s\"", key);
 
     cJSON *root = eos_storage_json_load(EOS_CONFIG_FILE_PATH);
-    if (!root) {
+    if (!root)
+    {
         root = cJSON_CreateObject();
         if (!root)
             return EOS_ERR_MEM;
@@ -307,7 +317,8 @@ eos_result_t eos_config_set_json(const char *key, cJSON *json_value)
 
     eos_result_t ret = _eos_config_save_and_broadcast(root);
 
-    if (ret == EOS_OK) {
+    if (ret == EOS_OK)
+    {
         EOS_LOG_I("Successfully set JSON config item: %s", key);
     }
 

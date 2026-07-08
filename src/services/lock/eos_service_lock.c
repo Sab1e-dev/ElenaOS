@@ -28,13 +28,15 @@ static void _on_display_on_cb(eos_event_t *e)
     (void)e;
 
     /* Don't re-show if already active */
-    if (_lock_active) {
+    if (_lock_active)
+    {
         return;
     }
 
     /* Check if password is enabled and a hash exists */
     bool enabled = eos_config_get_bool(EOS_CONFIG_KEY_PASSWORD_ENABLED_BOOL, false);
-    if (!enabled) {
+    if (!enabled)
+    {
         return;
     }
 
@@ -42,7 +44,8 @@ static void _on_display_on_cb(eos_event_t *e)
     bool has_hash = (hash && strlen(hash) > 0);
     eos_free(hash);
 
-    if (!has_hash) {
+    if (!has_hash)
+    {
         return;
     }
 
@@ -59,13 +62,15 @@ bool eos_lock_screen_is_active(void)
 
 void eos_lock_screen_dismiss(void)
 {
-    if (!_lock_active && !eos_lock_page_is_visible()) {
+    if (!_lock_active && !eos_lock_page_is_visible())
+    {
         return;
     }
 
     /* Don't dismiss while sleeping — async verify callback may fire during sleep.
      * Defer dismissal until next DISPLAY_ON so the lock page survives sleep/wake. */
-    if (eos_pm_get_state() == EOS_PM_SLEEP) {
+    if (eos_pm_get_state() == EOS_PM_SLEEP)
+    {
         EOS_LOG_W("Lock dismiss deferred: device is asleep");
         return;
     }
@@ -74,7 +79,8 @@ void eos_lock_screen_dismiss(void)
 
     /* Reset input devices to release any pressed objects before destroying overlay */
     lv_indev_t *indev = NULL;
-    while ((indev = lv_indev_get_next(indev)) != NULL) {
+    while ((indev = lv_indev_get_next(indev)) != NULL)
+    {
         lv_indev_reset(indev, NULL);
     }
 

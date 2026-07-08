@@ -18,6 +18,8 @@
 #include "eos_perm_panel.h"
 #include "eos_activity.h"
 #include "script_engine_core.h"
+#include "spm.h"
+#include "eos_dispatcher.h"
 #include "eos_mem.h"
 #include "eos_log.h"
 
@@ -27,7 +29,7 @@ typedef struct
     bool active;
     jerry_value_t callback; /* JS callback to invoke */
     eos_perm_category_t category;
-    char *app_id;   /* Copy of app ID for button callbacks */
+    char *app_id; /* Copy of app ID for button callbacks */
     char *app_name; /* Copy of app name for panel display */
 } perm_request_ctx_t;
 
@@ -41,12 +43,20 @@ typedef struct perm_queue_node
     char *app_name;
 } perm_queue_node_t;
 
+/* ---- Dispatcher context for async already-granted callback ---- */
+typedef struct
+{
+    jerry_value_t cb;
+    char *app_id;
+    const char *result_str;
+} async_granted_ctx_t;
+
 static perm_request_ctx_t _perm_req = {0};
 static perm_queue_node_t *_perm_queue_head = NULL;
 static perm_queue_node_t *_perm_queue_tail = NULL;
 
 /* ---- Forward declarations ---- */
-static void _invoke_callback(jerry_value_t cb, const char *result);
+static void _invoke_callback(jerry_value_t cb, const char *result, const char *app_id);
 static void _cleanup_request(void);
 static void _dequeue_and_show(void);
 static bool _queue_has_category(eos_perm_category_t cat);
@@ -54,6 +64,8 @@ static void _queue_clear(void);
 static void _perm_allow_once_cb(lv_event_t *e);
 static void _perm_allow_foreground_cb(lv_event_t *e);
 static void _perm_deny_cb(lv_event_t *e);
+static void _async_granted_cb(void *user_data);
+static void _schedule_async_granted(jerry_value_t callback, const char *app_id, const char *result_str);
 
 /* ---- Helper: convert string to category ---- */
 
@@ -73,15 +85,15 @@ static const char *_state_to_string(eos_perm_state_t state)
 {
     switch (state)
     {
-    case EOS_PERM_STATE_ALLOW_ONCE:
-        return "once";
-    case EOS_PERM_STATE_ALLOW_FOREGROUND:
-        return "foreground";
-    case EOS_PERM_STATE_ALLOW_ALWAYS:
-        return "always";
-    case EOS_PERM_STATE_DENIED:
-    default:
-        return "denied";
+        case EOS_PERM_STATE_ALLOW_ONCE:
+            return "once";
+        case EOS_PERM_STATE_ALLOW_FOREGROUND:
+            return "foreground";
+        case EOS_PERM_STATE_ALLOW_ALWAYS:
+            return "always";
+        case EOS_PERM_STATE_DENIED:
+        default:
+            return "denied";
     }
 }
 
@@ -121,8 +133,7 @@ static void _queue_clear(void)
     _perm_queue_tail = NULL;
 }
 
-static bool _enqueue(eos_perm_category_t cat, const char *app_id,
-                     const char *app_name, jerry_value_t callback)
+static bool _enqueue(eos_perm_category_t cat, const char *app_id, const char *app_name, jerry_value_t callback)
 {
     perm_queue_node_t *node = eos_malloc_zeroed(sizeof(perm_queue_node_t));
     if (!node)
@@ -176,8 +187,7 @@ static void _show_panel(void)
     eos_perm_panel_t *panel = eos_perm_panel_create(&cfg);
     if (!panel)
     {
-        EOS_LOG_E("Failed to create permission panel for app=%s cat=%d",
-                  _perm_req.app_id, _perm_req.category);
+        EOS_LOG_E("Failed to create permission panel for app=%s cat=%d", _perm_req.app_id, _perm_req.category);
         _cleanup_request();
         _dequeue_and_show();
         return;
@@ -201,7 +211,7 @@ static void _dequeue_and_show(void)
     _perm_req.active = true;
     _perm_req.category = node->category;
     _perm_req.callback = node->callback; /* transfer ownership */
-    _perm_req.app_id = node->app_id;     /* transfer ownership */
+    _perm_req.app_id = node->app_id; /* transfer ownership */
     _perm_req.app_name = node->app_name; /* transfer ownership */
 
     eos_free(node); /* free the node shell, not the transferred fields */
@@ -211,13 +221,44 @@ static void _dequeue_and_show(void)
 
 /* ---- Internal: JS callback invocation ---- */
 
-static void _invoke_callback(jerry_value_t cb, const char *result)
+static void _async_granted_cb(void *user_data)
+{
+    async_granted_ctx_t *ctx = (async_granted_ctx_t *)user_data;
+    if (!ctx)
+        return;
+
+    _invoke_callback(ctx->cb, ctx->result_str, ctx->app_id);
+    if (!jerry_value_is_undefined(ctx->cb))
+        jerry_value_free(ctx->cb);
+    if (ctx->app_id)
+        eos_free(ctx->app_id);
+    eos_free(ctx);
+}
+
+static void _schedule_async_granted(jerry_value_t callback, const char *app_id, const char *result_str)
+{
+    async_granted_ctx_t *ctx = eos_malloc_zeroed(sizeof(async_granted_ctx_t));
+    if (!ctx)
+        return;
+
+    ctx->cb = jerry_value_copy(callback);
+    ctx->app_id = eos_strdup(app_id);
+    ctx->result_str = result_str;
+
+    eos_dispatcher_call(_async_granted_cb, ctx);
+}
+
+static void _invoke_callback(jerry_value_t cb, const char *result, const char *app_id)
 {
     if (jerry_value_is_undefined(cb))
         return;
 
+    script_program_t *prog = spm_get_program_by_id(app_id);
+    if (!prog)
+        return;
+
     jerry_value_t result_val = jerry_string_sz(result);
-    jerry_value_t ret = jerry_call(cb, jerry_undefined(), &result_val, 1);
+    jerry_value_t ret = spm_call(prog, cb, jerry_undefined(), &result_val, 1);
     jerry_value_free(result_val);
 
     if (jerry_value_is_error(ret))
@@ -304,22 +345,14 @@ jerry_value_t sni_api_eos_permission_request(const jerry_call_info_t *call_info_
     if (current == EOS_PERM_STATE_ALLOW_ALWAYS)
     {
         EOS_LOG_D("Permission already granted (always) for app %s, category %d", app_id, cat);
-        jerry_value_t result = jerry_string_sz("granted_always");
-        jerry_value_t ret = jerry_call(args_p[1], jerry_undefined(), &result, 1);
-        jerry_value_free(result);
-        if (jerry_value_is_error(ret))
-            jerry_value_free(ret);
+        _schedule_async_granted(args_p[1], app_id, "granted_always");
         return jerry_undefined();
     }
 
     if (current == EOS_PERM_STATE_ALLOW_FOREGROUND)
     {
         EOS_LOG_D("Permission already granted (foreground) for app %s, category %d", app_id, cat);
-        jerry_value_t result = jerry_string_sz("granted_foreground");
-        jerry_value_t ret = jerry_call(args_p[1], jerry_undefined(), &result, 1);
-        jerry_value_free(result);
-        if (jerry_value_is_error(ret))
-            jerry_value_free(ret);
+        _schedule_async_granted(args_p[1], app_id, "granted_foreground");
         return jerry_undefined();
     }
 
@@ -418,7 +451,7 @@ static void _perm_button_cb(lv_event_t *e, eos_perm_state_t new_state, const cha
         }
     }
 
-    _invoke_callback(_perm_req.callback, result_str);
+    _invoke_callback(_perm_req.callback, result_str, _perm_req.app_id);
     _cleanup_request();
     eos_perm_panel_delete(panel);
 

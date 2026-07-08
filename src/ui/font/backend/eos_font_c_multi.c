@@ -20,17 +20,42 @@ LV_FONT_DECLARE(EOS_FONT_ICON);
 static lv_font_t *font_large;
 static lv_font_t *font_medium;
 static lv_font_t *font_small;
+static bool _font_inited = false;
 /* Function Implementations -----------------------------------*/
 
 lv_font_t *eos_font_init(void)
 {
+    if (_font_inited)
+    {
+        EOS_LOG_W("Font system already initialized, returning cached font");
+        return font_medium;
+    }
+
     EOS_LOG_I("Font system init");
 
     font_large = &EOS_FONT_LARGE_NAME;
     font_medium = &EOS_FONT_MEDIUM_NAME;
     font_small = &EOS_FONT_SMALL_NAME;
 
+    _font_inited = true;
     return font_medium;
+}
+
+void eos_font_deinit(void)
+{
+    if (!_font_inited)
+        return;
+    font_large = NULL;
+    font_medium = NULL;
+    font_small = NULL;
+    _font_inited = false;
+}
+
+lv_font_t *eos_font_reload(const char *path)
+{
+    (void)path;
+    eos_font_deinit();
+    return eos_font_init();
 }
 
 lv_font_t *_select_font(eos_font_size_t size)

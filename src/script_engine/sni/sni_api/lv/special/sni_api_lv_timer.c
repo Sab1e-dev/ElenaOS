@@ -166,8 +166,8 @@ jerry_value_t sni_api_lv_timer_set_auto_delete(const jerry_call_info_t *call_inf
 }
 
 jerry_value_t sni_api_prop_set_timer_auto_delete(const jerry_call_info_t *call_info_p,
-                                                  const jerry_value_t args_p[],
-                                                  const jerry_length_t args_count)
+                                                 const jerry_value_t args_p[],
+                                                 const jerry_length_t args_count)
 {
     if (args_count != 1)
     {

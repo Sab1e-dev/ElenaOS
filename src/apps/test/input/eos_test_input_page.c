@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "eos_mem.h"
 #include "eos_activity.h"
 #include "eos_app_header.h"
 #include "eos_crown.h"
@@ -26,13 +27,15 @@
 #define EOS_LOG_TAG "InputPageTest"
 
 /* Variables --------------------------------------------------*/
-typedef struct {
+typedef struct
+{
     lv_obj_t *container;
     lv_obj_t *list;
     lv_obj_t *result_label;
     lv_obj_t *input_label;
     lv_obj_t *summary_label;
-    struct {
+    struct
+    {
         uint32_t total_tests;
         uint32_t passed_tests;
         uint32_t failed_tests;
@@ -46,7 +49,8 @@ static eos_input_result_t _last_input_result = EOS_INPUT_RESULT_CANCEL;
 /* Function Implementations -----------------------------------*/
 static void _update_result(const char *text)
 {
-    if (_ctx.result_label) {
+    if (_ctx.result_label)
+    {
         lv_label_set_text(_ctx.result_label, text);
     }
     EOS_LOG_I("%s", text);
@@ -55,27 +59,30 @@ static void _update_result(const char *text)
 static void _record_test(const char *name, bool passed, const char *details)
 {
     _ctx.stats.total_tests++;
-    if (passed) {
+    if (passed)
+    {
         _ctx.stats.passed_tests++;
-    } else {
+    }
+    else
+    {
         _ctx.stats.failed_tests++;
     }
 
     char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
+    snprintf(label_text, sizeof(label_text), "%s: %s", name, passed ? "PASS" : "FAIL");
 
     lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
 
-    if (!passed) {
+    if (!passed)
+    {
         lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
     }
 
-    if (_ctx.summary_label && lv_obj_is_valid(_ctx.summary_label)) {
+    if (_ctx.summary_label && lv_obj_is_valid(_ctx.summary_label))
+    {
         char summary_text[128];
-        snprintf(summary_text, sizeof(summary_text),
+        snprintf(summary_text,
+                 sizeof(summary_text),
                  "Total: %u | Passed: %u | Failed: %u",
                  _ctx.stats.total_tests,
                  _ctx.stats.passed_tests,
@@ -91,22 +98,27 @@ static void _input_page_callback(const char *text, eos_input_result_t result, vo
 {
     (void)user_data;
 
-    if (_last_input_text) {
-        free(_last_input_text);
+    if (_last_input_text)
+    {
+        eos_free(_last_input_text);
         _last_input_text = NULL;
     }
 
-    if (text) {
+    if (text)
+    {
         size_t text_len = strlen(text);
-        _last_input_text = malloc(text_len + 1);
-        if (_last_input_text) {
+        _last_input_text = eos_malloc(text_len + 1);
+        if (_last_input_text)
+        {
             memcpy(_last_input_text, text, text_len + 1);
         }
     }
 
-    if (!_last_input_text) {
-        _last_input_text = malloc(1);
-        if (_last_input_text) {
+    if (!_last_input_text)
+    {
+        _last_input_text = eos_malloc(1);
+        if (_last_input_text)
+        {
             _last_input_text[0] = '\0';
         }
     }
@@ -114,9 +126,7 @@ static void _input_page_callback(const char *text, eos_input_result_t result, vo
     _last_input_result = result;
 
     char log_msg[256];
-    snprintf(log_msg, sizeof(log_msg),
-             "Input callback: text='%s', result=%d",
-             _last_input_text, result);
+    snprintf(log_msg, sizeof(log_msg), "Input callback: text='%s', result=%d", _last_input_text, result);
     EOS_LOG_I("%s", log_msg);
 }
 
@@ -129,17 +139,21 @@ static void _test_input_page_with_label(lv_event_t *e)
 
     EOS_LOG_I("Test 1: Input page with label write");
 
-    if (_ctx.input_label == NULL) {
+    if (_ctx.input_label == NULL)
+    {
         _update_result("ERROR: input_label is NULL");
         _record_test("Input Page with Label", false, "Label not initialized");
         return;
     }
 
     eos_result_t result = eos_input_page_open(_ctx.input_label);
-    if (result == EOS_OK) {
+    if (result == EOS_OK)
+    {
         _update_result("Input page opened with label");
         _record_test("Input Page with Label", true, "Page opened successfully");
-    } else {
+    }
+    else
+    {
         _update_result("ERROR: Failed to open input page");
         _record_test("Input Page with Label", false, "Failed to open page");
     }
@@ -154,16 +168,15 @@ static void _test_input_page_with_callback(lv_event_t *e)
 
     EOS_LOG_I("Test 2: Input page with callback");
 
-    eos_result_t result = eos_input_page_open_with_callback(
-        NULL,
-        _input_page_callback,
-        NULL
-    );
+    eos_result_t result = eos_input_page_open_with_callback(NULL, _input_page_callback, NULL);
 
-    if (result == EOS_OK) {
+    if (result == EOS_OK)
+    {
         _update_result("Input page opened with callback");
         _record_test("Input Page with Callback", true, "Page opened successfully");
-    } else {
+    }
+    else
+    {
         _update_result("ERROR: Failed to open input page");
         _record_test("Input Page with Callback", false, "Failed to open page");
     }
@@ -178,7 +191,8 @@ static void _test_verify_label_update(lv_event_t *e)
 
     EOS_LOG_I("Test 3: Verify label update after input");
 
-    if (_ctx.input_label == NULL) {
+    if (_ctx.input_label == NULL)
+    {
         _update_result("ERROR: input_label is NULL");
         _record_test("Label Update Verification", false, "Label not initialized");
         return;
@@ -188,13 +202,14 @@ static void _test_verify_label_update(lv_event_t *e)
     bool has_text = label_text && strlen(label_text) > 0;
 
     char log_msg[256];
-    snprintf(log_msg, sizeof(log_msg),
+    snprintf(log_msg,
+             sizeof(log_msg),
              "Label text verification: text='%s', has_text=%d",
-             label_text ? label_text : "(null)", has_text);
+             label_text ? label_text : "(null)",
+             has_text);
 
     _update_result(log_msg);
-    _record_test("Label Update Verification", has_text,
-                 has_text ? "Label has text" : "Label is empty");
+    _record_test("Label Update Verification", has_text, has_text ? "Label has text" : "Label is empty");
 }
 
 /**
@@ -209,13 +224,15 @@ static void _test_verify_callback_data(lv_event_t *e)
     bool has_callback_data = _last_input_text && strlen(_last_input_text) > 0;
 
     char log_msg[256];
-    snprintf(log_msg, sizeof(log_msg),
+    snprintf(log_msg,
+             sizeof(log_msg),
              "Callback data: text='%s', result=%d",
              _last_input_text ? _last_input_text : "(null)",
              _last_input_result);
 
     _update_result(log_msg);
-    _record_test("Callback Data", has_callback_data,
+    _record_test("Callback Data",
+                 has_callback_data,
                  has_callback_data ? "Callback received data" : "Callback data empty");
 }
 
@@ -225,12 +242,14 @@ static void _test_verify_callback_data(lv_event_t *e)
 static lv_obj_t *_create_input_test_scr(void)
 {
     eos_activity_t *activity = eos_activity_create(NULL);
-    if (!activity) {
+    if (!activity)
+    {
         return NULL;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return NULL;
     }
 
@@ -244,7 +263,8 @@ static lv_obj_t *_create_input_test_scr(void)
 void eos_test_input_page_start(void)
 {
     lv_obj_t *scr = _create_input_test_scr();
-    if (!scr) {
+    if (!scr)
+    {
         EOS_LOG_E("Failed to create test screen");
         return;
     }
@@ -304,7 +324,8 @@ void eos_test_input_page_start(void)
 
     lv_obj_t *summary_label = lv_label_create(list);
     char summary_text[128];
-    snprintf(summary_text, sizeof(summary_text),
+    snprintf(summary_text,
+             sizeof(summary_text),
              "Total: %u | Passed: %u | Failed: %u",
              _ctx.stats.total_tests,
              _ctx.stats.passed_tests,

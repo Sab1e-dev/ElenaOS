@@ -22,7 +22,7 @@ extern "C" {
 
 typedef struct
 {
-    void (*on)(uint8_t strength);   /**< Strength range: 0-255 */
+    void (*on)(uint8_t strength); /**< Strength range: 0-255 */
     void (*off)(void);
 } eos_dev_vibrator_ops_t;
 

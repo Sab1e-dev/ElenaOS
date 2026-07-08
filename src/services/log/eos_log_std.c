@@ -19,7 +19,8 @@
 
 static const char *_log_level_to_str(eos_log_level_t level)
 {
-    switch (level) {
+    switch (level)
+    {
         case EOS_LOG_LEVEL_DEBUG:
             return "DEBUG";
         case EOS_LOG_LEVEL_INFO:
@@ -35,7 +36,8 @@ static const char *_log_level_to_str(eos_log_level_t level)
 
 static const char *_log_level_to_color(eos_log_level_t level)
 {
-    switch (level) {
+    switch (level)
+    {
         case EOS_LOG_LEVEL_DEBUG:
             return EOS_LOG_COLOR_CYAN;
         case EOS_LOG_LEVEL_INFO:
@@ -49,26 +51,15 @@ static const char *_log_level_to_color(eos_log_level_t level)
     }
 }
 
-static void _std_log_listener(
-    eos_log_level_t level,
-    const char *buf,
-    size_t len,
-    void *user
-)
+static void _std_log_listener(eos_log_level_t level, const char *buf, size_t len, void *user)
 {
     (void)user;
     (void)len;
 
 #if EOS_LOG_USE_COLOR
-    printf("%s[%s] %s%s\n",
-           _log_level_to_color(level),
-           _log_level_to_str(level),
-           buf,
-           EOS_LOG_COLOR_RESET);
+    printf("%s[%s] %s%s\n", _log_level_to_color(level), _log_level_to_str(level), buf, EOS_LOG_COLOR_RESET);
 #else
-    printf("[%s] %s\n",
-           _log_level_to_str(level),
-           buf);
+    printf("[%s] %s\n", _log_level_to_str(level), buf);
 #endif
 
     fflush(stdout);
@@ -76,12 +67,7 @@ static void _std_log_listener(
 
 eos_result_t eos_service_log_std_register(void)
 {
-    eos_log_listener_id_t id = eos_log_register_listener(
-        "std_log",
-        _std_log_listener,
-        NULL,
-        EOS_LOG_FLAG_SYSTEM
-    );
+    eos_log_listener_id_t id = eos_log_register_listener("std_log", _std_log_listener, NULL, EOS_LOG_FLAG_SYSTEM);
 
     return (id >= 0) ? EOS_OK : EOS_FAILED;
 }

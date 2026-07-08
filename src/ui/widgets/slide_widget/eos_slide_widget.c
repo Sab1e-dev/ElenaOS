@@ -117,20 +117,20 @@ static const char *_state_to_str(eos_slide_widget_state_t state)
 {
     switch (state)
     {
-    case EOS_SLIDE_WIDGET_STATE_IDLE:
-        return "IDLE";
-    case EOS_SLIDE_WIDGET_STATE_DRAGGING:
-        return "DRAGGING";
-    case EOS_SLIDE_WIDGET_STATE_THRESHOLD:
-        return "THRESHOLD";
-    case EOS_SLIDE_WIDGET_STATE_REVERTING:
-        return "REVERTING";
-    case EOS_SLIDE_WIDGET_STATE_ANIMATING:
-        return "ANIMATING";
-    case EOS_SLIDE_WIDGET_STATE_OPEN:
-        return "OPEN";
-    default:
-        return "UNKNOWN";
+        case EOS_SLIDE_WIDGET_STATE_IDLE:
+            return "IDLE";
+        case EOS_SLIDE_WIDGET_STATE_DRAGGING:
+            return "DRAGGING";
+        case EOS_SLIDE_WIDGET_STATE_THRESHOLD:
+            return "THRESHOLD";
+        case EOS_SLIDE_WIDGET_STATE_REVERTING:
+            return "REVERTING";
+        case EOS_SLIDE_WIDGET_STATE_ANIMATING:
+            return "ANIMATING";
+        case EOS_SLIDE_WIDGET_STATE_OPEN:
+            return "OPEN";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -140,10 +140,7 @@ static void _set_state(eos_slide_widget_t *sw, eos_slide_widget_state_t next, co
     if (sw->state == next)
         return;
 
-    EOS_LOG_D("State: %s -> %s (%s)",
-              _state_to_str(sw->state),
-              _state_to_str(next),
-              reason ? reason : "-");
+    EOS_LOG_D("State: %s -> %s (%s)", _state_to_str(sw->state), _state_to_str(next), reason ? reason : "-");
     sw->state = next;
 }
 
@@ -218,9 +215,7 @@ static void _touch_obj_pressing_cb(lv_event_t *e)
     lv_point_t p;
     lv_indev_get_point(lv_indev_active(), &p);
 
-    lv_coord_t touch_diff = (sw->dir == EOS_SLIDE_DIR_VER)
-                                ? (p.y - sw->_indev_start)
-                                : (p.x - sw->_indev_start);
+    lv_coord_t touch_diff = (sw->dir == EOS_SLIDE_DIR_VER) ? (p.y - sw->_indev_start) : (p.x - sw->_indev_start);
 
     lv_coord_t new_pos = sw->_target_start;
     new_pos += touch_diff;
@@ -283,13 +278,11 @@ static void _slide_widget_anim_completed_cb(lv_anim_t *a)
     _set_state(sw, settle_state, "anim completed");
     sw->settle_state = settle_state;
 
-    if (settle_state == EOS_SLIDE_WIDGET_STATE_OPEN &&
-        origin_settle_state != EOS_SLIDE_WIDGET_STATE_OPEN)
+    if (settle_state == EOS_SLIDE_WIDGET_STATE_OPEN && origin_settle_state != EOS_SLIDE_WIDGET_STATE_OPEN)
     {
         lv_obj_send_event(sw->touch_obj, _event_opened, sw);
     }
-    else if (settle_state == EOS_SLIDE_WIDGET_STATE_IDLE &&
-             origin_settle_state != EOS_SLIDE_WIDGET_STATE_IDLE)
+    else if (settle_state == EOS_SLIDE_WIDGET_STATE_IDLE && origin_settle_state != EOS_SLIDE_WIDGET_STATE_IDLE)
     {
         lv_obj_send_event(sw->touch_obj, _event_closed, sw);
     }
@@ -621,7 +614,11 @@ void eos_slide_widget_reverse(eos_slide_widget_t *sw)
     sw->touch_obj_base = sw->touch_obj_target;
     sw->touch_obj_target = tmp;
     sw->reversed = sw->reversed ? false : true;
-    EOS_LOG_D("Target path: %d -> %d  |  Touch path: %d -> %d", sw->base, sw->target, sw->touch_obj_base, sw->touch_obj_target);
+    EOS_LOG_D("Target path: %d -> %d  |  Touch path: %d -> %d",
+              sw->base,
+              sw->target,
+              sw->touch_obj_base,
+              sw->touch_obj_target);
 }
 
 void eos_slide_widget_sync_touch_obj(eos_slide_widget_t *sw)
@@ -691,11 +688,11 @@ static void _slide_widget_init_common(eos_slide_widget_t *sw,
                                       lv_coord_t target,
                                       eos_threshold_t threshold)
 {
-    static bool s_initialized = false;
-    if (!s_initialized)
+    static bool _initialized = false;
+    if (!_initialized)
     {
         eos_slide_widget_init();
-        s_initialized = true;
+        _initialized = true;
     }
 
     EOS_CHECK_PTR_RETURN(sw && touch_obj && target_obj);
@@ -705,9 +702,7 @@ static void _slide_widget_init_common(eos_slide_widget_t *sw,
     sw->settle_state = EOS_SLIDE_WIDGET_STATE_IDLE;
     sw->threshold = threshold;
     sw->target_obj = target_obj;
-    sw->base = (dir == EOS_SLIDE_DIR_VER)
-                   ? lv_obj_get_y(target_obj)
-                   : lv_obj_get_x(target_obj);
+    sw->base = (dir == EOS_SLIDE_DIR_VER) ? lv_obj_get_y(target_obj) : lv_obj_get_x(target_obj);
     sw->target = target;
     sw->bidirectional = false;
     sw->touch_obj = touch_obj;
@@ -730,15 +725,18 @@ static void _slide_widget_init_common(eos_slide_widget_t *sw,
     EOS_LOG_D("Slide widget created: [%p]\n"
               "target path %d->%d\n"
               "touch path %d->%d",
-              sw, sw->base, sw->target, sw->touch_obj_base, sw->touch_obj_target);
+              sw,
+              sw->base,
+              sw->target,
+              sw->touch_obj_base,
+              sw->touch_obj_target);
 }
 
-eos_slide_widget_t *eos_slide_widget_create_with_touch(
-    lv_obj_t *touch_obj,
-    lv_obj_t *target_obj,
-    eos_slide_widget_dir_t dir,
-    lv_coord_t target,
-    eos_threshold_t threshold)
+eos_slide_widget_t *eos_slide_widget_create_with_touch(lv_obj_t *touch_obj,
+                                                       lv_obj_t *target_obj,
+                                                       eos_slide_widget_dir_t dir,
+                                                       lv_coord_t target,
+                                                       eos_threshold_t threshold)
 {
     eos_slide_widget_t *sw = eos_malloc_zeroed(sizeof(eos_slide_widget_t));
     EOS_CHECK_PTR_RETURN_VAL(sw && touch_obj && target_obj, NULL);
@@ -760,12 +758,11 @@ eos_slide_widget_t *eos_slide_widget_create_with_touch(
     return sw;
 }
 
-eos_slide_widget_t *eos_slide_widget_create(
-    lv_obj_t *parent,
-    lv_obj_t *target_obj,
-    eos_slide_widget_dir_t dir,
-    lv_coord_t target,
-    eos_threshold_t threshold)
+eos_slide_widget_t *eos_slide_widget_create(lv_obj_t *parent,
+                                            lv_obj_t *target_obj,
+                                            eos_slide_widget_dir_t dir,
+                                            lv_coord_t target,
+                                            eos_threshold_t threshold)
 {
     eos_slide_widget_t *sw = eos_malloc_zeroed(sizeof(eos_slide_widget_t));
     EOS_CHECK_PTR_RETURN_VAL(sw && parent && target_obj, NULL);

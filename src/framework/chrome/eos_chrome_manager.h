@@ -28,15 +28,16 @@ extern "C" {
  * The chrome manager uses these to provide unified Z-order management,
  * crown scrollable target resolution, and focus handling.
  */
-typedef struct eos_chrome_overlay_t {
-    void (*pull_back)(void);    /**< Pull back (close with animation) this overlay */
-    void (*hide)(void);         /**< Hide this overlay immediately (no animation) */
-    void (*on_focus)(void);     /**< Called when overlay becomes top of stack */
+typedef struct eos_chrome_overlay_t
+{
+    void (*pull_back)(void); /**< Pull back (close with animation) this overlay */
+    void (*hide)(void); /**< Hide this overlay immediately (no animation) */
+    void (*on_focus)(void); /**< Called when overlay becomes top of stack */
 
-    bool (*is_open)(void);      /**< Check if this overlay is currently open (optional, can be NULL) */
-    lv_obj_t *(*get_scrollable)(void);  /**< Get the scrollable object for crown input (optional, can be NULL) */
-    lv_obj_t *(*get_foreground_obj)(void);  /**< Get the object to bring to front for Z-order (optional, can be NULL) */
-    const char *name;           /**< Debug name for logging (optional, can be NULL) */
+    bool (*is_open)(void); /**< Check if this overlay is currently open (optional, can be NULL) */
+    lv_obj_t *(*get_scrollable)(void); /**< Get the scrollable object for crown input (optional, can be NULL) */
+    lv_obj_t *(*get_foreground_obj)(void); /**< Get the object to bring to front for Z-order (optional, can be NULL) */
+    const char *name; /**< Debug name for logging (optional, can be NULL) */
 } eos_chrome_overlay_t;
 
 /* Public function prototypes --------------------------------*/

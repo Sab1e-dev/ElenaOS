@@ -45,9 +45,7 @@ lv_obj_t *eos_std_info_create(lv_obj_t *scr,
     return list;
 }
 
-void eos_std_title_comment_create(lv_obj_t *parent,
-                                  const char *title,
-                                  const char *comment)
+void eos_std_title_comment_create(lv_obj_t *parent, const char *title, const char *comment)
 {
     lv_obj_t *lt, *lc;
     lt = eos_list_add_title(parent, title);

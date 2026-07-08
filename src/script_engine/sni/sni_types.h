@@ -27,11 +27,9 @@ extern "C" {
 #define SNI_TYPE_IS_TREE_NODE(type) ((type) == SNI_H_LV_OBJ)
 #define SNI_TYPE_IS_MANAGED_RESOURCE(type) ((type) > __SNI_HANDLE_RESOURCE_START && (type) < __SNI_HANDLE_RESOURCE_END)
 
-#define SNI_HANDLE_COUNT \
-    (__SNI_HANDLE_END - __SNI_HANDLE_START - 1)
+#define SNI_HANDLE_COUNT (__SNI_HANDLE_END - __SNI_HANDLE_START - 1)
 
-#define SNI_MANAGED_RESOURCE_COUNT \
-    (__SNI_HANDLE_RESOURCE_END - __SNI_HANDLE_RESOURCE_START - 1)
+#define SNI_MANAGED_RESOURCE_COUNT (__SNI_HANDLE_RESOURCE_END - __SNI_HANDLE_RESOURCE_START - 1)
 
 /* Public typedefs --------------------------------------------*/
 
@@ -45,80 +43,80 @@ typedef enum
     __SNI_TYPE_START = 0,
     SNI_T_UNKNOWN = 0,
 
-	__SNI_TYPE_NUMBER_START,
-	SNI_T_UINT8,
-	SNI_T_INT8,
-	SNI_T_UINT16,
-	SNI_T_INT16,
-	SNI_T_UINT32,
-	SNI_T_INT32,
-	SNI_T_DOUBLE,
-	SNI_T_FLOAT,
-	__SNI_TYPE_NUMBER_END,
+    __SNI_TYPE_NUMBER_START,
+    SNI_T_UINT8,
+    SNI_T_INT8,
+    SNI_T_UINT16,
+    SNI_T_INT16,
+    SNI_T_UINT32,
+    SNI_T_INT32,
+    SNI_T_DOUBLE,
+    SNI_T_FLOAT,
+    __SNI_TYPE_NUMBER_END,
 
-	SNI_T_BOOL,
-	SNI_T_STRING,
-	SNI_T_PTR,
+    SNI_T_BOOL,
+    SNI_T_STRING,
+    SNI_T_PTR,
 
-	__SNI_HANDLE_START,
+    __SNI_HANDLE_START,
 
-	SNI_H_LV_OBJ,
+    SNI_H_LV_OBJ,
 
-	__SNI_HANDLE_RESOURCE_START,
+    __SNI_HANDLE_RESOURCE_START,
 
-	SNI_H_LV_TIMER,
-	SNI_H_LV_STYLE,
-	SNI_H_LV_ANIM,
-	SNI_H_LV_CHART_CURSOR,
-	SNI_H_LV_CHART_SERIES,
-	SNI_H_INT32,
-	SNI_H_LV_COLOR_FILTER_DSC,
-	SNI_H_LV_DISPLAY,
-	SNI_H_EOS_ACTIVITY,
-	SNI_H_LV_DRAW_BUF,
-	SNI_H_LV_DRAW_ARC_DSC,
-	SNI_H_LV_DRAW_IMAGE_DSC,
-	SNI_H_LV_DRAW_LABEL_DSC,
-	SNI_H_LV_DRAW_LINE_DSC,
-	SNI_H_LV_DRAW_RECT_DSC,
-	SNI_H_LV_EVENT,
-	SNI_H_LV_EVENT_CB,
-	SNI_H_LV_EVENT_DSC,
-	SNI_H_LV_FONT,
-	SNI_H_LV_GRAD_DSC,
-	SNI_H_LV_GROUP,
-	SNI_H_LV_IMAGE_DSC,
-	SNI_H_LV_LAYER,
-	SNI_H_LV_OBJ_CLASS,
-	SNI_H_LV_OBJ_TREE_WALK_CB,
-	SNI_H_LV_OBSERVER,
-	SNI_H_LV_STYLE_TRANSITION_DSC,
-	SNI_H_LV_STYLE_VALUE,
-	SNI_H_LV_SUBJECT,
+    SNI_H_LV_TIMER,
+    SNI_H_LV_STYLE,
+    SNI_H_LV_ANIM,
+    SNI_H_LV_CHART_CURSOR,
+    SNI_H_LV_CHART_SERIES,
+    SNI_H_INT32,
+    SNI_H_LV_COLOR_FILTER_DSC,
+    SNI_H_LV_DISPLAY,
+    SNI_H_EOS_ACTIVITY,
+    SNI_H_LV_DRAW_BUF,
+    SNI_H_LV_DRAW_ARC_DSC,
+    SNI_H_LV_DRAW_IMAGE_DSC,
+    SNI_H_LV_DRAW_LABEL_DSC,
+    SNI_H_LV_DRAW_LINE_DSC,
+    SNI_H_LV_DRAW_RECT_DSC,
+    SNI_H_LV_EVENT,
+    SNI_H_LV_EVENT_CB,
+    SNI_H_LV_EVENT_DSC,
+    SNI_H_LV_FONT,
+    SNI_H_LV_GRAD_DSC,
+    SNI_H_LV_GROUP,
+    SNI_H_LV_IMAGE_DSC,
+    SNI_H_LV_LAYER,
+    SNI_H_LV_OBJ_CLASS,
+    SNI_H_LV_OBJ_TREE_WALK_CB,
+    SNI_H_LV_OBSERVER,
+    SNI_H_LV_STYLE_TRANSITION_DSC,
+    SNI_H_LV_STYLE_VALUE,
+    SNI_H_LV_SUBJECT,
 
-	__SNI_HANDLE_RESOURCE_END,
+    __SNI_HANDLE_RESOURCE_END,
 
-	__SNI_HANDLE_END,
+    __SNI_HANDLE_END,
 
-	__SNI_VALUE_START,
-	SNI_V_LV_POINT,
+    __SNI_VALUE_START,
+    SNI_V_LV_POINT,
     SNI_V_LV_COLOR16,
-	SNI_V_LV_AREA,
-	SNI_V_LV_COLOR32,
-	SNI_V_LV_SQRT_RES,
-	SNI_V_LV_ANIM_BEZIER3_PARA,
-	SNI_V_LV_POINT_PRECISE,
-	SNI_V_LV_GRAD_COLOR,
-	SNI_V_LV_COLOR_HSV,
-	SNI_V_LV_COLOR16A,
-	SNI_V_LV_GRADIENT_STOP,
-	SNI_V_LV_COLOR,
-	SNI_V_LV_OPA,
-	SNI_V_LV_PART,
-	SNI_V_LV_STATE,
-	SNI_V_LV_STYLE_PROP,
-	SNI_V_LV_STYLE_SELECTOR,
-	__SNI_VALUE_END,
+    SNI_V_LV_AREA,
+    SNI_V_LV_COLOR32,
+    SNI_V_LV_SQRT_RES,
+    SNI_V_LV_ANIM_BEZIER3_PARA,
+    SNI_V_LV_POINT_PRECISE,
+    SNI_V_LV_GRAD_COLOR,
+    SNI_V_LV_COLOR_HSV,
+    SNI_V_LV_COLOR16A,
+    SNI_V_LV_GRADIENT_STOP,
+    SNI_V_LV_COLOR,
+    SNI_V_LV_OPA,
+    SNI_V_LV_PART,
+    SNI_V_LV_STATE,
+    SNI_V_LV_STYLE_PROP,
+    SNI_V_LV_STYLE_SELECTOR,
+    __SNI_VALUE_END,
 
     __SNI_TYPE_MAX
 } sni_type_t;
@@ -138,18 +136,17 @@ typedef enum
  */
 typedef struct
 {
-	const char *name;   /**< Property name */
-	sni_type_t type;    /**< Property type */
-    size_t offset;      /**< Property offset in value object structure */
-    uint8_t bit_width;  /**< Bit width for bit field members (0 for non-bit field members) */
+    const char *name; /**< Property name */
+    sni_type_t type; /**< Property type */
+    size_t offset; /**< Property offset in value object structure */
+    uint8_t bit_width; /**< Bit width for bit field members (0 for non-bit field members) */
 } sni_val_prop_t;
-
 
 typedef struct
 {
     sni_type_t type;
-    uint16_t prop_count;    /**< Property count */
-    const sni_val_prop_t *props;  /**< Property array pointer */
+    uint16_t prop_count; /**< Property count */
+    const sni_val_prop_t *props; /**< Property array pointer */
 } sni_val_obj_t;
 
 /**
@@ -163,16 +160,23 @@ typedef struct
  *
  * Note: Managed Resources do NOT use control blocks. They store data directly
  * in sni_managed_resource_node_t for flattened memory layout.
+ *
+ * Sub-resources (e.g., chart series added via lv_chart_add_series) are
+ * managed resource nodes linked via sub_resource_head.  When the parent
+ * object is deleted (LV_EVENT_DELETE) the sub-resource list is walked
+ * and every sub-handle is marked dead.
  */
+struct sni_managed_resource_node;
 typedef struct sni_control_block
 {
-    void *ptr;                       /**< Pointer to native C object */
-    jerry_value_t js_obj;            /**< JavaScript object corresponding to the handle */
-    sni_type_t type;                 /**< Handle type for runtime validation */
-    bool is_alive;                   /**< Whether the native object is still alive */
-    void *aux;                       /**< Module-private auxiliary context */
-    struct sni_context *owner_ctx;   /**< Owning SNI context (Realm) */
-    uint32_t engine_gen;             /**< Engine generation at creation time */
+    void *ptr; /**< Pointer to native C object */
+    jerry_value_t js_obj; /**< JavaScript object corresponding to the handle */
+    sni_type_t type; /**< Handle type for runtime validation */
+    bool is_alive; /**< Whether the native object is still alive */
+    void *aux; /**< Module-private auxiliary context */
+    struct sni_context *owner_ctx; /**< Owning SNI context (Realm) */
+    uint32_t engine_gen; /**< Engine generation at creation time */
+    struct sni_managed_resource_node *sub_resource_head; /**< Linked list of sub-resource handles */
 } sni_control_block_t;
 
 typedef void (*sni_handle_destroy_cb_t)(void *native_ptr);
@@ -190,11 +194,12 @@ typedef void (*sni_handle_destroy_cb_t)(void *native_ptr);
  */
 typedef struct sni_managed_resource_node
 {
-    void *ptr;                                   /**< Pointer to native resource */
-    jerry_value_t js_obj;                        /**< JavaScript object (was in control block) */
-    sni_type_t type;                             /**< Resource type (was in control block) */
-    bool is_alive;                               /**< Lifecycle status (was in control block) */
-    struct sni_managed_resource_node *next;      /**< Next node in type-specific list */
+    void *ptr; /**< Pointer to native resource */
+    jerry_value_t js_obj; /**< JavaScript object (was in control block) */
+    sni_type_t type; /**< Resource type (was in control block) */
+    bool is_alive; /**< Lifecycle status (was in control block) */
+    struct sni_managed_resource_node *next; /**< Next node in type-specific list */
+    struct sni_control_block *parent_cb; /**< Parent control block (only for sub-resources) */
 } sni_managed_resource_node_t;
 
 /**

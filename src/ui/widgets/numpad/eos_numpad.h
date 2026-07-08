@@ -21,34 +21,39 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define EOS_NUMPAD_BUTTON_SIZE     72
-#define EOS_NUMPAD_GAP             14
-#define EOS_NUMPAD_COLS            3
-#define EOS_NUMPAD_ROWS            4
-#define EOS_NUMPAD_OVERFLOW_PAD    20  /* Extra padding so scaled buttons don't get clipped */
-#define EOS_NUMPAD_GRID_W          (EOS_NUMPAD_COLS * EOS_NUMPAD_BUTTON_SIZE + (EOS_NUMPAD_COLS - 1) * EOS_NUMPAD_GAP + EOS_NUMPAD_OVERFLOW_PAD * 2)
-#define EOS_NUMPAD_GRID_H          (EOS_NUMPAD_ROWS * EOS_NUMPAD_BUTTON_SIZE + (EOS_NUMPAD_ROWS - 1) * EOS_NUMPAD_GAP + EOS_NUMPAD_OVERFLOW_PAD * 2)
-#define EOS_NUMPAD_BTN_CX(col)     (EOS_NUMPAD_OVERFLOW_PAD + EOS_NUMPAD_BUTTON_SIZE / 2 + (col) * (EOS_NUMPAD_BUTTON_SIZE + EOS_NUMPAD_GAP))
-#define EOS_NUMPAD_BTN_CY(row)     (EOS_NUMPAD_OVERFLOW_PAD + EOS_NUMPAD_BUTTON_SIZE / 2 + (row) * (EOS_NUMPAD_BUTTON_SIZE + EOS_NUMPAD_GAP))
-#define EOS_NUMPAD_BTN_X(col)      (EOS_NUMPAD_BTN_CX(col) - EOS_NUMPAD_BUTTON_SIZE / 2)
-#define EOS_NUMPAD_BTN_Y(row)      (EOS_NUMPAD_BTN_CY(row) - EOS_NUMPAD_BUTTON_SIZE / 2)
+#define EOS_NUMPAD_BUTTON_SIZE 72
+#define EOS_NUMPAD_GAP 14
+#define EOS_NUMPAD_COLS 3
+#define EOS_NUMPAD_ROWS 4
+#define EOS_NUMPAD_OVERFLOW_PAD 20 /* Extra padding so scaled buttons don't get clipped */
+#define EOS_NUMPAD_GRID_W \
+    (EOS_NUMPAD_COLS * EOS_NUMPAD_BUTTON_SIZE + (EOS_NUMPAD_COLS - 1) * EOS_NUMPAD_GAP + EOS_NUMPAD_OVERFLOW_PAD * 2)
+#define EOS_NUMPAD_GRID_H \
+    (EOS_NUMPAD_ROWS * EOS_NUMPAD_BUTTON_SIZE + (EOS_NUMPAD_ROWS - 1) * EOS_NUMPAD_GAP + EOS_NUMPAD_OVERFLOW_PAD * 2)
+#define EOS_NUMPAD_BTN_CX(col) \
+    (EOS_NUMPAD_OVERFLOW_PAD + EOS_NUMPAD_BUTTON_SIZE / 2 + (col) * (EOS_NUMPAD_BUTTON_SIZE + EOS_NUMPAD_GAP))
+#define EOS_NUMPAD_BTN_CY(row) \
+    (EOS_NUMPAD_OVERFLOW_PAD + EOS_NUMPAD_BUTTON_SIZE / 2 + (row) * (EOS_NUMPAD_BUTTON_SIZE + EOS_NUMPAD_GAP))
+#define EOS_NUMPAD_BTN_X(col) (EOS_NUMPAD_BTN_CX(col) - EOS_NUMPAD_BUTTON_SIZE / 2)
+#define EOS_NUMPAD_BTN_Y(row) (EOS_NUMPAD_BTN_CY(row) - EOS_NUMPAD_BUTTON_SIZE / 2)
 
-#define EOS_NUMPAD_DOT_SIZE        14
-#define EOS_NUMPAD_DOT_GAP         16
-#define EOS_NUMPAD_MAX_DIGITS      6
+#define EOS_NUMPAD_DOT_SIZE 14
+#define EOS_NUMPAD_DOT_GAP 16
+#define EOS_NUMPAD_MAX_DIGITS 6
 
 /* Public typedefs --------------------------------------------*/
 
 /**
  * @brief Numpad context — fields are public for caller access
  */
-typedef struct {
-    lv_obj_t *container;                              /* Flex-column wrapper holding dots + grid */
-    lv_obj_t *dot_container;                          /* Flex-row of dot indicators */
-    lv_obj_t *dots[EOS_NUMPAD_MAX_DIGITS];            /* Individual dot widgets */
-    char     entered_digits[EOS_NUMPAD_MAX_DIGITS + 1]; /* Entered digit buffer (null-terminated) */
-    uint8_t  digit_count;                             /* Number of digits entered so far */
-    uint8_t  target_length;                           /* Expected passcode length (4 or 6) */
+typedef struct
+{
+    lv_obj_t *container; /* Flex-column wrapper holding dots + grid */
+    lv_obj_t *dot_container; /* Flex-row of dot indicators */
+    lv_obj_t *dots[EOS_NUMPAD_MAX_DIGITS]; /* Individual dot widgets */
+    char entered_digits[EOS_NUMPAD_MAX_DIGITS + 1]; /* Entered digit buffer (null-terminated) */
+    uint8_t digit_count; /* Number of digits entered so far */
+    uint8_t target_length; /* Expected passcode length (4 or 6) */
 
     /* Callbacks */
     void (*on_complete)(const char *digits, void *user_data);
@@ -72,7 +77,8 @@ typedef struct {
  * @param user_data      Opaque pointer passed to callbacks
  * @return eos_numpad_t* Allocated numpad context, or NULL on failure
  */
-eos_numpad_t *eos_numpad_create(lv_obj_t *parent, uint8_t target_length,
+eos_numpad_t *eos_numpad_create(lv_obj_t *parent,
+                                uint8_t target_length,
                                 bool show_cancel,
                                 void (*on_complete)(const char *digits, void *user_data),
                                 void (*on_cancel)(void *user_data),

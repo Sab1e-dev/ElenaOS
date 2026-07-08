@@ -25,7 +25,8 @@
 
 #define MAX_SENSORS 10
 
-typedef struct {
+typedef struct
+{
     lv_obj_t *chart;
     lv_obj_t *container;
     lv_chart_series_t *series[MAX_SENSORS];
@@ -38,16 +39,16 @@ typedef struct {
 static _multi_chart_context_t _ctx = {0};
 
 static const lv_color_t _sensor_colors[MAX_SENSORS] = {
-    LV_COLOR_MAKE(255, 0, 0),      /* Red */
-    LV_COLOR_MAKE(0, 255, 0),      /* Green */
-    LV_COLOR_MAKE(0, 0, 255),      /* Blue */
-    LV_COLOR_MAKE(255, 255, 0),    /* Yellow */
-    LV_COLOR_MAKE(255, 0, 255),    /* Magenta */
-    LV_COLOR_MAKE(0, 255, 255),    /* Cyan */
-    LV_COLOR_MAKE(255, 128, 0),    /* Orange */
-    LV_COLOR_MAKE(128, 0, 128),    /* Purple */
-    LV_COLOR_MAKE(255, 192, 203),  /* Pink */
-    LV_COLOR_MAKE(128, 128, 128)   /* Gray */
+    LV_COLOR_MAKE(255, 0, 0), /* Red */
+    LV_COLOR_MAKE(0, 255, 0), /* Green */
+    LV_COLOR_MAKE(0, 0, 255), /* Blue */
+    LV_COLOR_MAKE(255, 255, 0), /* Yellow */
+    LV_COLOR_MAKE(255, 0, 255), /* Magenta */
+    LV_COLOR_MAKE(0, 255, 255), /* Cyan */
+    LV_COLOR_MAKE(255, 128, 0), /* Orange */
+    LV_COLOR_MAKE(128, 0, 128), /* Purple */
+    LV_COLOR_MAKE(255, 192, 203), /* Pink */
+    LV_COLOR_MAKE(128, 128, 128) /* Gray */
 };
 
 /* ============================================
@@ -58,15 +59,18 @@ static void _multi_chart_update_cb(lv_timer_t *timer)
 {
     (void)timer;
 
-    if (!_ctx.chart) {
+    if (!_ctx.chart)
+    {
         return;
     }
 
     _ctx.tick_count++;
 
     /* Update each sensor's series */
-    for (uint8_t i = 0; i < _ctx.sensor_count; i++) {
-        if (!_ctx.sensors[i] || !_ctx.series[i]) {
+    for (uint8_t i = 0; i < _ctx.sensor_count; i++)
+    {
+        if (!_ctx.sensors[i] || !_ctx.series[i])
+        {
             continue;
         }
 
@@ -74,8 +78,9 @@ static void _multi_chart_update_cb(lv_timer_t *timer)
 
         /* Place a marker when it's time for this sensor to sample */
         int32_t value = 0;
-        if (period > 0 && (_ctx.tick_count % (period / 100)) == 0) {
-            value = 100 + (i * 50);  // Different height for each sensor
+        if (period > 0 && (_ctx.tick_count % (period / 100)) == 0)
+        {
+            value = 100 + (i * 50); // Different height for each sensor
         }
 
         lv_chart_set_next_value(_ctx.chart, _ctx.series[i], value);
@@ -91,7 +96,8 @@ static void _multi_sensor_chart_on_destroy(eos_activity_t *activity)
     LV_UNUSED(activity);
 
     /* Cleanup timer */
-    if (_ctx.update_timer) {
+    if (_ctx.update_timer)
+    {
         lv_timer_delete(_ctx.update_timer);
         _ctx.update_timer = NULL;
     }
@@ -102,18 +108,17 @@ static void _multi_sensor_chart_on_destroy(eos_activity_t *activity)
     _ctx.sensor_count = 0;
     _ctx.tick_count = 0;
 
-    for (uint8_t i = 0; i < MAX_SENSORS; i++) {
+    for (uint8_t i = 0; i < MAX_SENSORS; i++)
+    {
         _ctx.series[i] = NULL;
         _ctx.sensors[i] = NULL;
     }
 }
 
-static const eos_activity_lifecycle_t _s_multi_sensor_chart_lifecycle = {
-    .on_enter = NULL,
-    .on_destroy = _multi_sensor_chart_on_destroy,
-    .on_pause = NULL,
-    .on_resume = NULL
-};
+static const eos_activity_lifecycle_t _s_multi_sensor_chart_lifecycle = {.on_enter = NULL,
+                                                                         .on_destroy = _multi_sensor_chart_on_destroy,
+                                                                         .on_pause = NULL,
+                                                                         .on_resume = NULL};
 
 /* ============================================
  * Main test function
@@ -122,12 +127,14 @@ static const eos_activity_lifecycle_t _s_multi_sensor_chart_lifecycle = {
 void eos_test_sensor_multi_chart_start(void)
 {
     eos_activity_t *activity = eos_activity_create(&_s_multi_sensor_chart_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -143,8 +150,10 @@ void eos_test_sensor_multi_chart_start(void)
 
     /* Discover all registered sensors */
     eos_dev_sensor_t *dev = eos_dev_sensor_get_list_head();
-    while (dev && _ctx.sensor_count < MAX_SENSORS) {
-        if (dev->name) {
+    while (dev && _ctx.sensor_count < MAX_SENSORS)
+    {
+        if (dev->name)
+        {
             _ctx.sensors[_ctx.sensor_count++] = dev;
             /* Set different sample periods for demonstration */
             uint32_t periods[] = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
@@ -162,11 +171,13 @@ void eos_test_sensor_multi_chart_start(void)
     lv_chart_set_div_line_count(_ctx.chart, 5, 5);
 
     /* Add series for each sensor */
-    for (uint8_t i = 0; i < _ctx.sensor_count; i++) {
+    for (uint8_t i = 0; i < _ctx.sensor_count; i++)
+    {
         _ctx.series[i] = lv_chart_add_series(_ctx.chart, _sensor_colors[i], LV_CHART_AXIS_PRIMARY_Y);
 
         /* Initialize with zeros */
-        for (uint32_t j = 0; j < 30; j++) {
+        for (uint32_t j = 0; j < 30; j++)
+        {
             lv_chart_set_next_value(_ctx.chart, _ctx.series[i], 0);
         }
     }
@@ -178,8 +189,10 @@ void eos_test_sensor_multi_chart_start(void)
     lv_obj_set_flex_align(legend, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 
     /* Add legend entries */
-    for (uint8_t i = 0; i < _ctx.sensor_count; i++) {
-        if (_ctx.sensors[i]) {
+    for (uint8_t i = 0; i < _ctx.sensor_count; i++)
+    {
+        if (_ctx.sensors[i])
+        {
             uint32_t period = eos_sensor_get_sample_period(_ctx.sensors[i]->type);
 
             lv_obj_t *legend_item = lv_obj_create(legend);
@@ -194,8 +207,7 @@ void eos_test_sensor_multi_chart_start(void)
 
             /* Sensor name and period */
             char label_text[64];
-            snprintf(label_text, sizeof(label_text), "%s (%ums)",
-                     _ctx.sensors[i]->name, period);
+            snprintf(label_text, sizeof(label_text), "%s (%ums)", _ctx.sensors[i]->name, period);
             lv_obj_t *label = lv_label_create(legend_item);
             lv_label_set_text(label, label_text);
         }

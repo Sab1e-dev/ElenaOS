@@ -66,8 +66,8 @@ void eos_watchface_list_enter(void)
     lv_obj_center(cont);
     lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cont,
-                          LV_FLEX_ALIGN_START,   // Main axis (horizontal) start
-                          LV_FLEX_ALIGN_CENTER,  // Cross axis (vertical) center
+                          LV_FLEX_ALIGN_START, // Main axis (horizontal) start
+                          LV_FLEX_ALIGN_CENTER, // Cross axis (vertical) center
                           LV_FLEX_ALIGN_CENTER); // Content center
     lv_obj_set_scroll_snap_x(cont, LV_SCROLL_SNAP_CENTER);
 
@@ -89,8 +89,8 @@ void eos_watchface_list_enter(void)
         lv_obj_remove_flag(item, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_add_flag(item, LV_OBJ_FLAG_SNAPPABLE);
         lv_obj_set_flex_align(item,
-                              LV_FLEX_ALIGN_START,   // Main axis (horizontal) start
-                              LV_FLEX_ALIGN_CENTER,  // Cross axis (vertical) center
+                              LV_FLEX_ALIGN_START, // Main axis (horizontal) start
+                              LV_FLEX_ALIGN_CENTER, // Cross axis (vertical) center
                               LV_FLEX_ALIGN_CENTER); // Content center
 
         if (current_wf_id && watchface_id && strcmp(watchface_id, current_wf_id) == 0)
@@ -105,7 +105,9 @@ void eos_watchface_list_enter(void)
         }
         else
         {
-            snprintf(icon_path, sizeof(icon_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_SNAPSHOT_FILE_NAME,
+            snprintf(icon_path,
+                     sizeof(icon_path),
+                     EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_SNAPSHOT_FILE_NAME,
                      watchface_id);
             EOS_LOG_D("WFPATH:%s", icon_path);
             if (!eos_storage_is_file(icon_path))
@@ -132,8 +134,8 @@ void eos_watchface_list_enter(void)
         // Image clip container: responsible for snapshot layout, corner clipping and rounded corners
         lv_obj_t *snapshot_clip_container = lv_obj_create(snapshot_container);
         lv_obj_set_size(snapshot_clip_container,
-                _SNAPSHOT_CONTAINER_W - (_SNAPSHOT_CONTAINER_PAD * 2),
-                _SNAPSHOT_CONTAINER_H - (_SNAPSHOT_CONTAINER_PAD * 2));
+                        _SNAPSHOT_CONTAINER_W - (_SNAPSHOT_CONTAINER_PAD * 2),
+                        _SNAPSHOT_CONTAINER_H - (_SNAPSHOT_CONTAINER_PAD * 2));
         lv_obj_set_style_radius(snapshot_clip_container, EOS_DISPLAY_RADIUS, 0);
         lv_obj_set_style_clip_corner(snapshot_clip_container, true, 0);
         lv_obj_set_style_border_width(snapshot_clip_container, 0, 0);
@@ -158,8 +160,8 @@ void eos_watchface_list_enter(void)
         lv_obj_remove_flag(watchface_snapshot, LV_OBJ_FLAG_CLICK_FOCUSABLE);
         lv_image_set_src(watchface_snapshot, icon_path);
         eos_img_set_size(watchface_snapshot,
-                 _SNAPSHOT_CONTAINER_W - (_SNAPSHOT_CONTAINER_PAD * 2),
-                 _SNAPSHOT_CONTAINER_H - (_SNAPSHOT_CONTAINER_PAD * 2));
+                         _SNAPSHOT_CONTAINER_W - (_SNAPSHOT_CONTAINER_PAD * 2),
+                         _SNAPSHOT_CONTAINER_H - (_SNAPSHOT_CONTAINER_PAD * 2));
         lv_obj_center(watchface_snapshot);
 
         // Add click event handler to parent object so that when user clicks on image, click event passes to parent
@@ -176,11 +178,13 @@ void eos_watchface_list_enter(void)
         else
         {
             char manifest_path[EOS_FS_PATH_MAX];
-            snprintf(manifest_path, sizeof(manifest_path), EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
+            snprintf(manifest_path,
+                     sizeof(manifest_path),
+                     EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
                      watchface_id);
             script_pkg_t pkg = {0};
             pkg.type = SCRIPT_TYPE_WATCHFACE;
-            if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK)
+            if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
             {
                 EOS_LOG_E("Read manifest failed: %s", manifest_path);
                 eos_pkg_free(&pkg);

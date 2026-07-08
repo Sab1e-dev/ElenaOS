@@ -87,7 +87,7 @@ struct eos_activity_t
 
 typedef struct
 {
-    eos_activity_t *root_activity;        /**< Root Activity (e.g., watchface), not in stack */
+    eos_activity_t *root_activity; /**< Root Activity (e.g., watchface), not in stack */
     eos_activity_t *current_activity;
     eos_activity_t *visible_activity;
     eos_activity_t *previous_activity;
@@ -118,22 +118,22 @@ static const char *_activity_type_to_str(eos_activity_type_t type)
 {
     switch (type)
     {
-    case EOS_ACTIVITY_TYPE_NULL:
-        return "NULL";
-    case EOS_ACTIVITY_TYPE_APP:
-        return "APP";
-    case EOS_ACTIVITY_TYPE_INPUT_PAGE:
-        return "INPUT_PAGE";
-    case EOS_ACTIVITY_TYPE_APP_LIST:
-        return "APP_LIST";
-    case EOS_ACTIVITY_TYPE_WATCHFACE:
-        return "WATCHFACE";
-    case EOS_ACTIVITY_TYPE_WATCHFACE_LIST:
-        return "WATCHFACE_LIST";
-    case EOS_ACTIVITY_TYPE_LOCK_SCREEN:
-        return "LOCK_SCREEN";
-    default:
-        return "UNKNOWN";
+        case EOS_ACTIVITY_TYPE_NULL:
+            return "NULL";
+        case EOS_ACTIVITY_TYPE_APP:
+            return "APP";
+        case EOS_ACTIVITY_TYPE_INPUT_PAGE:
+            return "INPUT_PAGE";
+        case EOS_ACTIVITY_TYPE_APP_LIST:
+            return "APP_LIST";
+        case EOS_ACTIVITY_TYPE_WATCHFACE:
+            return "WATCHFACE";
+        case EOS_ACTIVITY_TYPE_WATCHFACE_LIST:
+            return "WATCHFACE_LIST";
+        case EOS_ACTIVITY_TYPE_LOCK_SCREEN:
+            return "LOCK_SCREEN";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -156,8 +156,8 @@ static void _activity_run_destroy(eos_activity_t *activity)
 {
     EOS_CHECK_PTR_RETURN(activity);
 
-
-    EOS_LOG_I("Activity destroy begin: activity=%p type=%s destroy_on_exit=%d started=%d view=%p valid=%d snapshot_ref=%u header_visible=%d header_time_only=%d user_data=%p",
+    EOS_LOG_I("Activity destroy begin: activity=%p type=%s destroy_on_exit=%d started=%d view=%p valid=%d "
+              "snapshot_ref=%u header_visible=%d header_time_only=%d user_data=%p",
               (void *)activity,
               _activity_type_to_str(activity->type),
               activity->destroy_on_exit,
@@ -251,7 +251,6 @@ static void _reset_view_visual_state(eos_activity_t *activity)
 
     lv_obj_t *view = activity->view;
 
-
     lv_coord_t w = lv_obj_get_width(view);
     lv_coord_t h = lv_obj_get_height(view);
 
@@ -260,11 +259,10 @@ static void _reset_view_visual_state(eos_activity_t *activity)
     lv_obj_set_style_transform_scale_y(view, 256, LV_PART_MAIN);
     lv_obj_set_style_translate_x(view, 0, LV_PART_MAIN);
     lv_obj_set_style_translate_y(view, 0, LV_PART_MAIN);
-    lv_obj_set_style_transform_angle(view, 0, LV_PART_MAIN);
+    lv_obj_set_style_transform_rotation(view, 0, LV_PART_MAIN);
     lv_obj_set_pos(view, 0, 0);
     lv_obj_set_width(view, w);
     lv_obj_set_height(view, h);
-
 }
 
 static void _activity_show(eos_activity_t *activity)
@@ -276,10 +274,8 @@ static void _activity_show(eos_activity_t *activity)
         return;
     }
 
-
     lv_obj_remove_flag(activity->view, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(activity->view);
-
 }
 
 static void _anim_dummy_exec_cb(void *var, int32_t value)
@@ -294,11 +290,15 @@ static void _activity_mark_visible(eos_activity_t *activity)
     _activity_ctx.transition_in_progress = false;
     EOS_LOG_I("Activity visible updated: visible=%p[%s] current=%p[%s] trans=%d",
               (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               (void *)_activity_ctx.current_activity,
-              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               _activity_ctx.transition_in_progress);
-    eos_event_post(EOS_EVENT_ACTIVITY_SCREEN_SWITCHED, activity ? activity->view : NULL, activity ? activity->view : NULL);
+    eos_event_post(EOS_EVENT_ACTIVITY_SCREEN_SWITCHED,
+                   activity ? activity->view : NULL,
+                   activity ? activity->view : NULL);
 }
 
 static void _snapshot_img_delete_cb(lv_event_t *e)
@@ -353,7 +353,8 @@ static void _anim_clean_up_activity_deferred(void *user_data)
         return;
     }
 
-    EOS_LOG_I("Anim cleanup begin: from=%p[%s destroy=%d view=%p valid=%d] to=%p[%s destroy=%d view=%p valid=%d] snapshots=%p",
+    EOS_LOG_I("Anim cleanup begin: from=%p[%s destroy=%d view=%p valid=%d] to=%p[%s destroy=%d view=%p valid=%d] "
+              "snapshots=%p",
               (void *)anim_ctx->from,
               _activity_type_to_str(anim_ctx->from ? anim_ctx->from->type : EOS_ACTIVITY_TYPE_NULL),
               anim_ctx->from ? anim_ctx->from->destroy_on_exit : false,
@@ -431,7 +432,8 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
               (void *)cur_activity,
               _activity_type_to_str(cur_activity ? cur_activity->type : EOS_ACTIVITY_TYPE_NULL),
               (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               _activity_ctx.transition_in_progress);
     if (cur_activity == next_activity)
     {
@@ -460,14 +462,14 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
 
     eos_chrome_manager_handle_activity_switch();
 
-        if (!is_returning && cur_activity && cur_activity->lifecycle.on_pause)
+    if (!is_returning && cur_activity && cur_activity->lifecycle.on_pause)
     {
-            cur_activity->lifecycle.on_pause(cur_activity);
+        cur_activity->lifecycle.on_pause(cur_activity);
     }
 
-        if (!next_activity->has_started && next_activity->lifecycle.on_enter)
+    if (!next_activity->has_started && next_activity->lifecycle.on_enter)
     {
-            next_activity->lifecycle.on_enter(next_activity);
+        next_activity->lifecycle.on_enter(next_activity);
         next_activity->has_started = true;
     }
     else if (is_returning && next_activity->has_started && next_activity->lifecycle.on_resume)
@@ -475,29 +477,27 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         next_activity->lifecycle.on_resume(next_activity);
     }
 
+    bool header_need_anim = false;
+    bool header_reverse_anim = false;
     if (eos_activity_is_app_header_visible(next_activity))
     {
         if (cur_activity)
         {
-            bool need_anim = false;
-            bool reverse_anim = false;
-
             if (eos_activity_is_app_header_visible(cur_activity))
             {
-                need_anim = true;
+                header_need_anim = true;
 
                 if (cur_activity->destroy_on_exit)
                 {
-                    reverse_anim = true;
+                    header_reverse_anim = true;
                 }
             }
-
-            _play_title_changed_anim(cur_activity, next_activity, need_anim, reverse_anim);
         }
     }
     else
     {
-        if (cur_activity && cur_activity->view && lv_obj_is_valid(cur_activity->view) && eos_activity_is_app_header_visible(cur_activity))
+        if (cur_activity && cur_activity->view && lv_obj_is_valid(cur_activity->view)
+            && eos_activity_is_app_header_visible(cur_activity))
         {
             eos_app_header_attach_to_view(cur_activity->view);
         }
@@ -514,7 +514,8 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         anim_cb = eos_activity_get_anim_route(cur_activity->type, next_activity->type);
         if (!anim_cb)
         {
-            list_anim_available = eos_list_transition_should_animate(cur_activity, next_activity, cur_activity->destroy_on_exit);
+            list_anim_available =
+                eos_list_transition_should_animate(cur_activity, next_activity, cur_activity->destroy_on_exit);
         }
     }
 
@@ -563,6 +564,14 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             }
             _activity_ctx.snapshot_capture_window = false;
             _activity_ctx.active_anim_ctx = NULL;
+            if (cur_activity)
+            {
+                _play_title_changed_anim(cur_activity,
+                                         next_activity,
+                                         header_need_anim,
+                                         header_reverse_anim,
+                                         anim_ctx->at);
+            }
             _anim_timeline_start(cur_activity, next_activity, anim_ctx);
         }
     }
@@ -583,7 +592,8 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             }
             _activity_run_destroy(cur_activity);
         }
-        else if (!eos_activity_is_app_header_visible(next_activity) && cur_activity && eos_activity_is_app_header_visible(cur_activity))
+        else if (!eos_activity_is_app_header_visible(next_activity) && cur_activity
+                 && eos_activity_is_app_header_visible(cur_activity))
         {
             eos_app_header_hide();
         }
@@ -591,6 +601,10 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         _activity_show(next_activity);
         if (eos_activity_is_app_header_visible(next_activity))
         {
+            if (cur_activity)
+            {
+                _play_title_changed_anim(cur_activity, next_activity, header_need_anim, header_reverse_anim, NULL);
+            }
             eos_app_header_show(next_activity);
         }
         _activity_mark_visible(next_activity);
@@ -636,9 +650,11 @@ static void _anim_clean_up_activity(lv_anim_t *a)
 
     EOS_LOG_I("Anim completed PRE-SET: visible=%p[%s] current=%p[%s] to=%p[%s] from=%p[%s] trans=%d",
               (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               (void *)_activity_ctx.current_activity,
-              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               (void *)anim_ctx->to,
               _activity_type_to_str(anim_ctx->to ? anim_ctx->to->type : EOS_ACTIVITY_TYPE_NULL),
               (void *)anim_ctx->from,
@@ -716,9 +732,8 @@ eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
                                               eos_activity_type_t to_type,
                                               eos_activity_anim_cb_t cb)
 {
-    if (from_type <= EOS_ACTIVITY_TYPE_NULL || from_type >= EOS_ACTIVITY_TYPE_COUNT ||
-        to_type <= EOS_ACTIVITY_TYPE_NULL || to_type >= EOS_ACTIVITY_TYPE_COUNT ||
-        cb == NULL)
+    if (from_type <= EOS_ACTIVITY_TYPE_NULL || from_type >= EOS_ACTIVITY_TYPE_COUNT || to_type <= EOS_ACTIVITY_TYPE_NULL
+        || to_type >= EOS_ACTIVITY_TYPE_COUNT || cb == NULL)
     {
         EOS_LOG_W("Invalid route register request: from=%d to=%d cb=%p", from_type, to_type, cb);
         return EOS_FAILED;
@@ -733,11 +748,10 @@ eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
     return EOS_OK;
 }
 
-eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type,
-                                                   eos_activity_type_t to_type)
+eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type, eos_activity_type_t to_type)
 {
-    if (from_type <= EOS_ACTIVITY_TYPE_NULL || from_type >= EOS_ACTIVITY_TYPE_COUNT ||
-        to_type <= EOS_ACTIVITY_TYPE_NULL || to_type >= EOS_ACTIVITY_TYPE_COUNT)
+    if (from_type <= EOS_ACTIVITY_TYPE_NULL || from_type >= EOS_ACTIVITY_TYPE_COUNT || to_type <= EOS_ACTIVITY_TYPE_NULL
+        || to_type >= EOS_ACTIVITY_TYPE_COUNT)
     {
         return NULL;
     }
@@ -821,15 +835,14 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
     }
 
 #if _DEBUG_SNAPSHOT
-    lv_obj_set_style_image_recolor(snapshot_obj,lv_color_hex(0xFF0000),0);
+    lv_obj_set_style_image_recolor(snapshot_obj, lv_color_hex(0xFF0000), 0);
     lv_obj_set_style_image_recolor_opa(snapshot_obj, LV_OPA_20, 0);
 #endif /* _DEBUG_SNAPSHOT */
 
-    lv_draw_buf_t *snapshot = eos_draw_buf_create(
-        (uint32_t)lv_obj_get_width(view),
-        (uint32_t)lv_obj_get_height(view),
-        _SNAPSHOT_COLOR_FORMAT,
-        0);
+    lv_draw_buf_t *snapshot = eos_draw_buf_create((uint32_t)lv_obj_get_width(view),
+                                                  (uint32_t)lv_obj_get_height(view),
+                                                  _SNAPSHOT_COLOR_FORMAT,
+                                                  0);
     if (!snapshot)
     {
         lv_obj_delete(snapshot_obj);
@@ -1169,7 +1182,8 @@ eos_result_t eos_activity_controller_init(eos_activity_t *root_activity)
 
     if (!_activity_ctx.activity_stack)
     {
-        _activity_ctx.activity_stack = eos_stack_create_with_mode(_ACTIVITY_STACK_INIT_CAPACITY, EOS_STACK_CAPACITY_FIXED);
+        _activity_ctx.activity_stack =
+            eos_stack_create_with_mode(_ACTIVITY_STACK_INIT_CAPACITY, EOS_STACK_CAPACITY_FIXED);
         if (!_activity_ctx.activity_stack)
         {
             if (_activity_ctx.root_screen)
@@ -1220,8 +1234,7 @@ eos_result_t eos_activity_controller_init(eos_activity_t *root_activity)
     // Verify view was created by on_enter
     if (!root_activity->view || !lv_obj_is_valid(root_activity->view))
     {
-        EOS_LOG_E("Root activity's on_enter failed to create a valid view (view=%p)",
-                  (void *)root_activity->view);
+        EOS_LOG_E("Root activity's on_enter failed to create a valid view (view=%p)", (void *)root_activity->view);
         _activity_controller_init_failed(root_activity);
         return EOS_FAILED;
     }
@@ -1346,9 +1359,11 @@ void eos_activity_enter(eos_activity_t *activity)
               (void *)activity,
               _activity_type_to_str(activity->type),
               (void *)_activity_ctx.current_activity,
-              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
+              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                                   : EOS_ACTIVITY_TYPE_NULL),
               _activity_ctx.transition_in_progress);
     if (!_controller_initialized())
     {
@@ -1395,15 +1410,18 @@ eos_result_t eos_activity_back(void)
         return EOS_FAILED;
     }
 
-    EOS_LOG_I("Activity back request: current=%p[%s] visible=%p[%s] root=%p[%s] transition=%d stack_size=%zu",
-              (void *)_activity_ctx.current_activity,
-              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              (void *)_activity_ctx.root_activity,
-              _activity_type_to_str(_activity_ctx.root_activity ? _activity_ctx.root_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              _activity_ctx.transition_in_progress,
-              eos_stack_get_size(_activity_ctx.activity_stack));
+    EOS_LOG_I(
+        "Activity back request: current=%p[%s] visible=%p[%s] root=%p[%s] transition=%d stack_size=%zu",
+        (void *)_activity_ctx.current_activity,
+        _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                             : EOS_ACTIVITY_TYPE_NULL),
+        (void *)_activity_ctx.visible_activity,
+        _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                             : EOS_ACTIVITY_TYPE_NULL),
+        (void *)_activity_ctx.root_activity,
+        _activity_type_to_str(_activity_ctx.root_activity ? _activity_ctx.root_activity->type : EOS_ACTIVITY_TYPE_NULL),
+        _activity_ctx.transition_in_progress,
+        eos_stack_get_size(_activity_ctx.activity_stack));
 
     if (_activity_ctx.transition_in_progress)
     {
@@ -1470,15 +1488,18 @@ eos_result_t eos_activity_back_to_watchface(void)
         return EOS_FAILED;
     }
 
-    EOS_LOG_I("Back-to-watchface request: current=%p[%s] visible=%p[%s] root=%p[%s] transition=%d stack_size=%zu",
-              (void *)_activity_ctx.current_activity,
-              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              (void *)_activity_ctx.visible_activity,
-              _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              (void *)_activity_ctx.root_activity,
-              _activity_type_to_str(_activity_ctx.root_activity ? _activity_ctx.root_activity->type : EOS_ACTIVITY_TYPE_NULL),
-              _activity_ctx.transition_in_progress,
-              eos_stack_get_size(_activity_ctx.activity_stack));
+    EOS_LOG_I(
+        "Back-to-watchface request: current=%p[%s] visible=%p[%s] root=%p[%s] transition=%d stack_size=%zu",
+        (void *)_activity_ctx.current_activity,
+        _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                             : EOS_ACTIVITY_TYPE_NULL),
+        (void *)_activity_ctx.visible_activity,
+        _activity_type_to_str(_activity_ctx.visible_activity ? _activity_ctx.visible_activity->type
+                                                             : EOS_ACTIVITY_TYPE_NULL),
+        (void *)_activity_ctx.root_activity,
+        _activity_type_to_str(_activity_ctx.root_activity ? _activity_ctx.root_activity->type : EOS_ACTIVITY_TYPE_NULL),
+        _activity_ctx.transition_in_progress,
+        eos_stack_get_size(_activity_ctx.activity_stack));
 
     if (_activity_ctx.transition_in_progress)
     {
@@ -1523,7 +1544,9 @@ eos_result_t eos_activity_back_to_watchface(void)
 
     // Mark current activity for destruction
     current->destroy_on_exit = true;
-    EOS_LOG_I("Back-to-watchface marked current for destroy: current=%p[%s]", (void *)current, _activity_type_to_str(current->type));
+    EOS_LOG_I("Back-to-watchface marked current for destroy: current=%p[%s]",
+              (void *)current,
+              _activity_type_to_str(current->type));
 
     // Switch to root (will call on_resume)
     _activity_switch_to(root, true);

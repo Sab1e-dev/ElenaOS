@@ -17,7 +17,8 @@ extern "C" {
 /* Public macros ----------------------------------------------*/
 
 /* Public typedefs --------------------------------------------*/
-typedef enum{
+typedef enum
+{
     EOS_CLOCK_HAND_HOUR,
     EOS_CLOCK_HAND_MINUTE,
     EOS_CLOCK_HAND_SECOND,
@@ -30,9 +31,7 @@ typedef enum{
  * @param target_x x
  * @param target_y y
  */
-void eos_clock_hand_place_pivot(lv_obj_t *hand,
-                         lv_coord_t target_x,
-                         lv_coord_t target_y);
+void eos_clock_hand_place_pivot(lv_obj_t *hand, lv_coord_t target_x, lv_coord_t target_y);
 
 /**
  * @brief Center relative to parent object using pointer rotation center as anchor
@@ -67,8 +66,7 @@ lv_obj_t *eos_clock_hand_create(lv_obj_t *parent,
  * @param t     Hand type (hour / minute / second)
  * @return      The created LVGL timer (or NULL on failure)
  */
-lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
-                                  eos_clock_hand_type_t t);
+lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand, eos_clock_hand_type_t t);
 
 /**
  * @brief Center a style-driven hand relative to its parent.
@@ -81,9 +79,7 @@ lv_timer_t *eos_clock_hand_attach(lv_obj_t *hand,
  * @param pivot_x  Rotation-centre X in the object's local coordinates
  * @param pivot_y  Rotation-centre Y in the object's local coordinates
  */
-void eos_clock_hand_center_style(lv_obj_t *hand,
-                                 lv_coord_t pivot_x,
-                                 lv_coord_t pivot_y);
+void eos_clock_hand_center_style(lv_obj_t *hand, lv_coord_t pivot_x, lv_coord_t pivot_y);
 
 #ifdef __cplusplus
 }

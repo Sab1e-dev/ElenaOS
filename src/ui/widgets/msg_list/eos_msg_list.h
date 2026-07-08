@@ -20,7 +20,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-typedef struct eos_msg_list_t eos_msg_list_t;   // Forward declaration
+typedef struct eos_msg_list_t eos_msg_list_t; // Forward declaration
 
 /**
  * @brief Message list item structure
@@ -30,7 +30,8 @@ typedef struct eos_msg_list_t eos_msg_list_t;   // Forward declaration
  *      msg_label
  * }
  */
-typedef struct {
+typedef struct
+{
     eos_msg_list_t *msg_list;
     lv_obj_t *container;
     lv_obj_t *row1;
@@ -38,7 +39,7 @@ typedef struct {
     lv_obj_t *title_label;
     lv_obj_t *msg_label;
     lv_obj_t *time_label;
-    const char *msg_str;     /**< Message string */
+    const char *msg_str; /**< Message string */
     bool is_deleted;
 } eos_msg_list_item_t;
 
@@ -55,12 +56,13 @@ typedef struct {
  *      no_msg_label
  * }
  */
-struct eos_msg_list_t {
-    eos_swipe_panel_t *swipe_panel;     /**< Drag object pointer */
-    lv_obj_t *list;             /**< List object pointer */
-    lv_obj_t *clear_all_btn;    /**< Clear all messages button pointer */
-    lv_obj_t *no_msg_label;     /**< No message prompt label */
-    uint16_t animating_count;   /**< Number of animating messages after clear-all press */
+struct eos_msg_list_t
+{
+    eos_swipe_panel_t *swipe_panel; /**< Drag object pointer */
+    lv_obj_t *list; /**< List object pointer */
+    lv_obj_t *clear_all_btn; /**< Clear all messages button pointer */
+    lv_obj_t *no_msg_label; /**< No message prompt label */
+    uint16_t animating_count; /**< Number of animating messages after clear-all press */
 };
 
 /* Public function prototypes --------------------------------*/

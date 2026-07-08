@@ -3,12 +3,14 @@
  * @brief Comprehensive event system test module
  */
 
+#include "eos_test_event.h"
 #include "eos_config.h"
 #if EOS_ENABLE_TEST_APP
 
 /* Includes ---------------------------------------------------*/
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "eos_activity.h"
 #include "eos_app_header.h"
 #include "eos_crown.h"
@@ -18,16 +20,19 @@
 #include "eos_lang.h"
 #include "lvgl.h"
 #include "eos_error.h"
+#include "eos_test_framework.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define EOS_LOG_TAG "EventTest"
 
 /* Variables --------------------------------------------------*/
-typedef struct {
+typedef struct
+{
     lv_obj_t *container;
     lv_obj_t *list;
     lv_obj_t *result_label;
-    struct {
+    struct
+    {
         uint32_t total_tests;
         uint32_t passed_tests;
         uint32_t failed_tests;
@@ -45,7 +50,8 @@ static eos_event_code_t _test_event_id = EOS_EVENT_UNKNOWN;
 /* Function Implementations -----------------------------------*/
 static void _update_result(const char *text)
 {
-    if (_ctx.result_label) {
+    if (_ctx.result_label)
+    {
         lv_label_set_text(_ctx.result_label, text);
     }
     EOS_LOG_I("%s", text);
@@ -54,22 +60,28 @@ static void _update_result(const char *text)
 static void _record_test(const char *name, bool passed, const char *details)
 {
     _ctx.stats.total_tests++;
-    if (passed) {
+    if (passed)
+    {
         _ctx.stats.passed_tests++;
-    } else {
+    }
+    else
+    {
         _ctx.stats.failed_tests++;
     }
 
-    char label_text[256];
-    snprintf(label_text, sizeof(label_text),
-             "%s: %s",
-             name,
-             passed ? "PASS" : "FAIL");
+    eos_test_record(name, passed, details);
 
-    lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+    if (_ctx.list)
+    {
+        char label_text[256];
+        snprintf(label_text, sizeof(label_text), "%s: %s", name, passed ? "PASS" : "FAIL");
 
-    if (!passed) {
-        lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        lv_obj_t *btn = lv_list_add_button(_ctx.list, NULL, label_text);
+
+        if (!passed)
+        {
+            lv_obj_set_style_text_color(btn, lv_color_hex(0xFF0000), 0);
+        }
     }
 }
 
@@ -92,7 +104,8 @@ static bool _test_event_register_id(void)
     _test_event_id = eos_event_register_id();
 
     bool passed = (_test_event_id >= EOS_EVENT_LAST);
-    _record_test("Register Dynamic ID", passed,
+    _record_test("Register Dynamic ID",
+                 passed,
                  passed ? "Dynamic event ID registered successfully" : "Failed to register dynamic ID");
     return passed;
 }
@@ -100,7 +113,7 @@ static bool _test_event_register_id(void)
 static bool _test_event_subscribe_basic(void)
 {
     _cb_call_count = 0;
-    void *test_data = (void*)0x12345678;
+    void *test_data = (void *)0x12345678;
 
     eos_event_subscribe(_test_event_id, _test_event_cb, test_data);
     eos_event_post(_test_event_id, NULL, NULL);
@@ -108,15 +121,14 @@ static bool _test_event_subscribe_basic(void)
     bool passed = (_cb_call_count == 1);
 
     eos_event_unsubscribe(_test_event_id, _test_event_cb);
-    _record_test("Basic Subscribe/Post", passed,
-                 passed ? "Basic subscription works" : "Basic subscription failed");
+    _record_test("Basic Subscribe/Post", passed, passed ? "Basic subscription works" : "Basic subscription failed");
     return passed;
 }
 
 static bool _test_event_subscribe_ex(void)
 {
     _cb_call_count = 0;
-    void *test_data = (void*)0xABCDEF01;
+    void *test_data = (void *)0xABCDEF01;
     lv_obj_t *test_obj = lv_obj_create(lv_screen_active());
 
     eos_event_subscribe_ex(_test_event_id, _test_event_cb, test_data, test_obj);
@@ -126,7 +138,8 @@ static bool _test_event_subscribe_ex(void)
 
     eos_event_unsubscribe_with_obj(_test_event_id, _test_event_cb, test_obj);
     lv_obj_delete(test_obj);
-    _record_test("Extended Subscribe (with obj)", passed,
+    _record_test("Extended Subscribe (with obj)",
+                 passed,
                  passed ? "Extended subscription works" : "Extended subscription failed");
     return passed;
 }
@@ -137,18 +150,17 @@ static bool _test_event_callback_data(void)
     _cb_last_user_data = NULL;
     _cb_last_param = NULL;
 
-    void *user_data = (void*)0xDEADBEEF;
-    void *param = (void*)0xCAFEBABE;
+    void *user_data = (void *)0xDEADBEEF;
+    void *param = (void *)0xCAFEBABE;
 
     eos_event_subscribe(_test_event_id, _test_event_cb, user_data);
     eos_event_post(_test_event_id, param, NULL);
 
-    bool passed = (_cb_call_count == 1 &&
-                   _cb_last_user_data == user_data &&
-                   _cb_last_param == param);
+    bool passed = (_cb_call_count == 1 && _cb_last_user_data == user_data && _cb_last_param == param);
 
     eos_event_unsubscribe(_test_event_id, _test_event_cb);
-    _record_test("Callback Data Passing", passed,
+    _record_test("Callback Data Passing",
+                 passed,
                  passed ? "User data and param passed correctly" : "Data passing failed");
     return passed;
 }
@@ -164,16 +176,15 @@ static bool _test_event_unsubscribe_basic(void)
 
     bool passed = (_cb_call_count == 1);
 
-    _record_test("Basic Unsubscribe", passed,
-                 passed ? "Unsubscribe works correctly" : "Unsubscribe failed");
+    _record_test("Basic Unsubscribe", passed, passed ? "Unsubscribe works correctly" : "Unsubscribe failed");
     return passed;
 }
 
 static bool _test_event_unsubscribe_with_user_data(void)
 {
     _cb_call_count = 0;
-    void *data1 = (void*)0x00000001;
-    void *data2 = (void*)0x00000002;
+    void *data1 = (void *)0x00000001;
+    void *data2 = (void *)0x00000002;
 
     eos_event_subscribe(_test_event_id, _test_event_cb, data1);
     eos_event_subscribe(_test_event_id, _test_event_cb, data2);
@@ -187,7 +198,8 @@ static bool _test_event_unsubscribe_with_user_data(void)
     bool passed = (count_after_first_post == 2 && _cb_call_count == 3);
 
     eos_event_unsubscribe_with_user_data(_test_event_id, _test_event_cb, data2);
-    _record_test("Unsubscribe with User Data", passed,
+    _record_test("Unsubscribe with User Data",
+                 passed,
                  passed ? "User data-based unsubscribe works" : "User data unsubscribe failed");
     return passed;
 }
@@ -209,8 +221,7 @@ static bool _test_event_unsubscribe_all(void)
     bool passed = (count_before_unsubscribe == 2 && _cb_call_count == 3);
 
     eos_event_unsubscribe_all(_test_event_cb2);
-    _record_test("Unsubscribe All", passed,
-                 passed ? "Global unsubscribe works" : "Global unsubscribe failed");
+    _record_test("Unsubscribe All", passed, passed ? "Global unsubscribe works" : "Global unsubscribe failed");
     return passed;
 }
 
@@ -234,8 +245,7 @@ static bool _test_event_unsubscribe_with_obj(void)
     eos_event_unsubscribe_with_obj(_test_event_id, _test_event_cb, obj2);
     lv_obj_delete(obj1);
     lv_obj_delete(obj2);
-    _record_test("Unsubscribe with Obj", passed,
-                 passed ? "Obj-based unsubscribe works" : "Obj unsubscribe failed");
+    _record_test("Unsubscribe with Obj", passed, passed ? "Obj-based unsubscribe works" : "Obj unsubscribe failed");
     return passed;
 }
 
@@ -249,8 +259,7 @@ static bool _test_event_internal_events(void)
     bool passed = (_cb_call_count == 1);
 
     eos_event_unsubscribe(EOS_EVENT_LANGUAGE_CHANGED, _test_event_cb);
-    _record_test("Internal Events", passed,
-                 passed ? "Internal events work" : "Internal events failed");
+    _record_test("Internal Events", passed, passed ? "Internal events work" : "Internal events failed");
     return passed;
 }
 
@@ -267,7 +276,8 @@ static bool _test_event_multiple_subscribers(void)
 
     eos_event_unsubscribe(_test_event_id, _test_event_cb);
     eos_event_unsubscribe(_test_event_id, _test_event_cb2);
-    _record_test("Multiple Subscribers", passed,
+    _record_test("Multiple Subscribers",
+                 passed,
                  passed ? "Multiple subscribers work correctly" : "Multiple subscribers failed");
     return passed;
 }
@@ -293,8 +303,7 @@ static bool _test_event_null_safety(void)
     eos_event_post(EOS_EVENT_UNKNOWN, NULL, NULL);
     eos_event_unsubscribe_all(NULL);
 
-    _record_test("Null Safety", passed,
-                 passed ? "Null parameters handled safely" : "Null safety failed");
+    _record_test("Null Safety", passed, passed ? "Null parameters handled safely" : "Null safety failed");
     return passed;
 }
 
@@ -310,8 +319,7 @@ static bool _test_event_obj_payload(void)
 
     eos_event_unsubscribe_with_obj(_test_event_id, _test_event_cb, test_obj);
     lv_obj_delete(test_obj);
-    _record_test("Obj Payload", passed,
-                 passed ? "Object payload passed correctly" : "Object payload failed");
+    _record_test("Obj Payload", passed, passed ? "Object payload passed correctly" : "Object payload failed");
     return passed;
 }
 
@@ -358,7 +366,8 @@ static void _test_category_cb(lv_event_t *e)
 
     lv_obj_clean(_ctx.list);
 
-    switch (category) {
+    switch (category)
+    {
         case 0:
             _run_basic_tests();
             break;
@@ -378,7 +387,8 @@ static void _test_category_cb(lv_event_t *e)
     }
 
     char summary[256];
-    snprintf(summary, sizeof(summary),
+    snprintf(summary,
+             sizeof(summary),
              "Total: %u | Pass: %u | Fail: %u",
              _ctx.stats.total_tests,
              _ctx.stats.passed_tests,
@@ -391,12 +401,14 @@ static eos_activity_lifecycle_t s_event_test_activity_lifecycle;
 void eos_test_event_start(void)
 {
     eos_activity_t *activity = eos_activity_create(&s_event_test_activity_lifecycle);
-    if (!activity) {
+    if (!activity)
+    {
         return;
     }
 
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         return;
     }
 
@@ -413,16 +425,12 @@ void eos_test_event_start(void)
     lv_obj_set_flex_grow(cat_list, 1);
     eos_crown_encoder_set_target_obj(cat_list);
 
-    const char *categories[] = {
-        "Basic Tests",
-        "Unsubscribe Tests",
-        "Advanced Tests",
-        "Run All Tests"
-    };
+    const char *categories[] = {"Basic Tests", "Unsubscribe Tests", "Advanced Tests", "Run All Tests"};
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         lv_obj_t *btn = lv_list_add_button(cat_list, NULL, categories[i]);
-        lv_obj_add_event_cb(btn, _test_category_cb, LV_EVENT_CLICKED, (void*)(long)i);
+        lv_obj_add_event_cb(btn, _test_category_cb, LV_EVENT_CLICKED, (void *)(long)i);
     }
 
     _ctx.list = lv_list_create(_ctx.container);
@@ -436,6 +444,23 @@ void eos_test_event_start(void)
     lv_obj_set_size(_ctx.result_label, lv_pct(100), LV_SIZE_CONTENT);
 
     eos_activity_enter(activity);
+}
+
+void eos_test_event_register_tests(void)
+{
+    eos_test_register("Event: register dynamic ID", _test_event_register_id);
+    eos_test_register("Event: basic subscribe/post", _test_event_subscribe_basic);
+    eos_test_register("Event: subscribe with obj", _test_event_subscribe_ex);
+    eos_test_register("Event: callback data passing", _test_event_callback_data);
+    eos_test_register("Event: basic unsubscribe", _test_event_unsubscribe_basic);
+    eos_test_register("Event: unsubscribe with user data", _test_event_unsubscribe_with_user_data);
+    eos_test_register("Event: unsubscribe all", _test_event_unsubscribe_all);
+    eos_test_register("Event: unsubscribe with obj", _test_event_unsubscribe_with_obj);
+    eos_test_register("Event: internal events", _test_event_internal_events);
+    eos_test_register("Event: multiple subscribers", _test_event_multiple_subscribers);
+    eos_test_register("Event: cleanup no crash", _test_event_cleanup);
+    eos_test_register("Event: null safety", _test_event_null_safety);
+    eos_test_register("Event: obj payload", _test_event_obj_payload);
 }
 
 #endif /* EOS_ENABLE_TEST_APP */

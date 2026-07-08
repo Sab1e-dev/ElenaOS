@@ -24,17 +24,12 @@
 
 #define _LABEL_MARGIN_LEFT 12
 #define _SCREEN_PAD_ALL 10
-#define _LABEL_MAX_WIDTH     \
-    EOS_DISPLAY_WIDTH -      \
-        _ICON_WIDTH -        \
-        _TOAST_PAD_ALL * 2 - \
-        _LABEL_MARGIN_LEFT - \
-        _SCREEN_PAD_ALL * 2
+#define _LABEL_MAX_WIDTH EOS_DISPLAY_WIDTH - _ICON_WIDTH - _TOAST_PAD_ALL * 2 - _LABEL_MARGIN_LEFT - _SCREEN_PAD_ALL * 2
 
 #define _TOAST_ANIM_DURATION 500
 #define _TOAST_MARGIN_TOP 35
-#define _TOAST_SHOW_SCROLL_SPEED 10         /**< Scroll time per pixel, in milliseconds */
-#define _TOAST_SHOW_DURATION 3000           /**< Base display time, in milliseconds */
+#define _TOAST_SHOW_SCROLL_SPEED 10 /**< Scroll time per pixel, in milliseconds */
+#define _TOAST_SHOW_DURATION 3000 /**< Base display time, in milliseconds */
 #define _TOAST_SHOW_ANIM_BASE_DURATION 1000 /**< This duration is for the time after scrolling ends */
 
 #define _TOAST_LABEL_MAX_LENGTH 128
@@ -79,8 +74,10 @@ static void _toast_start_move_back_cb(lv_anim_t *a)
         eos_lite_anim_move_ver_start(toast,
                                      _TOAST_MARGIN_TOP,
                                      -lv_obj_get_height(toast),
-                                     _TOAST_ANIM_DURATION, duration,
-                                     _toast_move_back_completed_cb, NULL);
+                                     _TOAST_ANIM_DURATION,
+                                     duration,
+                                     _toast_move_back_completed_cb,
+                                     NULL);
     }
 }
 
@@ -92,8 +89,10 @@ static void _play_move_anim(lv_obj_t *toast)
     eos_lite_anim_move_ver_start(toast,
                                  -lv_obj_get_height(toast),
                                  _TOAST_MARGIN_TOP,
-                                 _TOAST_ANIM_DURATION, 0,
-                                 _toast_start_move_back_cb, toast);
+                                 _TOAST_ANIM_DURATION,
+                                 0,
+                                 _toast_start_move_back_cb,
+                                 toast);
 }
 
 static lv_obj_t *_toast_create_container(void)
@@ -128,7 +127,7 @@ static lv_obj_t *_toast_finalize(lv_obj_t *toast, const char *message)
 
     // Measure text
     lv_point_t size;
-    lv_txt_get_size(&size, message, lv_obj_get_style_text_font(label, 0), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    lv_text_get_size(&size, message, lv_obj_get_style_text_font(label, 0), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
     lv_coord_t text_width = LV_MIN(size.x, _LABEL_MAX_WIDTH);
 
     lv_obj_add_flag(mask, LV_OBJ_FLAG_EVENT_BUBBLE);

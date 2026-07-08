@@ -57,7 +57,9 @@ void _event_list_show(void)
     while (curr)
     {
         EOS_LOG_I(" current: [%p] event[%d] cb[%p] marked[%d]",
-                  curr, (int)curr->event_id, (void *)curr->cb,
+                  curr,
+                  (int)curr->event_id,
+                  (void *)curr->cb,
                   curr->marked_for_delete ? 1 : 0);
         curr = curr->next;
     }
@@ -77,8 +79,7 @@ static void _mark_node_deleted_by_predicate(bool (*pred)(event_node_t *, void *)
             {
                 n->marked_for_delete = true;
                 _event_list_modified = true;
-                EOS_LOG_D("Marked node [%p] event[%d] cb[%p] for deletion",
-                          n, (int)n->event_id, (void *)n->cb);
+                EOS_LOG_D("Marked node [%p] event[%d] cb[%p] for deletion", n, (int)n->event_id, (void *)n->cb);
             }
         }
     }
@@ -97,8 +98,7 @@ static void _cleanup_deleted_nodes(void)
             event_node_t *tmp = *curr;
             *curr = (*curr)->next;
 
-            EOS_LOG_D("Freeing node [%p] event[%d] cb[%p]",
-                      tmp, (int)tmp->event_id, (void *)tmp->cb);
+            EOS_LOG_D("Freeing node [%p] event[%d] cb[%p]", tmp, (int)tmp->event_id, (void *)tmp->cb);
 
             eos_free(tmp);
             _event_list_modified = true;
@@ -185,7 +185,10 @@ void eos_event_subscribe_ex(eos_event_code_t event_id, eos_event_cb_t cb, void *
 static void eos_event_unsubscribe_ex(eos_event_code_t event_id, eos_event_cb_t cb, void *user_data)
 {
     EOS_LOG_I("Unsubscribe: event[%d] cb[%p] user_data[%p] broadcasting=%d",
-              (int)event_id, (void *)cb, user_data, _broadcast_depth);
+              (int)event_id,
+              (void *)cb,
+              user_data,
+              _broadcast_depth);
 
     event_node_t **curr = &_event_list_head;
     bool removed = false;
@@ -255,7 +258,10 @@ void eos_event_unsubscribe_all(eos_event_cb_t cb)
 void eos_event_unsubscribe_with_obj(eos_event_code_t event_id, eos_event_cb_t cb, lv_obj_t *obj)
 {
     EOS_LOG_I("Unsubscribe with obj: event[%d] cb[%p] obj[%p] broadcasting=%d",
-              (int)event_id, (void *)cb, (void *)obj, _broadcast_depth);
+              (int)event_id,
+              (void *)cb,
+              (void *)obj,
+              _broadcast_depth);
 
     event_node_t **curr = &_event_list_head;
     bool removed = false;
@@ -305,7 +311,9 @@ void eos_event_post(eos_event_code_t event_id, void *param, lv_obj_t *obj)
         event_node_t *next = curr->next;
 
         EOS_LOG_D("Post visiting node [%p] event[%d] marked[%d]",
-                  curr, (int)curr->event_id, curr->marked_for_delete ? 1 : 0);
+                  curr,
+                  (int)curr->event_id,
+                  curr->marked_for_delete ? 1 : 0);
 
         if (!curr->marked_for_delete && curr->event_id == event_id)
         {

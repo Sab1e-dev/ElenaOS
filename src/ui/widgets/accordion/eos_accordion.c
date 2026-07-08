@@ -118,7 +118,6 @@ static void _update_content_height(eos_accordion_t *accordion, bool anim)
 
     if (accordion->state == EOS_ACCORDION_STATE_OPEN)
     {
-
         if (anim)
         {
             lv_anim_t a;

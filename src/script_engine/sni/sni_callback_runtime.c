@@ -24,7 +24,8 @@
 
 static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
 {
-    if (!value) return;
+    if (!value)
+        return;
 
     if (jerry_value_is_undefined(*value) || jerry_value_is_null(*value))
     {
@@ -173,8 +174,7 @@ void sni_cb_event_cleanup_descriptor(lv_event_dsc_t *dsc)
         return;
     }
 
-    sni_event_callback_ctx_t *ctx =
-        (sni_event_callback_ctx_t *)lv_event_dsc_get_user_data(dsc);
+    sni_event_callback_ctx_t *ctx = (sni_event_callback_ctx_t *)lv_event_dsc_get_user_data(dsc);
     if (!ctx)
     {
         return;
@@ -230,8 +230,7 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
 
     if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
     {
-        EOS_LOG_W("Timer dispatch skipped: program not active (state=%d)",
-                  ctx->owner_ctx->owner->state);
+        EOS_LOG_W("Timer dispatch skipped: program not active (state=%d)", ctx->owner_ctx->owner->state);
         return;
     }
 
@@ -319,8 +318,7 @@ bool sni_cb_event_remove_by_js_cb(lv_obj_t *obj, jerry_value_t js_cb)
     }
 
     bool removed_any = false;
-    sni_event_callback_ctx_t *ctx =
-        *sni_cb_event_list_ptr(sni_cb_get_context());
+    sni_event_callback_ctx_t *ctx = *sni_cb_event_list_ptr(sni_cb_get_context());
 
     while (ctx)
     {
@@ -347,9 +345,7 @@ bool sni_cb_event_remove_by_js_cb(lv_obj_t *obj, jerry_value_t js_cb)
     return removed_any;
 }
 
-uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj,
-                                                jerry_value_t js_cb,
-                                                jerry_value_t js_user_data)
+uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj, jerry_value_t js_cb, jerry_value_t js_user_data)
 {
     if (!obj || !jerry_value_is_function(js_cb))
     {
@@ -357,8 +353,7 @@ uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj,
     }
 
     uint32_t removed = 0;
-    sni_event_callback_ctx_t *ctx =
-        *sni_cb_event_list_ptr(sni_cb_get_context());
+    sni_event_callback_ctx_t *ctx = *sni_cb_event_list_ptr(sni_cb_get_context());
 
     while (ctx)
     {
@@ -391,9 +386,7 @@ uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj,
     return removed;
 }
 
-bool sni_cb_timer_create(jerry_value_t js_cb,
-                         uint32_t period,
-                         lv_timer_t **out_timer)
+bool sni_cb_timer_create(jerry_value_t js_cb, uint32_t period, lv_timer_t **out_timer)
 {
     if (!jerry_value_is_function(js_cb) || !out_timer)
     {
@@ -475,8 +468,7 @@ bool sni_cb_timer_set_auto_delete(lv_timer_t *timer, bool auto_delete)
 
 /* Anim Callback Implementation ------------------------------*/
 
-static lv_anim_path_cb_t s_anim_path_table[SNI_ANIM_PATH_ENUM_MAX] =
-{
+static lv_anim_path_cb_t s_anim_path_table[SNI_ANIM_PATH_ENUM_MAX] = {
     NULL,
     lv_anim_path_linear,
     lv_anim_path_ease_in,
@@ -546,8 +538,7 @@ static void sni_cb_anim_call_void_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb
 
     if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
     {
-        EOS_LOG_W("Anim dispatch skipped: program not active (state=%d)",
-                  ctx->owner_ctx->owner->state);
+        EOS_LOG_W("Anim dispatch skipped: program not active (state=%d)", ctx->owner_ctx->owner->state);
         return;
     }
 
@@ -584,15 +575,15 @@ static void sni_cb_anim_custom_exec_dispatch(lv_anim_t *var, int32_t value)
 
     if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
     {
-        EOS_LOG_W("Anim custom exec dispatch skipped: program not active (state=%d)",
-                  ctx->owner_ctx->owner->state);
+        EOS_LOG_W("Anim custom exec dispatch skipped: program not active (state=%d)", ctx->owner_ctx->owner->state);
         return;
     }
 
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t js_value = sni_tb_c2js(&value, SNI_T_INT32);
     jerry_value_t args[2] = {js_anim, js_value};
-    jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[SNI_ANIM_CB_SLOT_CUSTOM_EXEC], jerry_undefined(), args, 2);
+    jerry_value_t ret =
+        spm_call(ctx->owner_ctx->owner, ctx->cb_slots[SNI_ANIM_CB_SLOT_CUSTOM_EXEC], jerry_undefined(), args, 2);
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -659,8 +650,7 @@ static int32_t sni_cb_anim_call_int_slot(sni_anim_callback_ctx_t *ctx, sni_anim_
 
     if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
     {
-        EOS_LOG_W("Anim int callback skipped: program not active (state=%d)",
-                  ctx->owner_ctx->owner->state);
+        EOS_LOG_W("Anim int callback skipped: program not active (state=%d)", ctx->owner_ctx->owner->state);
         return fallback;
     }
 
@@ -718,10 +708,10 @@ sni_context_t *sni_cb_get_context(void)
 
 void sni_cb_context_cleanup_events(sni_context_t *ctx)
 {
-    if (!ctx) return;
+    if (!ctx)
+        return;
 
-    sni_event_callback_ctx_t *event_ctx =
-        *(sni_event_callback_ctx_t **)&ctx->event_ctx_list;
+    sni_event_callback_ctx_t *event_ctx = *(sni_event_callback_ctx_t **)&ctx->event_ctx_list;
     *(sni_event_callback_ctx_t **)&ctx->event_ctx_list = NULL;
     while (event_ctx)
     {
@@ -802,23 +792,23 @@ bool sni_cb_anim_set_cb(sni_anim_callback_ctx_t *ctx, sni_anim_cb_slot_t slot, j
 
     switch (slot)
     {
-    case SNI_ANIM_CB_SLOT_CUSTOM_EXEC:
-        lv_anim_set_custom_exec_cb(anim, sni_cb_anim_custom_exec_dispatch);
-        break;
-    case SNI_ANIM_CB_SLOT_START:
-        lv_anim_set_start_cb(anim, sni_cb_anim_start_dispatch);
-        break;
-    case SNI_ANIM_CB_SLOT_COMPLETED:
-        lv_anim_set_completed_cb(anim, sni_cb_anim_completed_dispatch);
-        break;
-    case SNI_ANIM_CB_SLOT_DELETED:
-        lv_anim_set_deleted_cb(anim, sni_cb_anim_deleted_dispatch);
-        break;
-    case SNI_ANIM_CB_SLOT_GET_VALUE:
-        lv_anim_set_get_value_cb(anim, sni_cb_anim_get_value_dispatch);
-        break;
-    default:
-        return false;
+        case SNI_ANIM_CB_SLOT_CUSTOM_EXEC:
+            lv_anim_set_custom_exec_cb(anim, sni_cb_anim_custom_exec_dispatch);
+            break;
+        case SNI_ANIM_CB_SLOT_START:
+            lv_anim_set_start_cb(anim, sni_cb_anim_start_dispatch);
+            break;
+        case SNI_ANIM_CB_SLOT_COMPLETED:
+            lv_anim_set_completed_cb(anim, sni_cb_anim_completed_dispatch);
+            break;
+        case SNI_ANIM_CB_SLOT_DELETED:
+            lv_anim_set_deleted_cb(anim, sni_cb_anim_deleted_dispatch);
+            break;
+        case SNI_ANIM_CB_SLOT_GET_VALUE:
+            lv_anim_set_get_value_cb(anim, sni_cb_anim_get_value_dispatch);
+            break;
+        default:
+            return false;
     }
 
     return true;

@@ -23,12 +23,14 @@ static eos_dev_battery_t _battery_dev = {0};
 
 void eos_dev_battery_register(const eos_battery_dev_ops_t *ops, eos_charge_mAh_t design_capacity)
 {
-    if (!ops) {
+    if (!ops)
+    {
         EOS_LOG_E("Register failed: ops is NULL");
         return;
     }
 
-    if (!ops->request_update) {
+    if (!ops->request_update)
+    {
         EOS_LOG_E("Register failed: request_update is required");
         return;
     }
@@ -36,10 +38,11 @@ void eos_dev_battery_register(const eos_battery_dev_ops_t *ops, eos_charge_mAh_t
     _battery_dev.ops = *ops;
     _battery_dev.design_capacity = design_capacity;
 
-    if(design_capacity != EOS_BATTERY_CAPACITY_UNDEFINED)
+    if (design_capacity != EOS_BATTERY_CAPACITY_UNDEFINED)
     {
         EOS_LOG_I("Battery device registered, design capacity: %d mAh", design_capacity);
-    }else
+    }
+    else
     {
         EOS_LOG_E("Battery device registered with undefined design capacity");
     }

@@ -47,19 +47,22 @@ static const eos_activity_lifecycle_t _js_lifecycle = {
 
 eos_watchface_instance_t *eos_watchface_js_create(const char *watchface_id)
 {
-    if (!watchface_id) {
+    if (!watchface_id)
+    {
         EOS_LOG_E("watchface_id is NULL");
         return NULL;
     }
 
     script_pkg_t pkg = _js_load_package_from_disk(watchface_id);
-    if (!pkg.script_str) {
+    if (!pkg.script_str)
+    {
         EOS_LOG_E("Failed to load JS watchface package: %s", watchface_id);
         return NULL;
     }
 
     eos_watchface_instance_t *instance = eos_malloc(sizeof(eos_watchface_instance_t));
-    if (!instance) {
+    if (!instance)
+    {
         EOS_LOG_E("Failed to allocate JS watchface instance");
         eos_pkg_free(&pkg);
         return NULL;
@@ -72,7 +75,8 @@ eos_watchface_instance_t *eos_watchface_js_create(const char *watchface_id)
     instance->data.js.pkg = pkg;
 
     instance->activity = eos_activity_create_root(&_js_lifecycle);
-    if (!instance->activity) {
+    if (!instance->activity)
+    {
         EOS_LOG_E("Failed to create activity for JS watchface");
         eos_pkg_free(&instance->data.js.pkg);
         eos_free(instance);
@@ -88,22 +92,23 @@ eos_watchface_instance_t *eos_watchface_js_create(const char *watchface_id)
 
 static void _js_on_enter(eos_activity_t *activity)
 {
-    EOS_LOG_I("JS watchface '%s': enter",
-              ((eos_watchface_instance_t *)eos_activity_get_user_data(activity))->id);
+    EOS_LOG_I("JS watchface '%s': enter", ((eos_watchface_instance_t *)eos_activity_get_user_data(activity))->id);
 
     eos_watchface_instance_t *self = eos_activity_get_user_data(activity);
 
     // View is auto-created by framework (eos_activity_create_root + controller_init/replace_root)
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("JS watchface: view is NULL!");
         return;
     }
 
     lv_obj_add_event_cb(view, _js_long_pressed_cb, LV_EVENT_LONG_PRESSED, NULL);
 
-    script_engine_result_t ret = spm_watchface_start(&self->data.js.pkg, view);
-    if (ret != SE_OK) {
+    eos_result_t ret = spm_watchface_start(&self->data.js.pkg, view);
+    if (ret != EOS_OK)
+    {
         _js_handle_error(self, ret);
     }
 
@@ -127,19 +132,24 @@ static void _js_on_resume(eos_activity_t *activity)
 
     eos_watchface_instance_t *self = eos_activity_get_user_data(activity);
 
-    script_engine_result_t ret = spm_watchface_resume();
-    if (ret != SE_OK) {
+    eos_result_t ret = spm_watchface_resume();
+    if (ret != EOS_OK)
+    {
         EOS_LOG_W("watchface_resume failed (%d), falling back to full reload", ret);
 
         lv_obj_t *view = eos_activity_get_view(activity);
         script_pkg_t pkg = _js_load_package_from_disk(self->id);
-        if (pkg.script_str) {
+        if (pkg.script_str)
+        {
             ret = spm_watchface_start(&pkg, view);
-            if (ret != SE_OK) {
+            if (ret != EOS_OK)
+            {
                 _js_handle_error(self, ret);
             }
             eos_pkg_free(&pkg);
-        } else {
+        }
+        else
+        {
             EOS_LOG_E("JS watchface: failed to reload package on resume");
         }
     }
@@ -156,7 +166,8 @@ static void _js_on_destroy(eos_activity_t *activity)
 
     spm_watchface_destroy();
 
-    if (self) {
+    if (self)
+    {
         eos_pkg_free(&self->data.js.pkg);
     }
 }
@@ -167,17 +178,20 @@ static script_pkg_t _js_load_package_from_disk(const char *watchface_id)
     pkg.type = SCRIPT_TYPE_WATCHFACE;
 
     char manifest_path[EOS_FS_PATH_MAX];
-    snprintf(manifest_path, sizeof(manifest_path),
+    snprintf(manifest_path,
+             sizeof(manifest_path),
              EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_MANIFEST_FILE_NAME,
              watchface_id);
 
-    if (script_engine_get_manifest(manifest_path, &pkg) != SE_OK) {
+    if (script_engine_get_manifest(manifest_path, &pkg) != EOS_OK)
+    {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
         return pkg;
     }
 
     char script_path[EOS_FS_PATH_MAX];
-    snprintf(script_path, sizeof(script_path),
+    snprintf(script_path,
+             sizeof(script_path),
              EOS_WATCHFACE_INSTALLED_DIR "%s/" EOS_WATCHFACE_SCRIPT_ENTRY_FILE_NAME,
              watchface_id);
 
@@ -185,7 +199,8 @@ static script_pkg_t _js_load_package_from_disk(const char *watchface_id)
     snprintf(base_path, sizeof(base_path), EOS_WATCHFACE_INSTALLED_DIR "%s/", watchface_id);
     pkg.base_path = eos_strdup(base_path);
 
-    if (!eos_storage_is_file(script_path)) {
+    if (!eos_storage_is_file(script_path))
+    {
         EOS_LOG_E("Can't find script: %s", script_path);
         eos_pkg_free(&pkg);
         return (script_pkg_t){0};
@@ -200,9 +215,12 @@ static void _js_handle_error(eos_watchface_instance_t *self, int32_t error_code)
     const char *error_info = script_engine_get_error_info();
     eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
 
-    if (error_info && strstr(error_info, "Engine crash")) {
+    if (error_info && strstr(error_info, "Engine crash"))
+    {
         error_type = EOS_SCRIPT_FAULT_ENGINE_CRASH;
-    } else if (error_info && strstr(error_info, "timeout")) {
+    }
+    else if (error_info && strstr(error_info, "timeout"))
+    {
         error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
     }
 

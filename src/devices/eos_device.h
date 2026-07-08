@@ -18,11 +18,12 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-typedef enum {
-    DEV_STATE_NONE = 0,   // Uninitialized
-    DEV_STATE_READY,      // Ready to use
-    DEV_STATE_BUSY,       // Busy with ongoing operations
-    DEV_STATE_ERROR,      // Error state, needs attention
+typedef enum
+{
+    DEV_STATE_NONE = 0, // Uninitialized
+    DEV_STATE_READY, // Ready to use
+    DEV_STATE_BUSY, // Busy with ongoing operations
+    DEV_STATE_ERROR, // Error state, needs attention
 } eos_dev_state_t;
 
 /* Public function prototypes --------------------------------*/

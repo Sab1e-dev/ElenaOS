@@ -20,6 +20,7 @@ extern "C" {
 #include <stdbool.h>
 #include "lvgl.h"
 #include "jerryscript.h"
+#include "eos_error.h"
 
 /* Public macros ----------------------------------------------*/
 
@@ -32,26 +33,30 @@ extern "C" {
 /**
  * @brief Engine execution-window state — NOT program lifecycle
  */
-typedef enum {
+typedef enum
+{
     SCRIPT_ENGINE_STATE_UNINITIALIZED,
     SCRIPT_ENGINE_STATE_IDLE,
     SCRIPT_ENGINE_STATE_RUNNING,
     SCRIPT_ENGINE_STATE_EXCEPTION,
 } script_engine_state_t;
 
-typedef enum {
+typedef enum
+{
     SCRIPT_TYPE_UNKNOWN = 0,
     SCRIPT_TYPE_APPLICATION = 1,
     SCRIPT_TYPE_WATCHFACE = 2,
 } script_pkg_type_t;
 
-typedef struct {
+typedef struct
+{
     const char *class_name;
     const char *method_name;
     jerry_external_handler_t handler;
 } script_engine_func_entry_t;
 
-typedef struct {
+typedef struct
+{
     const char *id;
     const char *name;
     script_pkg_type_t type;
@@ -60,41 +65,21 @@ typedef struct {
     const char *description;
     const char *script_str;
     const char *base_path;
-    const char **permissions;      /**< Array of permission name strings */
-    uint8_t     permission_count;  /**< Number of permissions declared */
-    uint16_t    min_api_level;     /**< Minimum required API level */
-    uint16_t    target_api_level;  /**< Target API level the package was built for */
+    const char **permissions; /**< Array of permission name strings */
+    uint8_t permission_count; /**< Number of permissions declared */
+    uint16_t min_api_level; /**< Minimum required API level */
+    uint16_t target_api_level; /**< Target API level the package was built for */
 } script_pkg_t;
 
-typedef struct {
+typedef struct
+{
     char source_name[128];
     uint32_t line;
     uint32_t column;
 } script_error_location_t;
 
-typedef enum {
-    SE_OK = 0,
-    SE_FAILED,
-    SE_ERR_NULL_PACKAGE,
-    SE_ERR_INVALID_JS,
-    SE_ERR_JERRY_EXCEPTION,
-    SE_ERR_ALREADY_RUNNING,
-    SE_ERR_JERRY_INIT_FAIL,
-    SE_ERR_NOT_INITIALIZED,
-    SE_ERR_SCRIPT_NOT_RUNNING,
-    SE_ERR_BUSY,
-    SE_ERR_VAR_NULL,
-    SE_ERR_ALREADY_INITIALIZED,
-    SE_ERR_STACK_EMPTY,
-    SE_ERR_MALLOC,
-    SE_ERR_INVALID_STATE,
-    SE_ERR_TIMEOUT,
-    SE_ERR_NO_SAVED_CONTEXT,
-    SE_ERR_SDK_VERSION,
-    SE_ERR_UNKNOWN
-} script_engine_result_t;
-
-typedef enum {
+typedef enum
+{
     EOS_SCRIPT_FAULT_ERROR_UNKNOWN = 0,
     EOS_SCRIPT_FAULT_ERROR_EXCEPTION,
     EOS_SCRIPT_FAULT_UNRESPONSIVE,
@@ -113,10 +98,10 @@ typedef struct script_program script_program_t;
 
 /** @name Core Lifecycle */
 /**@{*/
-script_engine_result_t script_engine_init(void);
-script_engine_result_t script_engine_stop(void);
-script_engine_result_t script_engine_request_stop(void);
-script_engine_result_t script_engine_clean_up(void);
+eos_result_t script_engine_init(void);
+eos_result_t script_engine_stop(void);
+eos_result_t script_engine_request_stop(void);
+eos_result_t script_engine_clean_up(void);
 /**@}*/
 
 /** @name Run — SPM sets current_program before calling this */
@@ -128,7 +113,7 @@ script_engine_result_t script_engine_clean_up(void);
  * Core copies the program's script_pkg_t internally and writes back
  * creado sni_ctx and realm into the program.
  */
-script_engine_result_t script_engine_run(const script_pkg_t *script_package);
+eos_result_t script_engine_run(const script_pkg_t *script_package);
 
 /**
  * @brief Set/clear the SPM program that Core is working for
@@ -157,20 +142,22 @@ void script_engine_set_timeout(uint32_t timeout_ms);
 /**@{*/
 jerry_value_t script_engine_throw_error(const char *message);
 void script_engine_register_functions(jerry_value_t parent,
-    const script_engine_func_entry_t *entry, const size_t funcs_count);
+                                      const script_engine_func_entry_t *entry,
+                                      const size_t funcs_count);
 
 /**
  * @brief Raw jerry_call — for SPM's spm_call() only.
  * SPM must validate program state before calling.
  */
-jerry_value_t script_engine_call_raw(jerry_value_t func, jerry_value_t this_val,
-    const jerry_value_t args_p[], const jerry_length_t args_count);
+jerry_value_t script_engine_call_raw(jerry_value_t func,
+                                     jerry_value_t this_val,
+                                     const jerry_value_t args_p[],
+                                     const jerry_length_t args_count);
 /**@}*/
 
 /** @name Property Helpers */
 /**@{*/
-static inline void script_engine_set_prop_number(jerry_value_t obj,
-    const char *prop_name, double value)
+static inline void script_engine_set_prop_number(jerry_value_t obj, const char *prop_name, double value)
 {
     jerry_value_t prop = jerry_string_sz(prop_name);
     jerry_value_t val = jerry_number(value);
@@ -179,8 +166,7 @@ static inline void script_engine_set_prop_number(jerry_value_t obj,
     jerry_value_free(prop);
 }
 
-static inline void script_engine_set_prop_bool(jerry_value_t obj,
-    const char *prop_name, bool value)
+static inline void script_engine_set_prop_bool(jerry_value_t obj, const char *prop_name, bool value)
 {
     jerry_value_t prop = jerry_string_sz(prop_name);
     jerry_value_t val = jerry_boolean(value);
@@ -189,8 +175,7 @@ static inline void script_engine_set_prop_bool(jerry_value_t obj,
     jerry_value_free(prop);
 }
 
-static inline void script_engine_set_prop_string(jerry_value_t obj,
-    const char *prop_name, const char *value)
+static inline void script_engine_set_prop_string(jerry_value_t obj, const char *prop_name, const char *value)
 {
     jerry_value_t prop = jerry_string_sz(prop_name);
     jerry_value_t val = jerry_string_sz(value);
@@ -220,13 +205,13 @@ uint32_t script_engine_get_gen(void);
 
 /** @name Reload */
 /**@{*/
-script_engine_result_t script_engine_reload_current_script(void);
-script_engine_result_t script_engine_reload_current_app(void);
+eos_result_t script_engine_reload_current_script(void);
+eos_result_t script_engine_reload_current_app(void);
 /**@}*/
 
 /** @name Manifest */
 /**@{*/
-script_engine_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg);
+eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg);
 /**@}*/
 
 #ifdef __cplusplus

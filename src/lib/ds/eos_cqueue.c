@@ -13,7 +13,7 @@
 #include "eos_mem.h"
 /* Macros and Definitions -------------------------------------*/
 #define _SHRINK_ENABLE 1
-#define _SHRINK_THRESHOLD (4)  /**< Automatically shrink when below `_SHRINK_THRESHOLD` of capacity */
+#define _SHRINK_THRESHOLD (4) /**< Automatically shrink when below `_SHRINK_THRESHOLD` of capacity */
 #define _SHRINK_PROPORTION (2) /**< Shrink proportion, `shrinked size = capacity / _SHRINK_PROPORTION` */
 #define _CAPACITY_GROWTH 2 /**< Capacity growth factor */
 
@@ -73,7 +73,7 @@ static bool _cqueue_expand(eos_cqueue_t *cq)
 static bool _cqueue_shrink(eos_cqueue_t *cq)
 {
     EOS_CHECK_PTR_RETURN_VAL(cq, false);
-    // 没有扩容，无需收缩
+    // No expansion, no need to shrink
     if (cq->capacity <= cq->min_capacity)
         return true;
     if (cq->size > cq->capacity / _SHRINK_THRESHOLD)
@@ -111,7 +111,6 @@ bool eos_cqueue_enqueue(eos_cqueue_t *cq, void *data)
     cq->buffer[cq->tail] = data;
     cq->tail = (cq->tail + 1) % cq->capacity;
     cq->size++;
-    EOS_LOG_I("Enqueue data[%p]", data);
     return true;
 }
 
@@ -126,7 +125,6 @@ void *eos_cqueue_dequeue(eos_cqueue_t *cq)
 #if _SHRINK_ENABLE
     _cqueue_shrink(cq);
 #endif /* _SHRINK_ENABLE */
-    EOS_LOG_I("Dequeue data[%p]", tmp_data);
     return tmp_data;
 }
 
@@ -148,9 +146,9 @@ void *eos_cqueue_peek(eos_cqueue_t *cq, size_t index)
     EOS_CHECK_PTR_RETURN_VAL(cq, NULL);
 
     if (index >= cq->size)
-        return NULL; // 越界
+        return NULL; // Out of bounds
 
-    // 计算真实在 buffer 中的位置
+    // Calculate actual position in buffer
     size_t real_pos = (cq->head + index) % cq->capacity;
     return cq->buffer[real_pos];
 }

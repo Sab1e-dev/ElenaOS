@@ -19,7 +19,7 @@
 #include "eos_dispatcher.h"
 #include "eos_dfw.h"
 /* Macros and Definitions -------------------------------------*/
-#define DEBUG_DISABLE_TIMER 1       /**< [Debug] Whether to disable the timer */
+#define DEBUG_DISABLE_TIMER 1 /**< [Debug] Whether to disable the timer */
 #define _DEFAULT_TIMEOUT_SEC 15
 /* Variables --------------------------------------------------*/
 static lv_timer_t *t; /**< Sleep timer, triggers sleep mode after timeout */
@@ -33,14 +33,14 @@ static char *_print_state(eos_pm_state_t state)
 {
     switch (state)
     {
-    case EOS_PM_DISPLAY_ON:
-        return "EOS_PM_DISPLAY_ON";
-    case EOS_PM_DISPLAY_AOD:
-        return "EOS_PM_DISPLAY_AOD";
-    case EOS_PM_SLEEP:
-        return "EOS_PM_SLEEP";
-    default:
-        return "";
+        case EOS_PM_DISPLAY_ON:
+            return "EOS_PM_DISPLAY_ON";
+        case EOS_PM_DISPLAY_AOD:
+            return "EOS_PM_DISPLAY_AOD";
+        case EOS_PM_SLEEP:
+            return "EOS_PM_SLEEP";
+        default:
+            return "";
     }
 }
 #endif /* EOS_COMPILE_MODE */
@@ -62,28 +62,28 @@ static void _pm_set_state(eos_pm_state_t state)
 
     switch (state)
     {
-    case EOS_PM_DISPLAY_ON:
-        eos_event_post(EOS_EVENT_SYSTEM_DISPLAY_ON, NULL, NULL);
-        dev->ops->set_power(DEV_POWER_STATE_ON);
-        if (t)
-            lv_timer_resume(t);
-        break;
-    case EOS_PM_SLEEP:
-        lv_timer_pause(t);
-        eos_event_post(EOS_EVENT_SYSTEM_SLEEP, NULL, NULL);
+        case EOS_PM_DISPLAY_ON:
+            eos_event_post(EOS_EVENT_SYSTEM_DISPLAY_ON, NULL, NULL);
+            dev->ops->set_power(DEV_POWER_STATE_ON);
+            if (t)
+                lv_timer_resume(t);
+            break;
+        case EOS_PM_SLEEP:
+            lv_timer_pause(t);
+            eos_event_post(EOS_EVENT_SYSTEM_SLEEP, NULL, NULL);
 #if EOS_DFW_ENABLE
-        eos_dfw_sync();
+            eos_dfw_sync();
 #endif /* EOS_DFW_ENABLE */
-        dev->ops->set_power(DEV_POWER_STATE_SLEEP);
-        break;
-    case EOS_PM_DISPLAY_AOD:
-        lv_timer_pause(t);
-        eos_event_post(EOS_EVENT_SYSTEM_DISPLAY_AOD, NULL, NULL);
-        dev->ops->set_power(DEV_POWER_STATE_AOD);
-        break;
-    default:
-        EOS_LOG_E("Unknown state");
-        return;
+            dev->ops->set_power(DEV_POWER_STATE_SLEEP);
+            break;
+        case EOS_PM_DISPLAY_AOD:
+            lv_timer_pause(t);
+            eos_event_post(EOS_EVENT_SYSTEM_DISPLAY_AOD, NULL, NULL);
+            dev->ops->set_power(DEV_POWER_STATE_AOD);
+            break;
+        default:
+            EOS_LOG_E("Unknown state");
+            return;
     }
     eos_pm_reset_timer();
 }
@@ -123,7 +123,8 @@ static void _sleep_timer_cb(lv_timer_t *t)
 
 void eos_pm_set_sleep_timeout(uint32_t sec)
 {
-    if (t){
+    if (t)
+    {
         lv_timer_set_period(t, sec * 1000);
         lv_timer_reset(t);
     }

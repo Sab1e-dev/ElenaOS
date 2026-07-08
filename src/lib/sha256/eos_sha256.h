@@ -16,8 +16,8 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define EOS_SHA256_DIGEST_SIZE  32      /**< SHA-256 digest size in bytes */
-#define EOS_SHA256_HEX_STR_SIZE 65      /**< Hex string size (64 chars + null) */
+#define EOS_SHA256_DIGEST_SIZE 32 /**< SHA-256 digest size in bytes */
+#define EOS_SHA256_HEX_STR_SIZE 65 /**< Hex string size (64 chars + null) */
 
 /* Public typedefs --------------------------------------------*/
 

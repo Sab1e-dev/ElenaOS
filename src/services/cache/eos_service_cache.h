@@ -45,14 +45,14 @@ void eos_service_cache_init(void);
  * @param size  Allocation size in bytes.
  * @return      Pointer to allocated memory, or NULL.
  */
-void * eos_cache_buf_alloc(size_t size);
+void *eos_cache_buf_alloc(size_t size);
 
 /**
  * @brief Free a cache pixel buffer previously allocated by
  *        eos_cache_buf_alloc.
  * @param ptr  Pointer to free.
  */
-void eos_cache_buf_free(void * ptr);
+void eos_cache_buf_free(void *ptr);
 
 #ifdef __cplusplus
 }

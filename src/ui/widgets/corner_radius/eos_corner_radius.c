@@ -13,11 +13,12 @@
 #define EOS_LOG_TAG "CornerRadius"
 #include "eos_log.h"
 #include "eos_mem.h"
+#include "eos_service_cache.h"
 #include "eos_config.h"
 
 /* Macros and Definitions -------------------------------------*/
 
-#define _MAX_CANVAS_SIZE EOS_DISPLAY_WIDTH * EOS_DISPLAY_HEIGHT * lv_color_format_get_size(LV_COLOR_FORMAT_ARGB8888)
+#define _MAX_CANVAS_SIZE EOS_DISPLAY_WIDTH *EOS_DISPLAY_HEIGHT *lv_color_format_get_size(LV_COLOR_FORMAT_ARGB8888)
 
 /* Variables --------------------------------------------------*/
 
@@ -39,7 +40,7 @@ static void _corner_radius_buffer_free(void *user_data)
     EOS_CHECK_PTR_RETURN(dsc);
     if (dsc->data)
     {
-        eos_free(dsc->data);
+        eos_cache_buf_free(dsc->data);
         dsc->data = NULL;
     }
     eos_free(dsc);
@@ -52,8 +53,7 @@ static void _obj_corner_radius_canvas_buffer_delete_cb(lv_event_t *e)
     _corner_radius_buffer_free(dsc);
 }
 
-void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
-                                  lv_coord_t radius, lv_color_t color)
+void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners, lv_coord_t radius, lv_color_t color)
 {
     EOS_CHECK_PTR_RETURN(obj);
     _corner_radius_event_init();
@@ -91,7 +91,7 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
         return;
     }
 
-    uint8_t *canvas_buf = eos_malloc_zeroed(canvas_buf_size);
+    uint8_t *canvas_buf = eos_cache_buf_alloc(canvas_buf_size);
     if (!canvas_buf)
     {
         EOS_LOG_E("Failed to allocate canvas buffer: %u bytes", canvas_buf_size);
@@ -124,16 +124,15 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
         corner_rect_dsc.bg_color = color;
         corner_rect_dsc.radius = 0;
 
-        const lv_area_t corners_areas[] = {
-            {0, 0, radius, radius},
-            {obj_w - radius, 0, obj_w - 1, radius},
-            {obj_w - radius, obj_h - radius, obj_w - 1, obj_h - 1},
-            {0, obj_h - radius, radius, obj_h - 1}
-        };
+        const lv_area_t corners_areas[] = {{0, 0, radius, radius},
+                                           {obj_w - radius, 0, obj_w - 1, radius},
+                                           {obj_w - radius, obj_h - radius, obj_w - 1, obj_h - 1},
+                                           {0, obj_h - radius, radius, obj_h - 1}};
 
-        const eos_corner_round_t corner_flags[] = {
-            EOS_ROUND_TOP_LEFT, EOS_ROUND_TOP_RIGHT,
-            EOS_ROUND_BOTTOM_RIGHT, EOS_ROUND_BOTTOM_LEFT};
+        const eos_corner_round_t corner_flags[] = {EOS_ROUND_TOP_LEFT,
+                                                   EOS_ROUND_TOP_RIGHT,
+                                                   EOS_ROUND_BOTTOM_RIGHT,
+                                                   EOS_ROUND_BOTTOM_LEFT};
 
         for (int i = 0; i < 4; i++)
         {
@@ -150,16 +149,14 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
     lv_image_dsc_t *dsc = eos_malloc_zeroed(sizeof(lv_image_dsc_t));
     EOS_CHECK_PTR_RETURN_FREE(dsc, canvas_buf);
 
-    *dsc = (lv_image_dsc_t){
-        .header = {
-            .magic = LV_IMAGE_HEADER_MAGIC,
-            .cf = LV_COLOR_FORMAT_ARGB8888,
-            .flags = 0,
-            .w = obj_w,
-            .h = obj_h,
-            .stride = obj_w * cf_bytes},
-        .data = canvas_buf,
-        .data_size = canvas_buf_size};
+    *dsc = (lv_image_dsc_t){.header = {.magic = LV_IMAGE_HEADER_MAGIC,
+                                       .cf = LV_COLOR_FORMAT_ARGB8888,
+                                       .flags = 0,
+                                       .w = obj_w,
+                                       .h = obj_h,
+                                       .stride = obj_w * cf_bytes},
+                            .data = canvas_buf,
+                            .data_size = canvas_buf_size};
 
     lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);
     lv_obj_set_style_shadow_width(obj, 0, 0);
@@ -169,16 +166,14 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners,
 
     lv_obj_remove_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb);
 
-    if (lv_obj_add_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb,
-                             LV_EVENT_DELETE, dsc) == NULL)
+    if (lv_obj_add_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb, LV_EVENT_DELETE, dsc) == NULL)
     {
         eos_free(dsc);
         eos_free(canvas_buf);
         return;
     }
 
-    if (lv_obj_add_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb,
-                             _corner_radius_event_id, dsc) == NULL)
+    if (lv_obj_add_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb, _corner_radius_event_id, dsc) == NULL)
     {
         eos_free(dsc);
         eos_free(canvas_buf);

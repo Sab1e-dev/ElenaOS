@@ -44,8 +44,8 @@
  */
 typedef struct
 {
-    char **data;     /**< Application unique ID */
-    size_t size;     /**< Number of IDs stored in application list */
+    char **data; /**< Application unique ID */
+    size_t size; /**< Number of IDs stored in application list */
     size_t capacity; /**< Capacity of application list */
 } eos_app_list_t;
 static eos_app_list_t app_list;
@@ -354,7 +354,7 @@ eos_result_t _eos_app_list_get_installed(void)
     }
 
     // Iterate through all entries in the directory
-    while (eos_storage_dir_read(dir, name_buf, sizeof(name_buf)) == 0)
+    while (eos_storage_dir_read(dir, name_buf, sizeof(name_buf)) == EOS_OK)
     {
         // Skip "." and ".." directories
         if (strcmp(name_buf, ".") == 0 || strcmp(name_buf, "..") == 0)
@@ -364,8 +364,7 @@ eos_result_t _eos_app_list_get_installed(void)
 
         // Build full path
         char full_path[EOS_FS_PATH_MAX];
-        snprintf(full_path, sizeof(full_path),
-                 EOS_APP_INSTALLED_DIR "%s", name_buf);
+        snprintf(full_path, sizeof(full_path), EOS_APP_INSTALLED_DIR "%s", name_buf);
 
         // Check if it is a directory
         if (eos_storage_is_dir(full_path))
@@ -425,7 +424,9 @@ eos_result_t eos_app_install(const char *eapk_path)
     if (header.min_api_level > ELENIX_OS_API_LEVEL)
     {
         EOS_LOG_E("App '%s' requires API level %d, OS supports %d",
-                  header.pkg_id, header.min_api_level, ELENIX_OS_API_LEVEL);
+                  header.pkg_id,
+                  header.min_api_level,
+                  ELENIX_OS_API_LEVEL);
         return EOS_ERR_SDK_VERSION;
     }
     // Concatenate path
@@ -606,28 +607,27 @@ static const char *_eos_script_error_get_reason(eos_script_error_type_t error_ty
 {
     switch (error_type)
     {
-    case EOS_SCRIPT_FAULT_ERROR_EXCEPTION:
-        return "Runtime exception";
-    case EOS_SCRIPT_FAULT_ERROR_PARSE:
-        return "Parse error";
-    case EOS_SCRIPT_FAULT_ERROR_MODULE_LINK:
-        return "Module link error";
-    case EOS_SCRIPT_FAULT_UNRESPONSIVE:
-        return "Unresponsive";
-    case EOS_SCRIPT_FAULT_ENGINE_CRASH:
-        return "Engine crash";
-    default:
-        return "Unknown error";
+        case EOS_SCRIPT_FAULT_ERROR_EXCEPTION:
+            return "Runtime exception";
+        case EOS_SCRIPT_FAULT_ERROR_PARSE:
+            return "Parse error";
+        case EOS_SCRIPT_FAULT_ERROR_MODULE_LINK:
+            return "Module link error";
+        case EOS_SCRIPT_FAULT_UNRESPONSIVE:
+            return "Unresponsive";
+        case EOS_SCRIPT_FAULT_ENGINE_CRASH:
+            return "Engine crash";
+        default:
+            return "Unknown error";
     }
 }
 
 void eos_app_handle_script_error(eos_script_error_type_t error_type,
-                                 int32_t error_code,
+                                 eos_result_t error_code,
                                  const char *app_id,
                                  const eos_script_error_handler_cfg_t *cfg)
 {
-    EOS_LOG_E("Script error handling - type:%d, code:%d, app_id:%s",
-              error_type, error_code, app_id ? app_id : "NULL");
+    EOS_LOG_E("Script error handling - type:%d, code:%d, app_id:%s", error_type, error_code, app_id ? app_id : "NULL");
 
     const char *reason = _eos_script_error_get_reason(error_type);
 
@@ -672,17 +672,22 @@ void eos_app_handle_script_error(eos_script_error_type_t error_type,
     if (extra_slot)
     {
         char info_str[256];
-            const spm_error_t *last_error = spm_get_last_error();
-            const char *error_info = last_error ? last_error->error_info : script_engine_get_error_info();
-        if (error_info && error_info[0] != '\0') {
-            snprintf(info_str, sizeof(info_str),
+        const spm_error_t *last_error = spm_get_last_error();
+        const char *error_info = last_error ? last_error->error_info : script_engine_get_error_info();
+        if (error_info && error_info[0] != '\0')
+        {
+            snprintf(info_str,
+                     sizeof(info_str),
                      "Code: %d\nID: %s\nErrorType: %s\nError: %s",
                      error_code,
                      app_id ? app_id : "Unknown",
                      reason,
                      error_info);
-        } else {
-            snprintf(info_str, sizeof(info_str),
+        }
+        else
+        {
+            snprintf(info_str,
+                     sizeof(info_str),
                      "Code: %d\nID: %s\nErrorType: %s",
                      error_code,
                      app_id ? app_id : "Unknown",
@@ -696,47 +701,50 @@ void eos_app_handle_script_error(eos_script_error_type_t error_type,
         lv_obj_set_style_text_color(err_label, EOS_COLOR_GREY_1, 0);
         eos_label_set_font_size(err_label, EOS_FONT_SIZE_SMALL);
 
-            const script_error_location_t *error_location = NULL;
-            uint32_t backtrace_count = 0;
-            const script_error_location_t *backtrace = NULL;
+        const script_error_location_t *error_location = NULL;
+        uint32_t backtrace_count = 0;
+        const script_error_location_t *backtrace = NULL;
 
-            if (last_error)
+        if (last_error)
+        {
+            error_location = &last_error->error_location;
+            backtrace_count = last_error->backtrace_count;
+            backtrace = last_error->backtrace;
+        }
+        else
+        {
+            error_location = script_engine_get_error_location();
+            backtrace_count = script_engine_get_backtrace_count();
+            if (backtrace_count > 0)
             {
-                error_location = &last_error->error_location;
-                backtrace_count = last_error->backtrace_count;
-                backtrace = last_error->backtrace;
+                backtrace = script_engine_get_error_backtrace(NULL);
             }
-            else
-            {
-                error_location = script_engine_get_error_location();
-                backtrace_count = script_engine_get_backtrace_count();
-                if (backtrace_count > 0)
-                {
-                    backtrace = script_engine_get_error_backtrace(NULL);
-                }
-            }
+        }
 
-            if (error_location && error_location->source_name[0] != '\0')
-            {
-                char location_str[256];
-                snprintf(location_str, sizeof(location_str), "Location: %s:%u:%u",
-                         error_location->source_name,
-                         error_location->line,
-                         error_location->column);
+        if (error_location && error_location->source_name[0] != '\0')
+        {
+            char location_str[256];
+            snprintf(location_str,
+                     sizeof(location_str),
+                     "Location: %s:%u:%u",
+                     error_location->source_name,
+                     error_location->line,
+                     error_location->column);
 
-                lv_obj_t *location_label = lv_label_create(extra_slot);
-                lv_label_set_text(location_label, location_str);
-                lv_obj_set_width(location_label, EOS_PANEL_CONTENT_WIDTH);
-                lv_label_set_long_mode(location_label, LV_LABEL_LONG_WRAP);
-                lv_obj_set_style_text_color(location_label, EOS_COLOR_GREY_1, 0);
-                eos_label_set_font_size(location_label, EOS_FONT_SIZE_SMALL);
-            }
+            lv_obj_t *location_label = lv_label_create(extra_slot);
+            lv_label_set_text(location_label, location_str);
+            lv_obj_set_width(location_label, EOS_PANEL_CONTENT_WIDTH);
+            lv_label_set_long_mode(location_label, LV_LABEL_LONG_WRAP);
+            lv_obj_set_style_text_color(location_label, EOS_COLOR_GREY_1, 0);
+            eos_label_set_font_size(location_label, EOS_FONT_SIZE_SMALL);
+        }
 
         if (backtrace_count > 0)
         {
             if (backtrace)
             {
-                eos_accordion_t *accordion = eos_accordion_create(extra_slot, eos_lang_get_text(STR_ID_APP_RUN_ERR_BACKTRACE));
+                eos_accordion_t *accordion =
+                    eos_accordion_create(extra_slot, eos_lang_get_text(STR_ID_APP_RUN_ERR_BACKTRACE));
                 lv_obj_t *accordion_content = accordion->content;
                 lv_obj_t *backtrace_label = lv_label_create(accordion_content);
 
@@ -752,8 +760,13 @@ void eos_app_handle_script_error(eos_script_error_type_t error_type,
                 char temp_str[256];
                 for (uint32_t i = 0; i < backtrace_count; i++)
                 {
-                    snprintf(temp_str, sizeof(temp_str), "#%u: %s:%u:%u\n",
-                             i, backtrace[i].source_name, backtrace[i].line, backtrace[i].column);
+                    snprintf(temp_str,
+                             sizeof(temp_str),
+                             "#%u: %s:%u:%u\n",
+                             i,
+                             backtrace[i].source_name,
+                             backtrace[i].line,
+                             backtrace[i].column);
                     strncat(backtrace_str, temp_str, sizeof(backtrace_str) - strlen(backtrace_str) - 1);
                 }
                 lv_label_set_text(backtrace_label, backtrace_str);

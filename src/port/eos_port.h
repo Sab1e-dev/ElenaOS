@@ -16,26 +16,26 @@ extern "C" {
 #include <stddef.h>
 #include "eos_core.h"
 #include "eos_fs_port.h"
-#include "port/critical/eos_port_critical.h"
+#include "eos_port_critical.h"
 
 /* Public macros ----------------------------------------------*/
 /**
  * @brief Function weak definition macro
  */
 #ifdef __CC_ARM /* ARM Compiler */
-    #define EOS_WEAK __weak
+#define EOS_WEAK __weak
 #elif defined(__IAR_SYSTEMS_ICC__) /* for IAR Compiler */
-    #define EOS_WEAK __weak
-#elif defined(__GNUC__) /* GNU GCC Compiler */
-    #define EOS_WEAK __attribute__((weak))
+#define EOS_WEAK __weak
+#elif defined(__GNUC__) && !defined(__MINGW32__) /* GNU GCC Compiler */
+#define EOS_WEAK __attribute__((weak))
 #elif defined(__ADSPBLACKFIN__) /* for VisualDSP++ Compiler */
-    #define EOS_WEAK __attribute__((weak))
-#elif defined(_MSC_VER)
-    #define EOS_WEAK
+#define EOS_WEAK __attribute__((weak))
+#elif defined(_MSC_VER) || defined(__MINGW32__)
+#define EOS_WEAK
 #elif defined(__TI_COMPILER_VERSION__)
-    #define EOS_WEAK
+#define EOS_WEAK
 #else
-    #error not supported tool chain
+#error not supported tool chain
 #endif
 
 #ifndef EOS_TIMEOUT_INFINITE
@@ -44,13 +44,6 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-typedef enum
-{
-    EOS_AUDIO_STATE_UNAVAILABLE = 0,
-    EOS_AUDIO_STATE_READY = 1,
-    EOS_AUDIO_STATE_BUSY = 2,
-    EOS_AUDIO_STATE_ERROR = 3,
-} eos_audio_state_t;
 /* Public function prototypes --------------------------------*/
 
 /**
@@ -78,41 +71,6 @@ void eos_bluetooth_disable(void);
  * Make phone ring via Bluetooth or other methods to locate phone.
  */
 void eos_locate_phone(void);
-/**
- * @brief Set speaker volume
- * @param volume Volume
- */
-void eos_speaker_set_volume(uint8_t volume);
-
-/**
- * @brief Detect whether speaker hardware is available.
- * @return true if available
- */
-bool eos_speaker_detect(void);
-
-/**
- * @brief Detect whether microphone hardware is available.
- * @return true if available
- */
-bool eos_microphone_detect(void);
-
-/**
- * @brief Get platform audio playback state.
- */
-eos_audio_state_t eos_audio_get_state(void);
-
-/**
- * @brief Play audio file from path.
- * @param file_path path to audio file
- * @return 0 on success, negative value on failure
- */
-int eos_audio_play_file(const char *file_path);
-
-/**
- * @brief Stop current audio playback.
- * @return 0 on success, negative value on failure
- */
-int eos_audio_stop(void);
 
 #ifdef __cplusplus
 }

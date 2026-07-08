@@ -15,7 +15,7 @@ extern "C" {
 /* Version Definitions ---------------------------------------------------*/
 
 #define ELENIX_OS_VERSION_MAJOR 0
-#define ELENIX_OS_VERSION_MINOR 4
+#define ELENIX_OS_VERSION_MINOR 5
 #define ELENIX_OS_VERSION_PATCH 0
 #define ELENIX_OS_VERSION_INFO "alpha"
 
@@ -24,7 +24,8 @@ extern "C" {
 #define STRINGIFY(x) #x
 #define VERSION_STRING(major, minor, patch, info) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch) "-" info
 
-#define ELENIX_OS_VERSION_FULL VERSION_STRING(ELENIX_OS_VERSION_MAJOR, ELENIX_OS_VERSION_MINOR, ELENIX_OS_VERSION_PATCH, ELENIX_OS_VERSION_INFO)
+#define ELENIX_OS_VERSION_FULL \
+    VERSION_STRING(ELENIX_OS_VERSION_MAJOR, ELENIX_OS_VERSION_MINOR, ELENIX_OS_VERSION_PATCH, ELENIX_OS_VERSION_INFO)
 
 #ifdef __cplusplus
 }

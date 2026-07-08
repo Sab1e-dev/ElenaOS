@@ -91,7 +91,7 @@ static void _scrollbar_show_now(void)
 
     _scrollbar_cancel_hide();
     lv_anim_delete(scrollbar, NULL);
-    lv_obj_clear_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
 
     eos_lite_anim_fade_layered_start(scrollbar,
                                      lv_obj_get_style_opa_layered(scrollbar, 0),
@@ -185,7 +185,7 @@ static void _clear_scrollable_obj_cb(lv_event_t *e)
 static void _clear_scrollable_obj_async_cb(void *user_data)
 {
     lv_obj_t *target = (lv_obj_t *)user_data;
-    /* 延迟清理的旧滚动对象 */
+    /* Old scrollable object for deferred cleanup */
     if (target != scrollable_obj && target != scrollable_root)
         return;
 
@@ -218,11 +218,11 @@ static void _crown_button_async_cb(void *user_data)
     eos_button_state_t state = (eos_button_state_t)(intptr_t)user_data;
     switch (state)
     {
-    case EOS_BUTTON_STATE_CLICKED:
-        eos_chrome_manager_handle_crown_click();
-        break;
-    default:
-        break;
+        case EOS_BUTTON_STATE_CLICKED:
+            eos_chrome_manager_handle_crown_click();
+            break;
+        default:
+            break;
     }
 }
 
@@ -282,8 +282,7 @@ static void _scrollable_obj_scrolled_cb(lv_event_t *e)
     if (scroll_y > scroll_max)
         scroll_y = scroll_max;
 
-    int32_t bar_size =
-        (int32_t)(view_h * _SCROLLBAR_HEIGHT / content_h);
+    int32_t bar_size = (int32_t)(view_h * _SCROLLBAR_HEIGHT / content_h);
 
     if (bar_size < 4)
         bar_size = 4;
@@ -336,7 +335,8 @@ static void _slide_widget_state_changed_async_cb(void *user_data)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)user_data;
     lv_obj_t *target_obj = eos_slide_widget_get_target_obj(sw);
-    if (sw && eos_slide_widget_get_state(sw) == EOS_SLIDE_WIDGET_STATE_OPEN && target_obj && lv_obj_is_valid(target_obj))
+    if (sw && eos_slide_widget_get_state(sw) == EOS_SLIDE_WIDGET_STATE_OPEN && target_obj
+        && lv_obj_is_valid(target_obj))
     {
         lv_obj_t *target = _find_scrollable_obj(target_obj);
         if (target)

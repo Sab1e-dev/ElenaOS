@@ -18,6 +18,8 @@ extern "C" {
 #include "eos_lang.h"
 /* Public macros ----------------------------------------------*/
 
+#define EOS_VIEW_SWITCH_DURATION 300
+
 /* Public typedefs --------------------------------------------*/
 
 typedef struct eos_activity_t eos_activity_t;
@@ -177,8 +179,7 @@ eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
  * @param to_type Target page type
  * @return eos_activity_anim_cb_t Animation callback, returns NULL if not found
  */
-eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type,
-                                                   eos_activity_type_t to_type);
+eos_activity_anim_cb_t eos_activity_get_anim_route(eos_activity_type_t from_type, eos_activity_type_t to_type);
 
 /**
  * @brief Set Activity title visibility

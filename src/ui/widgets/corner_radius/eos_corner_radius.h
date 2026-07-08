@@ -24,10 +24,10 @@ extern "C" {
  */
 typedef enum
 {
-    EOS_ROUND_TOP_LEFT = 0x1 << 0,     /**< Top left corner rounded */
-    EOS_ROUND_TOP_RIGHT = 0x1 << 1,    /**< Top right corner rounded */
+    EOS_ROUND_TOP_LEFT = 0x1 << 0, /**< Top left corner rounded */
+    EOS_ROUND_TOP_RIGHT = 0x1 << 1, /**< Top right corner rounded */
     EOS_ROUND_BOTTOM_RIGHT = 0x1 << 2, /**< Bottom right corner rounded */
-    EOS_ROUND_BOTTOM_LEFT = 0x1 << 3,  /**< Bottom left corner rounded */
+    EOS_ROUND_BOTTOM_LEFT = 0x1 << 3, /**< Bottom left corner rounded */
 } eos_corner_round_t;
 
 /* Public function prototypes --------------------------------*/

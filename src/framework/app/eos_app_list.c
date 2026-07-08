@@ -55,27 +55,24 @@
 #define _APP_LIST_ANIM_TO_OPA_END 255
 /* Variables --------------------------------------------------*/
 
-const char *eos_sys_app_id_list[EOS_SYS_APP_LAST] = {
-    "sys.settings",
-    "sys.flash_light",
+const char *eos_sys_app_id_list[EOS_SYS_APP_LAST] = {"sys.settings",
+                                                     "sys.flash_light",
 #ifdef EOS_ENABLE_TEST_APP
-    "sys.test"
+                                                     "sys.test"
 #endif
 };
 
-const char *eos_sys_app_icon_list[EOS_SYS_APP_LAST] = {
-    EOS_IMG_SETTINGS,
-    EOS_IMG_FLASH_LIGHT,
+const char *eos_sys_app_icon_list[EOS_SYS_APP_LAST] = {EOS_IMG_SETTINGS,
+                                                       EOS_IMG_FLASH_LIGHT,
 #ifdef EOS_ENABLE_TEST_APP
-    EOS_IMG_APP
+                                                       EOS_IMG_APP
 #endif
 };
 
-const eos_sys_app_entry_t eos_sys_app_entry_list[EOS_SYS_APP_LAST] = {
-    eos_settings_enter,
-    eos_flash_light_enter,
+const eos_sys_app_entry_t eos_sys_app_entry_list[EOS_SYS_APP_LAST] = {eos_settings_enter,
+                                                                      eos_flash_light_enter,
 #ifdef EOS_ENABLE_TEST_APP
-    eos_test_start
+                                                                      eos_test_start
 #endif
 };
 
@@ -125,14 +122,29 @@ static void _app_list_set_translate_x_cb(void *var, int32_t value);
 static void _app_list_set_translate_y_cb(void *var, int32_t value);
 static void _app_list_set_opa_cb(void *var, int32_t value);
 static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_init_image_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_init_translate_y_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
+static void _app_list_init_image_scale_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration);
+static void _app_list_init_translate_x_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration);
+static void _app_list_init_translate_y_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration);
 static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening);
+static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
+                                           eos_activity_t *from,
+                                           eos_activity_t *to,
+                                           bool opening);
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
 static int32_t _app_list_find_sys_app(const char *app_id);
-static script_engine_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
+static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
 
 static bool _anim_routes_registered = false;
@@ -158,7 +170,6 @@ static void _app_on_destroy(eos_activity_t *a)
         eos_free(ctx);
         eos_activity_set_user_data(a, NULL);
     }
-
 }
 
 static void _app_on_enter(eos_activity_t *a)
@@ -166,25 +177,28 @@ static void _app_on_enter(eos_activity_t *a)
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     EOS_CHECK_PTR_RETURN(ctx);
 
-    script_engine_result_t ret = spm_app_run(&ctx->pkg);
-    if (ret != SE_OK)
+    eos_result_t ret = spm_app_run(&ctx->pkg);
+    if (ret != EOS_OK)
     {
         // Determine error type based on error code
         eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
-        if (ret == -SE_ERR_TIMEOUT) {
+        if (ret == EOS_ERR_TIMEOUT)
+        {
             error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
         }
         else
         {
             // Check error info for timeout if code doesn't indicate it
             const char *error_info = script_engine_get_error_info();
-            if (error_info && strstr(error_info, "timeout")) {
+            if (error_info && strstr(error_info, "timeout"))
+            {
                 error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
             }
         }
 
         // Only handle error if it hasn't been handled already (timeout is handled inside script_engine_run)
-        if (ret != -SE_ERR_TIMEOUT) {
+        if (ret != EOS_ERR_TIMEOUT)
+        {
             eos_app_handle_script_error(error_type, ret, ctx->app_id, NULL);
         }
         EOS_LOG_E("Application encounter a fatal error");
@@ -209,27 +223,25 @@ static int32_t _app_list_find_sys_app(const char *app_id)
     return -1;
 }
 
-static script_engine_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg)
+static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg)
 {
     if (!(app_id && pkg))
     {
-        return -SE_ERR_NULL_PACKAGE;
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
     }
 
     char manifest_path[EOS_FS_PATH_MAX];
-    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME,
-             app_id);
+    snprintf(manifest_path, sizeof(manifest_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_MANIFEST_FILE_NAME, app_id);
 
     pkg->type = SCRIPT_TYPE_APPLICATION;
-    if (script_engine_get_manifest(manifest_path, pkg) != SE_OK)
+    if (script_engine_get_manifest(manifest_path, pkg) != EOS_OK)
     {
         EOS_LOG_E("Read manifest failed: %s", manifest_path);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     char script_path[EOS_FS_PATH_MAX];
-    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME,
-             app_id);
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME, app_id);
 
     char base_path[EOS_FS_PATH_MAX];
     snprintf(base_path, sizeof(base_path), EOS_APP_INSTALLED_DIR "%s/", app_id);
@@ -237,14 +249,14 @@ static script_engine_result_t _app_list_build_script_pkg(const char *app_id, scr
     if (!pkg->base_path)
     {
         eos_pkg_free(pkg);
-        return -SE_ERR_MALLOC;
+        return EOS_ERR_MEM;
     }
 
     if (!eos_storage_is_file(script_path))
     {
         EOS_LOG_E("Can't find script: %s", script_path);
         eos_pkg_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
     pkg->script_str = eos_storage_read_file(script_path);
@@ -252,16 +264,16 @@ static script_engine_result_t _app_list_build_script_pkg(const char *app_id, scr
     {
         EOS_LOG_E("Failed to read script: %s", script_path);
         eos_pkg_free(pkg);
-        return -SE_FAILED;
+        return EOS_FAILED;
     }
 
-    return SE_OK;
+    return EOS_OK;
 }
 
 static eos_result_t _app_list_launch_script_app(const char *app_id)
 {
     script_pkg_t pkg = {0};
-    if (_app_list_build_script_pkg(app_id, &pkg) != SE_OK)
+    if (_app_list_build_script_pkg(app_id, &pkg) != EOS_OK)
     {
         return EOS_FAILED;
     }
@@ -384,7 +396,6 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
         _app_list_pop_to_app_list();
     }
 
-
     return _app_list_launch_script_app(app_id);
 }
 
@@ -407,10 +418,7 @@ static void _app_list_set_last_launch_app_id(const char *app_id)
         return;
     }
 
-    snprintf(_app_list_last_launch_app_id,
-             sizeof(_app_list_last_launch_app_id),
-             "%s",
-             app_id);
+    snprintf(_app_list_last_launch_app_id, sizeof(_app_list_last_launch_app_id), "%s", app_id);
 }
 
 static lv_obj_t *_app_list_get_bubble_grid(eos_activity_t *activity)
@@ -539,7 +547,11 @@ static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t st
     lv_anim_set_duration(anim, duration);
 }
 
-static void _app_list_init_image_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+static void _app_list_init_image_scale_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration)
 {
     lv_anim_init(anim);
     lv_anim_set_var(anim, obj);
@@ -549,7 +561,11 @@ static void _app_list_init_image_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int3
     lv_anim_set_duration(anim, duration);
 }
 
-static void _app_list_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+static void _app_list_init_translate_x_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration)
 {
     lv_anim_init(anim);
     lv_anim_set_var(anim, obj);
@@ -559,7 +575,11 @@ static void _app_list_init_translate_x_anim(lv_anim_t *anim, lv_obj_t *obj, int3
     lv_anim_set_duration(anim, duration);
 }
 
-static void _app_list_init_translate_y_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
+static void _app_list_init_translate_y_anim(lv_anim_t *anim,
+                                            lv_obj_t *obj,
+                                            int32_t start,
+                                            int32_t end,
+                                            uint32_t duration)
 {
     lv_anim_init(anim);
     lv_anim_set_var(anim, obj);
@@ -623,8 +643,8 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     lv_obj_set_style_clip_corner(icon_clone, true, 0);
     lv_obj_set_style_transform_pivot_x(icon_clone, bw / 2, 0);
     lv_obj_set_style_transform_pivot_y(icon_clone, bh / 2, 0);
-    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(icon_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(icon_clone, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_t *icon_img_clone = lv_image_create(icon_clone);
     lv_image_set_src(icon_img_clone, img_src);
@@ -635,13 +655,16 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     lv_obj_center(icon_img_clone);
     lv_obj_set_style_bg_opa(icon_img_clone, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(icon_img_clone, 0, 0);
-    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(icon_img_clone, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(icon_img_clone, LV_OBJ_FLAG_CLICKABLE);
 
     return icon_clone;
 }
 
-static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool opening)
+static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
+                                           eos_activity_t *from,
+                                           eos_activity_t *to,
+                                           bool opening)
 {
     if (!(at && from && to))
     {
@@ -697,9 +720,8 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         {
             lv_area_t area;
             lv_obj_get_coords(focus_icon, &area);
-            _app_list_record_icon_center_point(
-                area.x1 + lv_area_get_width(&area) / 2,
-                area.y1 + lv_area_get_height(&area) / 2);
+            _app_list_record_icon_center_point(area.x1 + lv_area_get_width(&area) / 2,
+                                               area.y1 + lv_area_get_height(&area) / 2);
         }
 
         icon_clone = _app_list_create_icon_clone(focus_icon);
@@ -740,6 +762,11 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
         app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
         if (!app_snapshot)
         {
+            if (icon_clone)
+            {
+                lv_obj_delete(icon_clone);
+                icon_clone = NULL;
+            }
             return;
         }
     }
@@ -812,9 +839,21 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_image_set_scale(list_snapshot, 256);
             lv_obj_set_style_translate_x(list_snapshot, 0, 0);
             lv_obj_set_style_translate_y(list_snapshot, 0, 0);
-            _app_list_init_image_scale_anim(&list_scale_anim, list_snapshot, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration);
-            _app_list_init_translate_x_anim(&list_translate_x_anim, list_snapshot, 0, focus_translate_x, from_scale_duration);
-            _app_list_init_translate_y_anim(&list_translate_y_anim, list_snapshot, 0, focus_translate_y, from_scale_duration);
+            _app_list_init_image_scale_anim(&list_scale_anim,
+                                            list_snapshot,
+                                            256,
+                                            _APP_LIST_ANIM_FOCUS_SCALE,
+                                            from_scale_duration);
+            _app_list_init_translate_x_anim(&list_translate_x_anim,
+                                            list_snapshot,
+                                            0,
+                                            focus_translate_x,
+                                            from_scale_duration);
+            _app_list_init_translate_y_anim(&list_translate_y_anim,
+                                            list_snapshot,
+                                            0,
+                                            focus_translate_y,
+                                            from_scale_duration);
             lv_anim_timeline_add(at, 0, &list_scale_anim);
             lv_anim_timeline_add(at, 0, &list_translate_x_anim);
             lv_anim_timeline_add(at, 0, &list_translate_y_anim);
@@ -826,9 +865,21 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_obj_set_style_translate_x(icon_clone, 0, 0);
             lv_obj_set_style_translate_y(icon_clone, 0, 0);
             lv_obj_set_style_opa(icon_clone, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_START, 0);
-            _app_list_init_scale_anim(&icon_scale_anim, icon_clone, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration);
-            _app_list_init_translate_x_anim(&icon_translate_x_anim, icon_clone, 0, focus_translate_x, from_scale_duration);
-            _app_list_init_translate_y_anim(&icon_translate_y_anim, icon_clone, 0, focus_translate_y, from_scale_duration);
+            _app_list_init_scale_anim(&icon_scale_anim,
+                                      icon_clone,
+                                      256,
+                                      _APP_LIST_ANIM_FOCUS_SCALE,
+                                      from_scale_duration);
+            _app_list_init_translate_x_anim(&icon_translate_x_anim,
+                                            icon_clone,
+                                            0,
+                                            focus_translate_x,
+                                            from_scale_duration);
+            _app_list_init_translate_y_anim(&icon_translate_y_anim,
+                                            icon_clone,
+                                            0,
+                                            focus_translate_y,
+                                            from_scale_duration);
             _app_list_init_opa_anim(&icon_opa_anim,
                                     icon_clone,
                                     _APP_LIST_ANIM_FROM_OPA_START,
@@ -858,7 +909,11 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at, eos_activity_
             lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
             lv_obj_set_style_translate_x(list_snapshot, focus_translate_x, 0);
             lv_obj_set_style_translate_y(list_snapshot, focus_translate_y, 0);
-            _app_list_init_image_scale_anim(&list_scale_anim, list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration);
+            _app_list_init_image_scale_anim(&list_scale_anim,
+                                            list_snapshot,
+                                            _APP_LIST_ANIM_FOCUS_SCALE,
+                                            256,
+                                            to_duration);
             _app_list_init_translate_x_anim(&list_translate_x_anim, list_snapshot, focus_translate_x, 0, to_duration);
             _app_list_init_translate_y_anim(&list_translate_y_anim, list_snapshot, focus_translate_y, 0, to_duration);
             lv_anim_timeline_add(at, split_delay, &list_scale_anim);
@@ -938,9 +993,8 @@ static void _app_list_icon_clicked_cb(lv_event_t *e)
     {
         lv_area_t area;
         lv_obj_get_coords(clicked_bubble, &area);
-        _app_list_record_icon_center_point(
-            area.x1 + lv_area_get_width(&area) / 2,
-            area.y1 + lv_area_get_height(&area) / 2);
+        _app_list_record_icon_center_point(area.x1 + lv_area_get_width(&area) / 2,
+                                           area.y1 + lv_area_get_height(&area) / 2);
     }
 
     if (eos_app_launch_immediately(app_id) != EOS_OK)
@@ -1019,8 +1073,7 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
                 }
 
                 char icon_path[EOS_FS_PATH_MAX];
-                snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-                         app_id);
+                snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
                 if (!eos_storage_is_file(icon_path))
                 {
                     snprintf(icon_path, sizeof(icon_path), "%s", EOS_IMG_APP);
@@ -1060,8 +1113,7 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
 
             // Non-system app
             char icon_path[EOS_FS_PATH_MAX];
-            snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-                     app_id);
+            snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
             if (!eos_storage_is_file(icon_path))
             {
                 snprintf(icon_path, sizeof(icon_path), "%s", EOS_IMG_APP);

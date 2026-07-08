@@ -32,5 +32,7 @@ void JERRY_ATTR_NORETURN jerry_port_fatal(jerry_fatal_code_t code)
 
     script_engine_fatal_longjmp((int)(code != 0 ? code : -1));
     /* unreachable */
-    while (1) { }
+    while (1)
+    {
+    }
 }

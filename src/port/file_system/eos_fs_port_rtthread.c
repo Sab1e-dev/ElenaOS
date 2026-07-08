@@ -19,24 +19,37 @@
 
 /* Function Implementations -----------------------------------*/
 
+void eos_fs_set_root(const char *root)
+{
+    (void)root;
+}
+
+const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz)
+{
+    if (!path || !buf || bufsz == 0)
+        return NULL;
+    snprintf(buf, bufsz, "%s", path);
+    return buf;
+}
+
 eos_file_t eos_fs_open_read(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
     return open(path, O_RDONLY, 0);
 }
 
 eos_file_t eos_fs_open_write(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
     return open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 }
 
 int eos_fs_read(eos_file_t fp, void *buf, size_t len)
 {
     if (fp < 0 || !buf)
-        return -1;
+        return EOS_ERR_IO;
     int n = read(fp, buf, len);
     return n >= 0 ? n : -1;
 }
@@ -44,39 +57,39 @@ int eos_fs_read(eos_file_t fp, void *buf, size_t len)
 int eos_fs_write(eos_file_t fp, const void *buf, size_t len)
 {
     if (fp < 0 || !buf)
-        return -1;
+        return EOS_ERR_IO;
     int n = write(fp, buf, len);
     return n == (int)len ? n : -1;
 }
 
-int eos_fs_seek(eos_file_t fp, uint32_t pos)
+eos_result_t eos_fs_seek(eos_file_t fp, uint32_t pos)
 {
     if (fp < 0)
-        return -1;
+        return EOS_ERR_IO;
     int r = lseek(fp, pos, SEEK_SET);
-    return r >= 0 ? 0 : -1;
+    return r >= 0 ? EOS_OK : EOS_ERR_IO;
 }
 
-int eos_fs_size(eos_file_t fp, uint32_t *size)
+eos_result_t eos_fs_size(eos_file_t fp, uint32_t *size)
 {
     if (fp < 0 || !size)
-        return -1;
+        return EOS_ERR_IO;
     struct stat st;
     if (fstat(fp, &st) != 0)
-        return -1;
+        return EOS_ERR_IO;
     *size = st.st_size;
-    return 0;
+    return EOS_OK;
 }
 
-int eos_fs_tell(eos_file_t fp, uint32_t *pos)
+eos_result_t eos_fs_tell(eos_file_t fp, uint32_t *pos)
 {
     if (fp < 0 || !pos)
-        return -1;
+        return EOS_ERR_IO;
     off_t cur = lseek(fp, 0, SEEK_CUR);
     if (cur < 0)
-        return -1;
+        return EOS_ERR_IO;
     *pos = (uint32_t)cur;
-    return 0;
+    return EOS_OK;
 }
 
 void eos_fs_close(eos_file_t fp)
@@ -85,31 +98,31 @@ void eos_fs_close(eos_file_t fp)
         close(fp);
 }
 
-int eos_fs_mkdir(const char *path)
+eos_result_t eos_fs_mkdir(const char *path)
 {
     if (!path)
-        return -1;
-    return mkdir(path, 0755) == 0 ? 0 : -1;
+        return EOS_ERR_IO;
+    return mkdir(path, 0755) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
-int eos_fs_rmdir(const char *path)
+eos_result_t eos_fs_rmdir(const char *path)
 {
     if (!path)
-        return -1;
-    return rmdir(path) == 0 ? 0 : -1;
+        return EOS_ERR_IO;
+    return rmdir(path) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
-int eos_fs_remove(const char *path)
+eos_result_t eos_fs_remove(const char *path)
 {
     if (!path)
-        return -1;
-    return unlink(path) == 0 ? 0 : -1;
+        return EOS_ERR_IO;
+    return unlink(path) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 int eos_fs_exists(const char *path)
 {
     if (!path)
-        return 0;
+        return EOS_OK;
     struct stat st;
     return stat(path, &st) == 0 ? 1 : 0;
 }
@@ -129,16 +142,16 @@ eos_dir_t eos_fs_opendir(const char *path)
     return opendir(path);
 }
 
-int eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
+eos_result_t eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
 {
     if (!dir)
-        return -1;
+        return EOS_ERR_IO;
     struct dirent *entry = readdir(dir);
     if (!entry)
-        return -1;
+        return EOS_ERR_IO;
     strncpy(name, entry->d_name, max_len - 1);
     name[max_len - 1] = '\0';
-    return 0;
+    return EOS_OK;
 }
 
 void eos_fs_closedir(eos_dir_t dir)
@@ -147,16 +160,16 @@ void eos_fs_closedir(eos_dir_t dir)
         closedir(dir);
 }
 
-int eos_fs_mv(const char *old_path, const char *new_path)
+eos_result_t eos_fs_mv(const char *old_path, const char *new_path)
 {
-    return rename(old_path, new_path) == 0 ? 0 : -1;
+    return rename(old_path, new_path) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
-int eos_fs_sync(eos_file_t fp)
+eos_result_t eos_fs_sync(eos_file_t fp)
 {
     if (fp < 0)
-        return -1;
-    return fsync(fp);
+        return EOS_ERR_IO;
+    return fsync(fp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 #endif /* EOS_FS_TYPE */

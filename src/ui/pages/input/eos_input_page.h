@@ -23,9 +23,10 @@ extern "C" {
 /**
  * @brief Input page operation result
  */
-typedef enum {
-    EOS_INPUT_RESULT_CANCEL = 0,  /**< User cancelled the input */
-    EOS_INPUT_RESULT_OK = 1,      /**< User confirmed the input */
+typedef enum
+{
+    EOS_INPUT_RESULT_CANCEL = 0, /**< User cancelled the input */
+    EOS_INPUT_RESULT_OK = 1, /**< User confirmed the input */
 } eos_input_result_t;
 
 /**
@@ -58,7 +59,9 @@ eos_result_t eos_input_page_open(lv_obj_t *label);
  * @param user_data User data passed to the callback
  * @return eos_result_t Result code
  */
-eos_result_t eos_input_page_open_with_callback(lv_obj_t *label, eos_input_close_callback_t close_callback, void *user_data);
+eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
+                                               eos_input_close_callback_t close_callback,
+                                               void *user_data);
 
 /* Public function prototypes --------------------------------*/
 

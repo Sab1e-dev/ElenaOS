@@ -26,7 +26,7 @@
 #include "eos_numpad.h"
 
 /* Macros and Definitions -------------------------------------*/
-#define LOCK_PAGE_MAGIC         0x4C4F434BU
+#define LOCK_PAGE_MAGIC 0x4C4F434BU
 
 /* Variables --------------------------------------------------*/
 
@@ -53,7 +53,8 @@ static void _on_numpad_complete(const char *digits, void *user_data)
 {
     (void)digits;
     _lock_page_ctx_t *ctx = (_lock_page_ctx_t *)user_data;
-    if (!ctx) return;
+    if (!ctx)
+        return;
     _verify_password(ctx);
 }
 
@@ -71,7 +72,8 @@ static void _verify_password(_lock_page_ctx_t *ctx)
     /* Get stored hash from config */
     char *stored_hash = eos_config_get_string(EOS_CONFIG_KEY_PASSWORD_HASH_STR, "");
 
-    if (stored_hash && strcmp(entered_hex, stored_hash) == 0) {
+    if (stored_hash && strcmp(entered_hex, stored_hash) == 0)
+    {
         eos_free(stored_hash);
         EOS_LOG_I("Password correct, dismissing lock screen");
         eos_lock_screen_dismiss();
@@ -87,13 +89,15 @@ static void _verify_password(_lock_page_ctx_t *ctx)
     eos_haptic_buzz();
 
     /* Change title to error */
-    if (ctx->title_label && lv_obj_is_valid(ctx->title_label)) {
+    if (ctx->title_label && lv_obj_is_valid(ctx->title_label))
+    {
         eos_label_set_text_id(ctx->title_label, STR_ID_LOCK_SCREEN_WRONG_PASSCODE);
         lv_obj_set_style_text_color(ctx->title_label, EOS_COLOR_RED, 0);
     }
 
     /* Shake animation on dot container */
-    if (numpad->dot_container && lv_obj_is_valid(numpad->dot_container)) {
+    if (numpad->dot_container && lv_obj_is_valid(numpad->dot_container))
+    {
         lv_anim_t anim;
         lv_anim_init(&anim);
         lv_anim_set_var(&anim, numpad->dot_container);
@@ -115,7 +119,8 @@ static void _verify_password(_lock_page_ctx_t *ctx)
 static void _shake_anim_exec_cb(void *var, int32_t value)
 {
     lv_obj_t *obj = (lv_obj_t *)var;
-    if (obj && lv_obj_is_valid(obj)) {
+    if (obj && lv_obj_is_valid(obj))
+    {
         lv_obj_set_style_translate_x(obj, value, 0);
     }
 }
@@ -123,7 +128,8 @@ static void _shake_anim_exec_cb(void *var, int32_t value)
 static void _shake_anim_complete_cb(lv_anim_t *anim)
 {
     lv_obj_t *obj = (lv_obj_t *)anim->var;
-    if (obj && lv_obj_is_valid(obj)) {
+    if (obj && lv_obj_is_valid(obj))
+    {
         lv_obj_set_style_translate_x(obj, 0, 0);
     }
 }
@@ -131,7 +137,8 @@ static void _shake_anim_complete_cb(lv_anim_t *anim)
 static void _restore_title_async_cb(void *user_data)
 {
     lv_obj_t *title = (lv_obj_t *)user_data;
-    if (title && lv_obj_is_valid(title)) {
+    if (title && lv_obj_is_valid(title))
+    {
         eos_label_set_text_id(title, STR_ID_LOCK_SCREEN_ENTER_PASSCODE);
         lv_obj_set_style_text_color(title, EOS_COLOR_TEXT_GREY, 0);
     }
@@ -162,10 +169,7 @@ static void _create_lock_ui(_lock_page_ctx_t *ctx, lv_obj_t *parent, uint8_t tar
     lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(container,
-                          LV_FLEX_ALIGN_SPACE_EVENLY,
-                          LV_FLEX_ALIGN_CENTER,
-                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(container, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     /* Time label */
     lv_obj_t *time_label = lv_label_create(container);
@@ -174,7 +178,7 @@ static void _create_lock_ui(_lock_page_ctx_t *ctx, lv_obj_t *parent, uint8_t tar
     snprintf(time_str, sizeof(time_str), "%02d:%02d", now.hour, now.min);
     lv_label_set_text(time_label, time_str);
     lv_obj_set_style_text_color(time_label, EOS_COLOR_WHITE, 0);
-    eos_label_set_font_size(time_label, 48);
+    eos_label_set_font_size(time_label, EOS_FONT_SIZE_LARGE);
 
     /* Title label */
     ctx->title_label = lv_label_create(container);
@@ -182,20 +186,22 @@ static void _create_lock_ui(_lock_page_ctx_t *ctx, lv_obj_t *parent, uint8_t tar
     lv_obj_set_style_text_color(ctx->title_label, EOS_COLOR_TEXT_GREY, 0);
     eos_label_set_font_size(ctx->title_label, EOS_FONT_SIZE_MEDIUM);
 
-    ctx->numpad = eos_numpad_create(container, target_length,
-                                    false, _on_numpad_complete, NULL, ctx);
+    ctx->numpad = eos_numpad_create(container, target_length, false, _on_numpad_complete, NULL, ctx);
 }
 
 static void _destroy_lock_ui(_lock_page_ctx_t *ctx)
 {
-    if (!ctx) return;
+    if (!ctx)
+        return;
 
     /* Reset translate if animating */
-    if (ctx->numpad && ctx->numpad->dot_container && lv_obj_is_valid(ctx->numpad->dot_container)) {
+    if (ctx->numpad && ctx->numpad->dot_container && lv_obj_is_valid(ctx->numpad->dot_container))
+    {
         lv_obj_set_style_translate_x(ctx->numpad->dot_container, 0, 0);
     }
 
-    if (ctx->root && lv_obj_is_valid(ctx->root)) {
+    if (ctx->root && lv_obj_is_valid(ctx->root))
+    {
         lv_obj_delete(ctx->root);
         ctx->root = NULL;
     }
@@ -211,13 +217,15 @@ static void _destroy_lock_ui(_lock_page_ctx_t *ctx)
 
 void eos_lock_page_show(void)
 {
-    if (_ctx) {
+    if (_ctx)
+    {
         EOS_LOG_W("Lock page already showing");
         return;
     }
 
     _ctx = (_lock_page_ctx_t *)eos_malloc_zeroed(sizeof(_lock_page_ctx_t));
-    if (!_ctx) {
+    if (!_ctx)
+    {
         EOS_LOG_E("Failed to allocate lock page context");
         return;
     }
@@ -232,7 +240,8 @@ void eos_lock_page_show(void)
     _create_lock_ui(_ctx, eos_overlay_get_overlay_layer(), target_length);
 
     /* Ensure top z-order within overlay layer */
-    if (_ctx->root) {
+    if (_ctx->root)
+    {
         lv_obj_move_foreground(_ctx->root);
     }
 
@@ -241,7 +250,8 @@ void eos_lock_page_show(void)
 
 void eos_lock_page_hide(void)
 {
-    if (!_ctx) {
+    if (!_ctx)
+    {
         return;
     }
 

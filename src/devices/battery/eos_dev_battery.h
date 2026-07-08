@@ -36,13 +36,15 @@ typedef uint32_t eos_charge_mAh_t;
  * This structure defines the interface that battery hardware
  * implementation must provide.
  */
-typedef struct {
-    void (*request_update)(void);     /**< Request battery data update */
+typedef struct
+{
+    void (*request_update)(void); /**< Request battery data update */
 } eos_battery_dev_ops_t;
 
-typedef struct {
-    eos_battery_dev_ops_t ops;          /**< Battery device operation callbacks */
-    eos_charge_mAh_t design_capacity;       /**< Battery design capacity in mAh */
+typedef struct
+{
+    eos_battery_dev_ops_t ops; /**< Battery device operation callbacks */
+    eos_charge_mAh_t design_capacity; /**< Battery design capacity in mAh */
 } eos_dev_battery_t;
 
 /* Public function prototypes --------------------------------*/
@@ -58,8 +60,7 @@ typedef struct {
  * @param design_capacity_mah Battery design capacity in mAh
  * @return None
  */
-void eos_dev_battery_register(const eos_battery_dev_ops_t *ops,
-                              eos_charge_mAh_t design_capacity);
+void eos_dev_battery_register(const eos_battery_dev_ops_t *ops, eos_charge_mAh_t design_capacity);
 
 /**
  * @brief Get battery device operations

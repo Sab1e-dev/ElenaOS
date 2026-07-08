@@ -37,12 +37,10 @@
 #define _ICON_LARGE_WIDTH 80
 #define _ICON_LARGE_HEIGHT _ICON_LARGE_WIDTH
 
-#define _TIME_LABEL_FONT lv_font_montserrat_24
-
 #define _ITEM_CLICK_THRESHOLD 3
 // Swipe-to-delete related macros
 #define _SWIPE_THRESHOLD (EOS_DISPLAY_WIDTH / 2) // Swipe distance threshold for deletion
-#define _SWIPE_ANIM_DURATION 200                 // Swipe animation duration
+#define _SWIPE_ANIM_DURATION 200 // Swipe animation duration
 #define _DETAIL_ANIM_DURATION 250
 
 typedef struct
@@ -191,7 +189,8 @@ static void _dismiss_btn_click_cb(lv_event_t *e)
         lv_anim_start(&item_anim);
     }
 
-    eos_anim_t *scale_anim = eos_anim_transform_scale_create(_detail_data->panel->container, 256, 0, _DETAIL_ANIM_DURATION, false);
+    eos_anim_t *scale_anim =
+        eos_anim_transform_scale_create(_detail_data->panel->container, 256, 0, _DETAIL_ANIM_DURATION, false);
     if (scale_anim)
     {
         eos_anim_add_cb(scale_anim, _dismiss_anim_end_cb, NULL);
@@ -214,7 +213,8 @@ static void _mark_as_read_btn_click_cb(lv_event_t *e)
     if (!_detail_data)
         return;
 
-    eos_anim_t *fade_anim = eos_anim_fade_create(_detail_data->panel->container, LV_OPA_COVER, LV_OPA_TRANSP, _DETAIL_ANIM_DURATION, false);
+    eos_anim_t *fade_anim =
+        eos_anim_fade_create(_detail_data->panel->container, LV_OPA_COVER, LV_OPA_TRANSP, _DETAIL_ANIM_DURATION, false);
     if (fade_anim)
     {
         eos_anim_add_cb(fade_anim, _delete_anim_end_cb, NULL);
@@ -318,7 +318,8 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
         eos_anim_start(scale_anim);
     }
 
-    eos_anim_t *fade_anim = eos_anim_fade_create(panel->container, LV_OPA_TRANSP, LV_OPA_COVER, _DETAIL_ANIM_DURATION, false);
+    eos_anim_t *fade_anim =
+        eos_anim_fade_create(panel->container, LV_OPA_TRANSP, LV_OPA_COVER, _DETAIL_ANIM_DURATION, false);
     if (fade_anim)
     {
         eos_anim_start(fade_anim);
@@ -353,7 +354,11 @@ eos_msg_list_item_t *eos_msg_list_item_create(eos_msg_list_t *list)
     lv_obj_set_style_shadow_width(item->container, 0, 0);
     lv_obj_remove_flag(item->container, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_update_layout(item->container);
-    eos_slide_widget_t *sw = eos_slide_widget_create_with_touch(item->container, item->container, EOS_SLIDE_DIR_HOR, EOS_DISPLAY_WIDTH, EOS_THRESHOLD_40);
+    eos_slide_widget_t *sw = eos_slide_widget_create_with_touch(item->container,
+                                                                item->container,
+                                                                EOS_SLIDE_DIR_HOR,
+                                                                EOS_DISPLAY_WIDTH,
+                                                                EOS_THRESHOLD_40);
     eos_slide_widget_set_bidirectional(sw, true);
     eos_slide_widget_add_event_cb_reached_threshold(sw, _slide_widget_reached_threashold_cb, list);
     eos_slide_widget_add_event_cb_reverted(sw, _msg_list_item_clicked_cb, NULL);
@@ -387,7 +392,6 @@ eos_msg_list_item_t *eos_msg_list_item_create(eos_msg_list_t *list)
 
     // Time label
     item->time_label = lv_label_create(item->row1);
-    lv_obj_set_style_text_font(item->time_label, &_TIME_LABEL_FONT, 0);
     lv_obj_set_style_text_align(item->time_label, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Message content
@@ -582,12 +586,15 @@ static void _trigger_msg_anims(eos_msg_list_t *list)
 
         if (item)
         {
-            // 创建动画
+            // Create animation
             eos_lite_anim_fade_layered_start(item->container, LV_OPA_COVER, LV_OPA_TRANSP, 300, 0, NULL, NULL);
-            eos_lite_anim_move_hor_start(
-                item->container,
-                lv_obj_get_x(item->container), EOS_DISPLAY_WIDTH,
-                300, 0, _msg_list_item_anim_end_cb, list);
+            eos_lite_anim_move_hor_start(item->container,
+                                         lv_obj_get_x(item->container),
+                                         EOS_DISPLAY_WIDTH,
+                                         300,
+                                         0,
+                                         _msg_list_item_anim_end_cb,
+                                         list);
 
             list->animating_count++;
             anim_index++;
@@ -604,16 +611,16 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
 {
     eos_msg_list_t *list = (eos_msg_list_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(list);
-    // 隐藏无消息标签
+    // Hide no-message label
     if (list->no_msg_label)
     {
         lv_obj_add_flag(list->no_msg_label, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // 重置动画计数
+    // Reset animation count
     list->animating_count = 0;
 
-    // 触发动画
+    // Trigger animations
     _trigger_msg_anims(list);
 }
 
@@ -725,7 +732,9 @@ eos_msg_list_t *eos_msg_list_create(lv_obj_t *parent)
     EOS_CHECK_PTR_RETURN_VAL_FREE(msg_list->swipe_panel, NULL, msg_list);
     eos_swipe_panel_set_dir(msg_list->swipe_panel, EOS_SWIPE_DIR_DOWN);
     eos_crown_encoder_register_slide_widget(msg_list->swipe_panel->sw);
-    eos_slide_widget_add_event_cb_reached_threshold(msg_list->swipe_panel->sw, _slide_widget_reached_threshold_cb, NULL);
+    eos_slide_widget_add_event_cb_reached_threshold(msg_list->swipe_panel->sw,
+                                                    _slide_widget_reached_threshold_cb,
+                                                    NULL);
     eos_slide_widget_add_event_cb_opened(msg_list->swipe_panel->sw, _msg_list_opened_cb, NULL);
     eos_slide_widget_add_event_cb_closed(msg_list->swipe_panel->sw, _msg_list_closed_cb, NULL);
 

@@ -20,8 +20,54 @@
 #include "eos_port.h"
 #include "eos_log.h"
 /* Macros and Definitions -------------------------------------*/
+#define FS_PATH_BUF_SIZE 512
 
 /* Variables --------------------------------------------------*/
+
+/** Runtime root directory.  Defaults to "/" → pass-through.
+ *  Set via eos_fs_set_root() once at startup on simulator. */
+static char _s_fs_root[FS_PATH_BUF_SIZE] = "/";
+
+void eos_fs_set_root(const char *root)
+{
+    if (!root || root[0] == '\0')
+    {
+        _s_fs_root[0] = '/';
+        _s_fs_root[1] = '\0';
+        return;
+    }
+    size_t len = strlen(root);
+    while (len > 0 && root[len - 1] == '/')
+        len--;
+    if (len == 0)
+    {
+        _s_fs_root[0] = '/';
+        _s_fs_root[1] = '\0';
+        return;
+    }
+    snprintf(_s_fs_root, sizeof(_s_fs_root), "%.*s", (int)len, root);
+}
+
+const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz)
+{
+    if (!path || !buf || bufsz == 0)
+        return NULL;
+    if (path[0] != '/')
+    {
+        snprintf(buf, bufsz, "%s", path);
+        return buf;
+    }
+    size_t root_len = strlen(_s_fs_root);
+    while (root_len > 0 && _s_fs_root[root_len - 1] == '/')
+        root_len--;
+    if (strncmp(path, _s_fs_root, root_len) == 0)
+    {
+        snprintf(buf, bufsz, "%s", path);
+        return buf;
+    }
+    snprintf(buf, bufsz, "%.*s%s", (int)root_len, _s_fs_root, path);
+    return buf;
+}
 
 /* Function Implementations -----------------------------------*/
 
@@ -32,7 +78,8 @@ eos_file_t eos_fs_open_read(const char *path)
 {
     if (!path)
         return NULL;
-    return fopen(path, "rb");
+    char resolved[FS_PATH_BUF_SIZE];
+    return fopen(eos_fs_realpath(path, resolved, sizeof(resolved)), "rb");
 }
 
 /* Open file write-only (create if not exist, overwrite if exist) */
@@ -40,7 +87,8 @@ eos_file_t eos_fs_open_write(const char *path)
 {
     if (!path)
         return NULL;
-    return fopen(path, "wb");
+    char resolved[FS_PATH_BUF_SIZE];
+    return fopen(eos_fs_realpath(path, resolved, sizeof(resolved)), "wb");
 }
 
 /* Read file data */
@@ -66,41 +114,41 @@ int eos_fs_write(eos_file_t fp, const void *buf, size_t len)
 }
 
 /* File positioning */
-int eos_fs_seek(eos_file_t fp, uint32_t pos)
+eos_result_t eos_fs_seek(eos_file_t fp, uint32_t pos)
 {
     if (!fp)
-        return -1;
-    return fseek((FILE *)fp, (long)pos, SEEK_SET);
+        return EOS_ERR_IO;
+    return fseek((FILE *)fp, (long)pos, SEEK_SET) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Get file size */
-int eos_fs_size(eos_file_t fp, uint32_t *size)
+eos_result_t eos_fs_size(eos_file_t fp, uint32_t *size)
 {
     if (!fp || !size)
-        return -1;
+        return EOS_ERR_IO;
     long cur = ftell((FILE *)fp);
     if (cur < 0)
-        return -1;
+        return EOS_ERR_IO;
     if (fseek((FILE *)fp, 0, SEEK_END) != 0)
-        return -1;
+        return EOS_ERR_IO;
     long end = ftell((FILE *)fp);
     if (end < 0)
-        return -1;
+        return EOS_ERR_IO;
     *size = (uint32_t)end;
     fseek((FILE *)fp, cur, SEEK_SET);
-    return 0;
+    return EOS_OK;
 }
 
 /* Get current file position */
-int eos_fs_tell(eos_file_t fp, uint32_t *pos)
+eos_result_t eos_fs_tell(eos_file_t fp, uint32_t *pos)
 {
     if (!fp || !pos)
-        return -1;
+        return EOS_ERR_IO;
     long cur = ftell((FILE *)fp);
     if (cur < 0)
-        return -1;
+        return EOS_ERR_IO;
     *pos = (uint32_t)cur;
-    return 0;
+    return EOS_OK;
 }
 
 /* Close file */
@@ -111,46 +159,66 @@ void eos_fs_close(eos_file_t fp)
 }
 
 /* Create directory (single level directory) */
-int eos_fs_mkdir(const char *path)
+eos_result_t eos_fs_mkdir(const char *path)
 {
     if (!path)
-        return -1;
+        return EOS_ERR_IO;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return EOS_ERR_IO;
 #ifdef _WIN32
-    return mkdir(path) == 0 ? 0 : -1;
+    return mkdir(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 #else
-    return mkdir(path, 0755) == 0 ? 0 : -1;
+    return mkdir(rp, 0755) == 0 ? EOS_OK : EOS_ERR_IO;
 #endif
 }
 
 /* Remove empty directory */
-int eos_fs_rmdir(const char *path)
+eos_result_t eos_fs_rmdir(const char *path)
 {
     if (!path)
-        return -1;
-    return rmdir(path) == 0 ? 0 : -1;
+        return EOS_ERR_IO;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return EOS_ERR_IO;
+    return rmdir(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Remove file */
-int eos_fs_remove(const char *path)
+eos_result_t eos_fs_remove(const char *path)
 {
     if (!path)
-        return -1;
-    return remove(path) == 0 ? 0 : -1;
+        return EOS_ERR_IO;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return EOS_ERR_IO;
+    return remove(rp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 /* Check if file or directory exists */
 int eos_fs_exists(const char *path)
 {
     if (!path)
-        return 0;
+        return EOS_OK;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return EOS_OK;
     struct stat st;
-    return stat(path, &st) == 0 ? 1 : 0;
+    return stat(rp, &st) == 0 ? 1 : 0;
 }
 
 int eos_fs_type(const char *path)
 {
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return EOS_FS_TYPE_NOT_EXIST;
     struct stat st;
-    if (stat(path, &st) != 0)
+    if (stat(rp, &st) != 0)
         return EOS_FS_TYPE_NOT_EXIST;
     if (S_ISDIR(st.st_mode))
         return EOS_FS_TYPE_DIR;
@@ -159,21 +227,27 @@ int eos_fs_type(const char *path)
 
 eos_dir_t eos_fs_opendir(const char *path)
 {
-    return opendir(path);
+    if (!path)
+        return NULL;
+    char resolved[FS_PATH_BUF_SIZE];
+    const char *rp = eos_fs_realpath(path, resolved, sizeof(resolved));
+    if (!rp)
+        return NULL;
+    return opendir(rp);
 }
 
-int eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
+eos_result_t eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len)
 {
     if (!dir)
-        return -1;
+        return EOS_ERR_IO;
 
     struct dirent *entry = readdir(dir);
     if (!entry)
-        return -1;
+        return EOS_ERR_IO;
 
     strncpy(name, entry->d_name, max_len - 1);
     name[max_len - 1] = '\0';
-    return 0;
+    return EOS_OK;
 }
 
 void eos_fs_closedir(eos_dir_t dir)
@@ -184,19 +258,26 @@ void eos_fs_closedir(eos_dir_t dir)
     }
 }
 
-int eos_fs_mv(const char *old_path, const char *new_path)
+eos_result_t eos_fs_mv(const char *old_path, const char *new_path)
 {
-    if (rename(old_path, new_path) != 0)
+    if (!old_path || !new_path)
+        return EOS_ERR_IO;
+    char old_r[FS_PATH_BUF_SIZE], new_r[FS_PATH_BUF_SIZE];
+    const char *op = eos_fs_realpath(old_path, old_r, sizeof(old_r));
+    const char *np = eos_fs_realpath(new_path, new_r, sizeof(new_r));
+    if (!op || !np)
+        return EOS_ERR_IO;
+    if (rename(op, np) != 0)
     {
         perror("rename failed");
-        return -1;
+        return EOS_ERR_IO;
     }
-    return 0;
+    return EOS_OK;
 }
 
-int eos_fs_sync(eos_file_t fp)
+eos_result_t eos_fs_sync(eos_file_t fp)
 {
-    return fflush(fp);
+    return fflush(fp) == 0 ? EOS_OK : EOS_ERR_IO;
 }
 
 #endif /* EOS_FS_TYPE */

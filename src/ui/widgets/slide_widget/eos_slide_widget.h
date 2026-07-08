@@ -25,17 +25,18 @@ extern "C" {
 
 typedef uint32_t eos_threshold_t;
 
-enum{
-    EOS_THRESHOLD_0      = 0,
-    EOS_THRESHOLD_10     = 25,
-    EOS_THRESHOLD_20     = 51,
-    EOS_THRESHOLD_30     = 76,
-    EOS_THRESHOLD_40     = 102,
-    EOS_THRESHOLD_50     = 127,
-    EOS_THRESHOLD_60     = 153,
-    EOS_THRESHOLD_70     = 178,
-    EOS_THRESHOLD_80     = 204,
-    EOS_THRESHOLD_100    = 255,
+enum
+{
+    EOS_THRESHOLD_0 = 0,
+    EOS_THRESHOLD_10 = 25,
+    EOS_THRESHOLD_20 = 51,
+    EOS_THRESHOLD_30 = 76,
+    EOS_THRESHOLD_40 = 102,
+    EOS_THRESHOLD_50 = 127,
+    EOS_THRESHOLD_60 = 153,
+    EOS_THRESHOLD_70 = 178,
+    EOS_THRESHOLD_80 = 204,
+    EOS_THRESHOLD_100 = 255,
     EOS_THRESHOLD_INFINITE = INT_MAX,
 };
 
@@ -47,12 +48,12 @@ typedef enum
 
 typedef enum
 {
-    EOS_SLIDE_WIDGET_STATE_IDLE = 0,      /**< Idle, not sliding */
-    EOS_SLIDE_WIDGET_STATE_DRAGGING,  /**< Currently sliding (gesture drag) */
+    EOS_SLIDE_WIDGET_STATE_IDLE = 0, /**< Idle, not sliding */
+    EOS_SLIDE_WIDGET_STATE_DRAGGING, /**< Currently sliding (gesture drag) */
     EOS_SLIDE_WIDGET_STATE_THRESHOLD, /**< Exceeded threshold, slide confirmed (execute expand/trigger operation) */
     EOS_SLIDE_WIDGET_STATE_REVERTING, /**< Reverting (auto return when threshold not exceeded) */
     EOS_SLIDE_WIDGET_STATE_ANIMATING, /**< Manually triggered animation */
-    EOS_SLIDE_WIDGET_STATE_OPEN,      /**< Panel fully open */
+    EOS_SLIDE_WIDGET_STATE_OPEN, /**< Panel fully open */
 } eos_slide_widget_state_t;
 
 /**
@@ -60,12 +61,12 @@ typedef enum
  */
 typedef struct
 {
-    lv_coord_t target_base;       /**< Base position for target object */
-    lv_coord_t target_target;     /**< Target position for target object */
-    lv_coord_t touch_base;        /**< Base position for touch object (auto-sync) */
-    lv_coord_t touch_target;      /**< Target position for touch object (auto-sync) */
-    eos_threshold_t threshold;    /**< Threshold for triggering slide */
-    bool sync_touch_obj;          /**< Whether to auto-sync touch object position */
+    lv_coord_t target_base; /**< Base position for target object */
+    lv_coord_t target_target; /**< Target position for target object */
+    lv_coord_t touch_base; /**< Base position for touch object (auto-sync) */
+    lv_coord_t touch_target; /**< Target position for touch object (auto-sync) */
+    eos_threshold_t threshold; /**< Threshold for triggering slide */
+    bool sync_touch_obj; /**< Whether to auto-sync touch object position */
 } eos_slide_widget_config_t;
 
 typedef struct eos_slide_widget_t eos_slide_widget_t;
@@ -93,23 +94,21 @@ void eos_slide_widget_init(void);
  * @return eos_slide_widget_t* Returns slide widget object on success, NULL on failure
  * @warning Do not use `lv_obj_center` on the target object, otherwise coordinate movement will be chaotic.
  */
-eos_slide_widget_t *eos_slide_widget_create(
-    lv_obj_t *parent,
-    lv_obj_t *target_obj,
-    eos_slide_widget_dir_t dir,
-    lv_coord_t target,
-    eos_threshold_t threshold);
+eos_slide_widget_t *eos_slide_widget_create(lv_obj_t *parent,
+                                            lv_obj_t *target_obj,
+                                            eos_slide_widget_dir_t dir,
+                                            lv_coord_t target,
+                                            eos_threshold_t threshold);
 
 /**
  * @brief Create slide widget (without creating touch object internally)
  * @param touch_obj Touch object
  */
-eos_slide_widget_t *eos_slide_widget_create_with_touch(
-    lv_obj_t *touch_obj,
-    lv_obj_t *target_obj,
-    eos_slide_widget_dir_t dir,
-    lv_coord_t target,
-    eos_threshold_t threshold);
+eos_slide_widget_t *eos_slide_widget_create_with_touch(lv_obj_t *touch_obj,
+                                                       lv_obj_t *target_obj,
+                                                       eos_slide_widget_dir_t dir,
+                                                       lv_coord_t target,
+                                                       eos_threshold_t threshold);
 
 /**
  * @brief Delete slide widget

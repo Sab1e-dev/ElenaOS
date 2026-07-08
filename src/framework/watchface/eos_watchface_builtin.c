@@ -44,7 +44,8 @@ static void _builtin_long_pressed_cb(lv_event_t *e);
 eos_watchface_instance_t *eos_watchface_builtin_create(void)
 {
     eos_watchface_instance_t *instance = eos_malloc(sizeof(eos_watchface_instance_t));
-    if (!instance) {
+    if (!instance)
+    {
         EOS_LOG_E("Failed to allocate builtin watchface instance");
         return NULL;
     }
@@ -55,7 +56,8 @@ eos_watchface_instance_t *eos_watchface_builtin_create(void)
     instance->lifecycle = &_builtin_lifecycle;
 
     instance->activity = eos_activity_create_root(&_builtin_lifecycle);
-    if (!instance->activity) {
+    if (!instance->activity)
+    {
         EOS_LOG_E("Failed to create activity for builtin watchface");
         eos_free(instance);
         return NULL;
@@ -76,7 +78,8 @@ static void _builtin_on_enter(eos_activity_t *activity)
 
     // View is auto-created by framework (eos_activity_create_root + controller_init/replace_root)
     lv_obj_t *view = eos_activity_get_view(activity);
-    if (!view) {
+    if (!view)
+    {
         EOS_LOG_E("Builtin watchface: view is NULL!");
         return;
     }
@@ -96,15 +99,11 @@ static void _builtin_on_enter(eos_activity_t *activity)
     lv_obj_set_style_text_color(hint, lv_color_hex(0x91A4BF), 0);
     lv_obj_align(hint, LV_ALIGN_CENTER, 0, 36);
 
-    self->data.builtin.time_update_timer = lv_timer_create(
-        _builtin_time_update_cb,
-        1000,
-        time_label
-    );
+    self->data.builtin.time_update_timer = lv_timer_create(_builtin_time_update_cb, 1000, time_label);
 
-    if (self->data.builtin.time_update_timer) {
-        lv_obj_add_event_cb(view, _builtin_view_delete_cb, LV_EVENT_DELETE,
-                           self->data.builtin.time_update_timer);
+    if (self->data.builtin.time_update_timer)
+    {
+        lv_obj_add_event_cb(view, _builtin_view_delete_cb, LV_EVENT_DELETE, self->data.builtin.time_update_timer);
         lv_timer_ready(self->data.builtin.time_update_timer);
         _builtin_time_update_cb(self->data.builtin.time_update_timer);
     }
@@ -121,7 +120,8 @@ static void _builtin_on_pause(eos_activity_t *activity)
 
     eos_watchface_instance_t *self = eos_activity_get_user_data(activity);
 
-    if (self->data.builtin.time_update_timer) {
+    if (self->data.builtin.time_update_timer)
+    {
         lv_timer_pause(self->data.builtin.time_update_timer);
     }
 
@@ -135,7 +135,8 @@ static void _builtin_on_resume(eos_activity_t *activity)
 
     eos_watchface_instance_t *self = eos_activity_get_user_data(activity);
 
-    if (self->data.builtin.time_update_timer) {
+    if (self->data.builtin.time_update_timer)
+    {
         lv_timer_resume(self->data.builtin.time_update_timer);
     }
 
@@ -151,7 +152,8 @@ static void _builtin_on_destroy(eos_activity_t *activity)
 static void _builtin_time_update_cb(lv_timer_t *timer)
 {
     lv_obj_t *time_label = lv_timer_get_user_data(timer);
-    if (!time_label || !lv_obj_is_valid(time_label)) {
+    if (!time_label || !lv_obj_is_valid(time_label))
+    {
         return;
     }
 
@@ -164,7 +166,8 @@ static void _builtin_time_update_cb(lv_timer_t *timer)
 static void _builtin_view_delete_cb(lv_event_t *e)
 {
     lv_timer_t *timer = lv_event_get_user_data(e);
-    if (timer) {
+    if (timer)
+    {
         lv_timer_delete(timer);
     }
 }

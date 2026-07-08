@@ -12,28 +12,29 @@ extern "C" {
 
 /* Includes ---------------------------------------------------*/
 #include "eos_config.h"
+#include "eos_error.h"
 /* Public macros ----------------------------------------------*/
 #if EOS_FS_TYPE == EOS_FS_POSIX
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-typedef FILE* eos_file_t;
-typedef DIR* eos_dir_t;
+typedef FILE *eos_file_t;
+typedef DIR *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
 #elif EOS_FS_TYPE == EOS_FS_FATFS
 #include "ff.h"
-typedef FIL* eos_file_t;
-typedef FF_DIR* eos_dir_t;
+typedef FIL *eos_file_t;
+typedef FF_DIR *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
 #elif EOS_FS_TYPE == EOS_FS_LITTLEFS
 #include "lfs.h"
-typedef lfs_file_t* eos_file_t;
-typedef lfs_dir_t* eos_dir_t;
+typedef lfs_file_t *eos_file_t;
+typedef lfs_dir_t *eos_dir_t;
 #define EOS_FILE_INVALID NULL
 #define EOS_DIR_INVALID NULL
 
@@ -43,7 +44,7 @@ typedef lfs_dir_t* eos_dir_t;
 #include <sys/stat.h>
 #include <unistd.h>
 typedef int eos_file_t;
-typedef DIR* eos_dir_t;
+typedef DIR *eos_dir_t;
 #define EOS_FILE_INVALID (-1)
 #define EOS_DIR_INVALID NULL
 
@@ -52,7 +53,8 @@ typedef EOS_FS_FILE_TYPE eos_file_t;
 typedef EOS_FS_DIR_TYPE eos_dir_t;
 #endif /* EOS_FS_TYPE */
 /* Public typedefs --------------------------------------------*/
-typedef enum {
+typedef enum
+{
     EOS_FS_TYPE_NOT_EXIST = 0,
     EOS_FS_TYPE_FILE = 1,
     EOS_FS_TYPE_DIR = 2
@@ -65,6 +67,25 @@ typedef struct
     size_t size;
 } eos_async_write_task_t;
 /* Public function prototypes --------------------------------*/
+
+/**
+ * @brief Set the virtual filesystem root directory.
+ *        On simulator, call once at startup with the sandbox path.
+ *        On real hardware, skip (defaults to "/", i.e. pass-through).
+ * @param root Absolute path to use as filesystem root, e.g. "/path/to/fs/"
+ */
+void eos_fs_set_root(const char *root);
+
+/**
+ * @brief Resolve a virtual path to a real filesystem path.
+ *        If root is "/" (or NULL / empty), path passes through unchanged.
+ *        Otherwise prepends root.  Already-prefixed paths pass through.
+ * @param path  Virtual path (e.g. "/.sys/config/cfg.json")
+ * @param buf   Output buffer for the resolved path
+ * @param bufsz Buffer size
+ * @return buf on success, NULL on invalid input
+ */
+const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz);
 
 /**
  * @brief Open a file in read-only mode
@@ -100,21 +121,21 @@ int eos_fs_write(eos_file_t file, const void *buf, size_t len);
  * @param pos File offset position (from beginning of file)
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_seek(eos_file_t file, uint32_t pos);
+eos_result_t eos_fs_seek(eos_file_t file, uint32_t pos);
 /**
  * @brief Get file size
  * @param file File handle
  * @param size Output file size (in bytes)
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_size(eos_file_t file, uint32_t *size);
+eos_result_t eos_fs_size(eos_file_t file, uint32_t *size);
 /**
  * @brief Get current file position
  * @param file File handle
  * @param pos Output current file position
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_tell(eos_file_t file, uint32_t *pos);
+eos_result_t eos_fs_tell(eos_file_t file, uint32_t *pos);
 /**
  * @brief Close file
  * @param file File handle
@@ -125,19 +146,19 @@ void eos_fs_close(eos_file_t file);
  * @param path Directory path
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_mkdir(const char *path);
+eos_result_t eos_fs_mkdir(const char *path);
 /**
  * @brief Remove empty directory
  * @param path Directory path
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_rmdir(const char *path);
+eos_result_t eos_fs_rmdir(const char *path);
 /**
  * @brief Remove file
  * @param path File path
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_remove(const char *path);
+eos_result_t eos_fs_remove(const char *path);
 /**
  * @brief Check if file or directory exists
  * @param path File or directory path
@@ -173,7 +194,7 @@ eos_dir_t eos_fs_opendir(const char *path);
  * @note If filename length exceeds max_len-1, it will be truncated and guaranteed to end with '\0'
  * @note This function only returns filename, without path
  */
-int eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len);
+eos_result_t eos_fs_readdir(eos_dir_t dir, char *name, size_t max_len);
 /**
  * @brief Close directory
  * @param dir Target directory pointer
@@ -185,13 +206,13 @@ void eos_fs_closedir(eos_dir_t dir);
  * @param new_path
  * @return int Returns 0 on success, -1 on failure
  */
-int eos_fs_mv(const char *old_path, const char *new_path);
+eos_result_t eos_fs_mv(const char *old_path, const char *new_path);
 /**
  * @brief Synchronize file data
  * @param file File
  * @return int
  */
-int eos_fs_sync(eos_file_t file);
+eos_result_t eos_fs_sync(eos_file_t file);
 
 #ifdef __cplusplus
 }

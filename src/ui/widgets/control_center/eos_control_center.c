@@ -14,8 +14,7 @@
 #include "eos_theme.h"
 #include "eos_service_config.h"
 #include "eos_port.h"
-#include "eos_watchface.h"
-#include "eos_port.h"
+#include "eos_service_audio.h"
 #include "eos_config.h"
 #include "eos_event.h"
 #include "eos_icon.h"
@@ -59,14 +58,14 @@ static const eos_chrome_overlay_t _control_center_overlay = {
 void eos_control_panel_slide_change(void);
 
 /************************** List callback **************************/
-#if EOS_ANIMATION_ENABLE
+
 static void _list_scroll_cb(lv_event_t *e)
 {
     lv_obj_t *list = lv_event_get_user_data(e);
     lv_coord_t list_h = lv_obj_get_height(list);
     lv_coord_t list_y = lv_obj_get_y(list);
 
-    uint32_t count = lv_obj_get_child_cnt(list);
+    uint32_t count = lv_obj_get_child_count(list);
 
     lv_coord_t bottom_threshold = list_y + (list_h * 8) / 10;
     lv_coord_t list_bottom = list_y + list_h;
@@ -116,7 +115,7 @@ static void _list_scroll_cb(lv_event_t *e)
         lv_obj_set_style_transform_scale(child, scale, 0);
     }
 }
-#endif /* EOS_ANIMATION_ENABLE */
+
 static void _slide_widget_reached_threshold_cb(lv_event_t *e)
 {
     lv_obj_t *container = (lv_obj_t *)lv_event_get_user_data(e);
@@ -269,11 +268,8 @@ static void _control_center_brightness_btn_clicked_cb(lv_event_t *e)
 {
     lv_obj_t *slider = _control_center_slider_create(RI_SUN_LINE);
     lv_slider_set_range(slider, EOS_DISPLAY_BRIGHTNESS_MIN, EOS_DISPLAY_BRIGHTNESS_MAX);
-    lv_slider_set_value(slider,
-                        eos_config_get_number(EOS_CONFIG_KEY_DISPLAY_BRIGHTNESS_NUMBER, 50),
-                        LV_ANIM_ON);
-    lv_obj_add_event_cb(slider,
-                        _control_center_brightness_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_slider_set_value(slider, eos_config_get_number(EOS_CONFIG_KEY_DISPLAY_BRIGHTNESS_NUMBER, 50), LV_ANIM_ON);
+    lv_obj_add_event_cb(slider, _control_center_brightness_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(slider, _control_center_brightness_slider_delete_cb, LV_EVENT_DELETE, NULL);
 }
 
@@ -360,7 +356,7 @@ static void _control_center_volume_value_changed_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(label);
     // Get current Slider value
     int16_t value = lv_slider_get_value(slider);
-    eos_speaker_set_volume(value);
+    eos_service_audio_set_volume(value);
     lv_label_set_text(label, _control_center_volume_get_icon_by_value(value));
     if (lv_obj_has_state(cc->mute_btn, LV_STATE_CHECKED))
     {
@@ -383,11 +379,8 @@ static void _control_center_volume_btn_clicked_cb(lv_event_t *e)
     lv_obj_t *slider = _control_center_slider_create(_control_center_volume_get_icon_by_value(volume));
     lv_slider_set_range(slider, EOS_SPEAKER_VOLUME_MIN, EOS_SPEAKER_VOLUME_MAX);
 
-    lv_slider_set_value(slider,
-                        volume,
-                        LV_ANIM_ON);
-    lv_obj_add_event_cb(slider,
-                        _control_center_volume_value_changed_cb, LV_EVENT_VALUE_CHANGED, cc);
+    lv_slider_set_value(slider, volume, LV_ANIM_ON);
+    lv_obj_add_event_cb(slider, _control_center_volume_value_changed_cb, LV_EVENT_VALUE_CHANGED, cc);
     lv_obj_add_event_cb(slider, _control_center_volume_slider_delete_cb, LV_EVENT_DELETE, NULL);
 }
 
@@ -432,9 +425,7 @@ static void _control_center_closed_cb(lv_event_t *e)
     eos_activity_t *act = eos_activity_get_current();
     if (!act || eos_activity_get_type(act) != EOS_ACTIVITY_TYPE_WATCHFACE)
     {
-        lv_obj_add_flag(eos_slide_widget_get_touch_obj(
-                            control_center_instance->swipe_panel->sw),
-                        LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(eos_slide_widget_get_touch_obj(control_center_instance->swipe_panel->sw), LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -514,17 +505,16 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
     lv_obj_set_style_pad_column(container, 20, 0); // Column spacing
     lv_obj_set_style_pad_row(container, 8, 0);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(container,
-                          LV_FLEX_ALIGN_CENTER, // Main axis (horizontal direction) starts from the beginning (left-aligned)
-                          LV_FLEX_ALIGN_CENTER, // Cross axis (vertical direction) centered
-                          LV_FLEX_ALIGN_START);
+    lv_obj_set_flex_align(
+        container,
+        LV_FLEX_ALIGN_CENTER, // Main axis (horizontal direction) starts from the beginning (left-aligned)
+        LV_FLEX_ALIGN_CENTER, // Cross axis (vertical direction) centered
+        LV_FLEX_ALIGN_START);
     lv_obj_add_flag(container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
-#if EOS_ANIMATION_ENABLE
     lv_obj_add_event_cb(container, _list_scroll_cb, LV_EVENT_SCROLL, container);
     eos_slide_widget_add_event_cb_moving(swipe_panel->sw, _list_scroll_cb, container);
     eos_slide_widget_add_event_cb_done(swipe_panel->sw, _list_scroll_cb, container);
-#endif /* EOS_ANIMATION_ENABLE */
     eos_slide_widget_add_event_cb_reached_threshold(swipe_panel->sw, _slide_widget_reached_threshold_cb, container);
     cc->container = container;
     lv_obj_t *btn;

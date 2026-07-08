@@ -26,8 +26,6 @@ extern "C" {
 #define EOS_LIST_CONTAINER_PAD_ALL 24
 #define EOS_ITEM_RADIUS 20
 
-#define EOS_SCREEN_SWITCH_DURATION 300
-
 /* Public typedefs --------------------------------------------*/
 
 /**
@@ -61,10 +59,7 @@ void eos_obj_get_coord_center(lv_obj_t *obj, lv_coord_t *x, lv_coord_t *y);
  * @param event_user_data User data for callback event
  * @return lv_obj_t* Returns `lv_button` object if created successfully, otherwise NULL
  */
-lv_obj_t *eos_button_create(lv_obj_t *parent,
-                                   const char *txt,
-                                   lv_event_cb_t clicked_cb,
-                                   void *event_user_data);
+lv_obj_t *eos_button_create(lv_obj_t *parent, const char *txt, lv_event_cb_t clicked_cb, void *event_user_data);
 /**
  * @brief Create an advanced button
  * @param parent Button's parent object
@@ -230,7 +225,10 @@ lv_obj_t *eos_list_add_round_icon_button(lv_obj_t *list, lv_color_t bg_color, co
  *
  * Returns NULL if creation failed
  */
-lv_obj_t *eos_list_add_round_icon_button_str_id(lv_obj_t *list, lv_color_t bg_color, const void *icon_src, lang_string_id_t id);
+lv_obj_t *eos_list_add_round_icon_button_str_id(lv_obj_t *list,
+                                                lv_color_t bg_color,
+                                                const void *icon_src,
+                                                lang_string_id_t id);
 /**
  * @brief Create a slider in list
  * @param list Target list
@@ -271,10 +269,11 @@ lv_obj_t *eos_list_add_container(lv_obj_t *list);
  * @return lv_obj_t* Returns row object for further operations
  */
 lv_obj_t *eos_row_create(lv_obj_t *parent,
-                            const char *left_text,
-                            const char *right_text,
-                            const char *left_img_path,
-                            int icon_w, int icon_h);
+                         const char *left_text,
+                         const char *right_text,
+                         const char *left_img_path,
+                         int icon_w,
+                         int icon_h);
 /**
  * @brief Create a container with title (title is outside container)
  * @param list Target list

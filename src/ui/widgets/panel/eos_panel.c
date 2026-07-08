@@ -66,8 +66,8 @@ static void _eos_panel_build_content(eos_panel_t *panel, const eos_panel_cfg_t *
         }
         else if (cfg->icon_type == EOS_PANEL_ICON_TYPE_IMAGE)
         {
-            lv_obj_t *icon_img = lv_img_create(panel->icon);
-            lv_img_set_src(icon_img, cfg->icon_src);
+            lv_obj_t *icon_img = lv_image_create(panel->icon);
+            lv_image_set_src(icon_img, cfg->icon_src);
             lv_obj_center(icon_img);
         }
     }
@@ -167,7 +167,7 @@ static void _eos_panel_build_content(eos_panel_t *panel, const eos_panel_cfg_t *
     /* Confirm button (top) */
     if (cfg->confirm_btn_id != 0 || cfg->confirm_btn_text != NULL)
     {
-        panel->confirm_btn = lv_btn_create(panel->actions);
+        panel->confirm_btn = lv_button_create(panel->actions);
         lv_obj_set_size(panel->confirm_btn, LV_PCT(100), EOS_THEME_BUTTON_HEIGHT);
         lv_obj_set_style_radius(panel->confirm_btn, _PANEL_BUTTON_RADIUS, 0);
 
@@ -191,7 +191,7 @@ static void _eos_panel_build_content(eos_panel_t *panel, const eos_panel_cfg_t *
     /* Cancel button (bottom) */
     if (cfg->cancel_btn_id != 0 || cfg->cancel_btn_text != NULL)
     {
-        panel->cancel_btn = lv_btn_create(panel->actions);
+        panel->cancel_btn = lv_button_create(panel->actions);
         lv_obj_set_size(panel->cancel_btn, LV_PCT(100), EOS_THEME_BUTTON_HEIGHT);
         lv_obj_set_style_radius(panel->cancel_btn, _PANEL_BUTTON_RADIUS, 0);
 

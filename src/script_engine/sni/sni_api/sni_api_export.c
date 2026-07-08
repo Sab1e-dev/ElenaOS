@@ -73,17 +73,17 @@ bool sni_api_register_constants(const sni_constant_desc_t *constants, jerry_valu
 
         switch (constants[i].type)
         {
-        case SNI_CONST_INT:
-            value = jerry_number((double)constants[i].value.i);
-            break;
-        case SNI_CONST_FLOAT:
-            value = jerry_number(constants[i].value.f);
-            break;
-        case SNI_CONST_STRING:
-            value = jerry_string_sz(constants[i].value.s);
-            break;
-        default:
-            return false;
+            case SNI_CONST_INT:
+                value = jerry_number((double)constants[i].value.i);
+                break;
+            case SNI_CONST_FLOAT:
+                value = jerry_number(constants[i].value.f);
+                break;
+            case SNI_CONST_STRING:
+                value = jerry_string_sz(constants[i].value.s);
+                break;
+            default:
+                return false;
         }
 
         if (jerry_value_is_exception(value))
@@ -404,9 +404,7 @@ bool sni_api_mount(jerry_value_t realm, jerry_value_t api_obj, const char *name)
         return false;
     }
 
-    if (jerry_value_is_exception(realm) ||
-        jerry_value_is_exception(api_obj) ||
-        !jerry_value_is_object(api_obj))
+    if (jerry_value_is_exception(realm) || jerry_value_is_exception(api_obj) || !jerry_value_is_object(api_obj))
     {
         return false;
     }
