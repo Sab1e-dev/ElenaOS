@@ -144,8 +144,7 @@ struct eos_anim_t
 {
     eos_anim type; /**< Animation type */
     uint32_t anim_count; /**< Total animation count for this type */
-    uint32_t
-        anim_completed_count; /**< Current completed animation count (used to determine if all animations are finished) */
+    uint32_t anim_completed_count; /**< Count of completed sub-anims (detects when all finished) */
     eos_anim_cb_t user_cb; /**< User-defined callback function */
     lv_obj_t *tar_obj;
     bool auto_delete_obj; /**< Automatically delete bound object when animation completes */
@@ -153,7 +152,7 @@ struct eos_anim_t
     uint32_t delay; /**< Delay before animation starts (ms) */
     eos_anim_group_t *group; /**< Parent group (NULL = standalone) */
     bool no_blocker; /**< Disable blocker overlay management for this anim */
-    bool preserve_layout; /**< Keep original widget visible (opacity=0) instead of hidden for snapshot, preserving layout */
+    bool preserve_layout; /**< Keep widget visible (opa=0) instead of hidden for snapshot, preserving layout */
     lv_opa_t saved_orig_opa; /**< Original widget opacity to restore after snapshot */
     eos_anim_backend_type_t backend_type; /**< Requested animation backend */
     lv_draw_buf_t *snap_buf; /**< Snapshot backend: raster buffer */
