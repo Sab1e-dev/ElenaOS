@@ -89,7 +89,7 @@ void _play_title_changed_anim(eos_activity_t *from,
                               eos_activity_t *to,
                               bool need_anim,
                               bool reverse_anim,
-                              lv_anim_timeline_t *at);
+                              eos_anim_group_t *group);
 #ifdef __cplusplus
 }
 #endif

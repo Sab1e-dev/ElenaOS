@@ -201,8 +201,8 @@ typedef struct
 /* Forward declarations */
 static void _on_activity_destroy(eos_activity_t *activity);
 static void _input_page_register_transition_anim_route(void);
-static void _input_page_slide_in_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to);
-static void _input_page_slide_out_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to);
+static void _input_page_slide_in_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
+static void _input_page_slide_out_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
 static _input_page_ctx_t *_input_page_get_ctx(eos_activity_t *activity);
 static const eos_activity_lifecycle_t _input_page_lifecycle = {
     .on_destroy = _on_activity_destroy,
@@ -220,29 +220,6 @@ typedef struct
 
 /* Function Implementations -----------------------------------*/
 
-static void _input_page_set_translate_y(lv_obj_t *obj, int32_t value)
-{
-    if (obj && lv_obj_is_valid(obj))
-    {
-        lv_obj_set_style_translate_y(obj, value, 0);
-    }
-}
-
-static void _input_page_anim_translate_y_cb(void *var, int32_t value)
-{
-    _input_page_set_translate_y((lv_obj_t *)var, value);
-}
-
-static void _input_page_anim_init(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_duration(anim, duration);
-    lv_anim_set_exec_cb(anim, _input_page_anim_translate_y_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-}
-
 static void _input_page_enter_anim(void *param)
 {
     _input_page_ctx_t *ctx = (_input_page_ctx_t *)param;
@@ -258,12 +235,15 @@ static void _input_page_enter_anim(void *param)
         height = TEXTAREA_HEIGHT + KEYBOARD_HEIGHT + BUTTON_HEIGHT;
     }
 
-    _input_page_set_translate_y(ctx->root, height);
+    lv_obj_set_style_translate_y(ctx->root, height, 0);
 
     int32_t root_x = lv_obj_get_x(ctx->root);
     eos_anim_t *anim = eos_anim_move_create(ctx->root, root_x, height, root_x, 0, 260, false);
     if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
         eos_anim_start(anim);
+    }
 }
 
 static int32_t _input_page_get_slide_height(lv_obj_t *obj)
@@ -289,9 +269,9 @@ static _input_page_ctx_t *_input_page_get_ctx(eos_activity_t *activity)
     return ctx;
 }
 
-static void _input_page_slide_out_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to)
+static void _input_page_slide_out_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to)
 {
-    if (!at || !from)
+    if (!group || !from)
     {
         return;
     }
@@ -316,9 +296,13 @@ static void _input_page_slide_out_anim_cb(lv_anim_timeline_t *at, eos_activity_t
 
     lv_obj_set_style_translate_y(anim_target, 0, 0);
 
-    lv_anim_t anim;
-    _input_page_anim_init(&anim, anim_target, 0, height, 220);
-    lv_anim_timeline_add(at, 0, &anim);
+    eos_anim_t *anim = eos_anim_move_create(anim_target, 0, 0, 0, height, 220, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     if (to && eos_activity_is_app_header_visible(to))
     {
@@ -326,9 +310,9 @@ static void _input_page_slide_out_anim_cb(lv_anim_timeline_t *at, eos_activity_t
     }
 }
 
-static void _input_page_slide_in_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to)
+static void _input_page_slide_in_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to)
 {
-    if (!at || !to)
+    if (!group || !to)
     {
         return;
     }
@@ -349,9 +333,13 @@ static void _input_page_slide_in_anim_cb(lv_anim_timeline_t *at, eos_activity_t 
     int32_t height = _input_page_get_slide_height(ctx->root);
     lv_obj_set_style_translate_y(ctx->root, height, 0);
 
-    lv_anim_t anim;
-    _input_page_anim_init(&anim, ctx->root, height, 0, 260);
-    lv_anim_timeline_add(at, 0, &anim);
+    eos_anim_t *anim = eos_anim_move_create(ctx->root, 0, height, 0, 0, 260, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     if (from && eos_activity_is_app_header_visible(from))
     {

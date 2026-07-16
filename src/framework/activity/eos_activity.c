@@ -47,8 +47,7 @@ typedef struct eos_activity_snapshot_node_t
 
 typedef struct
 {
-    lv_anim_timeline_t *at;
-    lv_anim_t dummy_anim;
+    eos_anim_group_t *group;
 
     eos_activity_t *from;
     eos_activity_t *to;
@@ -138,9 +137,8 @@ static const char *_activity_type_to_str(eos_activity_type_t type)
 }
 
 static void _update_app_header_if_needed(eos_activity_t *activity);
-static void _anim_timeline_start(eos_activity_t *from, eos_activity_t *to, eos_activity_anim_ctx_t *anim_ctx);
-static void _init_anim_timeline(eos_activity_anim_ctx_t *anim_ctx);
-static void _anim_dummy_exec_cb(void *var, int32_t value);
+static void _anim_group_start(eos_activity_t *from, eos_activity_t *to, eos_activity_anim_ctx_t *anim_ctx);
+static void _anim_clean_up_activity(void *user_data);
 static void _anim_clean_up_activity_deferred(void *user_data);
 static void _activity_mark_visible(eos_activity_t *activity);
 static void _snapshot_img_delete_cb(lv_event_t *e);
@@ -278,12 +276,6 @@ static void _activity_show(eos_activity_t *activity)
     lv_obj_move_foreground(activity->view);
 }
 
-static void _anim_dummy_exec_cb(void *var, int32_t value)
-{
-    LV_UNUSED(var);
-    LV_UNUSED(value);
-}
-
 static void _activity_mark_visible(eos_activity_t *activity)
 {
     _activity_ctx.visible_activity = activity;
@@ -407,10 +399,10 @@ static void _anim_clean_up_activity_deferred(void *user_data)
         eos_app_header_show(anim_ctx->to);
     }
 
-    if (anim_ctx->at)
+    if (anim_ctx->group)
     {
-        lv_anim_timeline_delete(anim_ctx->at);
-        anim_ctx->at = NULL;
+        eos_anim_group_del(anim_ctx->group);
+        anim_ctx->group = NULL;
     }
 
     eos_event_post(EOS_EVENT_ACTIVITY_SCREEN_SWITCHED,
@@ -525,8 +517,8 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
         eos_activity_anim_ctx_t *anim_ctx = eos_malloc_zeroed(sizeof(eos_activity_anim_ctx_t));
         if (anim_ctx)
         {
-            anim_ctx->at = lv_anim_timeline_create();
-            if (!anim_ctx->at)
+            anim_ctx->group = eos_anim_group_create(_anim_clean_up_activity, anim_ctx);
+            if (!anim_ctx->group)
             {
                 eos_free(anim_ctx);
                 anim_ctx = NULL;
@@ -551,16 +543,15 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
 
             _activity_ctx.transition_in_progress = true;
             transition_started = true;
-            _init_anim_timeline(anim_ctx);
             _activity_ctx.active_anim_ctx = anim_ctx;
             _activity_ctx.snapshot_capture_window = true;
             if (anim_cb)
             {
-                anim_cb(anim_ctx->at, cur_activity, next_activity);
+                anim_cb(anim_ctx->group, cur_activity, next_activity);
             }
             else
             {
-                eos_list_transition_play(anim_ctx->at, cur_activity, next_activity, cur_activity->destroy_on_exit);
+                eos_list_transition_play(anim_ctx->group, cur_activity, next_activity, cur_activity->destroy_on_exit);
             }
             _activity_ctx.snapshot_capture_window = false;
             _activity_ctx.active_anim_ctx = NULL;
@@ -570,9 +561,9 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
                                          next_activity,
                                          header_need_anim,
                                          header_reverse_anim,
-                                         anim_ctx->at);
+                                         anim_ctx->group);
             }
-            _anim_timeline_start(cur_activity, next_activity, anim_ctx);
+            _anim_group_start(cur_activity, next_activity, anim_ctx);
         }
     }
 
@@ -632,12 +623,12 @@ static lv_obj_t *_view_create(lv_obj_t *parent)
     return view;
 }
 
-static void _anim_clean_up_activity(lv_anim_t *a)
+static void _anim_clean_up_activity(void *user_data)
 {
-    if (!a)
+    if (!user_data)
         return;
 
-    eos_activity_anim_ctx_t *anim_ctx = (eos_activity_anim_ctx_t *)lv_anim_get_user_data(a);
+    eos_activity_anim_ctx_t *anim_ctx = (eos_activity_anim_ctx_t *)user_data;
     if (!anim_ctx)
         return;
 
@@ -670,43 +661,21 @@ static void _anim_clean_up_activity(lv_anim_t *a)
     eos_dispatcher_call(_anim_clean_up_activity_deferred, anim_ctx);
 }
 
-static void _init_anim_timeline(eos_activity_anim_ctx_t *anim_ctx)
-{
-    if (!anim_ctx)
-    {
-        return;
-    }
-
-    lv_anim_init(&anim_ctx->dummy_anim);
-    lv_anim_set_var(&anim_ctx->dummy_anim, lv_screen_active());
-    lv_anim_set_exec_cb(&anim_ctx->dummy_anim, _anim_dummy_exec_cb);
-    lv_anim_set_values(&anim_ctx->dummy_anim, 0, 100);
-    lv_anim_set_delay(&anim_ctx->dummy_anim, 1);
-    lv_anim_set_completed_cb(&anim_ctx->dummy_anim, _anim_clean_up_activity);
-    lv_anim_set_user_data(&anim_ctx->dummy_anim, anim_ctx);
-}
-
-static void _anim_timeline_start(eos_activity_t *from, eos_activity_t *to, eos_activity_anim_ctx_t *anim_ctx)
+static void _anim_group_start(eos_activity_t *from, eos_activity_t *to, eos_activity_anim_ctx_t *anim_ctx)
 {
     LV_UNUSED(from);
     LV_UNUSED(to);
 
-    if (!(anim_ctx && anim_ctx->at))
+    if (!(anim_ctx && anim_ctx->group))
     {
         return;
     }
 
-    uint32_t playtime = lv_anim_timeline_get_playtime(anim_ctx->at);
-    if (playtime == 0)
+    if (anim_ctx->group->expected == 0)
     {
-        _anim_clean_up_activity(&anim_ctx->dummy_anim);
+        _anim_clean_up_activity(anim_ctx);
         return;
     }
-
-    lv_anim_set_duration(&anim_ctx->dummy_anim, playtime);
-    lv_anim_timeline_add(anim_ctx->at, 0, &anim_ctx->dummy_anim);
-
-    lv_anim_timeline_start(anim_ctx->at);
 }
 
 void eos_activity_set_type(eos_activity_t *activity, eos_activity_type_t type)

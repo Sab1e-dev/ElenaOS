@@ -55,10 +55,91 @@ void eos_anim_set_playback_time(eos_anim_t *anim, uint32_t time_ms)
     anim->playback_time = time_ms;
 }
 
+void eos_anim_set_no_blocker(eos_anim_t *anim, bool no_blocker)
+{
+    if (!anim)
+        return;
+    anim->no_blocker = no_blocker;
+}
+
+void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb)
+{
+    if (!anim || !path_cb)
+        return;
+    switch (anim->type)
+    {
+        case EOS_ANIM_SCALE:
+            lv_anim_set_path_cb(&anim->anim.scale.a_width, path_cb);
+            lv_anim_set_path_cb(&anim->anim.scale.a_height, path_cb);
+            break;
+        case EOS_ANIM_FADE:
+            lv_anim_set_path_cb(&anim->anim.fade.a_opa, path_cb);
+            break;
+        case EOS_ANIM_MOVE:
+            if (!anim->cfg.move.disable_x)
+                lv_anim_set_path_cb(&anim->anim.move.a_x, path_cb);
+            if (!anim->cfg.move.disable_y)
+                lv_anim_set_path_cb(&anim->anim.move.a_y, path_cb);
+            break;
+        case EOS_ANIM_TRANSFORM_SCALE:
+            lv_anim_set_path_cb(&anim->anim.transform_scale.a_scale, path_cb);
+            break;
+        case EOS_ANIM_IMAGE_SCALE:
+            lv_anim_set_path_cb(&anim->anim.image_scale.a_scale, path_cb);
+            break;
+        case EOS_ANIM_RESIZE:
+            if (!anim->cfg.resize.disable_w)
+                lv_anim_set_path_cb(&anim->anim.resize.a_w, path_cb);
+            if (!anim->cfg.resize.disable_h)
+                lv_anim_set_path_cb(&anim->anim.resize.a_h, path_cb);
+            break;
+    }
+}
+
+eos_anim_group_t *eos_anim_group_create(eos_anim_group_cb_t cb, void *user_data)
+{
+    eos_anim_group_t *group = eos_malloc_zeroed(sizeof(eos_anim_group_t));
+    if (!group)
+        return NULL;
+    group->callback = cb;
+    group->user_data = user_data;
+    EOS_LOG_I("Group created: %p", group);
+    return group;
+}
+
+void eos_anim_group_del(eos_anim_group_t *group)
+{
+    if (!group)
+        return;
+    EOS_LOG_I("Group freed: %p", group);
+    eos_free(group);
+}
+
+void eos_anim_group_attach(eos_anim_t *anim, eos_anim_group_t *group)
+{
+    if (!anim || !group)
+        return;
+    anim->group = group;
+    anim->no_blocker = true;
+    group->expected++;
+    EOS_LOG_I("Anim[%p] attached to group[%p] (expected=%d)", anim, group, group->expected);
+}
+
 void eos_anim_del(eos_anim_t *anim)
 {
     if (!anim)
         return;
+
+    if (anim->group)
+    {
+        eos_anim_group_t *g = anim->group;
+        anim->group = NULL;
+        g->completed++;
+        if (g->completed >= g->expected && g->callback)
+        {
+            g->callback(g->user_data);
+        }
+    }
 
     if (anim->snap_image && lv_obj_is_valid(anim->snap_image))
     {
@@ -213,10 +294,26 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
         {
             anim->user_cb(anim);
         }
+
+        if (anim->group)
+        {
+            eos_anim_group_t *g = anim->group;
+            anim->group = NULL;
+            g->completed++;
+            if (g->completed >= g->expected && g->callback)
+            {
+                g->callback(g->user_data);
+            }
+        }
+
         lv_timer_t *t = lv_timer_create(_free_anim_later, 10, anim);
         lv_timer_set_repeat_count(t, 1);
     }
-    eos_anim_blocker_hide();
+
+    if (!anim->no_blocker && !anim->group)
+    {
+        eos_anim_blocker_hide();
+    }
 }
 
 /************************** 4. Animation Initialization Functions **************************/
@@ -445,6 +542,14 @@ static void _apply_repeat_playback(lv_anim_t *a, eos_anim_t *anim)
 
 /************************** 7. Animation Creation and Start **************************/
 
+static void _apply_delay(lv_anim_t *a, eos_anim_t *anim)
+{
+    if (anim->delay > 0)
+    {
+        lv_anim_set_delay(a, anim->delay);
+    }
+}
+
 static void _anim_init_common(eos_anim_t *anim, eos_anim type, lv_obj_t *tar_obj, uint32_t duration, bool auto_delete)
 {
     anim->type = type;
@@ -455,6 +560,8 @@ static void _anim_init_common(eos_anim_t *anim, eos_anim type, lv_obj_t *tar_obj
     anim->auto_delete_obj = auto_delete;
     anim->tar_obj = tar_obj;
     anim->delay = 0;
+    anim->group = NULL;
+    anim->no_blocker = false;
     anim->backend_type = EOS_ANIM_BACKEND_DIRECT;
     anim->snap_buf = NULL;
     anim->snap_image = NULL;
@@ -804,48 +911,60 @@ bool eos_anim_start(eos_anim_t *anim)
         }
     }
 
-    eos_anim_blocker_show();
+    if (!anim->no_blocker)
+    {
+        eos_anim_blocker_show();
+    }
 
     switch (anim->type)
     {
         case EOS_ANIM_SCALE:
+            _apply_delay(&anim->anim.scale.a_width, anim);
+            _apply_delay(&anim->anim.scale.a_height, anim);
             _apply_repeat_playback(&anim->anim.scale.a_width, anim);
             _apply_repeat_playback(&anim->anim.scale.a_height, anim);
             lv_anim_start(&anim->anim.scale.a_width);
             lv_anim_start(&anim->anim.scale.a_height);
             break;
         case EOS_ANIM_FADE:
+            _apply_delay(&anim->anim.fade.a_opa, anim);
             _apply_repeat_playback(&anim->anim.fade.a_opa, anim);
             lv_anim_start(&anim->anim.fade.a_opa);
             break;
         case EOS_ANIM_MOVE:
             if (!anim->cfg.move.disable_x)
             {
+                _apply_delay(&anim->anim.move.a_x, anim);
                 _apply_repeat_playback(&anim->anim.move.a_x, anim);
                 lv_anim_start(&anim->anim.move.a_x);
             }
             if (!anim->cfg.move.disable_y)
             {
+                _apply_delay(&anim->anim.move.a_y, anim);
                 _apply_repeat_playback(&anim->anim.move.a_y, anim);
                 lv_anim_start(&anim->anim.move.a_y);
             }
             break;
         case EOS_ANIM_TRANSFORM_SCALE:
+            _apply_delay(&anim->anim.transform_scale.a_scale, anim);
             _apply_repeat_playback(&anim->anim.transform_scale.a_scale, anim);
             lv_anim_start(&anim->anim.transform_scale.a_scale);
             break;
         case EOS_ANIM_IMAGE_SCALE:
+            _apply_delay(&anim->anim.image_scale.a_scale, anim);
             _apply_repeat_playback(&anim->anim.image_scale.a_scale, anim);
             lv_anim_start(&anim->anim.image_scale.a_scale);
             break;
         case EOS_ANIM_RESIZE:
             if (!anim->cfg.resize.disable_w)
             {
+                _apply_delay(&anim->anim.resize.a_w, anim);
                 _apply_repeat_playback(&anim->anim.resize.a_w, anim);
                 lv_anim_start(&anim->anim.resize.a_w);
             }
             if (!anim->cfg.resize.disable_h)
             {
+                _apply_delay(&anim->anim.resize.a_h, anim);
                 _apply_repeat_playback(&anim->anim.resize.a_h, anim);
                 lv_anim_start(&anim->anim.resize.a_h);
             }

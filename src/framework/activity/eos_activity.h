@@ -16,6 +16,7 @@ extern "C" {
 #include "lvgl.h"
 #include "eos_core.h"
 #include "eos_lang.h"
+#include "eos_anim.h"
 /* Public macros ----------------------------------------------*/
 
 #define EOS_VIEW_SWITCH_DURATION 300
@@ -40,7 +41,7 @@ typedef void (*eos_activity_on_enter_t)(eos_activity_t *activity);
 typedef void (*eos_activity_on_destroy_t)(eos_activity_t *activity);
 typedef void (*eos_activity_on_pause_t)(eos_activity_t *activity);
 typedef void (*eos_activity_on_resume_t)(eos_activity_t *activity);
-typedef void (*eos_activity_anim_cb_t)(lv_anim_timeline_t *at, eos_activity_t *this, eos_activity_t *next);
+typedef void (*eos_activity_anim_cb_t)(eos_anim_group_t *group, eos_activity_t *this, eos_activity_t *next);
 
 typedef struct
 {

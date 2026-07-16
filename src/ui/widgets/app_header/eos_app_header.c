@@ -164,21 +164,11 @@ static void _set_back_btn_style(lv_obj_t *btn)
     lv_obj_align(btn, LV_ALIGN_LEFT_MID, _BACK_BTN_MARGIN_LEFT, 0);
 }
 
-static void _ah_set_translate_x_cb(void *var, int32_t v)
-{
-    lv_obj_set_style_translate_x((lv_obj_t *)var, v, 0);
-}
-
-static void _ah_set_opa_layered_cb(void *var, int32_t v)
-{
-    lv_obj_set_style_opa_layered((lv_obj_t *)var, (lv_opa_t)v, 0);
-}
-
 void _play_title_changed_anim(eos_activity_t *from,
                               eos_activity_t *to,
                               bool need_anim,
                               bool reverse_anim,
-                              lv_anim_timeline_t *at)
+                              eos_anim_group_t *group)
 {
     EOS_CHECK_PTR_RETURN(app_header);
     if (!(lv_obj_is_valid(app_header->title_label) && lv_obj_has_class(app_header->title_label, &lv_label_class)))
@@ -192,7 +182,7 @@ void _play_title_changed_anim(eos_activity_t *from,
         need_anim = false;
     }
 
-    if (!need_anim || !at)
+    if (!need_anim || !group)
     {
         const char *new_title = eos_activity_get_title(to);
         EOS_LOG_D("New title: %s", new_title);
@@ -244,39 +234,39 @@ void _play_title_changed_anim(eos_activity_t *from,
         back_btn_end_x = back_btn_start_x + _ANIM_BACK_BTN_MOVE_DISTANCE;
     }
 
-    lv_anim_t a;
+    // Old title slide out + fade out
+    eos_anim_t *anim = eos_anim_move_create(l, title_start_x, 0, title_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, l);
-    lv_anim_set_values(&a, title_start_x, title_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(l, LV_OPA_COVER, LV_OPA_TRANSP, _ANIM_DURATION + 1, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, l);
-    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION + 1);
-    lv_anim_timeline_add(at, 0, &a);
+    // Old back btn slide out + fade out
+    anim = eos_anim_move_create(back_btn, back_btn_start_x, 0, back_btn_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, back_btn);
-    lv_anim_set_values(&a, back_btn_start_x, back_btn_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
-
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, back_btn);
-    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION + 1);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(back_btn, LV_OPA_COVER, LV_OPA_TRANSP, _ANIM_DURATION + 1, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     app_header->old_fading_title = l;
     app_header->old_fading_back_btn = back_btn;
@@ -313,37 +303,39 @@ void _play_title_changed_anim(eos_activity_t *from,
     lv_obj_set_style_translate_x(new_back_btn, new_back_btn_start_x, 0);
     lv_obj_set_style_opa_layered(new_back_btn, LV_OPA_TRANSP, 0);
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_l);
-    lv_anim_set_values(&a, new_title_start_x, new_title_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    // New title slide in + fade in
+    anim = eos_anim_move_create(new_l, new_title_start_x, 0, new_title_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_l);
-    lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(new_l, LV_OPA_TRANSP, LV_OPA_COVER, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_back_btn);
-    lv_anim_set_values(&a, new_back_btn_start_x, new_back_btn_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    // New back btn slide in + fade in
+    anim = eos_anim_move_create(new_back_btn, new_back_btn_start_x, 0, new_back_btn_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_back_btn);
-    lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(new_back_btn, LV_OPA_TRANSP, LV_OPA_COVER, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     app_header->title_label = new_l;
     app_header->back_btn = new_back_btn;

@@ -116,7 +116,7 @@ bool eos_list_transition_should_animate(eos_activity_t *from, eos_activity_t *to
  * @param to Target Activity
  * @param back Whether it's a return transition
  */
-void eos_list_transition_play(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to, bool back);
+void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to, bool back);
 /**
  * @brief Create a back button
  * @param parent Parent object

@@ -114,10 +114,29 @@ typedef enum
 } eos_anim_backend_type_t;
 
 typedef struct eos_anim_t eos_anim_t; // Forward declaration
+typedef struct eos_anim_group_t eos_anim_group_t; // Forward declaration
+
 /**
- * @brief Callback function type definition
+ * @brief Callback function type definition for individual animation completion
  */
 typedef void (*eos_anim_cb_t)(eos_anim_t *a);
+
+/**
+ * @brief Callback function type definition for animation group completion
+ */
+typedef void (*eos_anim_group_cb_t)(void *user_data);
+
+/**
+ * @brief Animation group - tracks completion across multiple eos_anim objects
+ */
+struct eos_anim_group_t
+{
+    uint32_t expected; /**< Total expected animations in the group */
+    uint32_t completed; /**< Number of animations that have completed */
+    eos_anim_group_cb_t callback; /**< Group completion callback */
+    void *user_data; /**< User data for group callback */
+};
+
 /**
  * @brief ElenixOS animation object structure
  */
@@ -132,6 +151,8 @@ struct eos_anim_t
     bool auto_delete_obj; /**< Automatically delete bound object when animation completes */
     void *user_data; /**< User data */
     uint32_t delay; /**< Delay before animation starts (ms) */
+    eos_anim_group_t *group; /**< Parent group (NULL = standalone) */
+    bool no_blocker; /**< Disable blocker overlay management for this anim */
     eos_anim_backend_type_t backend_type; /**< Requested animation backend */
     lv_draw_buf_t *snap_buf; /**< Snapshot backend: raster buffer */
     lv_obj_t *snap_image; /**< Snapshot backend: lv_image for animating */
@@ -209,6 +230,22 @@ void eos_anim_set_repeat_count(eos_anim_t *anim, uint16_t count);
  * @brief Set playback (reverse) time in ms (0 = no reverse, default)
  */
 void eos_anim_set_playback_time(eos_anim_t *anim, uint32_t time_ms);
+
+/**
+ * @brief Disable blocker overlay management for this animation
+ */
+void eos_anim_set_no_blocker(eos_anim_t *anim, bool no_blocker);
+
+/**
+ * @brief Override the default easing path for this animation
+ */
+void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb);
+
+/************************** Animation Group **************************/
+
+eos_anim_group_t *eos_anim_group_create(eos_anim_group_cb_t cb, void *user_data);
+void eos_anim_group_del(eos_anim_group_t *group);
+void eos_anim_group_attach(eos_anim_t *anim, eos_anim_group_t *group);
 
 /************************** Animation **************************/
 

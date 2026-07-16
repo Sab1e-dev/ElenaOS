@@ -107,8 +107,8 @@ static void _app_installed_cb(eos_event_t *e);
 static void _app_uninstalled_cb(eos_event_t *e);
 static void _container_delete_cb(lv_event_t *e);
 static void _app_list_refresh(lv_obj_t *bubble_grid);
-static void _app_list_open_app_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to);
-static void _app_list_close_app_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to);
+static void _app_list_open_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
+static void _app_list_close_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
 static void _register_anim_routes_once(void);
 static const char *_app_list_get_launch_app_id(eos_activity_t *activity);
 static void _app_list_set_last_launch_app_id(const char *app_id);
@@ -116,29 +116,7 @@ static lv_obj_t *_app_list_get_bubble_grid(eos_activity_t *activity);
 static void _app_list_record_icon_center_point(int32_t x, int32_t y);
 static bool _app_list_calc_focus_pivot(lv_obj_t *snapshot_obj, lv_obj_t *icon_obj, int32_t *pivot_x, int32_t *pivot_y);
 static bool _app_list_calc_focus_pivot_by_global_center(lv_obj_t *obj, int32_t *pivot_x, int32_t *pivot_y);
-static void _app_list_set_transform_scale_cb(void *var, int32_t value);
-static void _app_list_set_image_scale_cb(void *var, int32_t value);
-static void _app_list_set_translate_x_cb(void *var, int32_t value);
-static void _app_list_set_translate_y_cb(void *var, int32_t value);
-static void _app_list_set_opa_cb(void *var, int32_t value);
-static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_init_image_scale_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration);
-static void _app_list_init_translate_x_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration);
-static void _app_list_init_translate_y_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration);
-static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration);
-static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
+static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *from,
                                            eos_activity_t *to,
                                            bool opening);
@@ -512,93 +490,6 @@ static bool _app_list_calc_focus_pivot(lv_obj_t *snapshot_obj, lv_obj_t *icon_ob
     return true;
 }
 
-static void _app_list_set_transform_scale_cb(void *var, int32_t value)
-{
-    lv_obj_set_style_transform_scale((lv_obj_t *)var, value, 0);
-}
-
-static void _app_list_set_image_scale_cb(void *var, int32_t value)
-{
-    lv_image_set_scale((lv_obj_t *)var, value);
-}
-
-static void _app_list_set_translate_x_cb(void *var, int32_t value)
-{
-    lv_obj_set_style_translate_x((lv_obj_t *)var, value, 0);
-}
-
-static void _app_list_set_translate_y_cb(void *var, int32_t value)
-{
-    lv_obj_set_style_translate_y((lv_obj_t *)var, value, 0);
-}
-
-static void _app_list_set_opa_cb(void *var, int32_t value)
-{
-    lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)value, 0);
-}
-
-static void _app_list_init_scale_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_exec_cb(anim, _app_list_set_transform_scale_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(anim, duration);
-}
-
-static void _app_list_init_image_scale_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_exec_cb(anim, _app_list_set_image_scale_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(anim, duration);
-}
-
-static void _app_list_init_translate_x_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_exec_cb(anim, _app_list_set_translate_x_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(anim, duration);
-}
-
-static void _app_list_init_translate_y_anim(lv_anim_t *anim,
-                                            lv_obj_t *obj,
-                                            int32_t start,
-                                            int32_t end,
-                                            uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_exec_cb(anim, _app_list_set_translate_y_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(anim, duration);
-}
-
-static void _app_list_init_opa_anim(lv_anim_t *anim, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration)
-{
-    lv_anim_init(anim);
-    lv_anim_set_var(anim, obj);
-    lv_anim_set_values(anim, start, end);
-    lv_anim_set_exec_cb(anim, _app_list_set_opa_cb);
-    lv_anim_set_path_cb(anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(anim, duration);
-}
-
 static void _app_list_cleanup_extra_cb(lv_event_t *e)
 {
     lv_obj_t *extra = (lv_obj_t *)lv_event_get_user_data(e);
@@ -661,12 +552,12 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     return icon_clone;
 }
 
-static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
+static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *from,
                                            eos_activity_t *to,
                                            bool opening)
 {
-    if (!(at && from && to))
+    if (!(group && from && to))
     {
         return;
     }
@@ -679,7 +570,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
         focus_icon = eos_bubble_get_icon_obj(bubble_grid, (uint32_t)_app_list_last_click_index);
     }
 
-    /* Closing animation should not render app header on top. */
     bool include_header_in_snapshot = opening;
 
     lv_obj_t *list_snapshot = NULL;
@@ -822,16 +712,6 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
         focus_translate_y = view_center_y - _app_list_last_icon_center_y;
     }
 
-    lv_anim_t list_scale_anim;
-    lv_anim_t list_translate_x_anim;
-    lv_anim_t list_translate_y_anim;
-    lv_anim_t icon_scale_anim;
-    lv_anim_t icon_translate_x_anim;
-    lv_anim_t icon_translate_y_anim;
-    lv_anim_t icon_opa_anim;
-    lv_anim_t app_scale_anim;
-    lv_anim_t app_opa_anim;
-
     if (opening)
     {
         if (list_snapshot)
@@ -839,24 +719,28 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
             lv_image_set_scale(list_snapshot, 256);
             lv_obj_set_style_translate_x(list_snapshot, 0, 0);
             lv_obj_set_style_translate_y(list_snapshot, 0, 0);
-            _app_list_init_image_scale_anim(&list_scale_anim,
-                                            list_snapshot,
-                                            256,
-                                            _APP_LIST_ANIM_FOCUS_SCALE,
-                                            from_scale_duration);
-            _app_list_init_translate_x_anim(&list_translate_x_anim,
-                                            list_snapshot,
-                                            0,
-                                            focus_translate_x,
-                                            from_scale_duration);
-            _app_list_init_translate_y_anim(&list_translate_y_anim,
-                                            list_snapshot,
-                                            0,
-                                            focus_translate_y,
-                                            from_scale_duration);
-            lv_anim_timeline_add(at, 0, &list_scale_anim);
-            lv_anim_timeline_add(at, 0, &list_translate_x_anim);
-            lv_anim_timeline_add(at, 0, &list_translate_y_anim);
+
+            eos_anim_t *anim =
+                eos_anim_image_scale_create(list_snapshot, 256, _APP_LIST_ANIM_FOCUS_SCALE, from_scale_duration, false);
+            if (anim)
+            {
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_move_create(list_snapshot,
+                                        0,
+                                        0,
+                                        focus_translate_x,
+                                        focus_translate_y,
+                                        from_scale_duration,
+                                        false);
+            if (anim)
+            {
+                eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
         }
 
         if (icon_clone)
@@ -865,42 +749,68 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
             lv_obj_set_style_translate_x(icon_clone, 0, 0);
             lv_obj_set_style_translate_y(icon_clone, 0, 0);
             lv_obj_set_style_opa(icon_clone, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_START, 0);
-            _app_list_init_scale_anim(&icon_scale_anim,
-                                      icon_clone,
-                                      256,
-                                      _APP_LIST_ANIM_FOCUS_SCALE,
-                                      from_scale_duration);
-            _app_list_init_translate_x_anim(&icon_translate_x_anim,
-                                            icon_clone,
-                                            0,
-                                            focus_translate_x,
-                                            from_scale_duration);
-            _app_list_init_translate_y_anim(&icon_translate_y_anim,
-                                            icon_clone,
-                                            0,
-                                            focus_translate_y,
-                                            from_scale_duration);
-            _app_list_init_opa_anim(&icon_opa_anim,
-                                    icon_clone,
-                                    _APP_LIST_ANIM_FROM_OPA_START,
-                                    _APP_LIST_ANIM_FROM_OPA_END,
-                                    total_duration);
-            lv_anim_timeline_add(at, 0, &icon_scale_anim);
-            lv_anim_timeline_add(at, 0, &icon_translate_x_anim);
-            lv_anim_timeline_add(at, 0, &icon_translate_y_anim);
-            lv_anim_timeline_add(at, 0, &icon_opa_anim);
+
+            eos_anim_t *anim = eos_anim_transform_scale_create(icon_clone,
+                                                               256,
+                                                               _APP_LIST_ANIM_FOCUS_SCALE,
+                                                               from_scale_duration,
+                                                               false);
+            if (anim)
+            {
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_move_create(icon_clone,
+                                        0,
+                                        0,
+                                        focus_translate_x,
+                                        focus_translate_y,
+                                        from_scale_duration,
+                                        false);
+            if (anim)
+            {
+                eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_fade_create(icon_clone,
+                                        _APP_LIST_ANIM_FROM_OPA_START,
+                                        _APP_LIST_ANIM_FROM_OPA_END,
+                                        total_duration,
+                                        false);
+            if (anim)
+            {
+                eos_anim_fade_set_main_opa(anim, true);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
         }
 
         lv_image_set_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_START, 0);
-        _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, to_duration);
-        _app_list_init_opa_anim(&app_opa_anim,
-                                app_snapshot,
-                                _APP_LIST_ANIM_TO_OPA_START,
-                                _APP_LIST_ANIM_TO_OPA_END,
-                                to_duration);
-        lv_anim_timeline_add(at, split_delay, &app_scale_anim);
-        lv_anim_timeline_add(at, split_delay, &app_opa_anim);
+
+        eos_anim_t *anim = eos_anim_image_scale_create(app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, to_duration, false);
+        if (anim)
+        {
+            eos_anim_set_delay(anim, split_delay);
+            eos_anim_group_attach(anim, group);
+            eos_anim_start(anim);
+        }
+
+        anim = eos_anim_fade_create(app_snapshot,
+                                    _APP_LIST_ANIM_TO_OPA_START,
+                                    _APP_LIST_ANIM_TO_OPA_END,
+                                    to_duration,
+                                    false);
+        if (anim)
+        {
+            eos_anim_fade_set_main_opa(anim, true);
+            eos_anim_set_delay(anim, split_delay);
+            eos_anim_group_attach(anim, group);
+            eos_anim_start(anim);
+        }
     }
     else
     {
@@ -909,16 +819,24 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
             lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
             lv_obj_set_style_translate_x(list_snapshot, focus_translate_x, 0);
             lv_obj_set_style_translate_y(list_snapshot, focus_translate_y, 0);
-            _app_list_init_image_scale_anim(&list_scale_anim,
-                                            list_snapshot,
-                                            _APP_LIST_ANIM_FOCUS_SCALE,
-                                            256,
-                                            to_duration);
-            _app_list_init_translate_x_anim(&list_translate_x_anim, list_snapshot, focus_translate_x, 0, to_duration);
-            _app_list_init_translate_y_anim(&list_translate_y_anim, list_snapshot, focus_translate_y, 0, to_duration);
-            lv_anim_timeline_add(at, split_delay, &list_scale_anim);
-            lv_anim_timeline_add(at, split_delay, &list_translate_x_anim);
-            lv_anim_timeline_add(at, split_delay, &list_translate_y_anim);
+
+            eos_anim_t *anim =
+                eos_anim_image_scale_create(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration, false);
+            if (anim)
+            {
+                eos_anim_set_delay(anim, split_delay);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_move_create(list_snapshot, focus_translate_x, focus_translate_y, 0, 0, to_duration, false);
+            if (anim)
+            {
+                eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+                eos_anim_set_delay(anim, split_delay);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
         }
 
         if (icon_clone)
@@ -927,30 +845,60 @@ static void _app_list_play_transition_anim(lv_anim_timeline_t *at,
             lv_obj_set_style_translate_x(icon_clone, focus_translate_x, 0);
             lv_obj_set_style_translate_y(icon_clone, focus_translate_y, 0);
             lv_obj_set_style_opa(icon_clone, (lv_opa_t)_APP_LIST_ANIM_FROM_OPA_END, 0);
-            _app_list_init_scale_anim(&icon_scale_anim, icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration);
-            _app_list_init_translate_x_anim(&icon_translate_x_anim, icon_clone, focus_translate_x, 0, to_duration);
-            _app_list_init_translate_y_anim(&icon_translate_y_anim, icon_clone, focus_translate_y, 0, to_duration);
-            _app_list_init_opa_anim(&icon_opa_anim,
-                                    icon_clone,
-                                    _APP_LIST_ANIM_FROM_OPA_END,
-                                    _APP_LIST_ANIM_FROM_OPA_START,
-                                    to_duration);
-            lv_anim_timeline_add(at, split_delay, &icon_scale_anim);
-            lv_anim_timeline_add(at, split_delay, &icon_translate_x_anim);
-            lv_anim_timeline_add(at, split_delay, &icon_translate_y_anim);
-            lv_anim_timeline_add(at, split_delay, &icon_opa_anim);
+
+            eos_anim_t *anim =
+                eos_anim_transform_scale_create(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 256, to_duration, false);
+            if (anim)
+            {
+                eos_anim_set_delay(anim, split_delay);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_move_create(icon_clone, focus_translate_x, focus_translate_y, 0, 0, to_duration, false);
+            if (anim)
+            {
+                eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+                eos_anim_set_delay(anim, split_delay);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
+
+            anim = eos_anim_fade_create(icon_clone,
+                                        _APP_LIST_ANIM_FROM_OPA_END,
+                                        _APP_LIST_ANIM_FROM_OPA_START,
+                                        to_duration,
+                                        false);
+            if (anim)
+            {
+                eos_anim_fade_set_main_opa(anim, true);
+                eos_anim_set_delay(anim, split_delay);
+                eos_anim_group_attach(anim, group);
+                eos_anim_start(anim);
+            }
         }
 
         lv_image_set_scale(app_snapshot, 256);
         lv_obj_set_style_opa(app_snapshot, (lv_opa_t)_APP_LIST_ANIM_TO_OPA_END, 0);
-        _app_list_init_image_scale_anim(&app_scale_anim, app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, to_duration);
-        _app_list_init_opa_anim(&app_opa_anim,
-                                app_snapshot,
-                                _APP_LIST_ANIM_TO_OPA_END,
-                                _APP_LIST_ANIM_TO_OPA_START,
-                                to_duration);
-        lv_anim_timeline_add(at, 0, &app_scale_anim);
-        lv_anim_timeline_add(at, 0, &app_opa_anim);
+
+        eos_anim_t *anim = eos_anim_image_scale_create(app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, to_duration, false);
+        if (anim)
+        {
+            eos_anim_group_attach(anim, group);
+            eos_anim_start(anim);
+        }
+
+        anim = eos_anim_fade_create(app_snapshot,
+                                    _APP_LIST_ANIM_TO_OPA_END,
+                                    _APP_LIST_ANIM_TO_OPA_START,
+                                    to_duration,
+                                    false);
+        if (anim)
+        {
+            eos_anim_fade_set_main_opa(anim, true);
+            eos_anim_group_attach(anim, group);
+            eos_anim_start(anim);
+        }
     }
 
     if (icon_clone && app_snapshot)
@@ -1129,14 +1077,14 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
 
 /************************** Animation **************************/
 
-static void _app_list_open_app_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to)
+static void _app_list_open_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to)
 {
-    _app_list_play_transition_anim(at, from, to, true);
+    _app_list_play_transition_anim(group, from, to, true);
 }
 
-static void _app_list_close_app_anim_cb(lv_anim_timeline_t *at, eos_activity_t *from, eos_activity_t *to)
+static void _app_list_close_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to)
 {
-    _app_list_play_transition_anim(at, from, to, false);
+    _app_list_play_transition_anim(group, from, to, false);
 }
 
 /************************** Helper Functions **************************/
