@@ -55,7 +55,7 @@ static void _activity_view_switched_cb(eos_event_t *e);
 static void _activity_view_switched_async_cb(void *user_data);
 static void _apply_pending_rebind_async_cb(void *user_data);
 static void _scrollbar_hide_timer_cb(lv_timer_t *t);
-static void _scrollbar_fade_out_done_cb(lv_anim_t *a);
+static void _scrollbar_fade_out_done_cb(eos_anim_t *a);
 static lv_obj_t *_find_scrollable_obj(lv_obj_t *root);
 static bool _is_descendant_of(lv_obj_t *obj, lv_obj_t *ancestor);
 static void _set_target_obj_immediate(lv_obj_t *obj);
@@ -93,13 +93,13 @@ static void _scrollbar_show_now(void)
     lv_anim_delete(scrollbar, NULL);
     lv_obj_remove_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
 
-    eos_lite_anim_fade_layered_start(scrollbar,
-                                     lv_obj_get_style_opa_layered(scrollbar, 0),
-                                     LV_OPA_100,
-                                     _SCROLLBAR_FADE_IN_DURATION,
-                                     0,
-                                     NULL,
-                                     NULL);
+    eos_anim_t *anim = eos_anim_fade_create(scrollbar,
+                                            lv_obj_get_style_opa_layered(scrollbar, 0),
+                                            LV_OPA_100,
+                                            _SCROLLBAR_FADE_IN_DURATION,
+                                            false);
+    if (anim)
+        eos_anim_start(anim);
 }
 
 static void _scrollbar_hide_now(void)
@@ -113,9 +113,9 @@ static void _scrollbar_hide_now(void)
     lv_obj_add_flag(scrollbar, LV_OBJ_FLAG_HIDDEN);
 }
 
-static void _scrollbar_fade_out_done_cb(lv_anim_t *a)
+static void _scrollbar_fade_out_done_cb(eos_anim_t *a)
 {
-    lv_obj_t *obj = (lv_obj_t *)a->var;
+    lv_obj_t *obj = a->tar_obj;
     if (!(obj && lv_obj_is_valid(obj)))
         return;
 
@@ -136,13 +136,16 @@ static void _scrollbar_hide_timer_cb(lv_timer_t *t)
         return;
 
     lv_anim_delete(scrollbar, NULL);
-    eos_lite_anim_fade_layered_start(scrollbar,
-                                     lv_obj_get_style_opa_layered(scrollbar, 0),
-                                     LV_OPA_0,
-                                     _SCROLLBAR_FADE_OUT_DURATION,
-                                     0,
-                                     _scrollbar_fade_out_done_cb,
-                                     NULL);
+    eos_anim_t *anim = eos_anim_fade_create(scrollbar,
+                                            lv_obj_get_style_opa_layered(scrollbar, 0),
+                                            LV_OPA_0,
+                                            _SCROLLBAR_FADE_OUT_DURATION,
+                                            false);
+    if (anim)
+    {
+        eos_anim_add_cb(anim, _scrollbar_fade_out_done_cb, NULL);
+        eos_anim_start(anim);
+    }
 }
 
 static void _clear_scrollable_obj(void)

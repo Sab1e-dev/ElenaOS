@@ -20,7 +20,6 @@
 #include "eos_slide_widget.h"
 #include "eos_event.h"
 #include "eos_port.h"
-#include "eos_anim.h"
 #include "eos_mem.h"
 #include "eos_crown.h"
 #include "eos_panel.h"
@@ -122,15 +121,6 @@ static void _slide_widget_reached_threashold_cb(lv_event_t *e)
 
 /************************** Detail Page Related Callbacks **************************/
 
-static void _set_item_opa_cb(void *var, int32_t v)
-{
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (obj && lv_obj_is_valid(obj))
-    {
-        lv_obj_set_style_opa(obj, (lv_opa_t)v, 0);
-    }
-}
-
 static void _delete_anim_end_cb(eos_anim_t *a)
 {
     if (!_detail_data)
@@ -179,14 +169,13 @@ static void _dismiss_btn_click_cb(lv_event_t *e)
     lv_obj_t *item_cont = _detail_data->item_container;
     if (item_cont)
     {
-        lv_anim_t item_anim;
-        lv_anim_init(&item_anim);
-        lv_anim_set_var(&item_anim, item_cont);
-        lv_anim_set_values(&item_anim, LV_OPA_TRANSP, LV_OPA_COVER);
-        lv_anim_set_exec_cb(&item_anim, _set_item_opa_cb);
-        lv_anim_set_path_cb(&item_anim, lv_anim_path_ease_in_out);
-        lv_anim_set_duration(&item_anim, _DETAIL_ANIM_DURATION);
-        lv_anim_start(&item_anim);
+        eos_anim_t *item_fade =
+            eos_anim_fade_create(item_cont, LV_OPA_TRANSP, LV_OPA_COVER, _DETAIL_ANIM_DURATION, false);
+        if (item_fade)
+        {
+            eos_anim_fade_set_main_opa(item_fade, true);
+            eos_anim_start(item_fade);
+        }
     }
 
     eos_anim_t *scale_anim =
@@ -302,14 +291,13 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
     lv_obj_set_style_transform_pivot_y(panel->container, item_center_y, 0);
 
     {
-        lv_anim_t item_anim;
-        lv_anim_init(&item_anim);
-        lv_anim_set_var(&item_anim, item->container);
-        lv_anim_set_values(&item_anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_exec_cb(&item_anim, _set_item_opa_cb);
-        lv_anim_set_path_cb(&item_anim, lv_anim_path_ease_in_out);
-        lv_anim_set_duration(&item_anim, _DETAIL_ANIM_DURATION);
-        lv_anim_start(&item_anim);
+        eos_anim_t *item_fade =
+            eos_anim_fade_create(item->container, LV_OPA_COVER, LV_OPA_TRANSP, _DETAIL_ANIM_DURATION, false);
+        if (item_fade)
+        {
+            eos_anim_fade_set_main_opa(item_fade, true);
+            eos_anim_start(item_fade);
+        }
     }
 
     eos_anim_t *scale_anim = eos_anim_transform_scale_create(panel->container, 0, 256, _DETAIL_ANIM_DURATION, false);
@@ -540,9 +528,9 @@ void eos_msg_list_clear_all(eos_msg_list_t *msg_list)
 /**
  * @brief Callback for message animation end
  */
-static void _msg_list_item_anim_end_cb(lv_anim_t *a)
+static void _msg_list_item_anim_end_cb(eos_anim_t *a)
 {
-    eos_msg_list_t *list = (eos_msg_list_t *)lv_anim_get_user_data(a);
+    eos_msg_list_t *list = (eos_msg_list_t *)a->user_data;
     EOS_CHECK_PTR_RETURN(list);
     // Decrease animation count
     if (list->animating_count > 0)
@@ -587,14 +575,21 @@ static void _trigger_msg_anims(eos_msg_list_t *list)
         if (item)
         {
             // Create animation
-            eos_lite_anim_fade_layered_start(item->container, LV_OPA_COVER, LV_OPA_TRANSP, 300, 0, NULL, NULL);
-            eos_lite_anim_move_hor_start(item->container,
-                                         lv_obj_get_x(item->container),
-                                         EOS_DISPLAY_WIDTH,
-                                         300,
-                                         0,
-                                         _msg_list_item_anim_end_cb,
-                                         list);
+            eos_anim_t *fade_anim = eos_anim_fade_create(item->container, LV_OPA_COVER, LV_OPA_TRANSP, 300, false);
+            if (fade_anim)
+                eos_anim_start(fade_anim);
+            eos_anim_t *move_anim = eos_anim_move_create(item->container,
+                                                         lv_obj_get_x(item->container),
+                                                         0,
+                                                         EOS_DISPLAY_WIDTH,
+                                                         0,
+                                                         300,
+                                                         false);
+            if (move_anim)
+            {
+                eos_anim_add_cb(move_anim, _msg_list_item_anim_end_cb, list);
+                eos_anim_start(move_anim);
+            }
 
             list->animating_count++;
             anim_index++;

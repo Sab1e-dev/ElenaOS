@@ -24,6 +24,7 @@
 #include "eos_event.h"
 #include "eos_overlay_layer.h"
 #include "eos_service_cache.h"
+#include "eos_anim.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _HEADER_HEIGHT 120
@@ -65,27 +66,9 @@ static eos_app_header_t *app_header = NULL;
 /* Function Implementations -----------------------------------*/
 static void _clock_update_cb(lv_timer_t *timer);
 
-static void _app_header_set_opa_anim_cb(void *var, int32_t value)
+static void _app_header_fade_out_ready_cb(eos_anim_t *a)
 {
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (!obj || !lv_obj_is_valid(obj))
-        return;
-
-    lv_obj_set_style_opa(obj, (lv_opa_t)value, 0);
-}
-
-static void _app_header_set_translate_y_anim_cb(void *var, int32_t value)
-{
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (!obj || !lv_obj_is_valid(obj))
-        return;
-
-    lv_obj_set_style_translate_y(obj, value, 0);
-}
-
-static void _app_header_fade_out_ready_cb(lv_anim_t *a)
-{
-    lv_obj_t *obj = (lv_obj_t *)a->var;
+    lv_obj_t *obj = a->tar_obj;
     if (!obj || !lv_obj_is_valid(obj))
         return;
 
@@ -498,36 +481,38 @@ void eos_app_header_set_visible_animated(eos_activity_t *a, bool visible, uint32
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_delete(container, _app_header_set_opa_anim_cb);
+    eos_anim_t *anim = eos_anim_fade_create(container,
+                                            visible ? LV_OPA_TRANSP : LV_OPA_COVER,
+                                            visible ? LV_OPA_COVER : LV_OPA_TRANSP,
+                                            duration_ms,
+                                            false);
+    if (!anim)
+        return;
 
-    lv_anim_t anim;
-    lv_anim_init(&anim);
-    lv_anim_set_var(&anim, container);
-    lv_anim_set_exec_cb(&anim, _app_header_set_opa_anim_cb);
-    lv_anim_set_duration(&anim, duration_ms);
+    eos_anim_fade_set_main_opa(anim, true);
 
     if (visible)
     {
         eos_app_header_show(a);
         lv_obj_set_style_opa(container, LV_OPA_TRANSP, 0);
-        lv_anim_set_values(&anim, LV_OPA_TRANSP, LV_OPA_COVER);
-        lv_anim_start(&anim);
+        eos_anim_start(anim);
     }
     else
     {
         if (lv_obj_has_flag(container, LV_OBJ_FLAG_HIDDEN))
+        {
+            eos_anim_del(anim);
             return;
-
+        }
         lv_obj_set_style_opa(container, LV_OPA_COVER, 0);
-        lv_anim_set_values(&anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_completed_cb(&anim, _app_header_fade_out_ready_cb);
-        lv_anim_start(&anim);
+        eos_anim_add_cb(anim, _app_header_fade_out_ready_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 
-static void _app_header_slide_hide_ready_cb(lv_anim_t *a)
+static void _app_header_slide_hide_ready_cb(eos_anim_t *a)
 {
-    lv_obj_t *container = (lv_obj_t *)a->var;
+    lv_obj_t *container = a->tar_obj;
     if (!container || !lv_obj_is_valid(container))
     {
         return;
@@ -560,8 +545,6 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_delete(container, _app_header_set_translate_y_anim_cb);
-    lv_anim_delete(container, _app_header_set_opa_anim_cb);
 
     int32_t header_height = lv_obj_get_height(container);
     if (header_height <= 0)
@@ -569,32 +552,34 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
         header_height = _HEADER_HEIGHT;
     }
 
-    lv_anim_t anim;
-    lv_anim_init(&anim);
-    lv_anim_set_var(&anim, container);
-    lv_anim_set_exec_cb(&anim, _app_header_set_translate_y_anim_cb);
-    lv_anim_set_path_cb(&anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&anim, duration_ms);
+    int32_t container_x = lv_obj_get_x(container);
+    eos_anim_t *anim = eos_anim_move_create(container,
+                                            container_x,
+                                            visible ? -header_height : 0,
+                                            container_x,
+                                            visible ? 0 : -header_height,
+                                            duration_ms,
+                                            false);
+    if (!anim)
+        return;
 
     if (visible)
     {
         eos_app_header_show(a);
         lv_obj_remove_flag(container, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_translate_y(container, -header_height, 0);
-        lv_anim_set_values(&anim, -header_height, 0);
-        lv_anim_start(&anim);
+        eos_anim_start(anim);
     }
     else
     {
         if (lv_obj_has_flag(container, LV_OBJ_FLAG_HIDDEN))
         {
+            eos_anim_del(anim);
             return;
         }
-
         lv_obj_set_style_translate_y(container, 0, 0);
-        lv_anim_set_values(&anim, 0, -header_height);
-        lv_anim_set_completed_cb(&anim, _app_header_slide_hide_ready_cb);
-        lv_anim_start(&anim);
+        eos_anim_add_cb(anim, _app_header_slide_hide_ready_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 /**

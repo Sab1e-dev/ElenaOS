@@ -15,6 +15,7 @@
 #include "eos_icon.h"
 #include "eos_mem.h"
 #include "eos_theme.h"
+#include "eos_anim.h"
 #define EOS_LOG_TAG "InputPage"
 #include "eos_log.h"
 
@@ -259,9 +260,10 @@ static void _input_page_enter_anim(void *param)
 
     _input_page_set_translate_y(ctx->root, height);
 
-    lv_anim_t anim;
-    _input_page_anim_init(&anim, ctx->root, height, 0, 260);
-    lv_anim_start(&anim);
+    int32_t root_x = lv_obj_get_x(ctx->root);
+    eos_anim_t *anim = eos_anim_move_create(ctx->root, root_x, height, root_x, 0, 260, false);
+    if (anim)
+        eos_anim_start(anim);
 }
 
 static int32_t _input_page_get_slide_height(lv_obj_t *obj)

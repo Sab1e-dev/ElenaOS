@@ -11,6 +11,7 @@
 #include "eos_icon.h"
 #include "eos_mem.h"
 #include "eos_theme.h"
+#include "eos_anim.h"
 /* Macros and Definitions -------------------------------------*/
 #define _TITLE_BAR_HEIGHT 50
 #define _CONTENT_MIN_HEIGHT 0
@@ -120,14 +121,16 @@ static void _update_content_height(eos_accordion_t *accordion, bool anim)
     {
         if (anim)
         {
-            lv_anim_t a;
-            lv_anim_init(&a);
-            lv_anim_set_var(&a, accordion->content);
-            lv_anim_set_values(&a, 0, accordion->content_height);
-            lv_anim_set_duration(&a, _ANIM_DURATION);
-            lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-            lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_height);
-            lv_anim_start(&a);
+            int32_t cur_w = lv_obj_get_width(accordion->content);
+            eos_anim_t *a = eos_anim_resize_create(accordion->content,
+                                                   cur_w,
+                                                   cur_w,
+                                                   0,
+                                                   accordion->content_height,
+                                                   _ANIM_DURATION,
+                                                   false);
+            if (a)
+                eos_anim_start(a);
         }
         else
         {
@@ -138,15 +141,16 @@ static void _update_content_height(eos_accordion_t *accordion, bool anim)
     {
         if (anim)
         {
-            lv_anim_t a;
-            lv_anim_init(&a);
-            lv_anim_set_var(&a, accordion->content);
-            lv_anim_set_values(&a, accordion->content_height, 0);
-            lv_anim_set_duration(&a, _ANIM_DURATION);
-            lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-            lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_height);
-            lv_anim_set_completed_cb(&a, NULL);
-            lv_anim_start(&a);
+            int32_t cur_w = lv_obj_get_width(accordion->content);
+            eos_anim_t *a = eos_anim_resize_create(accordion->content,
+                                                   cur_w,
+                                                   cur_w,
+                                                   accordion->content_height,
+                                                   0,
+                                                   _ANIM_DURATION,
+                                                   false);
+            if (a)
+                eos_anim_start(a);
         }
         else
         {

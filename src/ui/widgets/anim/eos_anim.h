@@ -47,15 +47,26 @@
  * eos_anim_del(anim);
  * ```
  *
- * ## Lite Animation
+ * ### Snapshot Backend
  *
- * Lite Animation is a lightweight wrapper based on the LVGL animation system,
- * providing a unified and concise interface for creating single-type LVGL animations.
- * Each lite animation generates and starts immediately after being called,
- * suitable for quick-use simple transition effects within scenes.
+ * For complex widget trees, use the snapshot backend to improve animation performance.
+ * The engine takes a one-time raster snapshot of the widget, then animates the flat image.
+ * If memory is insufficient, it silently falls back to direct animation.
  *
- * >[!NOTE] The playback completion callback for lite animations differs from the standard animation library.
- * Lite animations directly use LVGL default callback functions.
+ * ```c
+ * eos_anim_t *anim = eos_anim_scale_create(complex_page, 0, 390, 0, 450, 300, false);
+ * eos_anim_set_backend(anim, EOS_ANIM_BACKEND_SNAPSHOT);
+ * eos_anim_start(anim);
+ * ```
+ *
+ * ### Repeat and Playback
+ *
+ * ```c
+ * eos_anim_t *anim = eos_anim_move_create(obj, -12, 0, 12, 0, 60, false);
+ * eos_anim_set_repeat_count(anim, 3);
+ * eos_anim_set_playback_time(anim, 60);
+ * eos_anim_start(anim);
+ * ```
  *
  * ## Notes
  *
@@ -88,9 +99,20 @@ typedef enum
     EOS_ANIM_SCALE, /**< Scale animation */
     EOS_ANIM_FADE, /**< Opacity fade animation */
     EOS_ANIM_MOVE, /**< Position move animation */
-    EOS_ANIM_TRANSFORM_SCALE /**< Scale animation, supports Label */
-    // More animation types can be added here
+    EOS_ANIM_TRANSFORM_SCALE, /**< Scale animation, supports Label */
+    EOS_ANIM_IMAGE_SCALE, /**< Pixel-level image scale animation */
+    EOS_ANIM_RESIZE /**< Width/height resize (independent axis) */
 } eos_anim;
+
+/**
+ * @brief Animation backend type
+ */
+typedef enum
+{
+    EOS_ANIM_BACKEND_DIRECT = 0, /**< Animate the widget directly (default) */
+    EOS_ANIM_BACKEND_SNAPSHOT, /**< Take snapshot, animate the flat image instead */
+} eos_anim_backend_type_t;
+
 typedef struct eos_anim_t eos_anim_t; // Forward declaration
 /**
  * @brief Callback function type definition
@@ -101,7 +123,6 @@ typedef void (*eos_anim_cb_t)(eos_anim_t *a);
  */
 struct eos_anim_t
 {
-    lv_anim_timeline_t *anim_timeline; /**< Animation timeline pointer */
     eos_anim type; /**< Animation type */
     uint32_t anim_count; /**< Total animation count for this type */
     uint32_t
@@ -110,6 +131,12 @@ struct eos_anim_t
     lv_obj_t *tar_obj;
     bool auto_delete_obj; /**< Automatically delete bound object when animation completes */
     void *user_data; /**< User data */
+    uint32_t delay; /**< Delay before animation starts (ms) */
+    eos_anim_backend_type_t backend_type; /**< Requested animation backend */
+    lv_draw_buf_t *snap_buf; /**< Snapshot backend: raster buffer */
+    lv_obj_t *snap_image; /**< Snapshot backend: lv_image for animating */
+    uint16_t repeat_count; /**< Repeat count (0 = play once) */
+    uint32_t playback_time; /**< Playback (reverse) duration in ms (0 = no playback) */
     union
     { /**< Union for storing animation objects */
         struct
@@ -130,78 +157,61 @@ struct eos_anim_t
         {
             lv_anim_t a_scale;
         } transform_scale;
-        // Other animation type structures can be added here
-    } anim;
-    union
-    { /**< Union for storing animation objects */
         struct
         {
-            bool layered; /**< Whether to adjust opacity with child objects */
+            lv_anim_t a_scale;
+        } image_scale;
+        struct
+        {
+            lv_anim_t a_w;
+            lv_anim_t a_h;
+        } resize;
+    } anim;
+    union
+    { /**< Union for storing configuration */
+        struct
+        {
+            bool layered; /**< Whether to use layered opacity */
+            bool main_opa; /**< Whether to use main opacity (lv_obj_set_style_opa) */
         } fade;
         struct
         {
-            bool disable_x; /**< Whether to adjust opacity with child objects */
-            bool disable_y; /**< Whether to adjust opacity with child objects */
+            bool disable_x;
+            bool disable_y;
         } move;
-        // Other animation type structures can be added here
+        struct
+        {
+            bool disable_w;
+            bool disable_h;
+        } resize;
     } cfg;
 };
 /* Public function prototypes --------------------------------*/
 
 /************************** Common **************************/
 
-/**
- * @brief Automatically delete `tar_obj` when animation finishes
- * @param anim Target animation
- */
 void eos_anim_set_auto_delete(eos_anim_t *anim);
-
-/**
- * @brief Start playing animation
- * @param anim Animation object created by create function
- * @return Returns true on success, false on failure
- */
 bool eos_anim_start(eos_anim_t *anim);
-
-/**
- * @brief Set callback for animation completion
- * @param anim Animation to set
- * @param user_cb Callback function
- * @param user_data User data pointer (user is responsible for managing lifecycle)
- */
 void eos_anim_add_cb(eos_anim_t *anim, eos_anim_cb_t user_cb, void *user_data);
+void *eos_anim_get_user_data(eos_anim_t *anim);
+void eos_anim_del(eos_anim_t *anim);
+void eos_anim_blocker_show(void);
+void eos_anim_blocker_hide(void);
+void eos_anim_set_backend(eos_anim_t *anim, eos_anim_backend_type_t type);
+void eos_anim_set_delay(eos_anim_t *anim, uint32_t delay);
 
 /**
- * @brief Get animation object's user data
+ * @brief Set repeat count (0 = play once, default)
  */
-void *eos_anim_get_user_data(eos_anim_t *anim);
+void eos_anim_set_repeat_count(eos_anim_t *anim, uint16_t count);
+
 /**
- * @brief Delete animation object
- * @param anim Animation object pointer
- * @note Will automatically stop if animation is running
+ * @brief Set playback (reverse) time in ms (0 = no reverse, default)
  */
-void eos_anim_del(eos_anim_t *anim);
-/**
- * @brief Add transparent blocker layer to disable user input
- */
-void eos_anim_blocker_show(void);
-/**
- * @brief Remove transparent blocker layer
- */
-void eos_anim_blocker_hide(void);
+void eos_anim_set_playback_time(eos_anim_t *anim, uint32_t time_ms);
 
 /************************** Animation **************************/
 
-/**
- * @brief Create scale animation object
- * @param tar_obj Target object
- * @param w_start Start width
- * @param w_end End width
- * @param h_start Start height
- * @param h_end End height
- * @param duration Duration (ms)
- * @return Created animation object pointer, returns NULL on failure
- */
 eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
                                   int32_t w_start,
                                   int32_t w_end,
@@ -209,11 +219,6 @@ eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
                                   int32_t h_end,
                                   uint32_t duration,
                                   bool auto_delete);
-
-/**
- * @brief Create and immediately play scale animation, cannot set callback
- * @note Animation will be automatically deleted after completion
- */
 void eos_anim_scale_start(lv_obj_t *tar_obj,
                           int32_t w_start,
                           int32_t w_end,
@@ -222,22 +227,15 @@ void eos_anim_scale_start(lv_obj_t *tar_obj,
                           uint32_t duration,
                           bool auto_delete);
 
-/**
- * @brief Create opacity fade animation
- */
 eos_anim_t *eos_anim_fade_create(lv_obj_t *tar_obj,
                                  int32_t opa_start,
                                  int32_t opa_end,
                                  uint32_t duration,
                                  bool auto_delete);
-/**
- * @brief Create and immediately play opacity fade animation
- */
 void eos_anim_fade_start(lv_obj_t *tar_obj, int32_t opa_start, int32_t opa_end, uint32_t duration, bool auto_delete);
+void eos_anim_fade_set_layered(eos_anim_t *a, bool layered);
+void eos_anim_fade_set_main_opa(eos_anim_t *a, bool enabled);
 
-/**
- * @brief Create and return a move animation object (position from start_x,start_y -> end_x,end_y)
- */
 eos_anim_t *eos_anim_move_create(lv_obj_t *tar_obj,
                                  int32_t start_x,
                                  int32_t start_y,
@@ -245,10 +243,6 @@ eos_anim_t *eos_anim_move_create(lv_obj_t *tar_obj,
                                  int32_t end_y,
                                  uint32_t duration,
                                  bool auto_delete);
-
-/**
- * @brief Create and immediately play move animation
- */
 void eos_anim_move_start(lv_obj_t *tar_obj,
                          int32_t start_x,
                          int32_t start_y,
@@ -257,24 +251,11 @@ void eos_anim_move_start(lv_obj_t *tar_obj,
                          uint32_t duration,
                          bool auto_delete);
 
-/**
- * @brief Whether Fade animation adjusts opacity by layer
- */
-void eos_anim_fade_set_layered(eos_anim_t *a, bool layered);
-
-/**
- * @brief Create transform scale animation (based on transform_scale)
- * @note Scaling is overall scaling, i.e., width and height scale simultaneously
- */
 eos_anim_t *eos_anim_transform_scale_create(lv_obj_t *tar_obj,
                                             int32_t scale_start,
                                             int32_t scale_end,
                                             uint32_t duration,
                                             bool auto_delete);
-
-/**
- * @brief Start transform scale animation (with advanced configuration)
- */
 void eos_anim_transform_scale_start_ex(lv_obj_t *tar_obj,
                                        int32_t scale_start,
                                        int32_t scale_end,
@@ -282,143 +263,43 @@ void eos_anim_transform_scale_start_ex(lv_obj_t *tar_obj,
                                        uint32_t playback_time,
                                        uint16_t repeat_count,
                                        bool auto_delete);
-
-/**
- * @brief Start simple transform scale animation (default parameters)
- */
 void eos_anim_transform_scale_start(lv_obj_t *tar_obj,
                                     int32_t scale_start,
                                     int32_t scale_end,
                                     uint32_t duration,
                                     bool auto_delete);
 
-/************************** Lite Animation **************************/
+/**
+ * @brief Create image scale animation (pixel-level, via lv_image_set_scale)
+ */
+eos_anim_t *eos_anim_image_scale_create(lv_obj_t *tar_obj,
+                                        int32_t scale_start,
+                                        int32_t scale_end,
+                                        uint32_t duration,
+                                        bool auto_delete);
+void eos_anim_image_scale_start(lv_obj_t *tar_obj,
+                                int32_t scale_start,
+                                int32_t scale_end,
+                                uint32_t duration,
+                                bool auto_delete);
 
 /**
- * @brief Create horizontal move animation
- * @param target_obj Target object
- * @param start Start X coordinate
- * @param end End X coordinate
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
+ * @brief Create resize animation (width/height independently)
  */
-void eos_lite_anim_move_hor_start(lv_obj_t *target_obj,
-                                  int32_t start,
-                                  int32_t end,
-                                  uint32_t duration,
-                                  uint32_t delay,
-                                  lv_anim_completed_cb_t completed_cb,
-                                  void *user_data);
-
-/**
- * @brief Create vertical move animation
- * @param target_obj Target object
- * @param start Start Y coordinate
- * @param end End Y coordinate
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_move_ver_start(lv_obj_t *target_obj,
-                                  int32_t start,
-                                  int32_t end,
-                                  uint32_t duration,
-                                  uint32_t delay,
-                                  lv_anim_completed_cb_t completed_cb,
-                                  void *user_data);
-
-/**
- * @brief Create width scale animation
- * @param target_obj Target object
- * @param start Start width
- * @param end End width
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_scale_w_start(lv_obj_t *target_obj,
-                                 int32_t start,
-                                 int32_t end,
-                                 uint32_t duration,
-                                 uint32_t delay,
-                                 lv_anim_completed_cb_t completed_cb,
-                                 void *user_data);
-
-/**
- * @brief Create height scale animation
- * @param target_obj Target object
- * @param start Start height
- * @param end End height
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_scale_h_start(lv_obj_t *target_obj,
-                                 int32_t start,
-                                 int32_t end,
-                                 uint32_t duration,
-                                 uint32_t delay,
-                                 lv_anim_completed_cb_t completed_cb,
-                                 void *user_data);
-
-/**
- * @brief Create transform scale animation
- * @param target_obj Target object
- * @param start Start scale value
- * @param end End scale value
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_transform_scale_start(lv_obj_t *target_obj,
-                                         int32_t start,
-                                         int32_t end,
-                                         uint32_t duration,
-                                         uint32_t delay,
-                                         lv_anim_completed_cb_t completed_cb,
-                                         void *user_data);
-
-/**
- * @brief Create fade animation
- * @param target_obj Target object
- * @param start Start opacity (0-255), use `LV_OPA_*`
- * @param end End opacity (0-255), use `LV_OPA_*`
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_fade_start(lv_obj_t *target_obj,
-                              int32_t start,
-                              int32_t end,
-                              uint32_t duration,
-                              uint32_t delay,
-                              lv_anim_completed_cb_t completed_cb,
-                              void *user_data);
-
-/**
- * @brief Create fade animation
- * @param target_obj Target object
- * @param start Start opacity (0-255), use `LV_OPA_*`
- * @param end End opacity (0-255), use `LV_OPA_*`
- * @param duration Animation duration (ms)
- * @param delay Animation delay (ms)
- * @param completed_cb Animation completion callback, can be NULL
- * @param user_data User data bound to `lv_anim_t`, can be NULL
- */
-void eos_lite_anim_fade_layered_start(lv_obj_t *target_obj,
-                                      int32_t start,
-                                      int32_t end,
-                                      uint32_t duration,
-                                      uint32_t delay,
-                                      lv_anim_completed_cb_t completed_cb,
-                                      void *user_data);
+eos_anim_t *eos_anim_resize_create(lv_obj_t *tar_obj,
+                                   int32_t w_start,
+                                   int32_t w_end,
+                                   int32_t h_start,
+                                   int32_t h_end,
+                                   uint32_t duration,
+                                   bool auto_delete);
+void eos_anim_resize_start(lv_obj_t *tar_obj,
+                           int32_t w_start,
+                           int32_t w_end,
+                           int32_t h_start,
+                           int32_t h_end,
+                           uint32_t duration,
+                           bool auto_delete);
 
 #ifdef __cplusplus
 }

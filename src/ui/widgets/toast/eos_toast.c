@@ -50,8 +50,9 @@ static void _anim_move_end_cb(lv_anim_t *a)
     }
 }
 
-static void _toast_move_back_completed_cb(lv_anim_t *a)
+static void _toast_move_back_completed_cb(eos_anim_t *a)
 {
+    LV_UNUSED(a);
     // Start next animation
     if (eos_cqueue_get_size(anim_cq) > 0)
     {
@@ -65,19 +66,25 @@ static void _toast_move_back_completed_cb(lv_anim_t *a)
     }
 }
 
-static void _toast_start_move_back_cb(lv_anim_t *a)
+static void _toast_start_move_back_cb(eos_anim_t *a)
 {
-    lv_obj_t *toast = lv_anim_get_user_data(a);
+    lv_obj_t *toast = a->tar_obj;
     if (toast && lv_obj_is_valid(toast))
     {
-        uint32_t duration = (uint32_t)lv_obj_get_user_data(toast);
-        eos_lite_anim_move_ver_start(toast,
-                                     _TOAST_MARGIN_TOP,
-                                     -lv_obj_get_height(toast),
-                                     _TOAST_ANIM_DURATION,
-                                     duration,
-                                     _toast_move_back_completed_cb,
-                                     NULL);
+        uint32_t duration = (uint32_t)(intptr_t)lv_obj_get_user_data(toast);
+        int32_t toast_x = lv_obj_get_x(toast);
+        eos_anim_t *anim = eos_anim_move_create(toast,
+                                                toast_x,
+                                                _TOAST_MARGIN_TOP,
+                                                toast_x,
+                                                -lv_obj_get_height(toast),
+                                                _TOAST_ANIM_DURATION,
+                                                false);
+        if (!anim)
+            return;
+        eos_anim_set_delay(anim, duration);
+        eos_anim_add_cb(anim, _toast_move_back_completed_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 
@@ -86,13 +93,18 @@ static void _play_move_anim(lv_obj_t *toast)
     if (!(toast && lv_obj_is_valid(toast)))
         return;
     // Animate into screen
-    eos_lite_anim_move_ver_start(toast,
-                                 -lv_obj_get_height(toast),
-                                 _TOAST_MARGIN_TOP,
-                                 _TOAST_ANIM_DURATION,
-                                 0,
-                                 _toast_start_move_back_cb,
-                                 toast);
+    int32_t toast_x = lv_obj_get_x(toast);
+    eos_anim_t *anim = eos_anim_move_create(toast,
+                                            toast_x,
+                                            -lv_obj_get_height(toast),
+                                            toast_x,
+                                            _TOAST_MARGIN_TOP,
+                                            _TOAST_ANIM_DURATION,
+                                            false);
+    if (!anim)
+        return;
+    eos_anim_add_cb(anim, _toast_start_move_back_cb, NULL);
+    eos_anim_start(anim);
 }
 
 static lv_obj_t *_toast_create_container(void)
