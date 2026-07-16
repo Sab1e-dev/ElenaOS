@@ -828,10 +828,21 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
         eos_app_header_attach_to_view(view);
     }
 
+    bool was_hidden = lv_obj_has_flag(view, LV_OBJ_FLAG_HIDDEN);
+    if (was_hidden)
+    {
+        lv_obj_remove_flag(view, LV_OBJ_FLAG_HIDDEN);
+    }
+
     lv_obj_update_layout(view);
     lv_refr_now(lv_obj_get_display(view));
 
     lv_result_t snapshot_result = lv_snapshot_take_to_draw_buf(view, _SNAPSHOT_COLOR_FORMAT, snapshot);
+
+    if (was_hidden)
+    {
+        lv_obj_add_flag(view, LV_OBJ_FLAG_HIDDEN);
+    }
 
     if (need_attach_header)
     {

@@ -153,6 +153,8 @@ struct eos_anim_t
     uint32_t delay; /**< Delay before animation starts (ms) */
     eos_anim_group_t *group; /**< Parent group (NULL = standalone) */
     bool no_blocker; /**< Disable blocker overlay management for this anim */
+    bool preserve_layout; /**< Keep original widget visible (opacity=0) instead of hidden for snapshot, preserving layout */
+    lv_opa_t saved_orig_opa; /**< Original widget opacity to restore after snapshot */
     eos_anim_backend_type_t backend_type; /**< Requested animation backend */
     lv_draw_buf_t *snap_buf; /**< Snapshot backend: raster buffer */
     lv_obj_t *snap_image; /**< Snapshot backend: lv_image for animating */
@@ -235,6 +237,12 @@ void eos_anim_set_playback_time(eos_anim_t *anim, uint32_t time_ms);
  * @brief Disable blocker overlay management for this animation
  */
 void eos_anim_set_no_blocker(eos_anim_t *anim, bool no_blocker);
+
+/**
+ * @brief Keep original widget in layout during snapshot animation.
+ * Instead of hiding (LV_OBJ_FLAG_HIDDEN), sets opacity to 0 so flex/grid containers won't re-flow.
+ */
+void eos_anim_set_preserve_layout(eos_anim_t *anim, bool preserve);
 
 /**
  * @brief Override the default easing path for this animation

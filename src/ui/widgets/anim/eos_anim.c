@@ -62,6 +62,13 @@ void eos_anim_set_no_blocker(eos_anim_t *anim, bool no_blocker)
     anim->no_blocker = no_blocker;
 }
 
+void eos_anim_set_preserve_layout(eos_anim_t *anim, bool preserve)
+{
+    if (!anim)
+        return;
+    anim->preserve_layout = preserve;
+}
+
 void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb)
 {
     if (!anim || !path_cb)
@@ -153,7 +160,14 @@ void eos_anim_del(eos_anim_t *anim)
     }
     if (anim->tar_obj && lv_obj_is_valid(anim->tar_obj))
     {
-        lv_obj_remove_flag(anim->tar_obj, LV_OBJ_FLAG_HIDDEN);
+        if (anim->preserve_layout)
+        {
+            lv_obj_set_style_opa(anim->tar_obj, anim->saved_orig_opa, 0);
+        }
+        else
+        {
+            lv_obj_remove_flag(anim->tar_obj, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
     if (anim->auto_delete_obj && anim->tar_obj && lv_obj_is_valid(anim->tar_obj))
@@ -288,7 +302,14 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
         }
         if (anim->tar_obj && lv_obj_is_valid(anim->tar_obj))
         {
-            lv_obj_remove_flag(anim->tar_obj, LV_OBJ_FLAG_HIDDEN);
+            if (anim->preserve_layout)
+            {
+                lv_obj_set_style_opa(anim->tar_obj, anim->saved_orig_opa, 0);
+            }
+            else
+            {
+                lv_obj_remove_flag(anim->tar_obj, LV_OBJ_FLAG_HIDDEN);
+            }
         }
         if (anim->user_cb)
         {
@@ -480,16 +501,26 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
         return false;
     }
 
-    lv_obj_t *parent = lv_obj_get_parent(target);
-    if (!parent)
-        parent = lv_layer_top();
-
-    lv_obj_t *image = lv_image_create(parent);
+    lv_obj_t *image = lv_image_create(eos_overlay_get_snapshot_layer());
     lv_image_set_src(image, buf);
     lv_obj_set_size(image, w, h);
-    lv_obj_set_pos(image, lv_obj_get_x(target), lv_obj_get_y(target));
 
-    lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
+    lv_area_t area;
+    lv_obj_get_coords(target, &area);
+    lv_obj_set_pos(image, area.x1, area.y1);
+
+    lv_obj_set_style_transform_pivot_x(image, lv_obj_get_style_transform_pivot_x(target, 0), 0);
+    lv_obj_set_style_transform_pivot_y(image, lv_obj_get_style_transform_pivot_y(target, 0), 0);
+
+    if (anim->preserve_layout)
+    {
+        anim->saved_orig_opa = lv_obj_get_style_opa(target, 0);
+        lv_obj_set_style_opa(target, LV_OPA_TRANSP, 0);
+    }
+    else
+    {
+        lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
+    }
 
     anim->snap_buf = buf;
     anim->snap_image = image;
@@ -562,6 +593,8 @@ static void _anim_init_common(eos_anim_t *anim, eos_anim type, lv_obj_t *tar_obj
     anim->delay = 0;
     anim->group = NULL;
     anim->no_blocker = false;
+    anim->preserve_layout = false;
+    anim->saved_orig_opa = LV_OPA_COVER;
     anim->backend_type = EOS_ANIM_BACKEND_DIRECT;
     anim->snap_buf = NULL;
     anim->snap_image = NULL;
