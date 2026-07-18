@@ -11,6 +11,7 @@
 #include "eos_port.h"
 #include "eos_config.h"
 #include "eos_mem.h"
+#include "eos_log.h"
 /* Macros and Definitions -------------------------------------*/
 typedef struct
 {
@@ -52,7 +53,10 @@ static int _queue_expand(void)
     int new_capacity = s_capacity * 2;
     eos_dispatcher_item_t *new_queue = eos_malloc(sizeof(eos_dispatcher_item_t) * new_capacity);
     if (!new_queue)
+    {
+        EOS_LOG_E("_queue_expand FAILED: new_capacity=%d", new_capacity);
         return -1;
+    }
 
     int i = 0;
     for (int idx = s_head; idx != s_tail; idx = (idx + 1) % s_capacity)
@@ -84,6 +88,7 @@ void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
     {
         if (_queue_expand() < 0)
         {
+            EOS_LOG_E("DISPATCHER QUEUE FULL: callback DROPPED! cb=%p user_data=%p", cb, user_data);
             eos_critical_leave(ctx);
             return;
         }

@@ -596,8 +596,10 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         app_snapshot = eos_activity_take_snapshot(from, include_header_in_snapshot);
         if (!app_snapshot)
         {
+            EOS_LOG_E("CLOSE ANIM: app_snapshot FAILED from %p", from);
             return;
         }
+        EOS_LOG_E("CLOSE ANIM: app_snapshot CREATED from %p", from);
         lv_obj_move_foreground(app_snapshot);
 
         if (list_view)
@@ -652,6 +654,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
         if (!app_snapshot)
         {
+            EOS_LOG_E("OPEN ANIM: app_snapshot FAILED to %p", to);
             if (icon_clone)
             {
                 lv_obj_delete(icon_clone);
@@ -659,6 +662,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
             }
             return;
         }
+        EOS_LOG_E("OPEN ANIM: app_snapshot CREATED to %p", to);
     }
 
     int32_t list_pivot_x = 0;
@@ -711,6 +715,11 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         focus_translate_x = view_center_x - _app_list_last_icon_center_x;
         focus_translate_y = view_center_y - _app_list_last_icon_center_y;
     }
+    EOS_LOG_E("FOCUS: valid=%d last_x=%d last_y=%d view_center=(%d,%d) translate=(%d,%d)",
+              _app_list_last_icon_center_valid,
+              _app_list_last_icon_center_x, _app_list_last_icon_center_y,
+              EOS_DISPLAY_WIDTH / 2, EOS_DISPLAY_HEIGHT / 2,
+              focus_translate_x, focus_translate_y);
 
     if (opening)
     {
@@ -905,6 +914,8 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
     {
         lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);
     }
+
+    EOS_LOG_E("Transition ANIMS: group[%p] expected=%d opening=%d", group, group->expected, opening);
 }
 
 static void _app_list_on_resueme(eos_activity_t *a)

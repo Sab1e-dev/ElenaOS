@@ -40,7 +40,7 @@ static void _corner_radius_buffer_free(void *user_data)
     EOS_CHECK_PTR_RETURN(dsc);
     if (dsc->data)
     {
-        eos_cache_buf_free(dsc->data);
+        eos_cache_buf_free((void *)dsc->data);
         dsc->data = NULL;
     }
     eos_free(dsc);

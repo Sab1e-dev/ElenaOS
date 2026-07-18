@@ -48,9 +48,21 @@
 
 #define _LIST_TRANSITION_HALF_SCALE 128
 #define _LIST_TRANSITION_NORMAL_SCALE 256
-#define _LIST_TRANSITION_DELAY_PCT 20
+#define _LIST_TRANSITION_DELAY_PCT 0
 #define _LIST_TRANSITION_MAX_VISIBLE_ITEMS 64
 #define _LIST_TRANSITION_STATE_HISTORY_CAP 16
+
+/*
+ * Batch snapshot mode for list transitions.
+ * Instead of per-item EOS_ANIM_BACKEND_SNAPSHOT (which calls lv_refr_now
+ * per-item and may expose black gaps on hardware), this mode takes ALL
+ * snapshots first, hides ALL originals at once, then does a SINGLE
+ * lv_refr_now before starting all animations.
+ *
+ * Set to 1 to enable, 0 to use the standard eos_anim SNAPSHOT backend.
+ * This is complementary to EOS_ANIM_SNAPSHOT_DIAG in eos_anim.c.
+ */
+#define _LIST_TRANSITION_BATCH_SNAPSHOT  1
 
 /* Variables --------------------------------------------------*/
 
@@ -271,7 +283,6 @@ lv_obj_t *eos_list_create(lv_obj_t *parent)
         EOS_LOG_E("Failed to allocate list transition state for list %p", list);
     }
     lv_obj_add_event_cb(list, _list_transition_list_clicked_cb, LV_EVENT_PRESSED, list);
-    lv_obj_add_event_cb(list, _list_transition_list_clicked_cb, LV_EVENT_CLICKED, list);
     lv_obj_add_event_cb(list, _list_transition_list_delete_cb, LV_EVENT_DELETE, list);
     return list;
 }
@@ -447,7 +458,7 @@ static void _list_transition_list_clicked_cb(lv_event_t *e)
     lv_obj_t *list = lv_event_get_user_data(e);
     lv_obj_t *target = lv_event_get_target(e);
     lv_event_code_t code = lv_event_get_code(e);
-    if (!(code == LV_EVENT_PRESSED || code == LV_EVENT_CLICKED))
+    if (code != LV_EVENT_PRESSED)
     {
         return;
     }
@@ -465,9 +476,6 @@ static void _list_transition_list_clicked_cb(lv_event_t *e)
         EOS_LOG_D("list_clicked: button is NULL after resolve, skip");
         return;
     }
-
-    // Clear pressed state in advance to avoid residual pressed scaling after transition.
-    lv_obj_remove_state(button, LV_STATE_PRESSED);
 
     eos_activity_t *click_activity = eos_activity_get_previous();
     if (!click_activity)
@@ -599,6 +607,18 @@ static uint32_t _list_transition_collect_all_children(lv_obj_t *list, lv_obj_t *
     return cnt;
 }
 
+void eos_list_transition_setup(lv_obj_t *list, lv_obj_t *button, eos_activity_t *activity)
+{
+    if (!list || !lv_obj_is_valid(list))
+        return;
+    eos_list_transition_state_t *state = _list_transition_get_state(list);
+    if (!state || state->list != list)
+        return;
+    state->button = button;
+    state->activity = activity;
+    state->sequence++;
+}
+
 void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to, bool back)
 {
     if (!(group && from && to))
@@ -621,6 +641,11 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
     {
         EOS_LOG_W("list_transition_play: invalid objects detected, skipping animation");
         return;
+    }
+
+    if (lv_obj_has_state(button, LV_STATE_PRESSED))
+    {
+        lv_obj_remove_state(button, LV_STATE_PRESSED);
     }
 
     lv_obj_t *page_obj = eos_activity_take_snapshot(page_activity, false);
@@ -736,27 +761,21 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
                                                                false);
             if (anim)
             {
-                eos_anim_set_backend(anim, EOS_ANIM_BACKEND_SNAPSHOT);
-                eos_anim_set_preserve_layout(anim, true);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
-                lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_NORMAL_SCALE, 0);
             }
         }
 
-        lv_obj_set_style_translate_x(button, 0, 0);
+        lv_obj_set_style_translate_x(button, button_start_x, 0);
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, page_duration, false);
         if (btn_anim)
         {
-            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
-            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_set_delay(btn_anim, page_delay);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
-            lv_obj_set_style_translate_x(button, button_end_x, 0);
         }
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, total_duration, false);
@@ -769,6 +788,10 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
     }
     else
     {
+#if _LIST_TRANSITION_BATCH_SNAPSHOT
+        eos_anim_snapshot_batch_begin();
+#endif
+
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
         {
             lv_obj_t *obj = visible_items[i];
@@ -786,11 +809,12 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
                                                                false);
             if (anim)
             {
+#if _LIST_TRANSITION_BATCH_SNAPSHOT
                 eos_anim_set_backend(anim, EOS_ANIM_BACKEND_SNAPSHOT);
                 eos_anim_set_preserve_layout(anim, true);
+#endif
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
-                lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_HALF_SCALE, 0);
             }
         }
 
@@ -800,13 +824,18 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, total_duration, false);
         if (btn_anim)
         {
+#if _LIST_TRANSITION_BATCH_SNAPSHOT
             eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
             eos_anim_set_preserve_layout(btn_anim, true);
+#endif
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
-            lv_obj_set_style_translate_x(button, button_end_x, 0);
         }
+
+#if _LIST_TRANSITION_BATCH_SNAPSHOT
+        eos_anim_snapshot_batch_flush();
+#endif
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, page_duration, false);
         if (page_anim)
@@ -849,7 +878,7 @@ lv_obj_t *_list_btn_container_create(lv_obj_t *list)
     lv_obj_set_style_transform_pivot_x(btn, lv_obj_get_width(btn) / 2, 0);
     lv_obj_set_style_transform_pivot_y(btn, lv_obj_get_height(btn) / 2, 0);
     lv_obj_set_style_transform_scale(btn, 230, LV_STATE_PRESSED);
-    lv_obj_set_style_bg_color(btn, lv_color_darken(EOS_THEME_SECONDARY_COLOR, 64), LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(btn, EOS_COLOR_DARK_GREY_1, LV_STATE_PRESSED);
     return btn;
 }
 

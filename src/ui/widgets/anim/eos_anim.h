@@ -331,19 +331,40 @@ void eos_anim_image_scale_start(lv_obj_t *tar_obj,
  * @brief Create resize animation (width/height independently)
  */
 eos_anim_t *eos_anim_resize_create(lv_obj_t *tar_obj,
-                                   int32_t w_start,
-                                   int32_t w_end,
-                                   int32_t h_start,
-                                   int32_t h_end,
-                                   uint32_t duration,
-                                   bool auto_delete);
+                                    int32_t w_start,
+                                    int32_t w_end,
+                                    int32_t h_start,
+                                    int32_t h_end,
+                                    uint32_t duration,
+                                    bool auto_delete);
 void eos_anim_resize_start(lv_obj_t *tar_obj,
-                           int32_t w_start,
-                           int32_t w_end,
-                           int32_t h_start,
-                           int32_t h_end,
-                           uint32_t duration,
-                           bool auto_delete);
+                            int32_t w_start,
+                            int32_t w_end,
+                            int32_t h_start,
+                            int32_t h_end,
+                            uint32_t duration,
+                            bool auto_delete);
+
+/************************** Snapshot Batch **************************/
+
+/**
+ * @brief Begin batch-snapshot mode for snapshot-backend animations.
+ *
+ * When batch mode is active, _snapshot_backend_prepare will create and
+ * position the snapshot image, but defer hiding the original widget
+ * and defer the lv_refr_now() call.
+ *
+ * Call eos_anim_snapshot_batch_flush() after all snapshot-backend
+ * animations have been eos_anim_start()'ed.  This hides all original
+ * widgets at once, does a single lv_refr_now(), and lets the animations
+ * proceed naturally.
+ *
+ * Use with eos_list_transition_play (forward direction) to prevent
+ * per-item lv_refr_now interleaving which causes black-flash on
+ * SiFli hardware with partial-refresh displays.
+ */
+void eos_anim_snapshot_batch_begin(void);
+void eos_anim_snapshot_batch_flush(void);
 
 #ifdef __cplusplus
 }

@@ -360,17 +360,31 @@ static void _anim_clean_up_activity_deferred(void *user_data)
               (void *)anim_ctx->snapshots);
 
     eos_activity_snapshot_node_t *node = anim_ctx->snapshots;
+    uint32_t snapshot_count = 0;
+    while (node)
+    {
+        snapshot_count++;
+        node = node->next;
+    }
+    EOS_LOG_E("DEFERRED cleanup: snapshot_count=%d destroy_from=%d", snapshot_count, anim_ctx->destroy_from);
+    node = anim_ctx->snapshots;
     while (node)
     {
         eos_activity_snapshot_node_t *next = node->next;
         if (node->snapshot_obj && lv_obj_is_valid(node->snapshot_obj))
         {
+            EOS_LOG_E("Deleting snapshot_obj[%p] draw_buf[%p]", node->snapshot_obj, node->draw_buf);
             lv_obj_delete(node->snapshot_obj);
+        }
+        else
+        {
+            EOS_LOG_E("Skipping invalid snapshot_obj[%p] draw_buf[%p]", node->snapshot_obj, node->draw_buf);
         }
         eos_free(node);
         node = next;
     }
     anim_ctx->snapshots = NULL;
+    EOS_LOG_E("DEFERRED cleanup: snapshots freed");
 
     if (anim_ctx->destroy_from && anim_ctx->from)
     {
@@ -393,6 +407,11 @@ static void _anim_clean_up_activity_deferred(void *user_data)
     {
         _reset_view_visual_state(anim_ctx->to);
         _activity_show(anim_ctx->to);
+    }
+    else if (anim_ctx->to)
+    {
+        EOS_LOG_E("STALLED: to activity[%p] snapshot_ref_count=%d > 0, view NOT restored!",
+                  anim_ctx->to, anim_ctx->to->snapshot_ref_count);
     }
     if (anim_ctx->to && eos_activity_is_app_header_visible(anim_ctx->to))
     {
@@ -658,6 +677,7 @@ static void _anim_clean_up_activity(void *user_data)
               (void *)anim_ctx->to,
               _activity_type_to_str(anim_ctx->to ? anim_ctx->to->type : EOS_ACTIVITY_TYPE_NULL));
 
+    EOS_LOG_E("DISPATCHING deferred cleanup for anim_ctx[%p]", anim_ctx);
     eos_dispatcher_call(_anim_clean_up_activity_deferred, anim_ctx);
 }
 
@@ -835,7 +855,6 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
     }
 
     lv_obj_update_layout(view);
-    lv_refr_now(lv_obj_get_display(view));
 
     lv_result_t snapshot_result = lv_snapshot_take_to_draw_buf(view, _SNAPSHOT_COLOR_FORMAT, snapshot);
 

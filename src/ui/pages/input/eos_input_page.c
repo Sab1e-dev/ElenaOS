@@ -33,7 +33,7 @@
 #define KB_SWITCH_TO_SYMBOL "#+="
 #define KB_SPACE "SPACE"
 
-static const char *const _keyboard_map_lower[] = {"q",      "w",
+static const char *_keyboard_map_lower[] = {"q",      "w",
                                                   "e",      "r",
                                                   "t",      "y",
                                                   "u",      "i",
@@ -62,7 +62,7 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_lower[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_upper[] = {"Q",      "W",
+static const char *_keyboard_map_upper[] = {"Q",      "W",
                                                   "E",      "R",
                                                   "T",      "Y",
                                                   "U",      "I",
@@ -91,7 +91,7 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_upper[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(2) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_number[] = {"1",
+static const char *_keyboard_map_number[] = {"1",
                                                    "2",
                                                    "3",
                                                    "4",
@@ -138,7 +138,7 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_number[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1) | LV_BUTTONMATRIX_CTRL_CHECKED,
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
-static const char *const _keyboard_map_symbol[] = {"[",
+static const char *_keyboard_map_symbol[] = {"[",
                                                    "]",
                                                    "{",
                                                    "}",

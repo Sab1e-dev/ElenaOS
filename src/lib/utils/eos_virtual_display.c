@@ -18,6 +18,9 @@
 
 /* Macros and Definitions -------------------------------------*/
 
+/* 方案三 — toggle to log flush areas (virtual display only) */
+#define EOS_VIRTUAL_DISP_FLUSH_DIAG  0
+
 struct eos_virtual_display_t
 {
     lv_obj_t *canvas;
@@ -43,6 +46,12 @@ static void _virtual_display_flush_cb(lv_display_t *disp, const lv_area_t *area,
     eos_virtual_display_t *vd = lv_display_get_driver_data(disp);
     lv_coord_t w = lv_area_get_width(area);
     lv_coord_t h = lv_area_get_height(area);
+
+#if EOS_VIRTUAL_DISP_FLUSH_DIAG
+    EOS_LOG_E("[FLUSH_DIAG] FLUSH area=%d,%d-%d,%d (w=%d h=%d)",
+              area->x1, area->y1, area->x2, area->y2, w, h);
+#endif
+
     uint32_t px_size = lv_color_format_get_size(vd->cf);
     uint32_t canvas_stride = lv_draw_buf_width_to_stride(vd->hor_res, vd->cf);
     uint32_t px_map_stride = lv_draw_buf_width_to_stride(w, vd->cf);

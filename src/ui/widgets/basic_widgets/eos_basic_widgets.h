@@ -110,6 +110,13 @@ lv_obj_t *eos_list_create(lv_obj_t *parent);
  */
 bool eos_list_transition_should_animate(eos_activity_t *from, eos_activity_t *to, bool back);
 /**
+ * @brief Set up transition state for a list item click
+ * @param list List object
+ * @param button The clicked button / item within the list
+ * @param activity Target subpage activity
+ */
+void eos_list_transition_setup(lv_obj_t *list, lv_obj_t *button, eos_activity_t *activity);
+/**
  * @brief Play dedicated transition animation for eos_list_create list
  * @param at Animation timeline
  * @param from Source Activity

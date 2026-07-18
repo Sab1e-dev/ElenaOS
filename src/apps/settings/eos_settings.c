@@ -1235,15 +1235,6 @@ static void _password_create_step2_cb(const char *digits, void *user_data)
     }
 }
 
-/* Mirrors eos_list_transition_state_t from eos_basic_widgets.c for direct access */
-typedef struct
-{
-    lv_obj_t *list;
-    lv_obj_t *button;
-    eos_activity_t *activity;
-    uint32_t sequence;
-} _local_transition_state_t;
-
 /**
  * @brief Ensure list transition state is set so the animation has a target.
  */
@@ -1278,13 +1269,7 @@ static void _ensure_list_transition_state(eos_activity_t *subpage_activity)
         lv_obj_t *item = lv_obj_get_child(list, i);
         if (item && lv_obj_has_flag(item, LV_OBJ_FLAG_USER_1))
         {
-            _local_transition_state_t *state = (_local_transition_state_t *)lv_obj_get_user_data(list);
-            if (state && state->list == list)
-            {
-                state->button = item;
-                state->activity = subpage_activity;
-                state->sequence++; /* Ensure non-zero so select picks it up */
-            }
+            eos_list_transition_setup(list, item, subpage_activity);
             return;
         }
     }

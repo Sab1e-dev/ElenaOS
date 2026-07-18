@@ -39,7 +39,7 @@ typedef struct
     lv_obj_t *title_label;
     lv_obj_t *msg_label;
     lv_obj_t *time_label;
-    const char *msg_str; /**< Message string */
+    char *msg_str; /**< Message string */
     bool is_deleted;
 } eos_msg_list_item_t;
 

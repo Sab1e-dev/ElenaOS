@@ -310,7 +310,7 @@ void eos_lang_init(void)
          * otherwise, the default language is applied.
          */
         const char *default_lang = EOS_CONFIG_DEFAULT_LANGUAGE == 1 ? "简体中文" : "English";
-        const char *lang_str = eos_config_get_string(EOS_CONFIG_KEY_LANGUAGE_STR, default_lang);
+        char *lang_str = eos_config_get_string(EOS_CONFIG_KEY_LANGUAGE_STR, default_lang);
         eos_lang_set_current_id(eos_lang_parse_name(lang_str));
         lang_initialized = true;
         EOS_LOG_I("Language initialized: %s (default: %s)", lang_str, default_lang);
