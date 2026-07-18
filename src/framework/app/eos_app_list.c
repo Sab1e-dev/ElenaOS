@@ -523,7 +523,12 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     int32_t bw = lv_area_get_width(&icon_coords);
     int32_t bh = lv_area_get_height(&icon_coords);
 
-    lv_obj_t *icon_clone = lv_obj_create(eos_overlay_get_snapshot_layer());
+    eos_activity_t *icon_activity = eos_activity_from_widget(focus_icon);
+    lv_obj_t *icon_parent = icon_activity ? eos_activity_get_snap_container(icon_activity) : NULL;
+    if (!icon_parent)
+        icon_parent = eos_overlay_get_snapshot_layer();
+
+    lv_obj_t *icon_clone = lv_obj_create(icon_parent);
     lv_obj_set_size(icon_clone, bw, bh);
     lv_obj_set_pos(icon_clone, icon_coords.x1, icon_coords.y1);
     lv_obj_set_style_radius(icon_clone, LV_RADIUS_CIRCLE, 0);

@@ -249,6 +249,20 @@ lv_obj_t *eos_activity_get_view(eos_activity_t *activity);
 void eos_activity_set_view(eos_activity_t *activity, lv_obj_t *view);
 
 /**
+ * @brief Find the owning Activity for a widget by walking up the parent tree
+ * @param obj Widget object
+ * @return eos_activity_t* Owning Activity, or NULL if not found
+ */
+eos_activity_t *eos_activity_from_widget(lv_obj_t *obj);
+
+/**
+ * @brief Get the snapshot container for an Activity
+ * @param activity Activity pointer
+ * @return lv_obj_t* Snapshot container, or NULL
+ */
+lv_obj_t *eos_activity_get_snap_container(eos_activity_t *activity);
+
+/**
  * @brief Get root Screen
  * @return lv_obj_t* Root Screen object, returns NULL on failure
  */

@@ -82,6 +82,8 @@ struct eos_activity_t
     void *user_data;
 
     void *fault_panel;
+
+    lv_obj_t *snap_container;
 };
 
 typedef struct
@@ -181,6 +183,12 @@ static void _activity_run_destroy(eos_activity_t *activity)
         activity->view = NULL;
     }
 
+    if (activity->snap_container && lv_obj_is_valid(activity->snap_container))
+    {
+        lv_obj_delete(activity->snap_container);
+        activity->snap_container = NULL;
+    }
+
     if (activity->title.type == _TITLE_TYPE_STRING)
     {
         if (activity->title.string)
@@ -274,6 +282,11 @@ static void _activity_show(eos_activity_t *activity)
 
     lv_obj_remove_flag(activity->view, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(activity->view);
+
+    if (activity->snap_container && lv_obj_is_valid(activity->snap_container))
+    {
+        lv_obj_move_foreground(activity->snap_container);
+    }
 }
 
 static void _activity_mark_visible(eos_activity_t *activity)
@@ -642,6 +655,22 @@ static lv_obj_t *_view_create(lv_obj_t *parent)
     return view;
 }
 
+static lv_obj_t *_snap_container_create(void)
+{
+    lv_obj_t *container = lv_obj_create(eos_overlay_get_snapshot_layer());
+    if (!container)
+        return NULL;
+    lv_obj_remove_style_all(container);
+    lv_obj_set_size(container, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(container, 0, 0);
+    lv_obj_set_style_pad_all(container, 0, 0);
+    lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(container, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
+    return container;
+}
+
 static void _anim_clean_up_activity(void *user_data)
 {
     if (!user_data)
@@ -783,9 +812,43 @@ void eos_activity_set_view(eos_activity_t *activity, lv_obj_t *view)
     EOS_CHECK_PTR_RETURN(activity);
     if (activity->view && activity->view != view && lv_obj_is_valid(activity->view))
     {
+        lv_obj_set_user_data(activity->view, NULL);
         lv_obj_delete(activity->view);
     }
     activity->view = view;
+    if (view && lv_obj_is_valid(view))
+    {
+        lv_obj_set_user_data(view, activity);
+    }
+    if (!activity->snap_container || !lv_obj_is_valid(activity->snap_container))
+    {
+        activity->snap_container = _snap_container_create();
+    }
+}
+
+eos_activity_t *eos_activity_from_widget(lv_obj_t *obj)
+{
+    if (!obj)
+        return NULL;
+
+    lv_obj_t *current = obj;
+    while (current)
+    {
+        eos_activity_t *activity = (eos_activity_t *)lv_obj_get_user_data(current);
+        if (activity)
+            return activity;
+        current = lv_obj_get_parent(current);
+    }
+
+    return NULL;
+}
+
+lv_obj_t *eos_activity_get_snap_container(eos_activity_t *activity)
+{
+    EOS_CHECK_PTR_RETURN_VAL(activity, NULL);
+    return (activity->snap_container && lv_obj_is_valid(activity->snap_container))
+               ? activity->snap_container
+               : NULL;
 }
 
 lv_obj_t *eos_activity_get_root_screen(void)
@@ -816,7 +879,9 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
         return NULL;
     }
 
-    lv_obj_t *snapshot_obj = lv_image_create(eos_overlay_get_snapshot_layer());
+    lv_obj_t *snapshot_obj = lv_image_create(activity->snap_container
+                                                  ? activity->snap_container
+                                                  : eos_overlay_get_snapshot_layer());
     if (!snapshot_obj)
     {
         eos_free(snapshot_node);
@@ -1270,6 +1335,9 @@ eos_activity_t *eos_activity_create(const eos_activity_lifecycle_t *lifecycle)
             eos_free(activity);
             return NULL;
         }
+        lv_obj_set_user_data(activity->view, activity);
+
+        activity->snap_container = _snap_container_create();
     }
     else
     {
@@ -1327,6 +1395,9 @@ eos_activity_t *eos_activity_create_root(const eos_activity_lifecycle_t *lifecyc
         eos_free(activity);
         return NULL;
     }
+    lv_obj_set_user_data(activity->view, activity);
+
+    activity->snap_container = _snap_container_create();
 
     if (lifecycle)
     {

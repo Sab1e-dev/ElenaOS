@@ -52,18 +52,6 @@
 #define _LIST_TRANSITION_MAX_VISIBLE_ITEMS 64
 #define _LIST_TRANSITION_STATE_HISTORY_CAP 16
 
-/*
- * Batch snapshot mode for list transitions.
- * Instead of per-item EOS_ANIM_BACKEND_SNAPSHOT (which calls lv_refr_now
- * per-item and may expose black gaps on hardware), this mode takes ALL
- * snapshots first, hides ALL originals at once, then does a SINGLE
- * lv_refr_now before starting all animations.
- *
- * Set to 1 to enable, 0 to use the standard eos_anim SNAPSHOT backend.
- * This is complementary to EOS_ANIM_SNAPSHOT_DIAG in eos_anim.c.
- */
-#define _LIST_TRANSITION_BATCH_SNAPSHOT  1
-
 /* Variables --------------------------------------------------*/
 
 typedef struct
@@ -744,6 +732,8 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
         }
 
+        eos_anim_snapshot_batch_begin();
+
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
         {
             lv_obj_t *obj = visible_items[i];
@@ -753,7 +743,6 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
             lv_obj_set_style_transform_pivot_x(obj, lv_obj_get_width(obj) / 2, 0);
             lv_obj_set_style_transform_pivot_y(obj, lv_obj_get_height(obj) / 2, 0);
-            lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_HALF_SCALE, 0);
             eos_anim_t *anim = eos_anim_transform_scale_create(obj,
                                                                _LIST_TRANSITION_HALF_SCALE,
                                                                _LIST_TRANSITION_NORMAL_SCALE,
@@ -761,22 +750,27 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
                                                                false);
             if (anim)
             {
+                eos_anim_set_backend(anim, EOS_ANIM_BACKEND_SNAPSHOT);
+                eos_anim_set_preserve_layout(anim, true);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
         }
 
-        lv_obj_set_style_translate_x(button, button_start_x, 0);
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, page_duration, false);
         if (btn_anim)
         {
+            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
+            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_set_delay(btn_anim, page_delay);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
         }
+
+        eos_anim_snapshot_batch_flush();
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, total_duration, false);
         if (page_anim)
@@ -788,9 +782,7 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
     }
     else
     {
-#if _LIST_TRANSITION_BATCH_SNAPSHOT
         eos_anim_snapshot_batch_begin();
-#endif
 
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
         {
@@ -801,7 +793,6 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
             lv_obj_set_style_transform_pivot_x(obj, lv_obj_get_width(obj) / 2, 0);
             lv_obj_set_style_transform_pivot_y(obj, lv_obj_get_height(obj) / 2, 0);
-            lv_obj_set_style_transform_scale(obj, _LIST_TRANSITION_NORMAL_SCALE, 0);
             eos_anim_t *anim = eos_anim_transform_scale_create(obj,
                                                                _LIST_TRANSITION_NORMAL_SCALE,
                                                                _LIST_TRANSITION_HALF_SCALE,
@@ -809,33 +800,26 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
                                                                false);
             if (anim)
             {
-#if _LIST_TRANSITION_BATCH_SNAPSHOT
                 eos_anim_set_backend(anim, EOS_ANIM_BACKEND_SNAPSHOT);
                 eos_anim_set_preserve_layout(anim, true);
-#endif
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
         }
 
-        lv_obj_set_style_translate_x(button, button_start_x, 0);
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, total_duration, false);
         if (btn_anim)
         {
-#if _LIST_TRANSITION_BATCH_SNAPSHOT
             eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
             eos_anim_set_preserve_layout(btn_anim, true);
-#endif
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
         }
 
-#if _LIST_TRANSITION_BATCH_SNAPSHOT
         eos_anim_snapshot_batch_flush();
-#endif
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, page_duration, false);
         if (page_anim)
@@ -847,7 +831,8 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         }
     }
 
-    lv_obj_move_foreground(page_obj);
+    /* page_obj is in its own activity's snap_container which was moved
+       to foreground by _activity_show — no manual z-order needed. */
 }
 
 static void _list_container_common_style(lv_obj_t *container)

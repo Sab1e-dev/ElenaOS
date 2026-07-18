@@ -16,38 +16,22 @@
 #include "eos_mem.h"
 #include "eos_overlay_layer.h"
 #include "eos_basic_widgets.h"
+#include "eos_activity.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define DEBUG_BLOCKER_VISIBLE 0
 #define SNAP_COLOR_FORMAT LV_COLOR_FORMAT_RGB565
 
 /*
- * Snapshot diagnostic: toggle master + per-category sub-switches.
- * Logs are emitted via EOS_LOG_E (always-on) for visibility.
- *
- * 方案一 — confirm whether snapshot image participates in re-draw after hiding original
- * 方案二 — test if a second lv_refr_now after hiding eliminates the black flash
- * 方案三 — flush-area logging (display-level event)
- * 方案四 — overlay-vs-view draw tracking (in eos_overlay_layer.c)
+ * Batch snapshot mode — coalesces multiple snapshot-backend animations
+ * into a single hide+refresh cycle, avoiding per-item lv_refr_now
+ * interleaving that causes display artifacts on partial-refresh hardware.
  */
-#define EOS_ANIM_SNAPSHOT_DIAG      1   /* master switch */
-
-/* Per-category sub-switches: 1=on, 0=off.
- * Cut noise to ~1 KB per list-item click by disabling frame-rate events.
- */
-#define SNAP_DIAG_DRAW              1   /* 方案一: SNAPSHOT_DRAW per snapshot image    */
-#define SNAP_DIAG_BATCH             1   /* SNAP_BATCH begin/flush/queued              */
-#define SNAP_DIAG_HIDE              1   /* HIDE_DONE after snapshot prep              */
-#define SNAP_DIAG_ONE_TIME          1   /* one-time: display event registration       */
-#define SNAP_DIAG_INVAL             0   /* 方案三: INVAL area per dirty region (noisy) */
-#define SNAP_DIAG_REFR              0   /* REFR_START/READY per frame       (noisy)   */
-#define SNAP_DIAG_COMPLETE          0   /* ANIM_COMPLETE per anim           (noisy)   */
-#define SNAP_DIAG_REFR_NOW          0   /* lv_refr_now BEGIN/END            (noisy)   */
 /* Variables --------------------------------------------------*/
 static lv_obj_t *blocker = NULL;
 static bool is_blocker_show = false;
 
-/* Batch snapshot mode — used by eos_list_transition_play 方案五 */
+/* Batch snapshot mode */
 static bool _snap_batch_active = false;
 static int _snap_batch_count = 0;
 
@@ -60,6 +44,9 @@ typedef struct {
 } _snap_batch_entry_t;
 
 static _snap_batch_entry_t _snap_batch_entries[_SNAP_BATCH_MAX];
+
+static void _snapshot_sync_to_target(eos_anim_t *anim);
+
 /* Function Implementations -----------------------------------*/
 
 /************************** 1. Basic Functionality **************************/
@@ -189,6 +176,7 @@ void eos_anim_del(eos_anim_t *anim)
 
     if (anim->snap_image && lv_obj_is_valid(anim->snap_image))
     {
+        _snapshot_sync_to_target(anim);
         lv_obj_delete(anim->snap_image);
         anim->snap_image = NULL;
     }
@@ -329,11 +317,9 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
 
     if (anim->anim_completed_count == anim->anim_count)
     {
-#if EOS_ANIM_SNAPSHOT_DIAG && SNAP_DIAG_COMPLETE
-        EOS_LOG_E("[SNAP_DIAG] ANIM_COMPLETE anim=%p target=%p snap_image=%p", anim, anim->tar_obj, anim->snap_image);
-#endif
         if (anim->snap_image && lv_obj_is_valid(anim->snap_image))
         {
+            _snapshot_sync_to_target(anim);
             lv_obj_delete(anim->snap_image);
             anim->snap_image = NULL;
         }
@@ -503,103 +489,6 @@ static void _select_opa_exec_cb(lv_anim_t *a, eos_anim_t *anim)
     }
 }
 
-#if EOS_ANIM_SNAPSHOT_DIAG
-/*
- * 方案一 — snapshot image draw-event callback.
- * Fires when LVGL renders this snapshot image.
- */
-static void _snap_diag_draw_cb(lv_event_t *e)
-{
-    lv_obj_t *obj = lv_event_get_target(e);
-    lv_area_t coords;
-    lv_obj_get_coords(obj, &coords);
-#if SNAP_DIAG_DRAW
-    EOS_LOG_E("[SNAP_DIAG] SNAPSHOT_DRAW obj=%p area=%d,%d-%d,%d",
-              obj, coords.x1, coords.y1, coords.x2, coords.y2);
-#else
-    LV_UNUSED(obj);
-    LV_UNUSED(coords);
-#endif
-}
-
-/*
- * 方案一 — attach draw-event callback to snapshot image
- */
-static void _snap_diag_attach(lv_obj_t *image)
-{
-    if (!image) return;
-    lv_obj_add_event_cb(image, _snap_diag_draw_cb, LV_EVENT_DRAW_MAIN_BEGIN, NULL);
-}
-
-/*
- * 方案三 — print dirty/invalidate area via display-level events.
- *   LV_EVENT_INVALIDATE_AREA — fires when an area is marked dirty (before render)
- *   LV_EVENT_REFR_START     — fires when a full refresh cycle begins
- *   LV_EVENT_REFR_READY     — fires when a full refresh cycle completes
- * Registers once on the default display.
- *
- * NOTE: The actual FLUSH area (what gets sent to LCD) can only be printed
- * inside the flush callback (flush_cb). On SiFli hardware that lives in
- * littlevgl2rtt (SDK side). To see flush areas there, temporarily patch:
- *   project/packages/littlevgl2rtt/lv_port_disp.c — in flush_cb add:
- *     printf("[FLUSH] area=%d,%d-%d,%d\n", area->x1, area->y1, area->x2, area->y2);
- */
-static void _snap_diag_disp_event_cb(lv_event_t *e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    switch (code)
-    {
-        case LV_EVENT_INVALIDATE_AREA:
-        {
-#if SNAP_DIAG_INVAL
-            lv_area_t *area = lv_event_get_param(e);
-            if (area)
-                EOS_LOG_E("[SNAP_DIAG] INVAL area=%d,%d-%d,%d",
-                          area->x1, area->y1, area->x2, area->y2);
-#else
-            LV_UNUSED(e);
-#endif
-            break;
-        }
-        case LV_EVENT_REFR_START:
-#if SNAP_DIAG_REFR
-            EOS_LOG_E("[SNAP_DIAG] REFR_START");
-#endif
-            break;
-        case LV_EVENT_REFR_READY:
-#if SNAP_DIAG_REFR
-            EOS_LOG_E("[SNAP_DIAG] REFR_READY");
-#endif
-            break;
-        default:
-            break;
-    }
-}
-
-static bool _snap_diag_disp_attached = false;
-static void _snap_diag_init_disp_events(void)
-{
-    if (!_snap_diag_disp_attached)
-    {
-        lv_display_t *disp = lv_display_get_default();
-        if (disp)
-        {
-#if SNAP_DIAG_INVAL
-            lv_display_add_event_cb(disp, _snap_diag_disp_event_cb, LV_EVENT_INVALIDATE_AREA, NULL);
-#endif
-#if SNAP_DIAG_REFR
-            lv_display_add_event_cb(disp, _snap_diag_disp_event_cb, LV_EVENT_REFR_START, NULL);
-            lv_display_add_event_cb(disp, _snap_diag_disp_event_cb, LV_EVENT_REFR_READY, NULL);
-#endif
-            _snap_diag_disp_attached = true;
-#if SNAP_DIAG_ONE_TIME
-            EOS_LOG_E("[SNAP_DIAG] Registered INVAL/REFR events on display %p", disp);
-#endif
-        }
-    }
-}
-#endif /* EOS_ANIM_SNAPSHOT_DIAG */
-
 static void _snapshot_present_once(lv_obj_t *image, const char *tag)
 {
     if (!(image && lv_obj_is_valid(image)))
@@ -607,19 +496,10 @@ static void _snapshot_present_once(lv_obj_t *image, const char *tag)
         return;
     }
 
-#if EOS_ANIM_SNAPSHOT_DIAG && SNAP_DIAG_REFR_NOW
-    lv_area_t coords;
-    lv_obj_get_coords(image, &coords);
-    EOS_LOG_E("[SNAP_DIAG] lv_refr_now BEGIN tag=%s image=%p area=%d,%d-%d,%d",
-              tag ? tag : "?", image, coords.x1, coords.y1, coords.x2, coords.y2);
-#endif
+    LV_UNUSED(tag);
 
     lv_obj_invalidate(image);
     lv_refr_now(lv_display_get_default());
-
-#if EOS_ANIM_SNAPSHOT_DIAG && SNAP_DIAG_REFR_NOW
-    EOS_LOG_E("[SNAP_DIAG] lv_refr_now END   tag=%s", tag ? tag : "?");
-#endif
 }
 
 static void _init_opa_anim(lv_anim_t *a, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration, eos_anim_t *ctx)
@@ -653,16 +533,12 @@ void eos_anim_snapshot_batch_begin(void)
 {
     _snap_batch_active = true;
     _snap_batch_count = 0;
-#if SNAP_DIAG_BATCH
     EOS_LOG_I("[SNAP_BATCH] batch begin");
-#endif
 }
 
 void eos_anim_snapshot_batch_flush(void)
 {
-#if SNAP_DIAG_BATCH
     EOS_LOG_I("[SNAP_BATCH] batch flush: %d entries", _snap_batch_count);
-#endif
 
     /* Step 1 — hide all originals */
     for (int i = 0; i < _snap_batch_count; i++)
@@ -697,9 +573,93 @@ void eos_anim_snapshot_batch_flush(void)
 
     _snap_batch_active = false;
     _snap_batch_count = 0;
-#if SNAP_DIAG_BATCH
     EOS_LOG_I("[SNAP_BATCH] batch flush done");
-#endif
+}
+
+static void _snapshot_apply_start_values(eos_anim_t *anim, lv_obj_t *image)
+{
+    if (!image)
+        return;
+
+    switch (anim->type)
+    {
+        case EOS_ANIM_SCALE:
+            lv_obj_set_width(image, anim->anim.scale.a_width.start_value);
+            lv_obj_set_height(image, anim->anim.scale.a_height.start_value);
+            break;
+        case EOS_ANIM_FADE:
+            if (anim->cfg.fade.layered)
+                lv_obj_set_style_opa_layered(image, (lv_opa_t)anim->anim.fade.a_opa.start_value, 0);
+            else if (anim->cfg.fade.main_opa)
+                lv_obj_set_style_opa(image, (lv_opa_t)anim->anim.fade.a_opa.start_value, 0);
+            else
+                lv_obj_set_style_bg_opa(image, (lv_opa_t)anim->anim.fade.a_opa.start_value, 0);
+            break;
+        case EOS_ANIM_MOVE:
+            if (!anim->cfg.move.disable_x)
+                lv_obj_set_style_translate_x(image, anim->anim.move.a_x.start_value, 0);
+            if (!anim->cfg.move.disable_y)
+                lv_obj_set_style_translate_y(image, anim->anim.move.a_y.start_value, 0);
+            break;
+        case EOS_ANIM_TRANSFORM_SCALE:
+            lv_obj_set_style_transform_scale(image, anim->anim.transform_scale.a_scale.start_value, 0);
+            break;
+        case EOS_ANIM_IMAGE_SCALE:
+            lv_image_set_scale(image, anim->anim.image_scale.a_scale.start_value);
+            break;
+        case EOS_ANIM_RESIZE:
+            if (!anim->cfg.resize.disable_w)
+                lv_obj_set_width(image, anim->anim.resize.a_w.start_value);
+            if (!anim->cfg.resize.disable_h)
+                lv_obj_set_height(image, anim->anim.resize.a_h.start_value);
+            break;
+        default:
+            break;
+    }
+}
+
+static void _snapshot_sync_to_target(eos_anim_t *anim)
+{
+    lv_obj_t *target = anim->tar_obj;
+    lv_obj_t *image = anim->snap_image;
+    if (!target || !lv_obj_is_valid(target) || !image || !lv_obj_is_valid(image))
+        return;
+
+    switch (anim->type)
+    {
+        case EOS_ANIM_SCALE:
+            lv_obj_set_width(target, lv_obj_get_width(image));
+            lv_obj_set_height(target, lv_obj_get_height(image));
+            break;
+        case EOS_ANIM_FADE:
+            if (anim->cfg.fade.main_opa)
+                lv_obj_set_style_opa(target, lv_obj_get_style_opa(image, 0), 0);
+            else if (anim->cfg.fade.layered)
+                lv_obj_set_style_opa_layered(target, lv_obj_get_style_opa_layered(image, 0), 0);
+            else
+                lv_obj_set_style_bg_opa(target, lv_obj_get_style_bg_opa(image, 0), 0);
+            break;
+        case EOS_ANIM_MOVE:
+            if (!anim->cfg.move.disable_x)
+                lv_obj_set_style_translate_x(target, lv_obj_get_style_translate_x(image, 0), 0);
+            if (!anim->cfg.move.disable_y)
+                lv_obj_set_style_translate_y(target, lv_obj_get_style_translate_y(image, 0), 0);
+            break;
+        case EOS_ANIM_TRANSFORM_SCALE:
+            lv_obj_set_style_transform_scale(target, lv_obj_get_style_transform_scale_x(image, 0), 0);
+            break;
+        case EOS_ANIM_IMAGE_SCALE:
+            lv_image_set_scale(target, lv_image_get_scale(image));
+            break;
+        case EOS_ANIM_RESIZE:
+            if (!anim->cfg.resize.disable_w)
+                lv_obj_set_width(target, lv_obj_get_width(image));
+            if (!anim->cfg.resize.disable_h)
+                lv_obj_set_height(target, lv_obj_get_height(image));
+            break;
+        default:
+            break;
+    }
 }
 
 static bool _snapshot_backend_prepare(eos_anim_t *anim)
@@ -716,16 +676,23 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
 
     lv_draw_buf_t *buf = eos_draw_buf_create((uint32_t)w, (uint32_t)h, SNAP_COLOR_FORMAT, 0);
     if (!buf)
+    {
+        EOS_LOG_W("snapshot backend: eos_draw_buf_create(%d,%d) failed, fallback to direct", w, h);
         return false;
+    }
 
     lv_result_t res = lv_snapshot_take_to_draw_buf(target, SNAP_COLOR_FORMAT, buf);
     if (res != LV_RESULT_OK)
     {
+        EOS_LOG_W("snapshot backend: lv_snapshot_take_to_draw_buf failed for %p, fallback to direct", target);
         eos_draw_buf_destroy(buf);
         return false;
     }
 
-    lv_obj_t *image = lv_image_create(eos_overlay_get_snapshot_layer());
+    eos_activity_t *activity = eos_activity_from_widget(target);
+    lv_obj_t *snap_ctr = activity ? eos_activity_get_snap_container(activity) : NULL;
+    lv_obj_t *parent = snap_ctr ? snap_ctr : eos_overlay_get_snapshot_layer();
+    lv_obj_t *image = lv_image_create(parent);
     lv_image_set_src(image, buf);
     lv_obj_set_size(image, w, h);
 
@@ -736,16 +703,15 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
     lv_obj_set_style_transform_pivot_x(image, lv_obj_get_style_transform_pivot_x(target, 0), 0);
     lv_obj_set_style_transform_pivot_y(image, lv_obj_get_style_transform_pivot_y(target, 0), 0);
 
-#if EOS_ANIM_SNAPSHOT_DIAG
-    /* 方案一 — attach draw-event to trace if snapshot participates in render */
-    _snap_diag_attach(image);
-    /* 方案三 — register display-level invalidate/refresh trace once */
-    _snap_diag_init_disp_events();
-#endif
+    _snapshot_apply_start_values(anim, image);
+
+    if (anim->preserve_layout)
+    {
+        anim->saved_orig_opa = lv_obj_get_style_opa(target, 0);
+    }
 
     if (_snap_batch_active)
     {
-        /* 方案五 — batch mode: defer hide+refresh, record for later flush */
         if (_snap_batch_count < _SNAP_BATCH_MAX)
         {
             _snap_batch_entry_t *e = &_snap_batch_entries[_snap_batch_count++];
@@ -753,9 +719,7 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
             e->image           = image;
             e->preserve_layout = anim->preserve_layout;
             e->saved_opa       = LV_OPA_COVER;
-#if SNAP_DIAG_BATCH
             EOS_LOG_I("[SNAP_BATCH] queued[%d] target=%p image=%p", _snap_batch_count - 1, target, image);
-#endif
         }
         else
         {
@@ -763,7 +727,6 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
             _snapshot_present_once(image, "frame_A_before_hide");
             if (anim->preserve_layout)
             {
-                anim->saved_orig_opa = lv_obj_get_style_opa(target, 0);
                 lv_obj_set_style_opa(target, LV_OPA_TRANSP, 0);
             }
             else
@@ -775,12 +738,8 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
     }
     else
     {
-        /* Non-batch: standard immediate path */
-        _snapshot_present_once(image, "frame_A_before_hide");
-
         if (anim->preserve_layout)
         {
-            anim->saved_orig_opa = lv_obj_get_style_opa(target, 0);
             lv_obj_set_style_opa(target, LV_OPA_TRANSP, 0);
         }
         else
@@ -788,23 +747,8 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
             lv_obj_add_flag(target, LV_OBJ_FLAG_HIDDEN);
         }
 
-        /*
-         * 方案二 — 隐藏后再强制一次 lv_refr_now，确保 LCD 已显示只有 snapshot 的帧。
-         * 如果这消除了黑闪，说明根因是隐藏后没有及时完成一次显示刷新。
-         */
-        _snapshot_present_once(image, "frame_C_after_hide");
+        _snapshot_present_once(image, "frame_after_hide");
     }
-
-#if EOS_ANIM_SNAPSHOT_DIAG && SNAP_DIAG_HIDE
-    {
-        lv_area_t coords;
-        lv_obj_get_coords(target, &coords);
-        EOS_LOG_E("[SNAP_DIAG] HIDE_DONE target=%p area=%d,%d-%d,%d hidden=%d opa_transp=%d",
-                  target, coords.x1, coords.y1, coords.x2, coords.y2,
-                  lv_obj_has_flag(target, LV_OBJ_FLAG_HIDDEN),
-                  lv_obj_get_style_opa(target, 0) == LV_OPA_TRANSP ? 1 : 0);
-    }
-#endif
 
     anim->snap_buf = buf;
     anim->snap_image = image;
@@ -1227,7 +1171,7 @@ bool eos_anim_start(eos_anim_t *anim)
     {
         if (!_snapshot_backend_prepare(anim))
         {
-            /* silently fall back to direct */
+            EOS_LOG_W("Snapshot backend prepare failed, falling back to direct for anim[%p] obj[%p]", anim, anim->tar_obj);
         }
     }
 
