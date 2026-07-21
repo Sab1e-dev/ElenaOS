@@ -1238,7 +1238,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
          *    on the old heap. After this, no stale JS handles remain. */
         spm_handle_engine_reset();
 
-        /* Clear current_program pointer (the program was destroyed in step 4) */
+        /* Clear current_program pointer (the program was already destroyed) */
         script_engine_set_current_program(NULL);
 
         /* Now safe to reinitialize — heap gets memset'd + reinit */

@@ -18,7 +18,7 @@
 
 /* Macros and Definitions -------------------------------------*/
 
-/* 方案三 — toggle to log flush areas (virtual display only) */
+/* Toggle to log flush areas (virtual display only) */
 #define EOS_VIRTUAL_DISP_FLUSH_DIAG 0
 
 struct eos_virtual_display_t

@@ -1121,7 +1121,7 @@ static void _password_finish_async_cb(void *user_data)
     eos_free(data);
 }
 
-/* ---- Numpad Page Reconfiguration for Step 2 ---- */
+/* ---- Numpad Page Reconfiguration ---- */
 
 static void _settings_numpad_reconfigure(_settings_numpad_ctx_t *ctx,
                                          const char *new_title,
@@ -1159,7 +1159,7 @@ static void _password_flow_cancel_step1_cb(void *user_data)
 
 static void _password_flow_cancel_step2_cb(void *user_data)
 {
-    /* Go back to step1 (reconfigure current page back to step1) */
+    /* Go back to first pass (reconfigure current page) */
     _password_flow_state_t *state = (_password_flow_state_t *)user_data;
     if (!state || !state->numpad_ctx)
     {
@@ -1181,11 +1181,11 @@ static void _password_create_step1_cb(const char *digits, void *user_data)
     if (!state || !state->numpad_ctx)
         return;
 
-    /* Save step 1 digits */
+    /* Save first pass digits */
     strncpy(state->step1_digits, digits, EOS_NUMPAD_MAX_DIGITS);
     state->step1_digits[EOS_NUMPAD_MAX_DIGITS] = '\0';
 
-    /* Reuse current page for step 2: just change title and clear dots */
+    /* Reuse current page for confirmation: just change title and clear dots */
     const char *title = eos_lang_get_text(STR_ID_SETTINGS_PASSWORD_REENTER);
     _settings_numpad_reconfigure(state->numpad_ctx,
                                  title,
@@ -1209,8 +1209,8 @@ static void _password_create_step2_cb(const char *digits, void *user_data)
         if (data)
         {
             data->state = state;
-            /* Creation: pop step1 (current reused page) = 1 level → sub-page
-             * Change:   pop step1 + verify-old = 2 levels → sub-page */
+            /* Creation: pop first pass (current reused page) = 1 level → sub-page
+             * Change:   pop first pass + verify-old = 2 levels → sub-page */
             data->back_count = state->is_changing ? 2 : 1;
             lv_async_call(_password_finish_async_cb, data);
         }
@@ -1221,7 +1221,7 @@ static void _password_create_step2_cb(const char *digits, void *user_data)
     }
     else
     {
-        /* Mismatch: clear digits, show toast, go back to step1 on same page */
+        /* Mismatch: clear digits, show toast, go back to first pass on same page */
         eos_toast_show_char_icon(RI_ERROR_WARNING_FILL,
                                  EOS_COLOR_RED,
                                  eos_lang_get_text(STR_ID_SETTINGS_PASSWORD_MISMATCH));

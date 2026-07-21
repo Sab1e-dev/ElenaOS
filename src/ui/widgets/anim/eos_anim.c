@@ -536,7 +536,7 @@ void eos_anim_snapshot_batch_flush(void)
 {
     EOS_LOG_I("[SNAP_BATCH] batch flush: %d entries", _snap_batch_count);
 
-    /* Step 1 — hide all originals */
+    /* Hide all originals */
     for (int i = 0; i < _snap_batch_count; i++)
     {
         _snap_batch_entry_t *e = &_snap_batch_entries[i];
@@ -553,7 +553,7 @@ void eos_anim_snapshot_batch_flush(void)
         }
     }
 
-    /* Step 2 — single refresh cycle: all snapshots visible, all originals hidden */
+    /* Single refresh cycle: all snapshots visible, all originals hidden */
     lv_display_t *disp = lv_display_get_default();
     if (disp)
     {
