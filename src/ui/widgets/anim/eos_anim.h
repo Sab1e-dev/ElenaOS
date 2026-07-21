@@ -331,19 +331,19 @@ void eos_anim_image_scale_start(lv_obj_t *tar_obj,
  * @brief Create resize animation (width/height independently)
  */
 eos_anim_t *eos_anim_resize_create(lv_obj_t *tar_obj,
-                                    int32_t w_start,
-                                    int32_t w_end,
-                                    int32_t h_start,
-                                    int32_t h_end,
-                                    uint32_t duration,
-                                    bool auto_delete);
+                                   int32_t w_start,
+                                   int32_t w_end,
+                                   int32_t h_start,
+                                   int32_t h_end,
+                                   uint32_t duration,
+                                   bool auto_delete);
 void eos_anim_resize_start(lv_obj_t *tar_obj,
-                            int32_t w_start,
-                            int32_t w_end,
-                            int32_t h_start,
-                            int32_t h_end,
-                            uint32_t duration,
-                            bool auto_delete);
+                           int32_t w_start,
+                           int32_t w_end,
+                           int32_t h_start,
+                           int32_t h_end,
+                           uint32_t duration,
+                           bool auto_delete);
 
 /************************** Snapshot Batch **************************/
 

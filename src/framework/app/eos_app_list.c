@@ -722,9 +722,12 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
     }
     EOS_LOG_E("FOCUS: valid=%d last_x=%d last_y=%d view_center=(%d,%d) translate=(%d,%d)",
               _app_list_last_icon_center_valid,
-              _app_list_last_icon_center_x, _app_list_last_icon_center_y,
-              EOS_DISPLAY_WIDTH / 2, EOS_DISPLAY_HEIGHT / 2,
-              focus_translate_x, focus_translate_y);
+              _app_list_last_icon_center_x,
+              _app_list_last_icon_center_y,
+              EOS_DISPLAY_WIDTH / 2,
+              EOS_DISPLAY_HEIGHT / 2,
+              focus_translate_x,
+              focus_translate_y);
 
     if (opening)
     {

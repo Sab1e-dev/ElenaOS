@@ -36,11 +36,12 @@ static bool _snap_batch_active = false;
 static int _snap_batch_count = 0;
 
 #define _SNAP_BATCH_MAX 128
-typedef struct {
+typedef struct
+{
     lv_obj_t *target;
     lv_obj_t *image;
-    bool       preserve_layout;
-    lv_opa_t   saved_opa;
+    bool preserve_layout;
+    lv_opa_t saved_opa;
 } _snap_batch_entry_t;
 
 static _snap_batch_entry_t _snap_batch_entries[_SNAP_BATCH_MAX];
@@ -715,10 +716,10 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
         if (_snap_batch_count < _SNAP_BATCH_MAX)
         {
             _snap_batch_entry_t *e = &_snap_batch_entries[_snap_batch_count++];
-            e->target          = target;
-            e->image           = image;
+            e->target = target;
+            e->image = image;
             e->preserve_layout = anim->preserve_layout;
-            e->saved_opa       = LV_OPA_COVER;
+            e->saved_opa = LV_OPA_COVER;
             EOS_LOG_I("[SNAP_BATCH] queued[%d] target=%p image=%p", _snap_batch_count - 1, target, image);
         }
         else
@@ -1171,7 +1172,9 @@ bool eos_anim_start(eos_anim_t *anim)
     {
         if (!_snapshot_backend_prepare(anim))
         {
-            EOS_LOG_W("Snapshot backend prepare failed, falling back to direct for anim[%p] obj[%p]", anim, anim->tar_obj);
+            EOS_LOG_W("Snapshot backend prepare failed, falling back to direct for anim[%p] obj[%p]",
+                      anim,
+                      anim->tar_obj);
         }
     }
 
@@ -1197,7 +1200,9 @@ bool eos_anim_start(eos_anim_t *anim)
             break;
         case EOS_ANIM_MOVE:
             EOS_LOG_E("MOVE start: disable_x=%d disable_y=%d anim_count=%d",
-                      anim->cfg.move.disable_x, anim->cfg.move.disable_y, anim->anim_count);
+                      anim->cfg.move.disable_x,
+                      anim->cfg.move.disable_y,
+                      anim->anim_count);
             if (!anim->cfg.move.disable_x)
             {
                 _apply_delay(&anim->anim.move.a_x, anim);

@@ -23,6 +23,7 @@
 #include "eos_mem.h"
 #include "eos_crown.h"
 #include "eos_panel.h"
+#include "eos_widget_data.h"
 #include "eos_chrome_manager.h"
 #include "eos_overlay_layer.h"
 /* Macros and Definitions -------------------------------------*/
@@ -85,7 +86,7 @@ static void _del_item_cb(eos_msg_list_t *list)
         {
             continue;
         }
-        if (lv_obj_get_user_data(child) != NULL)
+        if (eos_wdata_get(child, EOS_WDATA_MSG_LIST_ITEM) != NULL)
         {
             has_items = true;
             break;
@@ -111,7 +112,7 @@ static void _slide_widget_reached_threashold_cb(lv_event_t *e)
 {
     lv_obj_t *obj = lv_event_get_target(e);
     eos_msg_list_t *list = (eos_msg_list_t *)lv_event_get_user_data(e);
-    eos_msg_list_item_t *item = (eos_msg_list_item_t *)lv_obj_get_user_data(obj);
+    eos_msg_list_item_t *item = (eos_msg_list_item_t *)eos_wdata_get(obj, EOS_WDATA_MSG_LIST_ITEM);
     if (item)
     {
         eos_msg_list_item_delete(item);
@@ -234,7 +235,7 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
         return;
 
     lv_obj_t *item_container = lv_event_get_current_target(e);
-    eos_msg_list_item_t *item = (eos_msg_list_item_t *)lv_obj_get_user_data(item_container);
+    eos_msg_list_item_t *item = (eos_msg_list_item_t *)eos_wdata_get(item_container, EOS_WDATA_MSG_LIST_ITEM);
     EOS_CHECK_PTR_RETURN(item && !item->is_deleted && item->container && !_detail_data);
 
     _detail_data = eos_malloc_zeroed(sizeof(detail_page_data_t));
@@ -337,7 +338,7 @@ eos_msg_list_item_t *eos_msg_list_item_create(eos_msg_list_t *list)
     lv_obj_set_style_pad_all(item->container, 20, 0);
     lv_obj_set_style_align(item->container, LV_ALIGN_CENTER, 0);
     lv_obj_set_style_radius(item->container, 30, 0);
-    lv_obj_set_user_data(item->container, item);
+    eos_wdata_set(item->container, EOS_WDATA_MSG_LIST_ITEM, item, NULL);
     lv_obj_set_style_translate_x(item->container, 0, 0);
     lv_obj_set_style_shadow_width(item->container, 0, 0);
     lv_obj_remove_flag(item->container, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
@@ -416,7 +417,7 @@ void eos_msg_list_item_delete(eos_msg_list_item_t *item)
     // Clear container user data
     if (item->container)
     {
-        lv_obj_set_user_data(item->container, NULL);
+        eos_wdata_remove(item->container, EOS_WDATA_MSG_LIST_ITEM);
     }
 
     // Free message string
@@ -509,7 +510,7 @@ void eos_msg_list_clear_all(eos_msg_list_t *msg_list)
         {
             continue;
         }
-        eos_msg_list_item_t *item = (eos_msg_list_item_t *)lv_obj_get_user_data(child);
+        eos_msg_list_item_t *item = (eos_msg_list_item_t *)eos_wdata_get(child, EOS_WDATA_MSG_LIST_ITEM);
         if (item)
         {
             eos_msg_list_item_delete(item);
@@ -563,7 +564,7 @@ static void _trigger_msg_anims(eos_msg_list_t *list)
     for (uint8_t i = anim_index; i < child_count && list->animating_count < 2; i++)
     {
         lv_obj_t *child = lv_obj_get_child(parent, i);
-        eos_msg_list_item_t *item = (eos_msg_list_item_t *)lv_obj_get_user_data(child);
+        eos_msg_list_item_t *item = (eos_msg_list_item_t *)eos_wdata_get(child, EOS_WDATA_MSG_LIST_ITEM);
 
         // Skip the clear button itself
         if (child == list->clear_all_btn)
@@ -741,7 +742,7 @@ eos_msg_list_t *eos_msg_list_create(lv_obj_t *parent)
     lv_obj_set_style_border_width(msg_list->list, 0, 0);
     lv_obj_set_style_pad_all(msg_list->list, 30, 0);
     lv_obj_align(msg_list->list, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_user_data(msg_list->list, msg_list);
+    eos_wdata_set(msg_list->list, EOS_WDATA_MSG_LIST, msg_list, NULL);
     lv_obj_set_scroll_dir(msg_list->list, LV_DIR_VER);
     lv_obj_add_event_cb(msg_list->list, _msg_list_deleted_cb, LV_EVENT_DELETE, msg_list);
     // Create clear all button

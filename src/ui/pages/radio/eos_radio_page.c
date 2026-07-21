@@ -18,6 +18,7 @@
 #include "eos_icon.h"
 #include "eos_mem.h"
 #include "eos_activity.h"
+#include "eos_widget_data.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _RADIO_ITEM_HEIGHT 100
@@ -56,7 +57,7 @@ static void _radio_item_check(eos_radio_page_t *rp, lv_obj_t *right_label)
 static void _radio_item_clicked_cb(lv_event_t *e)
 {
     lv_obj_t *obj = lv_event_get_target(e);
-    uint32_t index = (uint32_t)lv_obj_get_user_data(obj);
+    uint32_t index = (uint32_t)eos_wdata_get(obj, EOS_WDATA_RADIO_ITEM_INDEX);
     eos_radio_page_t *rp = lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(rp);
     lv_obj_t *label = lv_obj_get_child(obj, _RADIO_ITEM_CHECK_LABEL_INDEX);
@@ -124,7 +125,7 @@ uint32_t eos_radio_page_add_item(eos_radio_page_t *rp, const char *txt)
     lv_obj_move_to_index(title_label, _RADIO_ITEM_TITLE_LABEL_INDEX);
     lv_obj_move_to_index(check_label, _RADIO_ITEM_CHECK_LABEL_INDEX);
 
-    lv_obj_set_user_data(item, (void *)(intptr_t)rp->item_number);
+    eos_wdata_set(item, EOS_WDATA_RADIO_ITEM_INDEX, (void *)(intptr_t)rp->item_number, NULL);
     lv_obj_add_event_cb(item, _radio_item_clicked_cb, LV_EVENT_CLICKED, rp);
 
     rp->last_item = item;

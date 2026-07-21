@@ -15,6 +15,7 @@
 #include "eos_config.h"
 #include "eos_anim.h"
 #include "eos_cqueue.h"
+#include "eos_widget_data.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _TOAST_PAD_ALL 12
@@ -71,7 +72,7 @@ static void _toast_start_move_back_cb(eos_anim_t *a)
     lv_obj_t *toast = a->tar_obj;
     if (toast && lv_obj_is_valid(toast))
     {
-        uint32_t duration = (uint32_t)(intptr_t)lv_obj_get_user_data(toast);
+        uint32_t duration = (uint32_t)(intptr_t)eos_wdata_get(toast, EOS_WDATA_TOAST_DURATION);
         int32_t toast_x = lv_obj_get_x(toast);
         eos_anim_t *anim = eos_anim_move_create(toast,
                                                 toast_x,
@@ -175,7 +176,7 @@ static lv_obj_t *_toast_finalize(lv_obj_t *toast, const char *message)
         duration = _TOAST_SHOW_DURATION;
     }
     EOS_LOG_D("Toast will show for %d ms", duration);
-    lv_obj_set_user_data(toast, (void *)(intptr_t)duration);
+    eos_wdata_set(toast, EOS_WDATA_TOAST_DURATION, (void *)(intptr_t)duration, NULL);
     if (is_toast_playing)
     {
         if (!eos_cqueue_enqueue(anim_cq, toast))

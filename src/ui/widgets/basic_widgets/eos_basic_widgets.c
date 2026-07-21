@@ -30,6 +30,7 @@
 #include "eos_app_list.h"
 #include "eos_mem.h"
 #include "eos_service_cache.h"
+#include "eos_widget_data.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -68,6 +69,7 @@ static uint32_t _list_transition_sequence = 0U;
 
 static eos_list_transition_state_t *_list_transition_get_state(lv_obj_t *list);
 static void _list_transition_clear_state(void);
+static void _list_transition_state_dtor(void *data);
 static void _list_transition_record_state(lv_obj_t *list, lv_obj_t *button, eos_activity_t *activity);
 static bool _list_transition_select_state_for_activity(eos_activity_t *expected_activity);
 static void _list_transition_select_state_from_tree(lv_obj_t *root,
@@ -264,7 +266,7 @@ lv_obj_t *eos_list_create(lv_obj_t *parent)
     if (state)
     {
         state->list = list;
-        lv_obj_set_user_data(list, state);
+        eos_wdata_set(list, EOS_WDATA_LIST_TRANSITION, state, _list_transition_state_dtor);
     }
     else
     {
@@ -282,7 +284,7 @@ static eos_list_transition_state_t *_list_transition_get_state(lv_obj_t *list)
         return NULL;
     }
 
-    eos_list_transition_state_t *state = (eos_list_transition_state_t *)lv_obj_get_user_data(list);
+    eos_list_transition_state_t *state = (eos_list_transition_state_t *)eos_wdata_get(list, EOS_WDATA_LIST_TRANSITION);
     if (state)
     {
         state->list = list;
@@ -294,6 +296,14 @@ static eos_list_transition_state_t *_list_transition_get_state(lv_obj_t *list)
 static void _list_transition_clear_state(void)
 {
     _list_transition_state = NULL;
+}
+
+static void _list_transition_state_dtor(void *data)
+{
+    eos_list_transition_state_t *state = (eos_list_transition_state_t *)data;
+    if (_list_transition_state == state)
+        _list_transition_state = NULL;
+    eos_free(state);
 }
 
 static void _list_transition_select_state_from_tree(lv_obj_t *root,
@@ -380,14 +390,9 @@ static void _list_transition_list_delete_cb(lv_event_t *e)
     _list_transition_cancel_anims_for_list(list);
 
     eos_list_transition_state_t *state = _list_transition_get_state(list);
-    if (state)
+    if (state && _list_transition_state == state)
     {
-        if (_list_transition_state == state)
-        {
-            _list_transition_clear_state();
-        }
-        lv_obj_set_user_data(list, NULL);
-        eos_free(state);
+        _list_transition_clear_state();
     }
 }
 

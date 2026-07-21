@@ -34,23 +34,23 @@
 #define KB_SPACE "SPACE"
 
 static const char *_keyboard_map_lower[] = {"q",      "w",
-                                                  "e",      "r",
-                                                  "t",      "y",
-                                                  "u",      "i",
-                                                  "o",      "p",
-                                                  "\n",     "a",
-                                                  "s",      "d",
-                                                  "f",      "g",
-                                                  "h",      "j",
-                                                  "k",      "l",
-                                                  "\n",     KB_SWITCH_TO_UPPER,
-                                                  "z",      "x",
-                                                  "c",      "v",
-                                                  "b",      "n",
-                                                  "m",      KB_SWITCH_TO_NUMBER,
-                                                  "\n",     LV_SYMBOL_LEFT,
-                                                  KB_SPACE, LV_SYMBOL_RIGHT,
-                                                  ""};
+                                            "e",      "r",
+                                            "t",      "y",
+                                            "u",      "i",
+                                            "o",      "p",
+                                            "\n",     "a",
+                                            "s",      "d",
+                                            "f",      "g",
+                                            "h",      "j",
+                                            "k",      "l",
+                                            "\n",     KB_SWITCH_TO_UPPER,
+                                            "z",      "x",
+                                            "c",      "v",
+                                            "b",      "n",
+                                            "m",      KB_SWITCH_TO_NUMBER,
+                                            "\n",     LV_SYMBOL_LEFT,
+                                            KB_SPACE, LV_SYMBOL_RIGHT,
+                                            ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_lower[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
@@ -63,23 +63,23 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_lower[] = {
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
 static const char *_keyboard_map_upper[] = {"Q",      "W",
-                                                  "E",      "R",
-                                                  "T",      "Y",
-                                                  "U",      "I",
-                                                  "O",      "P",
-                                                  "\n",     "A",
-                                                  "S",      "D",
-                                                  "F",      "G",
-                                                  "H",      "J",
-                                                  "K",      "L",
-                                                  "\n",     KB_SWITCH_TO_LOWER,
-                                                  "Z",      "X",
-                                                  "C",      "V",
-                                                  "B",      "N",
-                                                  "M",      KB_SWITCH_TO_NUMBER,
-                                                  "\n",     LV_SYMBOL_LEFT,
-                                                  KB_SPACE, LV_SYMBOL_RIGHT,
-                                                  ""};
+                                            "E",      "R",
+                                            "T",      "Y",
+                                            "U",      "I",
+                                            "O",      "P",
+                                            "\n",     "A",
+                                            "S",      "D",
+                                            "F",      "G",
+                                            "H",      "J",
+                                            "K",      "L",
+                                            "\n",     KB_SWITCH_TO_LOWER,
+                                            "Z",      "X",
+                                            "C",      "V",
+                                            "B",      "N",
+                                            "M",      KB_SWITCH_TO_NUMBER,
+                                            "\n",     LV_SYMBOL_LEFT,
+                                            KB_SPACE, LV_SYMBOL_RIGHT,
+                                            ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_upper[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
@@ -92,39 +92,39 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_upper[] = {
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
 static const char *_keyboard_map_number[] = {"1",
-                                                   "2",
-                                                   "3",
-                                                   "4",
-                                                   "5",
-                                                   "6",
-                                                   "7",
-                                                   "8",
-                                                   "9",
-                                                   "0",
-                                                   "\n",
-                                                   "-",
-                                                   "/",
-                                                   ":",
-                                                   ";",
-                                                   "(",
-                                                   ")",
-                                                   "$",
-                                                   "@",
-                                                   "\"",
-                                                   "\"",
-                                                   "\n",
-                                                   KB_SWITCH_TO_SYMBOL,
-                                                   ".",
-                                                   ",",
-                                                   "?",
-                                                   "!",
-                                                   "\'",
-                                                   KB_SWITCH_TO_LOWER,
-                                                   "\n",
-                                                   LV_SYMBOL_LEFT,
-                                                   KB_SPACE,
-                                                   LV_SYMBOL_RIGHT,
-                                                   ""};
+                                             "2",
+                                             "3",
+                                             "4",
+                                             "5",
+                                             "6",
+                                             "7",
+                                             "8",
+                                             "9",
+                                             "0",
+                                             "\n",
+                                             "-",
+                                             "/",
+                                             ":",
+                                             ";",
+                                             "(",
+                                             ")",
+                                             "$",
+                                             "@",
+                                             "\"",
+                                             "\"",
+                                             "\n",
+                                             KB_SWITCH_TO_SYMBOL,
+                                             ".",
+                                             ",",
+                                             "?",
+                                             "!",
+                                             "\'",
+                                             KB_SWITCH_TO_LOWER,
+                                             "\n",
+                                             LV_SYMBOL_LEFT,
+                                             KB_SPACE,
+                                             LV_SYMBOL_RIGHT,
+                                             ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_number[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
@@ -139,39 +139,39 @@ static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_number[] = {
     KB_CTRL(2), KB_CTRL(6), KB_CTRL(2)};
 
 static const char *_keyboard_map_symbol[] = {"[",
-                                                   "]",
-                                                   "{",
-                                                   "}",
-                                                   "#",
-                                                   "%",
-                                                   "^",
-                                                   "*",
-                                                   "+",
-                                                   "=",
-                                                   "\n",
-                                                   "-",
-                                                   "\\",
-                                                   "|",
-                                                   "~",
-                                                   "<",
-                                                   ">",
-                                                   "€",
-                                                   "£",
-                                                   "¥",
-                                                   "•",
-                                                   "\n",
-                                                   KB_SWITCH_TO_SYMBOL,
-                                                   ".",
-                                                   ",",
-                                                   "?",
-                                                   "!",
-                                                   "\'",
-                                                   KB_SWITCH_TO_UPPER,
-                                                   "\n",
-                                                   LV_SYMBOL_LEFT,
-                                                   KB_SPACE,
-                                                   LV_SYMBOL_RIGHT,
-                                                   ""};
+                                             "]",
+                                             "{",
+                                             "}",
+                                             "#",
+                                             "%",
+                                             "^",
+                                             "*",
+                                             "+",
+                                             "=",
+                                             "\n",
+                                             "-",
+                                             "\\",
+                                             "|",
+                                             "~",
+                                             "<",
+                                             ">",
+                                             "€",
+                                             "£",
+                                             "¥",
+                                             "•",
+                                             "\n",
+                                             KB_SWITCH_TO_SYMBOL,
+                                             ".",
+                                             ",",
+                                             "?",
+                                             "!",
+                                             "\'",
+                                             KB_SWITCH_TO_UPPER,
+                                             "\n",
+                                             LV_SYMBOL_LEFT,
+                                             KB_SPACE,
+                                             LV_SYMBOL_RIGHT,
+                                             ""};
 
 static const lv_buttonmatrix_ctrl_t _keyboard_ctrl_symbol[] = {
     KB_CTRL(1), KB_CTRL(1), KB_CTRL(1),
@@ -585,11 +585,6 @@ static void _on_activity_destroy(eos_activity_t *activity)
 
     if (ctx)
     {
-        if (ctx->root && lv_obj_is_valid(ctx->root))
-        {
-            lv_obj_set_user_data(ctx->root, NULL);
-        }
-
         eos_free(ctx);
         eos_activity_set_user_data(activity, NULL);
     }
@@ -632,7 +627,6 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
 
     eos_activity_set_user_data(activity, ctx);
 
-    /* Create root container */
     ctx->root = eos_activity_get_view(activity);
     if (!ctx->root)
     {
@@ -642,7 +636,6 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
         return EOS_FAILED;
     }
 
-    lv_obj_set_user_data(ctx->root, ctx);
     lv_obj_set_size(ctx->root, lv_pct(100), lv_pct(100));
     lv_obj_set_style_pad_all(ctx->root, 0, 0);
     lv_obj_set_style_border_width(ctx->root, 0, 0);

@@ -30,6 +30,7 @@
 #include "eos_chrome_manager.h"
 #include "eos_overlay_layer.h"
 #include "eos_activity.h"
+#include "eos_widget_data.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _BTN_DEFAULT_COLOR EOS_THEME_SECONDARY_COLOR
@@ -193,7 +194,7 @@ static lv_obj_t *_control_center_slider_create(const char *symbol)
 
     lv_obj_t *label = lv_label_create(slider_page);
     lv_label_set_text(label, symbol);
-    lv_obj_set_user_data(slider, (void *)label);
+    eos_wdata_set(slider, EOS_WDATA_SLIDER_LABEL, (void *)label, NULL);
     lv_obj_set_style_text_color(label, EOS_COLOR_BLACK, 0);
     lv_obj_move_foreground(label);
     lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -100);
@@ -244,7 +245,7 @@ static void _control_center_bluetooth_switch_btn_cb(lv_event_t *e)
 static void _control_center_brightness_value_changed_cb(lv_event_t *e)
 {
     lv_obj_t *slider = lv_event_get_target(e);
-    lv_obj_t *label = (lv_obj_t *)lv_obj_get_user_data(slider);
+    lv_obj_t *label = (lv_obj_t *)eos_wdata_get(slider, EOS_WDATA_SLIDER_LABEL);
     EOS_CHECK_PTR_RETURN(label);
 
     // Get current Slider value
@@ -352,7 +353,7 @@ static void _control_center_volume_value_changed_cb(lv_event_t *e)
 {
     eos_control_center_t *cc = (eos_control_center_t *)lv_event_get_user_data(e);
     lv_obj_t *slider = lv_event_get_target(e);
-    lv_obj_t *label = (lv_obj_t *)lv_obj_get_user_data(slider);
+    lv_obj_t *label = (lv_obj_t *)eos_wdata_get(slider, EOS_WDATA_SLIDER_LABEL);
     EOS_CHECK_PTR_RETURN(label);
     // Get current Slider value
     int16_t value = lv_slider_get_value(slider);

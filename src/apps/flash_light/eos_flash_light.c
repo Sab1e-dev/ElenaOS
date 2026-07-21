@@ -99,8 +99,7 @@ static void _flash_light_indicator_fade_out_ready_cb(eos_anim_t *a)
 
 static void _flash_light_on_destroy(eos_activity_t *a)
 {
-    lv_obj_t *view = eos_activity_get_view(a);
-    _flash_light_card_pager_ctx_t *ctx = view ? (_flash_light_card_pager_ctx_t *)lv_obj_get_user_data(view) : NULL;
+    _flash_light_card_pager_ctx_t *ctx = (_flash_light_card_pager_ctx_t *)eos_activity_get_user_data(a);
     if (ctx)
     {
         if (ctx->flash_timer)
@@ -109,10 +108,7 @@ static void _flash_light_on_destroy(eos_activity_t *a)
             ctx->flash_timer = NULL;
         }
 
-        if (view && lv_obj_is_valid(view))
-        {
-            lv_obj_set_user_data(view, NULL);
-        }
+        eos_activity_set_user_data(a, NULL);
 
         eos_free(ctx);
     }
@@ -520,7 +516,7 @@ void eos_flash_light_enter(void)
 
     ctx->activity = a;
     ctx->immersive_mode = false;
-    lv_obj_set_user_data(view, ctx);
+    eos_activity_set_user_data(a, ctx);
 
     lv_obj_remove_style_all(view);
     lv_obj_set_size(view, lv_pct(100), lv_pct(100));

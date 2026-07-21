@@ -24,6 +24,7 @@
 #include "eos_overlay_layer.h"
 #include "eos_event.h"
 #include "eos_image.h"
+#include "eos_widget_data.h"
 /* Macros and Definitions -------------------------------------*/
 #define _ACTIVITY_STACK_INIT_CAPACITY 8
 #define _DEFAULT_TITLE_COLOR EOS_COLOR_BLUE
@@ -424,7 +425,8 @@ static void _anim_clean_up_activity_deferred(void *user_data)
     else if (anim_ctx->to)
     {
         EOS_LOG_E("STALLED: to activity[%p] snapshot_ref_count=%d > 0, view NOT restored!",
-                  anim_ctx->to, anim_ctx->to->snapshot_ref_count);
+                  anim_ctx->to,
+                  anim_ctx->to->snapshot_ref_count);
     }
     if (anim_ctx->to && eos_activity_is_app_header_visible(anim_ctx->to))
     {
@@ -812,13 +814,13 @@ void eos_activity_set_view(eos_activity_t *activity, lv_obj_t *view)
     EOS_CHECK_PTR_RETURN(activity);
     if (activity->view && activity->view != view && lv_obj_is_valid(activity->view))
     {
-        lv_obj_set_user_data(activity->view, NULL);
+        eos_wdata_remove(activity->view, EOS_WDATA_ACTIVITY);
         lv_obj_delete(activity->view);
     }
     activity->view = view;
     if (view && lv_obj_is_valid(view))
     {
-        lv_obj_set_user_data(view, activity);
+        eos_wdata_set(view, EOS_WDATA_ACTIVITY, activity, NULL);
     }
     if (!activity->snap_container || !lv_obj_is_valid(activity->snap_container))
     {
@@ -834,7 +836,7 @@ eos_activity_t *eos_activity_from_widget(lv_obj_t *obj)
     lv_obj_t *current = obj;
     while (current)
     {
-        eos_activity_t *activity = (eos_activity_t *)lv_obj_get_user_data(current);
+        eos_activity_t *activity = (eos_activity_t *)eos_wdata_get(current, EOS_WDATA_ACTIVITY);
         if (activity)
             return activity;
         current = lv_obj_get_parent(current);
@@ -846,9 +848,7 @@ eos_activity_t *eos_activity_from_widget(lv_obj_t *obj)
 lv_obj_t *eos_activity_get_snap_container(eos_activity_t *activity)
 {
     EOS_CHECK_PTR_RETURN_VAL(activity, NULL);
-    return (activity->snap_container && lv_obj_is_valid(activity->snap_container))
-               ? activity->snap_container
-               : NULL;
+    return (activity->snap_container && lv_obj_is_valid(activity->snap_container)) ? activity->snap_container : NULL;
 }
 
 lv_obj_t *eos_activity_get_root_screen(void)
@@ -879,9 +879,8 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
         return NULL;
     }
 
-    lv_obj_t *snapshot_obj = lv_image_create(activity->snap_container
-                                                  ? activity->snap_container
-                                                  : eos_overlay_get_snapshot_layer());
+    lv_obj_t *snapshot_obj =
+        lv_image_create(activity->snap_container ? activity->snap_container : eos_overlay_get_snapshot_layer());
     if (!snapshot_obj)
     {
         eos_free(snapshot_node);
@@ -1335,7 +1334,7 @@ eos_activity_t *eos_activity_create(const eos_activity_lifecycle_t *lifecycle)
             eos_free(activity);
             return NULL;
         }
-        lv_obj_set_user_data(activity->view, activity);
+        eos_wdata_set(activity->view, EOS_WDATA_ACTIVITY, activity, NULL);
 
         activity->snap_container = _snap_container_create();
     }
@@ -1395,7 +1394,7 @@ eos_activity_t *eos_activity_create_root(const eos_activity_lifecycle_t *lifecyc
         eos_free(activity);
         return NULL;
     }
-    lv_obj_set_user_data(activity->view, activity);
+    eos_wdata_set(activity->view, EOS_WDATA_ACTIVITY, activity, NULL);
 
     activity->snap_container = _snap_container_create();
 
