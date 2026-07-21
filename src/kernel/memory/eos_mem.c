@@ -33,7 +33,7 @@ static eos_mem_track_t _mem_track[EOS_MEM_TRACK_MAX];
 
 #if EOS_MEM_TRACK_ENABLE
 
-/************************** Memory Tracking Functions **************************/
+/* Memory Tracking Functions ----------------------------------*/
 
 static size_t eos_mem_track_find(void *ptr)
 {
@@ -107,7 +107,7 @@ static size_t eos_mem_track_remove(void *ptr)
 }
 #endif /* EOS_MEM_TRACK_ENABLE */
 
-/************************** ElneaOS **************************/
+/* ElneaOS ----------------------------------------------------*/
 
 void *eos_malloc(size_t size)
 {
@@ -167,7 +167,7 @@ void *eos_malloc_zeroed(size_t size)
     return p;
 }
 
-/************************** LVGL **************************/
+/* LVGL -------------------------------------------------------*/
 
 #if EOS_OVERRIDE_LVGL_STDLIB_MALLOC_ENABLE
 

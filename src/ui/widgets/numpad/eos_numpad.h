@@ -61,7 +61,7 @@ typedef struct
     void *user_data;
 } eos_numpad_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a numpad widget with dot indicators and a 3x4 button grid.

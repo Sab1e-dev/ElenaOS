@@ -40,7 +40,7 @@ static void _perm_any_button_cb(lv_event_t *e);
 static void _perm_panel_pull_back(void);
 static void _perm_panel_hide(void);
 
-/* ---- Overlay descriptor for chrome manager ---- */
+/* Overlay descriptor for chrome manager ----------------------*/
 static eos_perm_panel_t *_active_panel = NULL;
 
 static const eos_chrome_overlay_t s_perm_overlay = {
@@ -70,7 +70,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     _active_panel = p;
     eos_chrome_manager_notify_overlay_opened(&s_perm_overlay);
 
-    /* ---- Full-screen container on overlay layer (above header_layer) ---- */
+    /* Full-screen container on overlay layer (above header_layer) -*/
     p->container = lv_obj_create(eos_overlay_get_overlay_layer());
     lv_obj_remove_style_all(p->container);
     lv_obj_set_size(p->container, lv_pct(100), lv_pct(100));
@@ -88,7 +88,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_add_flag(p->container, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_move_foreground(p->container);
 
-    /* ---- Title label ---- */
+    /* Title label ------------------------------------------------*/
     p->title = lv_label_create(p->container);
     lv_obj_set_width(p->title, lv_pct(100));
     lv_label_set_long_mode(p->title, LV_LABEL_LONG_WRAP);
@@ -104,7 +104,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
                           cfg->app_name,
                           perm_name ? perm_name : "");
 
-    /* ---- Message/description label ---- */
+    /* Message/description label ----------------------------------*/
     p->message = lv_label_create(p->container);
     lv_obj_set_width(p->message, lv_pct(100));
     lv_label_set_long_mode(p->message, LV_LABEL_LONG_WRAP);
@@ -115,14 +115,14 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     const char *desc = eos_permission_category_desc(cfg->category);
     lv_label_set_text(p->message, desc ? desc : "");
 
-    /* ---- Push buttons to bottom with a spacer ---- */
+    /* Push buttons to bottom with a spacer -----------------------*/
     lv_obj_t *spacer = lv_obj_create(p->container);
     lv_obj_remove_style_all(spacer);
     lv_obj_set_size(spacer, 1, 1);
     lv_obj_set_style_border_width(spacer, 0, 0);
     lv_obj_set_flex_grow(spacer, 1);
 
-    /* ---- Actions container (vertical button stack) ---- */
+    /* Actions container (vertical button stack) ------------------*/
     lv_obj_t *actions = lv_obj_create(p->container);
     lv_obj_remove_style_all(actions);
     lv_obj_set_size(actions, lv_pct(100), LV_SIZE_CONTENT);
@@ -132,7 +132,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_set_style_border_width(actions, 0, 0);
     lv_obj_set_style_pad_all(actions, 0, 0);
 
-    /* ---- Allow Once button ---- */
+    /* Allow Once button ------------------------------------------*/
     p->allow_once_btn = lv_button_create(actions);
     lv_obj_set_size(p->allow_once_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->allow_once_btn, LV_RADIUS_CIRCLE, 0);
@@ -145,7 +145,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_add_event_cb(p->allow_once_btn, _perm_any_button_cb, LV_EVENT_CLICKED, p);
     lv_obj_add_event_cb(p->allow_once_btn, cfg->allow_once_cb, LV_EVENT_CLICKED, p);
 
-    /* ---- Allow While Using App button ---- */
+    /* Allow While Using App button -------------------------------*/
     p->allow_foreground_btn = lv_button_create(actions);
     lv_obj_set_size(p->allow_foreground_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->allow_foreground_btn, LV_RADIUS_CIRCLE, 0);
@@ -158,7 +158,7 @@ eos_perm_panel_t *eos_perm_panel_create(const eos_perm_panel_cfg_t *cfg)
     lv_obj_add_event_cb(p->allow_foreground_btn, _perm_any_button_cb, LV_EVENT_CLICKED, p);
     lv_obj_add_event_cb(p->allow_foreground_btn, cfg->allow_foreground_cb, LV_EVENT_CLICKED, p);
 
-    /* ---- Don't Allow button ---- */
+    /* Don't Allow button -----------------------------------------*/
     p->deny_btn = lv_button_create(actions);
     lv_obj_set_size(p->deny_btn, lv_pct(100), EOS_PERM_PANEL_BUTTON_HEIGHT);
     lv_obj_set_style_radius(p->deny_btn, LV_RADIUS_CIRCLE, 0);
@@ -199,7 +199,7 @@ void eos_perm_panel_delete(eos_perm_panel_t *panel)
     eos_free(panel);
 }
 
-/* ---- Internal callbacks ---- */
+/* Internal callbacks -----------------------------------------*/
 
 /**
  * @brief Common handler for all three action buttons.
@@ -232,7 +232,7 @@ static void _perm_panel_container_delete_cb(lv_event_t *e)
     }
 }
 
-/* ---- Overlay callbacks for chrome manager ---- */
+/* Overlay callbacks for chrome manager -----------------------*/
 
 static void _perm_panel_pull_back(void)
 {

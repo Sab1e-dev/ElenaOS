@@ -19,7 +19,7 @@
 #include "eos_control_center.h"
 #include "eos_activity.h"
 
-/* Static Variables ------------------------------------------*/
+/* Static Variables -------------------------------------------*/
 
 static void _builtin_on_enter(eos_activity_t *activity);
 static void _builtin_on_pause(eos_activity_t *activity);

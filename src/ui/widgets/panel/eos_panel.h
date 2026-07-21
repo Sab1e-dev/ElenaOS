@@ -69,7 +69,7 @@ typedef struct
     lv_obj_t *cancel_btn; /**< Cancel button (NULL if hidden) */
 } eos_panel_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a panel on given activity

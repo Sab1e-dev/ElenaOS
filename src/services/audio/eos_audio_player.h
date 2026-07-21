@@ -52,7 +52,7 @@ struct eos_audio_player_t
     void *done_user_data;
 };
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize a player instance. Must be called before use.

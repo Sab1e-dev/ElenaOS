@@ -84,7 +84,7 @@
 #define EOS_MEM_TRACK_ENABLE 1
 #endif
 
-/* Image cache -------------------------------------------------*/
+/* Image cache ------------------------------------------------*/
 
 #ifndef EOS_CACHE_ENABLE
 #define EOS_CACHE_ENABLE 1
@@ -112,13 +112,13 @@
 #endif
 #endif
 
-/* RTOS --------------------------------------------------------*/
+/* RTOS -------------------------------------------------------*/
 
 #ifndef EOS_RTOS_TYPE
 #define EOS_RTOS_TYPE EOS_RTOS_BARE_METAL
 #endif
 
-/* Font --------------------------------------------------------*/
+/* Font -------------------------------------------------------*/
 
 #ifndef EOS_FONT_TYPE
 #define EOS_FONT_TYPE EOS_FONT_TTF
@@ -182,7 +182,7 @@
 
 #endif /* EOS_FONT_TYPE */
 
-/* Display -----------------------------------------------------*/
+/* Display ----------------------------------------------------*/
 
 #ifndef EOS_DISPLAY_WIDTH
 #define EOS_DISPLAY_WIDTH 390
@@ -204,7 +204,7 @@
 #define EOS_DISPLAY_BRIGHTNESS_MAX 100
 #endif
 
-/* File system -------------------------------------------------*/
+/* File system ------------------------------------------------*/
 
 #ifndef EOS_SYS_ROOT_DIR
 #define EOS_SYS_ROOT_DIR "/"
@@ -233,19 +233,19 @@
 #define EOS_DFW_ENABLE 0
 #endif
 
-/* Language ----------------------------------------------------*/
+/* Language ---------------------------------------------------*/
 
 #ifndef EOS_CONFIG_DEFAULT_LANGUAGE
 #define EOS_CONFIG_DEFAULT_LANGUAGE 0
 #endif
 
-/* Miscellaneous -----------------------------------------------*/
+/* Miscellaneous ----------------------------------------------*/
 
 #ifndef EOS_ENABLE_TEST_APP
 #define EOS_ENABLE_TEST_APP 1
 #endif
 
-/* Logging -----------------------------------------------------*/
+/* Logging ----------------------------------------------------*/
 
 #ifndef EOS_USE_ASSERT
 #define EOS_USE_ASSERT 1

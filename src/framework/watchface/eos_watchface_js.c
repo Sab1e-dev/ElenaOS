@@ -22,7 +22,7 @@
 #include "eos_msg_list.h"
 #include "eos_control_center.h"
 
-/* Function Prototypes ---------------------------------------*/
+/* Function Prototypes ----------------------------------------*/
 static void _js_on_enter(eos_activity_t *activity);
 static void _js_on_pause(eos_activity_t *activity);
 static void _js_on_resume(eos_activity_t *activity);
@@ -31,7 +31,7 @@ static script_pkg_t _js_load_package_from_disk(const char *watchface_id);
 static void _js_handle_error(eos_watchface_instance_t *self, int32_t error_code);
 static void _js_long_pressed_cb(lv_event_t *e);
 
-/* Static Variables ------------------------------------------*/
+/* Static Variables -------------------------------------------*/
 
 /**
  * @brief Activity lifecycle callbacks for JS watchface

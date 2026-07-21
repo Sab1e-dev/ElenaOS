@@ -23,7 +23,7 @@
 #define _PANEL_PAD_BOTTOM 40
 #define _PANEL_BUTTON_RADIUS LV_RADIUS_CIRCLE
 
-/* Function Implementations ----------------------------------*/
+/* Function Implementations -----------------------------------*/
 
 static void _panel_default_cancel_cb(lv_event_t *e)
 {

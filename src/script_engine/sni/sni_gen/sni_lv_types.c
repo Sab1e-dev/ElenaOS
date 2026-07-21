@@ -15,7 +15,7 @@
 #include "sni_type_bridge.h"
 #include "lvgl.h"
 
-/************************** Property tables **************************/
+/* Property tables --------------------------------------------*/
 
 const sni_val_prop_t lv_anim_bezier3_para_props[] = {
     {
@@ -335,7 +335,7 @@ const sni_val_obj_t lv_sqrt_res_prop = {
     .props = lv_sqrt_res_props,
 };
 
-/************************** Registry **************************/
+/* Registry ---------------------------------------------------*/
 
 const sni_val_obj_t *sni_lv_types[] = {
     &lv_anim_bezier3_para_prop,
@@ -354,7 +354,7 @@ const sni_val_obj_t *sni_lv_types[] = {
 
 const size_t sni_lv_types_count = sizeof(sni_lv_types) / sizeof(sni_lv_types[0]);
 
-/************************** Initialization **************************/
+/* Initialization ---------------------------------------------*/
 void sni_lv_types_init(void)
 {
     for (size_t i = 0; i < sni_lv_types_count; i++)

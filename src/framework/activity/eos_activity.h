@@ -51,7 +51,7 @@ typedef struct
     eos_activity_on_resume_t on_resume;
 } eos_activity_lifecycle_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize Activity controller with root Activity

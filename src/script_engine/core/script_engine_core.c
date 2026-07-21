@@ -293,7 +293,7 @@ static void _engine_cleanup(void);
 static eos_result_t _script_engine_stop_and_cleanup(void);
 static jerry_value_t _script_engine_create_info(const script_pkg_t *script_package);
 
-/* ---- Realm Management (Encapsulated) ---- */
+/* Realm Management (Encapsulated) ----------------------------*/
 
 static jerry_value_t _realm_create(void)
 {
@@ -424,7 +424,7 @@ static void _collect_script_garbage(void)
     jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 }
 
-/* ---- Error handling ---- */
+/* Error handling ---------------------------------------------*/
 
 static void _set_error_info(const char *msg)
 {
@@ -645,7 +645,7 @@ static void _script_engine_exception_handler(const char *tag, jerry_value_t resu
     }
 }
 
-/* ---- Query ---- */
+/* Query ------------------------------------------------------*/
 
 const char *script_engine_get_error_info(void)
 {
@@ -701,7 +701,7 @@ bool script_engine_has_permission(const char *perm_name)
     return false;
 }
 
-/* ---- Throwing / Registering / Helpers ---- */
+/* Throwing / Registering / Helpers ---------------------------*/
 
 jerry_value_t script_engine_throw_error(const char *message)
 {
@@ -739,7 +739,7 @@ void script_engine_register_functions(jerry_value_t parent,
     }
 }
 
-/* ---- JS Call (raw — SPM gates) ---- */
+/* JS Call (raw — SPM gates) ----------------------------------*/
 
 jerry_value_t script_engine_call_raw(jerry_value_t func,
                                      jerry_value_t this_val,
@@ -784,7 +784,7 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
     return result;
 }
 
-/* ---- Timeout ---- */
+/* Timeout ----------------------------------------------------*/
 
 void script_engine_set_timeout(uint32_t timeout_ms)
 {
@@ -795,7 +795,7 @@ uint32_t script_engine_get_timeout(void)
     return engine_rt.script_timeout_ms;
 }
 
-/* ---- VM halt callback ---- */
+/* VM halt callback -------------------------------------------*/
 
 static jerry_value_t _vm_exec_stop_callback(void *user_p)
 {
@@ -825,7 +825,7 @@ static jerry_value_t _vm_exec_stop_callback(void *user_p)
     return jerry_undefined();
 }
 
-/* ---- Init ---- */
+/* Init -------------------------------------------------------*/
 
 eos_result_t script_engine_init(void)
 {
@@ -849,7 +849,7 @@ eos_result_t script_engine_init(void)
     return EOS_OK;
 }
 
-/* ---- Module system ---- */
+/* Module system ----------------------------------------------*/
 
 static jerry_value_t _module_import_cb(const jerry_value_t specifier, const jerry_value_t user_value, void *user_p)
 {
@@ -1017,7 +1017,7 @@ static void _cleanup_module_queue(void)
     _module_queue = NULL;
 }
 
-/* ---- Manifest ---- */
+/* Manifest ---------------------------------------------------*/
 
 eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg)
 {
@@ -1136,7 +1136,7 @@ eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t 
     return EOS_OK;
 }
 
-/* ---- Run ---- */
+/* Run --------------------------------------------------------*/
 
 static jerry_value_t _script_engine_create_info(const script_pkg_t *pkg)
 {
@@ -1181,7 +1181,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     _pkg_clone_into(&engine_rt.owned_script, script_package);
     script_program_t *prog = _get_prog();
 
-    /* ---- Fatal error recovery point (setjmp for jerry_port_fatal longjmp) ---- */
+    /* Fatal error recovery point (setjmp for jerry_port_fatal longjmp) -*/
     int fatal_code = setjmp(engine_rt.fatal_jmp_buf);
     engine_rt.fatal_scope_active = true;
     EOS_LOG_D("ENGINE_RUN: entered fatal_code=%d", fatal_code);
@@ -1396,7 +1396,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     return result;
 }
 
-/* ---- Stop / Cleanup ---- */
+/* Stop / Cleanup ---------------------------------------------*/
 
 static void _engine_cleanup(void)
 {
@@ -1489,7 +1489,7 @@ eos_result_t script_engine_clean_up(void)
     return EOS_OK;
 }
 
-/* ---- Reload ---- */
+/* Reload -----------------------------------------------------*/
 
 eos_result_t script_engine_reload_current_script(void)
 {

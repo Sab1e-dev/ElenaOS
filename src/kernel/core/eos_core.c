@@ -158,14 +158,14 @@ void eos_logo_play(bool anim)
 
 void eos_init(void)
 {
-    /************************** Log system initialization **************************/
+    /* Log system initialization ----------------------------------*/
     eos_service_log_init();
 
-    /************************** Image cache initialization **************************/
+    /* Image cache initialization ---------------------------------*/
     eos_service_cache_init();
 
     _print_boot_info();
-    /************************** System components initialization **************************/
+    /* System components initialization ---------------------------*/
     eos_service_storage_init();
     eos_logo_play(true);
     eos_lang_init();

@@ -38,7 +38,7 @@ typedef struct
     lv_event_cb_t button_callback; /**< Button click callback (NULL for default back) */
 } eos_script_error_handler_cfg_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Handle script execution error

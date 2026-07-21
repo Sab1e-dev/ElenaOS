@@ -195,7 +195,7 @@ static void _pkg_clone(script_pkg_t *dst, const script_pkg_t *src)
     dst->target_api_level = src->target_api_level;
 }
 
-/* SPM Lifecycle -----------------------------------------------*/
+/* SPM Lifecycle ----------------------------------------------*/
 
 eos_result_t spm_init(void)
 {
@@ -207,7 +207,7 @@ eos_result_t spm_init(void)
     return EOS_OK;
 }
 
-/* Program Lifecycle -------------------------------------------*/
+/* Program Lifecycle ------------------------------------------*/
 
 script_program_t *spm_start_program(const script_pkg_t *pkg)
 {
@@ -410,7 +410,7 @@ void spm_terminate_programs_by_type(script_pkg_type_t type)
     }
 }
 
-/* JS Callback Gate --------------------------------------------*/
+/* JS Callback Gate -------------------------------------------*/
 
 jerry_value_t spm_call(script_program_t *prog,
                        jerry_value_t func,
@@ -426,7 +426,7 @@ jerry_value_t spm_call(script_program_t *prog,
     return script_engine_call_raw(func, this_val, args_p, args_count);
 }
 
-/* Query APIs --------------------------------------------------*/
+/* Query APIs -------------------------------------------------*/
 
 script_program_t *spm_get_active_program(void)
 {

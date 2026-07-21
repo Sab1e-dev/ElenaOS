@@ -32,7 +32,7 @@ extern "C" {
  */
 typedef uint32_t eos_critical_ctx_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Enter critical section

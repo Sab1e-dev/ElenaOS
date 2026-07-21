@@ -52,7 +52,7 @@ typedef enum
     EOS_EVENT_LAST
 } eos_event_code_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get event ID for user-defined events

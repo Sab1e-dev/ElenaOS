@@ -58,7 +58,7 @@
 
 /* Function Implementations -----------------------------------*/
 
-/************************** General Functions **************************/
+/* General Functions ------------------------------------------*/
 
 void eos_settings_slient_mode_on(void)
 {
@@ -70,7 +70,7 @@ void eos_settings_slient_mode_off(void)
     eos_service_audio_set_mute(false);
 }
 
-/************************** Helper Functions **************************/
+/* Helper Functions -------------------------------------------*/
 
 lv_obj_t *_auto_get_config_switch_create(lv_obj_t *list, const char *txt, const char *config_key, bool default_val)
 {
@@ -106,7 +106,7 @@ static void _free_user_data_on_delete_cb(lv_event_t *e)
     }
 }
 
-/************************** Bluetooth **************************/
+/* Bluetooth --------------------------------------------------*/
 static void _bluetooth_enable_switch_cb(lv_event_t *e)
 {
     lv_obj_t *bt_sw = lv_event_get_target(e);
@@ -136,7 +136,7 @@ static void _settings_view_bluetooth(lv_event_t *e)
     lv_obj_add_event_cb(bt_sw, _bluetooth_enable_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
     eos_activity_enter(a);
 }
-/************************** Display Settings **************************/
+/* Display Settings -------------------------------------------*/
 
 static void _brightness_slider_value_changed_cb(lv_event_t *e)
 {
@@ -289,7 +289,7 @@ static void _settings_view_display(lv_event_t *e)
     lv_obj_add_event_cb(wd_btn, _wake_duration_entry_button_clicked_cb, LV_EVENT_CLICKED, NULL);
     eos_activity_enter(a);
 }
-/************************** Notification **************************/
+/* Notification -----------------------------------------------*/
 static void _settings_view_notification(lv_event_t *e)
 {
     lv_obj_t *view = NULL;
@@ -300,7 +300,7 @@ static void _settings_view_notification(lv_event_t *e)
     eos_activity_enter(a);
 }
 
-/************************** Sound and Haptic Feedback **************************/
+/* Sound and Haptic Feedback ----------------------------------*/
 
 static void _volume_slider_value_changed_cb(lv_event_t *e)
 {
@@ -440,7 +440,7 @@ static void _settings_view_sound_and_haptics(lv_event_t *e)
     eos_activity_enter(a);
 }
 
-/************************** App List **************************/
+/* App List ---------------------------------------------------*/
 
 typedef struct
 {
@@ -570,7 +570,7 @@ static void _clear_data_btn_cb(lv_event_t *e)
     }
 }
 
-/* ---- Forward declarations for permission radio page ---- */
+/* Forward declarations for permission radio page -------------*/
 typedef struct
 {
     const char *app_id;
@@ -797,7 +797,7 @@ static void _settings_app_list_btn_cb(lv_event_t *e)
         lv_label_set_long_mode(desc_label, LV_LABEL_LONG_WRAP);
     }
 
-    /* ---- Permission Entry ---- */
+    /* Permission Entry -------------------------------------------*/
     if (pkg.permission_count > 0)
     {
         eos_list_add_title(list, eos_lang_get_text(STR_ID_PERM_TITLE));
@@ -927,7 +927,7 @@ static void _settings_view_apps(lv_event_t *e)
     eos_activity_enter(a);
 }
 
-/************************** Password Settings **************************/
+/* Password Settings ------------------------------------------*/
 
 typedef struct
 {
@@ -968,7 +968,7 @@ static void _start_password_creation(uint8_t target_length);
 static void _start_creation_async_cb(void *user_data);
 static void _settings_view_password(lv_event_t *e);
 
-/* ---- Password Numpad Helper ---- */
+/* Password Numpad Helper -------------------------------------*/
 
 static void _numpad_async_back_cb(void *user_data)
 {
@@ -1070,7 +1070,7 @@ static void _show_password_numpad(const char *title_str,
     eos_activity_enter(activity);
 }
 
-/* ---- Password Settings Page ---- */
+/* Password Settings Page -------------------------------------*/
 
 /**
  * @brief Save password hash to config
@@ -1121,7 +1121,7 @@ static void _password_finish_async_cb(void *user_data)
     eos_free(data);
 }
 
-/* ---- Numpad Page Reconfiguration ---- */
+/* Numpad Page Reconfiguration --------------------------------*/
 
 static void _settings_numpad_reconfigure(_settings_numpad_ctx_t *ctx,
                                          const char *new_title,
@@ -1147,7 +1147,7 @@ static void _settings_numpad_reconfigure(_settings_numpad_ctx_t *ctx,
     ctx->numpad->user_data = new_user_data;
 }
 
-/* ---- Flow Callbacks ---- */
+/* Flow Callbacks ---------------------------------------------*/
 
 static void _password_flow_cancel_step1_cb(void *user_data)
 {
@@ -1293,7 +1293,7 @@ static void _start_password_creation(uint8_t target_length)
     _show_password_numpad(title, target_length, _password_create_step1_cb, _password_flow_cancel_step1_cb, state);
 }
 
-/* ---- Password Change Flow ---- */
+/* Password Change Flow ---------------------------------------*/
 
 static void _password_change_cancel_cb(void *user_data)
 {
@@ -1377,7 +1377,7 @@ static void _start_password_change(void)
                           state);
 }
 
-/* ---- Password Settings Sub-Page ---- */
+/* Password Settings Sub-Page ---------------------------------*/
 
 static void _password_subpage_on_destroy(eos_activity_t *activity)
 {
@@ -1551,7 +1551,7 @@ static void _settings_view_password(lv_event_t *e)
     eos_activity_enter(a);
 }
 
-/************************** General Settings **************************/
+/* General Settings -------------------------------------------*/
 
 static void _language_roller_event_handler(lv_event_t *e)
 {
@@ -1737,7 +1737,7 @@ static void _settings_view_general(lv_event_t *e)
     eos_activity_enter(a);
 }
 
-/************************** System Settings Program Entry **************************/
+/* System Settings Program Entry ------------------------------*/
 static const eos_activity_lifecycle_t _settings_lifecycle = {
     .on_enter = NULL,
     .on_destroy = NULL,

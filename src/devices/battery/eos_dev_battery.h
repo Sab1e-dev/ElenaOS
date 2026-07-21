@@ -47,7 +47,7 @@ typedef struct
     eos_charge_mAh_t design_capacity; /**< Battery design capacity in mAh */
 } eos_dev_battery_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Register battery device operations

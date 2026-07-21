@@ -32,7 +32,7 @@ typedef struct
     lv_obj_t *flash_light_btn;
     lv_obj_t *settings_btn;
 } eos_control_center_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Pull control center into screen

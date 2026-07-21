@@ -94,7 +94,7 @@ typedef enum
 struct script_program;
 typedef struct script_program script_program_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /** @name Core Lifecycle */
 /**@{*/

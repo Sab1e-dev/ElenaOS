@@ -73,7 +73,7 @@ void eos_slide_widget_init(void)
     EOS_LOG_I("Slide widget events registered");
 }
 
-/*============================ Event Callback Registration ============================*/
+/* Event Callback Registration --------------------------------*/
 
 void eos_slide_widget_add_event_cb_reached_threshold(eos_slide_widget_t *sw, lv_event_cb_t cb, void *user_data)
 {
@@ -111,7 +111,7 @@ void eos_slide_widget_add_event_cb_closed(eos_slide_widget_t *sw, lv_event_cb_t 
     lv_obj_add_event_cb(sw->touch_obj, cb, _event_closed, user_data);
 }
 
-/*============================ Private Helpers ============================*/
+/* Private Helpers --------------------------------------------*/
 
 static const char *_state_to_str(eos_slide_widget_state_t state)
 {
@@ -175,7 +175,7 @@ static eos_slide_widget_state_t _get_resting_state(const eos_slide_widget_t *sw)
     return sw->reversed ? EOS_SLIDE_WIDGET_STATE_OPEN : EOS_SLIDE_WIDGET_STATE_IDLE;
 }
 
-/*============================ Touch Event Handlers ============================*/
+/* Touch Event Handlers ---------------------------------------*/
 
 static void _touch_obj_pressed_cb(lv_event_t *e)
 {
@@ -247,7 +247,7 @@ static void _touch_obj_pressing_cb(lv_event_t *e)
     lv_obj_send_event(sw->touch_obj, _event_moving, (void *)(intptr_t)new_pos);
 }
 
-/*============================ Animation Callbacks ============================*/
+/* Animation Callbacks ----------------------------------------*/
 
 static void _slide_widget_anim_completed_cb(lv_anim_t *a)
 {
@@ -414,7 +414,7 @@ static void _touch_obj_released_cb(lv_event_t *e)
     lv_anim_start(&a);
 }
 
-/*============================ Configuration APIs ============================*/
+/* Configuration APIs -----------------------------------------*/
 
 void eos_slide_widget_set_target_obj(eos_slide_widget_t *sw, lv_obj_t *target_obj)
 {
@@ -482,7 +482,7 @@ void eos_slide_widget_set_anim_transition(eos_slide_widget_t *sw,
     _set_state(sw, transit_state, "external transition");
 }
 
-/*============================ State Query APIs ============================*/
+/* State Query APIs -------------------------------------------*/
 
 eos_slide_widget_state_t eos_slide_widget_get_state(eos_slide_widget_t *sw)
 {
@@ -545,7 +545,7 @@ eos_slide_widget_dir_t eos_slide_widget_get_dir(eos_slide_widget_t *sw)
     return sw->dir;
 }
 
-/*============================ Action APIs ============================*/
+/* Action APIs ------------------------------------------------*/
 
 void eos_slide_widget_move(eos_slide_widget_t *sw, lv_coord_t start, lv_coord_t end, uint32_t duration)
 {
@@ -628,7 +628,7 @@ void eos_slide_widget_sync_touch_obj(eos_slide_widget_t *sw)
     _sync_touch_obj_position(sw, current_pos);
 }
 
-/*============================ Deletion ============================*/
+/* Deletion ---------------------------------------------------*/
 
 static void _slide_widget_delete_cb(lv_event_t *e)
 {
@@ -679,7 +679,7 @@ void eos_slide_widget_delete(eos_slide_widget_t *sw)
     eos_free(sw);
 }
 
-/*============================ Creation ============================*/
+/* Creation ---------------------------------------------------*/
 
 static void _slide_widget_init_common(eos_slide_widget_t *sw,
                                       lv_obj_t *touch_obj,

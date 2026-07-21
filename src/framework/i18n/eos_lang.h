@@ -160,7 +160,7 @@ typedef enum
     STR_ID_MAX_NUMBER /**< Maximum string ID */
 } lang_string_id_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize language system

@@ -65,7 +65,7 @@ typedef struct eos_watchface_instance
         } js;
     } data;
 } eos_watchface_instance_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get the number of currently installed watchfaces, i.e., list size

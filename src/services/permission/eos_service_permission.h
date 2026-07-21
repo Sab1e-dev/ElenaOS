@@ -44,7 +44,7 @@ typedef enum
     EOS_PERM_STATE_ALLOW_ALWAYS, /**< Always allow */
 } eos_perm_state_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize the permission service

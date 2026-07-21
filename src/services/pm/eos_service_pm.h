@@ -25,7 +25,7 @@ typedef enum
     EOS_PM_SLEEP, /**< Sleep mode */
 } eos_pm_state_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize power manager

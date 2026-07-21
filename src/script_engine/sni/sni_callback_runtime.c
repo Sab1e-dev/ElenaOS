@@ -253,7 +253,7 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
     }
 }
 
-/* Event Callback Implementation -----------------------------*/
+/* Event Callback Implementation ------------------------------*/
 
 bool sni_cb_event_add(lv_obj_t *obj,
                       jerry_value_t js_cb,
@@ -468,7 +468,7 @@ bool sni_cb_timer_set_auto_delete(lv_timer_t *timer, bool auto_delete)
     return true;
 }
 
-/* Anim Callback Implementation ------------------------------*/
+/* Anim Callback Implementation -------------------------------*/
 
 static lv_anim_path_cb_t s_anim_path_table[SNI_ANIM_PATH_ENUM_MAX] = {
     NULL,

@@ -58,7 +58,7 @@ typedef struct
     int16_t y_ratchet_dead_px; /**< Dead-zone threshold in pixels for spring-vs-snap mode. */
 } eos_bubble_config_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Fill config with built-in default values.

@@ -18,7 +18,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void sni_lv_types_init(void);
 
 #ifdef __cplusplus

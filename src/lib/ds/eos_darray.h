@@ -19,7 +19,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef struct eos_darray_t eos_darray_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a dynamic array and initialize capacity

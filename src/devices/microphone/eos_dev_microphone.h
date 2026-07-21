@@ -55,7 +55,7 @@ typedef struct
     eos_dev_state_t _state;
 } eos_dev_microphone_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 eos_dev_microphone_t *eos_dev_microphone_get_instance(void);
 eos_result_t eos_dev_microphone_register(const eos_dev_microphone_ops_t *ops);

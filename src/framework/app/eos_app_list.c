@@ -133,7 +133,7 @@ static int32_t _app_list_last_click_index = -1;
 static char _app_list_last_launch_app_id[64] = {0};
 static uint32_t _app_list_icon_count = 0;
 
-/************************** Lifecycle **************************/
+/* Lifecycle --------------------------------------------------*/
 
 static void _app_on_destroy(eos_activity_t *a)
 {
@@ -934,7 +934,7 @@ static void _app_list_on_resueme(eos_activity_t *a)
     _app_list_refresh(bubble_grid);
 }
 
-/************************** App Entry **************************/
+/* App Entry --------------------------------------------------*/
 /**
  * @brief App click event callback (handles system apps and script apps)
  * Gets app ID from bubble_grid's LV_EVENT_CLICKED event
@@ -982,7 +982,7 @@ static void _register_anim_routes_once(void)
     _anim_routes_registered = true;
 }
 
-/************************** Refresh App List **************************/
+/* Refresh App List -------------------------------------------*/
 /**
  * @brief Refresh app list - using bubble_grid
  * @param bubble_grid App list's bubble_grid object
@@ -1094,7 +1094,7 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
     _app_list_icon_count = icon_index;
 }
 
-/************************** Animation **************************/
+/* Animation --------------------------------------------------*/
 
 static void _app_list_open_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to)
 {
@@ -1106,7 +1106,7 @@ static void _app_list_close_app_anim_cb(eos_anim_group_t *group, eos_activity_t 
     _app_list_play_transition_anim(group, from, to, false);
 }
 
-/************************** Helper Functions **************************/
+/* Helper Functions -------------------------------------------*/
 
 /**
  * @brief This callback is automatically called when an app is installed to display the new app

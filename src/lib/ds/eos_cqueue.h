@@ -19,7 +19,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef struct eos_cqueue_t eos_cqueue_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a circular queue

@@ -307,7 +307,7 @@ sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void 
     return NULL;
 }
 
-/* Convenience wrappers --------------------------------------------------*/
+/* Convenience wrappers ---------------------------------------*/
 
 void sni_context_add_timer(sni_context_t *ctx, void *ptr, jerry_value_t js_obj)
 {
@@ -333,7 +333,7 @@ void sni_context_remove_anim(sni_context_t *ctx, void *ptr)
     sni_context_remove_resource(ctx, ptr, SNI_H_LV_ANIM);
 }
 
-/* Unified resource lifecycle management ---------------------------*/
+/* Unified resource lifecycle management ----------------------*/
 
 static inline void _sni_ctx_safe_js_free(jerry_value_t *value)
 {

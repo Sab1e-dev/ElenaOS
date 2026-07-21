@@ -79,7 +79,7 @@ static void _record_test(const char *name, bool passed, const char *details)
     }
 }
 
-/* ---- Test Cases ---- */
+/* Test Cases -------------------------------------------------*/
 
 /**
  * @brief Test: Default permission state is DENIED for new apps
@@ -464,7 +464,7 @@ static bool _test_revoke_nonexistent(void)
     return true;
 }
 
-/* ---- Test Runners ---- */
+/* Test Runners -----------------------------------------------*/
 
 static void _run_basic_tests(void)
 {
@@ -508,7 +508,7 @@ static void _cleanup_test_data(void)
     eos_permission_revoke_all("com.test.overwrite");
 }
 
-/* ---- UI Callbacks ---- */
+/* UI Callbacks -----------------------------------------------*/
 
 static void _test_category_cb(lv_event_t *e)
 {
@@ -551,7 +551,7 @@ static void _test_category_cb(lv_event_t *e)
     _update_result(summary);
 }
 
-/* ---- Activity Entry Point ---- */
+/* Activity Entry Point ---------------------------------------*/
 
 static eos_activity_lifecycle_t s_perm_test_activity_lifecycle = {
     .on_enter = NULL,

@@ -30,7 +30,7 @@ typedef enum
     EOS_FONT_SIZE_SMALL = EOS_FONT_CFG_SMALL_SIZE,
 } eos_font_size_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Font system initialization

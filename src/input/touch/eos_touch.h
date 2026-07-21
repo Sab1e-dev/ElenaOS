@@ -18,7 +18,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Get the first touch device
  * @return lv_indev_t* Returns touch device pointer if successful, otherwise returns NULL

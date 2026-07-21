@@ -139,7 +139,7 @@ eos_result_t eos_service_audio_resume(void)
     return eos_audio_player_resume(&_player_media);
 }
 
-/* ---- Recording (ring-buffer producer-consumer) ------------- */
+/* Recording (ring-buffer producer-consumer) ------------------*/
 
 #define WAV_HEADER_SIZE 44
 

@@ -36,7 +36,7 @@ extern "C" {
 /* Public typedefs --------------------------------------------*/
 typedef bool (*eos_test_fn_t)(void);
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void eos_test_register(const char *name, eos_test_fn_t fn);
 void eos_test_record(const char *name, bool passed, const char *detail);
 void eos_test_reset(void);

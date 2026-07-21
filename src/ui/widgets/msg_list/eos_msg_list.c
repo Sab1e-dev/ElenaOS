@@ -72,7 +72,7 @@ static const eos_chrome_overlay_t _msg_list_overlay = {
 
 static void _msg_list_item_clicked_cb(lv_event_t *e);
 
-/************************** Delete Item Callback **************************/
+/* Delete Item Callback ---------------------------------------*/
 
 static void _del_item_cb(eos_msg_list_t *list)
 {
@@ -106,7 +106,7 @@ static void _del_item_cb(eos_msg_list_t *list)
     }
 }
 
-/************************** Swipe-to-Delete Related Callbacks **************************/
+/* Swipe-to-Delete Related Callbacks --------------------------*/
 
 static void _slide_widget_reached_threashold_cb(lv_event_t *e)
 {
@@ -120,7 +120,7 @@ static void _slide_widget_reached_threashold_cb(lv_event_t *e)
     }
 }
 
-/************************** Detail Page Related Callbacks **************************/
+/* Detail Page Related Callbacks ------------------------------*/
 
 static void _delete_anim_end_cb(eos_anim_t *a)
 {
@@ -315,7 +315,7 @@ static void _msg_list_item_clicked_cb(lv_event_t *e)
     }
 }
 
-/************************** Public Functions**************************/
+/* Public Functions************************* ------------------*/
 
 eos_msg_list_item_t *eos_msg_list_item_create(eos_msg_list_t *list)
 {
@@ -524,7 +524,7 @@ void eos_msg_list_clear_all(eos_msg_list_t *msg_list)
     eos_free(children);
 }
 
-/************************** Clear Button Related Callbacks **************************/
+/* Clear Button Related Callbacks -----------------------------*/
 
 /**
  * @brief Callback for message animation end
@@ -620,7 +620,7 @@ static void _msg_list_clear_all_btn_cb(lv_event_t *e)
     _trigger_msg_anims(list);
 }
 
-/************************** List Related Functions **************************/
+/* List Related Functions -------------------------------------*/
 
 static void _msg_list_deleted_cb(lv_event_t *e)
 {

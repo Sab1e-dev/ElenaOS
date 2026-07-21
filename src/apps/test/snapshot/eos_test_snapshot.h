@@ -17,7 +17,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void eos_test_snapshot_register_tests(void);
 
 #ifdef __cplusplus

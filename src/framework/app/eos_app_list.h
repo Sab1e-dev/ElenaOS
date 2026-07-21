@@ -36,7 +36,7 @@ enum
 
 extern const char *eos_sys_app_id_list[EOS_SYS_APP_LAST];
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Immediately launch the target app by id from any page

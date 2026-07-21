@@ -87,7 +87,7 @@ typedef struct
     sensor_subscriber_t *subscribers; /**< Linked list of active subscribers */
 } eos_sensor_service_instance_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize sensor service

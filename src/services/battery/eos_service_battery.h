@@ -19,7 +19,7 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-/* State keys for persistent storage -----*/
+/* State keys for persistent storage --------------------------*/
 /**
  * @brief State key for battery capacity
  */
@@ -94,7 +94,7 @@ typedef struct
  */
 typedef int (*eos_battery_calc_fn_t)(int voltage_mv);
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize battery service

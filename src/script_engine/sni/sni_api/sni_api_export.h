@@ -67,7 +67,7 @@ struct sni_class_desc_t
     const sni_constant_desc_t *constants;
 };
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create an API object based on class description table

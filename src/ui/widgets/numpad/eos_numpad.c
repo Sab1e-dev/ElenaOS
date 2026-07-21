@@ -22,7 +22,7 @@ typedef struct
     void *user_data;
 } _numpad_complete_data_t;
 
-/* ---- Shared pressed style (all numpad instances) ---- */
+/* Shared pressed style (all numpad instances) ----------------*/
 
 static lv_style_t _numpad_style_pressed;
 static bool _numpad_style_inited = false;
@@ -34,7 +34,7 @@ static void _numpad_btn_pressed_cb(lv_event_t *e)
         lv_obj_move_foreground(btn);
 }
 
-/* ---- Internal helpers ---- */
+/* Internal helpers -------------------------------------------*/
 
 static void _set_dot_filled(lv_obj_t *dot, bool filled)
 {
@@ -88,7 +88,7 @@ static void _numpad_complete_async_cb(void *user_data)
     eos_free(data);
 }
 
-/* ---- Event callbacks ---- */
+/* Event callbacks --------------------------------------------*/
 
 static void _digit_btn_cb(lv_event_t *e)
 {
@@ -150,7 +150,7 @@ static void _cancel_btn_cb(lv_event_t *e)
     }
 }
 
-/* ---- Button factory ---- */
+/* Button factory ---------------------------------------------*/
 
 static void _numpad_create_button(lv_obj_t *grid,
                                   const char *text,
@@ -193,7 +193,7 @@ static void _numpad_create_button(lv_obj_t *grid,
     }
 }
 
-/* ---- Public API ---- */
+/* Public API -------------------------------------------------*/
 
 eos_numpad_t *eos_numpad_create(lv_obj_t *parent,
                                 uint8_t target_length,
@@ -217,7 +217,7 @@ eos_numpad_t *eos_numpad_create(lv_obj_t *parent,
     numpad->on_cancel = on_cancel;
     numpad->user_data = user_data;
 
-    /* ---- Dot indicator row ---- */
+    /* Dot indicator row ------------------------------------------*/
     numpad->dot_container = lv_obj_create(parent);
     lv_obj_set_size(numpad->dot_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_style_bg_opa(numpad->dot_container, LV_OPA_TRANSP, 0);
@@ -239,7 +239,7 @@ eos_numpad_t *eos_numpad_create(lv_obj_t *parent,
         numpad->dots[i] = dot;
     }
 
-    /* ---- Numpad grid container ---- */
+    /* Numpad grid container --------------------------------------*/
     lv_obj_t *grid = lv_obj_create(parent);
     lv_obj_set_size(grid, EOS_NUMPAD_GRID_W, EOS_NUMPAD_GRID_H);
     lv_obj_set_style_bg_opa(grid, LV_OPA_TRANSP, 0);

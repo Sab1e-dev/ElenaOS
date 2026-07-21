@@ -208,9 +208,9 @@ struct eos_anim_t
         } resize;
     } cfg;
 };
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
-/************************** Common **************************/
+/* Common -----------------------------------------------------*/
 
 void eos_anim_set_auto_delete(eos_anim_t *anim);
 bool eos_anim_start(eos_anim_t *anim);
@@ -248,13 +248,13 @@ void eos_anim_set_preserve_layout(eos_anim_t *anim, bool preserve);
  */
 void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb);
 
-/************************** Animation Group **************************/
+/* Animation Group --------------------------------------------*/
 
 eos_anim_group_t *eos_anim_group_create(eos_anim_group_cb_t cb, void *user_data);
 void eos_anim_group_del(eos_anim_group_t *group);
 void eos_anim_group_attach(eos_anim_t *anim, eos_anim_group_t *group);
 
-/************************** Animation **************************/
+/* Animation --------------------------------------------------*/
 
 eos_anim_t *eos_anim_scale_create(lv_obj_t *tar_obj,
                                   int32_t w_start,
@@ -345,7 +345,7 @@ void eos_anim_resize_start(lv_obj_t *tar_obj,
                            uint32_t duration,
                            bool auto_delete);
 
-/************************** Snapshot Batch **************************/
+/* Snapshot Batch ---------------------------------------------*/
 
 /**
  * @brief Begin batch-snapshot mode for snapshot-backend animations.

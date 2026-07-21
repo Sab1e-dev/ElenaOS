@@ -40,7 +40,7 @@ typedef struct
     lv_obj_t *handle_bar;
     eos_swipe_dir_t dir;
 } eos_swipe_panel_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Slide the swipe panel into screen

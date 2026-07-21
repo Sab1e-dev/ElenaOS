@@ -17,7 +17,7 @@ extern "C" {
 /* Includes ---------------------------------------------------*/
 #include "eos_config.h"
 
-/* Public macros - System Root and Base Directories --------*/
+/* Public macros - System Root and Base Directories -----------*/
 
 /**
  * Root directory is defined in eos_config.h as EOS_SYS_ROOT_DIR
@@ -27,14 +27,14 @@ extern "C" {
 /** @brief System base directory */
 #define EOS_SYS_DIR "/.sys/"
 
-/* Configuration Storage -----------------------------------*/
+/* Configuration Storage --------------------------------------*/
 /** @brief Configuration files directory */
 #define EOS_CONFIG_DIR EOS_SYS_DIR "config/"
 
 /** @brief Main configuration file */
 #define EOS_CONFIG_FILE_PATH EOS_CONFIG_DIR "cfg.json"
 
-/* Resources Storage ---------------------------------------*/
+/* Resources Storage ------------------------------------------*/
 /** @brief System resources directory */
 #define EOS_SYS_RES_DIR EOS_SYS_DIR "res/"
 
@@ -44,7 +44,7 @@ extern "C" {
 /** @brief System fonts resources directory */
 #define EOS_SYS_RES_FONT_DIR EOS_SYS_RES_DIR "font/"
 
-/* Application Management Storage --------------------------*/
+/* Application Management Storage -----------------------------*/
 /** @brief Application management base directory */
 #define EOS_APP_DIR EOS_SYS_DIR "app/"
 
@@ -54,7 +54,7 @@ extern "C" {
 /** @brief Application data storage directory */
 #define EOS_APP_DATA_DIR EOS_APP_DIR "app_data/"
 
-/* Watchface Management Storage ----------------------------*/
+/* Watchface Management Storage -------------------------------*/
 /** @brief Watchface management base directory */
 #define EOS_WATCHFACE_DIR EOS_SYS_DIR "wf/"
 

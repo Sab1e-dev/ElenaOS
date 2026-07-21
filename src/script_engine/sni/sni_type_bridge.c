@@ -327,7 +327,7 @@ static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native
     eos_free(node);
 }
 
-/************************** Type bridge functions **************************/
+/* Type bridge functions --------------------------------------*/
 
 const char *sni_tb_js2c_string(jerry_value_t js_val)
 {

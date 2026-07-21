@@ -16,7 +16,7 @@ static lv_obj_t *_header_layer = NULL;
 static lv_obj_t *_overlay_layer = NULL;
 static bool _initialized = false;
 
-/* Helper: create a full-screen transparent layer container ----*/
+/* Helper: create a full-screen transparent layer container ---*/
 static lv_obj_t *_create_layer(void)
 {
     lv_obj_t *layer = lv_obj_create(lv_layer_top());

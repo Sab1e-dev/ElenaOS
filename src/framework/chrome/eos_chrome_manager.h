@@ -40,7 +40,7 @@ typedef struct eos_chrome_overlay_t
     const char *name; /**< Debug name for logging (optional, can be NULL) */
 } eos_chrome_overlay_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize the chrome manager

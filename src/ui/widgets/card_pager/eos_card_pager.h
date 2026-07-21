@@ -61,7 +61,7 @@ struct eos_card_pager_t
     eos_card_pager_page_changed_cb_t page_changed_cb;
     void *page_changed_user_data;
 };
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create card page view manager

@@ -15,7 +15,7 @@ extern "C" {
 
 #if EOS_ENABLE_TEST_APP
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Start battery history chart test

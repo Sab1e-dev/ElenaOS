@@ -144,7 +144,7 @@ static const char *s_test_audio_fallback_path = "/music.mp3";
 #define TEST_APP_DEBUG_BAR_W 220
 #define TEST_APP_DEBUG_BAR_H 64
 
-/* Activity Lifecycle ---------------------------------------------------*/
+/* Activity Lifecycle -----------------------------------------*/
 
 static void _test_activity_on_enter(eos_activity_t *activity)
 {

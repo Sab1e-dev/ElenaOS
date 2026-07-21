@@ -47,7 +47,7 @@ typedef struct
     eos_perm_panel_cfg_t cfg; /**< Panel configuration copy */
 } eos_perm_panel_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a permission request panel on the top layer

@@ -65,7 +65,7 @@ struct eos_msg_list_t
     uint16_t animating_count; /**< Number of animating messages after clear-all press */
 };
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Create message item
  * @param list Parent message list of the message item

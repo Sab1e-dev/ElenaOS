@@ -203,7 +203,7 @@ static void _destroy_lock_ui(_lock_page_ctx_t *ctx)
     eos_free(ctx);
 }
 
-/* ---- Public API ---- */
+/* Public API -------------------------------------------------*/
 
 void eos_lock_page_show(void)
 {

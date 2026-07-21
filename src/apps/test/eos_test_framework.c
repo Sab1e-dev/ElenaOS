@@ -342,7 +342,7 @@ static const eos_activity_lifecycle_t s_fw_lifecycle = {
     .on_resume = NULL,
 };
 
-/* ---- Public API ---- */
+/* Public API -------------------------------------------------*/
 
 void eos_test_register(const char *name, eos_test_fn_t fn)
 {
@@ -506,7 +506,7 @@ void eos_test_run_group(const char *prefix)
     s_is_running = false;
 }
 
-/* ---- Group / Checklist ---- */
+/* Group / Checklist ------------------------------------------*/
 
 static void _extract_group_name(const char *test_name, char *group, size_t maxlen)
 {

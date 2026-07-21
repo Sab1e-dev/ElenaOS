@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-/* Version Definitions ---------------------------------------------------*/
+/* Version Definitions ----------------------------------------*/
 
 #define ELENIX_OS_VERSION_MAJOR 0
 #define ELENIX_OS_VERSION_MINOR 5

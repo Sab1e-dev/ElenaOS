@@ -38,7 +38,7 @@ typedef struct sni_timer_callback_ctx
     bool auto_delete;
 } sni_timer_callback_ctx_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize callback runtime
@@ -91,7 +91,7 @@ uint32_t sni_cb_event_remove_by_js_cb_user_data(lv_obj_t *obj, jerry_value_t js_
  */
 void sni_cb_event_cleanup_descriptor(lv_event_dsc_t *dsc);
 
-/* Timer Callback API ----------------------------------------*/
+/* Timer Callback API -----------------------------------------*/
 
 /**
  * @brief Create LVGL timer and bind JS callback
@@ -118,7 +118,7 @@ bool sni_cb_timer_set_cb(lv_timer_t *timer, jerry_value_t js_cb);
  */
 bool sni_cb_timer_set_auto_delete(lv_timer_t *timer, bool auto_delete);
 
-/* Anim Callback API -----------------------------------------*/
+/* Anim Callback API ------------------------------------------*/
 
 typedef enum
 {

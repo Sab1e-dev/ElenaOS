@@ -46,7 +46,7 @@ typedef enum
 
 typedef void (*eos_wdata_dtor_t)(void *data);
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Set typed data on a widget

@@ -81,7 +81,7 @@ typedef struct script_program
     void *cleanup_user_data;
 } script_program_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /** @name SPM Lifecycle */
 /**@{*/

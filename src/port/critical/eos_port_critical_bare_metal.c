@@ -23,7 +23,7 @@
 #include "eos_port_critical.h"
 #include "eos_port.h"
 
-/* Platform detection ----------------------------------------*/
+/* Platform detection -----------------------------------------*/
 #if defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_6M__) || defined(__ARM_ARCH_7EM__) || defined(__ARMCC_VERSION) \
     || defined(__ARM_COMPILER_VERSION) || defined(__arm__)
 #define EOS_BAREMETAL_ARM 1

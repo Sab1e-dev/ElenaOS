@@ -642,7 +642,7 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
     lv_obj_set_style_bg_color(ctx->root, lv_color_black(), 0);
     lv_obj_set_flex_flow(ctx->root, LV_FLEX_FLOW_COLUMN);
 
-    /* ============ Create top button bar ============ */
+    /* Create top button bar --------------------------------------*/
     lv_obj_t *top_bar = lv_obj_create(ctx->root);
     lv_obj_set_width(top_bar, lv_pct(100));
     lv_obj_set_height(top_bar, BUTTON_HEIGHT);
@@ -680,7 +680,7 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
     lv_obj_set_style_text_color(ok_label, EOS_THEME_PRIMARY_COLOR, 0);
     lv_obj_add_event_cb(ok_btn, _on_ok_btn_clicked, LV_EVENT_CLICKED, ctx);
 
-    /* ============ Create textarea container with delete button ============ */
+    /* Create textarea container with delete button ---------------*/
     lv_obj_t *textarea_container = lv_obj_create(ctx->root);
     lv_obj_set_width(textarea_container, lv_pct(100));
     lv_obj_set_height(textarea_container, TEXTAREA_HEIGHT);
@@ -726,7 +726,7 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
 
     lv_obj_add_event_cb(delete_btn, _on_delete_btn_clicked, LV_EVENT_CLICKED, ctx);
 
-    /* ============ Create keyboard ============ */
+    /* Create keyboard --------------------------------------------*/
     ctx->keyboard = lv_keyboard_create(ctx->root);
     lv_obj_set_width(ctx->keyboard, lv_pct(100));
     lv_obj_set_height(ctx->keyboard, KEYBOARD_HEIGHT);

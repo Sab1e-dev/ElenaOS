@@ -20,10 +20,10 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-/************************** Log Listener Flags **************************/
+/* Log Listener Flags -----------------------------------------*/
 #define EOS_LOG_FLAG_SYSTEM (1 << 0) /**< System listener, cannot be deleted */
 
-/************************** Colorful Log **************************/
+/* Colorful Log -----------------------------------------------*/
 #if EOS_LOG_USE_COLOR
 #define EOS_LOG_COLOR_RESET "\033[0m"
 #define EOS_LOG_COLOR_RED "\033[31m"
@@ -40,7 +40,7 @@ extern "C" {
 #define EOS_LOG_COLOR_CYAN ""
 #endif /* EOS_LOG_USE_COLOR */
 
-/************************** Log Macros **************************/
+/* Log Macros -------------------------------------------------*/
 
 #ifdef EOS_LOG_DISABLE
 
@@ -76,7 +76,7 @@ extern "C" {
 
 #endif /* EOS_LOG_DISABLE */
 
-/************************** Pointer Check **************************/
+/* Pointer Check ----------------------------------------------*/
 #define EOS_CHECK_PTR_RETURN(ptr)                                                              \
     do                                                                                         \
     {                                                                                          \
@@ -119,7 +119,7 @@ extern "C" {
         }                                                                                      \
     } while (0)
 
-/************************** Assertion Macros **************************/
+/* Assertion Macros -------------------------------------------*/
 #if EOS_USE_ASSERT
 #define EOS_ASSERT(expr)                              \
     do                                                \
@@ -134,7 +134,7 @@ extern "C" {
 #define EOS_ASSERT(expr) ((void)0)
 #endif /* EOS_USE_ASSERT */
 
-/************************** Print Coordinates **************************/
+/* Print Coordinates ------------------------------------------*/
 
 #define EOS_DEBUG_PRINT_POS(obj) EOS_LOG_D("Obj[%p] (%d,%d)", obj, lv_obj_get_x(obj), lv_obj_get_y(obj))
 
@@ -174,7 +174,7 @@ typedef struct
     uint8_t flags; /**< Listener flags */
 } eos_log_listener_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize log system

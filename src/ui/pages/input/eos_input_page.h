@@ -63,7 +63,7 @@ eos_result_t eos_input_page_open_with_callback(lv_obj_t *label,
                                                eos_input_close_callback_t close_callback,
                                                void *user_data);
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 #ifdef __cplusplus
 }

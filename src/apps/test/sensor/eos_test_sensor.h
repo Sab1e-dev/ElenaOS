@@ -31,7 +31,7 @@ typedef struct
     uint32_t failed_tests;
 } eos_sensor_test_stats_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void eos_test_sensor_start(void);
 void eos_test_sensor_register_tests(void);
 

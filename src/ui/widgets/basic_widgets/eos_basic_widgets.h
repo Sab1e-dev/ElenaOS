@@ -42,7 +42,7 @@ typedef struct
     uint16_t minus_label_scale;
 } eos_list_slider_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get the center coordinates of an object

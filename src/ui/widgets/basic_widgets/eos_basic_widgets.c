@@ -249,7 +249,7 @@ void eos_switch_set_state(lv_obj_t *sw, bool checked)
     }
 }
 
-/************************** List Related **************************/
+/* List Related -----------------------------------------------*/
 
 lv_obj_t *eos_list_create(lv_obj_t *parent)
 {
@@ -1183,7 +1183,7 @@ eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt)
     const uint8_t pct_slider = 50;
     const uint8_t pct_btn = (100 - pct_slider) / 2;
 
-    /************************** Left Side **************************/
+    /* Left Side --------------------------------------------------*/
     list_slider->minus_btn = lv_obj_create(inner_container);
     lv_obj_set_size(list_slider->minus_btn, lv_pct(pct_btn), EOS_LIST_CONTAINER_HEIGHT);
     lv_obj_set_style_margin_all(list_slider->minus_btn, 0, 0);
@@ -1202,7 +1202,7 @@ eos_list_slider_t *eos_list_add_slider(lv_obj_t *list, const char *txt)
     lv_obj_set_style_transform_pivot_x(list_slider->minus_label, lv_obj_get_width(list_slider->minus_label) / 2, 0);
     lv_obj_set_style_transform_pivot_y(list_slider->minus_label, lv_obj_get_height(list_slider->minus_label) / 2, 0);
 
-    /************************** Right Side **************************/
+    /* Right Side -------------------------------------------------*/
     list_slider->plus_btn = lv_obj_create(inner_container);
     lv_obj_set_size(list_slider->plus_btn, lv_pct(pct_btn), EOS_LIST_CONTAINER_HEIGHT);
     lv_obj_set_style_margin_all(list_slider->plus_btn, 0, 0);

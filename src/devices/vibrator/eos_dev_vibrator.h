@@ -32,7 +32,7 @@ typedef struct
     eos_dev_state_t _state;
 } eos_dev_vibrator_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get vibrator device instance
