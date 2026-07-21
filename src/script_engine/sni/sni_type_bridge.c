@@ -24,6 +24,7 @@
 #include "sni_types.h"
 #include "sni_context.h"
 #include "eos_mem.h"
+#include "eos_widget_data.h"
 #include "script_engine_core.h"
 #include "jerryscript.h"
 #include "sni_lv_types.h"
@@ -125,11 +126,11 @@ static void sni_tb_write_bitfield(void *ptr, uint32_t bit_offset, uint32_t bit_w
     }
 }
 
-static sni_control_block_t *sni_cb_from_obj(void *ptr)
+sni_control_block_t *sni_cb_from_obj(void *ptr)
 {
     if (!ptr)
         return NULL;
-    return (sni_control_block_t *)lv_obj_get_user_data((lv_obj_t *)ptr);
+    return (sni_control_block_t *)eos_wdata_get((lv_obj_t *)ptr, EOS_WDATA_SNI_CB);
 }
 
 static void sni_obj_deleted_cb(lv_event_t *e);
@@ -152,7 +153,7 @@ static void *sni_node_from_native(void *ptr, sni_type_t type)
         if (cb->engine_gen != script_engine_get_gen())
         {
             lv_obj_remove_event_cb((lv_obj_t *)ptr, sni_obj_deleted_cb);
-            lv_obj_set_user_data((lv_obj_t *)ptr, NULL);
+            eos_wdata_remove((lv_obj_t *)ptr, EOS_WDATA_SNI_CB);
             eos_free(cb);
             return NULL;
         }
@@ -166,7 +167,7 @@ static void *sni_node_from_native(void *ptr, sni_type_t type)
 static void sni_cb_embed_obj(void *ptr, sni_control_block_t *cb)
 {
     lv_obj_t *obj = (lv_obj_t *)ptr;
-    lv_obj_set_user_data(obj, cb);
+    eos_wdata_set(obj, EOS_WDATA_SNI_CB, cb, NULL);
     lv_obj_add_event_cb(obj, sni_obj_deleted_cb, LV_EVENT_DELETE, cb);
 }
 
@@ -215,7 +216,7 @@ static void sni_obj_deleted_cb(lv_event_t *e)
     if (cb->engine_gen != script_engine_get_gen())
     {
         cb->ptr = NULL;
-        lv_obj_set_user_data(obj, NULL);
+        eos_wdata_remove(obj, EOS_WDATA_SNI_CB);
         eos_free(cb);
         return;
     }
@@ -286,7 +287,7 @@ static void sni_control_block_free_cb(void *native_p, struct jerry_object_native
                    → jerry_value_free → GC, the descriptor has
                    already been freed by lv_event_remove_all,
                    causing a double-free in lv_tlsf_free. */
-                    lv_obj_set_user_data(obj, NULL);
+                    eos_wdata_remove(obj, EOS_WDATA_SNI_CB);
                 }
                 break;
             }

@@ -43,7 +43,7 @@ static bool sni_lv_canvas_has_draw_buf(lv_obj_t *obj)
 
 static sni_canvas_buf_ctx_t *sni_canvas_ctx_find(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return NULL;
@@ -53,7 +53,7 @@ static sni_canvas_buf_ctx_t *sni_canvas_ctx_find(lv_obj_t *obj)
 
 static void sni_canvas_ctx_remove(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return;
@@ -72,7 +72,7 @@ static void sni_canvas_ctx_remove(lv_obj_t *obj)
 static void sni_canvas_ctx_delete_cb(lv_event_t *e)
 {
     lv_obj_t *obj = lv_event_get_target(e);
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return;
@@ -95,7 +95,7 @@ static void sni_canvas_ctx_delete_cb(lv_event_t *e)
 
 static sni_canvas_buf_ctx_t *sni_canvas_ctx_get_or_create(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return NULL;

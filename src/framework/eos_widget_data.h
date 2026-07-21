@@ -12,8 +12,10 @@
  *   +--- eos_wdata_entry_t { type, data, dtor, next }
  *
  * A magic number (0x57445441) in the container distinguishes
- * eos_wdata containers from raw lv_obj_set_user_data() usage
- * (e.g., sni_control_block_t* in the script engine).
+ * eos_wdata containers from raw lv_obj_set_user_data() usage.
+ * The script engine's sni_control_block_t is stored as a typed
+ * entry (EOS_WDATA_SNI_CB) within this unified registry, avoiding
+ * user_data slot conflicts between subsystems.
  */
 
 #ifndef EOS_WIDGET_DATA_H
@@ -38,6 +40,7 @@ typedef enum
     EOS_WDATA_TOAST_DURATION,
     EOS_WDATA_RADIO_ITEM_INDEX,
     EOS_WDATA_SLIDER_LABEL,
+    EOS_WDATA_SNI_CB, /**< Script engine sni_control_block_t * (replaces raw lv_obj_set_user_data) */
     EOS_WDATA_COUNT
 } eos_widget_data_type_t;
 

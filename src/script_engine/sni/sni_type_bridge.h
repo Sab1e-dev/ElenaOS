@@ -122,6 +122,18 @@ void sni_tb_unlink_sub_resource(void *sub_ptr, sni_type_t sub_type);
 
 void sni_tb_init(void);
 
+/**
+ * @brief Retrieve the sni_control_block_t from an LVGL object via the
+ *        unified eos_wdata registry (EOS_WDATA_SNI_CB).
+ *
+ * Replaces the previous raw lv_obj_get_user_data() cast, which could
+ * collide with eos_wdata containers stored on the same object.
+ *
+ * @param ptr Raw pointer to an LVGL object (tree node)
+ * @return sni_control_block_t* or NULL if none is registered
+ */
+sni_control_block_t *sni_cb_from_obj(void *ptr);
+
 #ifdef __cplusplus
 }
 #endif

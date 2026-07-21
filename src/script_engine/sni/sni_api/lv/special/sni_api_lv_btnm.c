@@ -51,7 +51,7 @@ static void sni_btnm_free_map(const char **map, uint32_t map_size)
 
 static void sni_btnm_release_ctx(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return;
@@ -70,7 +70,7 @@ static void sni_btnm_release_ctx(lv_obj_t *obj)
 
 static bool sni_btnm_store_map(lv_obj_t *obj, const char **map, uint32_t map_size, uint32_t button_count)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return false;
@@ -100,7 +100,7 @@ static bool sni_btnm_store_map(lv_obj_t *obj, const char **map, uint32_t map_siz
 
 static sni_btnm_map_ctx_t *sni_btnm_find_ctx(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return NULL;
