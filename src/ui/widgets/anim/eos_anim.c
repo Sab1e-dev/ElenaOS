@@ -22,11 +22,6 @@
 #define DEBUG_BLOCKER_VISIBLE 0
 #define SNAP_COLOR_FORMAT LV_COLOR_FORMAT_RGB565
 
-/*
- * Batch snapshot mode — coalesces multiple snapshot-backend animations
- * into a single hide+refresh cycle, avoiding per-item lv_refr_now
- * interleaving that causes display artifacts on partial-refresh hardware.
- */
 /* Variables --------------------------------------------------*/
 static lv_obj_t *blocker = NULL;
 static bool is_blocker_show = false;
