@@ -153,8 +153,10 @@ static void _theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
 {
     LV_UNUSED(th);
 
-    /* Disable SCROLL_ON_FOCUS for all objects */
+    /* Disable scrolling & scrollbar for all objects by default */
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
 
     /* LIST -------------------------------------------------------*/
     if (lv_obj_check_type(obj, &lv_label_class))
