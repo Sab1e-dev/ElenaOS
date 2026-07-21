@@ -760,26 +760,84 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
             engine_rt.script_start_time = eos_tick_get();
     }
 
-    jerry_value_t result = jerry_call(func, this_val, args_p, args_count);
-
-    if (jerry_value_is_exception(result))
+    /*
+     * If script_engine_run() has already set up a fatal scope, let its
+     * setjmp/longjmp handle any assertion failure.  Otherwise, this
+     * callback is running "detached" (after script_engine_run returned)
+     * and we must guard jerry_call ourselves so that a JS engine crash
+     * does not abort() the whole process.
+     */
+    bool owns_fatal_scope = false;
+    int fatal_code = 0;
+    if (!engine_rt.fatal_scope_active)
     {
-        if (engine_rt.pending_stop)
+        fatal_code = setjmp(engine_rt.fatal_jmp_buf);
+        if (fatal_code == 0)
         {
-            if (engine_rt.stop_is_timeout)
-                EOS_LOG_W("Script call timeout");
-            else
-                EOS_LOG_D("Script call stopped by request");
-        }
-        else
-        {
-            _script_engine_exception_handler("Jerry Call", result);
-            _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
+            owns_fatal_scope = true;
+            engine_rt.fatal_scope_active = true;
         }
     }
 
-    if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
+    jerry_value_t result;
+
+    if (fatal_code != 0)
+    {
+        /*
+         * A JerryScript assertion / fatal error occurred inside
+         * jerry_call().  The engine heap is structurally consistent
+         * but may contain stale handles.  Perform the same full
+         * recovery as script_engine_run does on fatal errors.
+         */
+        EOS_LOG_E("Callback fatal error (code=%d) — resetting engine", fatal_code);
+
+        _cleanup_module_queue();
+        _release_all_tracked_modules();
+        _engine_cleanup();
+        spm_handle_engine_reset();
+        script_engine_set_current_program(NULL);
+
+        jerry_init(SCRIPT_INIT_FLAGS);
+        sni_init();
+        engine_rt.engine_gen++;
+        engine_rt.initialized = true;
+        engine_rt.fatal_recovering = false;
+        engine_rt.fatal_scope_active = false;
+
         _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        engine_rt.stop_is_timeout = false;
+        engine_rt.pending_stop = false;
+
+        result = jerry_undefined();
+    }
+    else
+    {
+        result = jerry_call(func, this_val, args_p, args_count);
+
+        if (owns_fatal_scope)
+        {
+            engine_rt.fatal_scope_active = false;
+        }
+
+        if (jerry_value_is_exception(result))
+        {
+            if (engine_rt.pending_stop)
+            {
+                if (engine_rt.stop_is_timeout)
+                    EOS_LOG_W("Script call timeout");
+                else
+                    EOS_LOG_D("Script call stopped by request");
+            }
+            else
+            {
+                _script_engine_exception_handler("Jerry Call", result);
+                _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
+            }
+        }
+
+        if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
+    }
 
     return result;
 }
@@ -1376,12 +1434,13 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 
     /*
-     * Always clean up realm, program reference, and module queue,
-     * regardless of success or failure. This prevents resource leaks
-     * and stale references between script runs.
+     * Restore the boot realm and clean up the local realm reference.
+     * The program's own realm reference (assigned via _realm_assign_to_program
+     * above) is intentionally kept alive — callbacks (timers, event handlers,
+     * etc.) registered by the script may still reference objects in this realm.
+     * It will be freed in _program_destroy() when the program terminates.
      */
     _realm_restore_and_cleanup();
-    _realm_release_program(prog);
     _cleanup_module_queue();
 
     if (result != EOS_OK || engine_rt.pending_stop)
