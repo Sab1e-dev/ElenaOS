@@ -706,6 +706,11 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
     {
         button_start_x = (style_translate_x < 0) ? style_translate_x : button_hidden_x;
         button_end_x = 0;
+        /* Ensure the real button is at the hidden position before snapshot capture,
+         * in case its translate_x was reset to 0 between forward and reverse transitions.
+         * Without this, the button would be visible at its normal position when the list
+         * is unhidden, appearing to "pop in" instead of smoothly sliding back. */
+        lv_obj_set_style_translate_x(button, button_start_x, 0);
     }
     else
     {
@@ -737,6 +742,13 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
         }
 
+        /* Ensure the real button starts at the hidden off-screen position before
+         * the list becomes visible, so it does not "pop in" at its normal spot.
+         * The button animation runs directly (no snapshot backend) so the real
+         * widget slides back into view instead of a hidden snapshot image. */
+        lv_obj_set_style_translate_x(button, button_start_x, 0);
+
+        /* Snapshot-batch other list items (scale grow animation) */
         eos_anim_snapshot_batch_begin();
 
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
@@ -764,18 +776,24 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
 
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
+        eos_anim_snapshot_batch_flush();
+
+        /* Button slides back in directly (no snapshot backend) so it is
+         * visible above the snapshot layer while the page slides out. */
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, page_duration, false);
         if (btn_anim)
         {
-            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
-            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_set_delay(btn_anim, page_delay);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
         }
-
-        eos_anim_snapshot_batch_flush();
+        else
+        {
+            /* Fallback: if animation creation fails, at least place the button
+             * at its final position so it doesn't stay off-screen. */
+            lv_obj_set_style_translate_x(button, button_end_x, 0);
+        }
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, total_duration, false);
         if (page_anim)
