@@ -99,7 +99,10 @@ static void _scrollbar_show_now(void)
                                             _SCROLLBAR_FADE_IN_DURATION,
                                             false);
     if (anim)
+    {
+        eos_anim_set_no_blocker(anim, true);
         eos_anim_start(anim);
+    }
 }
 
 static void _scrollbar_hide_now(void)
@@ -143,6 +146,7 @@ static void _scrollbar_hide_timer_cb(lv_timer_t *t)
                                             false);
     if (anim)
     {
+        eos_anim_set_no_blocker(anim, true);
         eos_anim_add_cb(anim, _scrollbar_fade_out_done_cb, NULL);
         eos_anim_start(anim);
     }
