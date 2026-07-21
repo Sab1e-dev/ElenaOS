@@ -446,6 +446,9 @@ static void _anim_clean_up_activity_deferred(void *user_data)
 
     _activity_ctx.transition_in_progress = false;
 
+    /* Transition fully complete — re-enable input. */
+    eos_anim_blocker_hide();
+
     EOS_LOG_I("Anim cleanup end");
 }
 
@@ -579,6 +582,13 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
 
             _activity_ctx.transition_in_progress = true;
             transition_started = true;
+
+            /* Block all input during the animated transition.  Snapshot-
+             * backend animations use preserve_layout (opa=0) to keep real
+             * widgets in place — without the blocker those invisible-but-
+             * clickable widgets could fire events and corrupt state. */
+            eos_anim_blocker_show();
+
             _activity_ctx.active_anim_ctx = anim_ctx;
             _activity_ctx.snapshot_capture_window = true;
             if (anim_cb)
