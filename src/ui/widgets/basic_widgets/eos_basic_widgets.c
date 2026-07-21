@@ -832,17 +832,15 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
 
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
+        eos_anim_snapshot_batch_flush();
+
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, total_duration, false);
         if (btn_anim)
         {
-            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
-            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
         }
-
-        eos_anim_snapshot_batch_flush();
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, page_duration, false);
         if (page_anim)

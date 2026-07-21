@@ -444,6 +444,8 @@ static void _anim_clean_up_activity_deferred(void *user_data)
                    anim_ctx->to ? anim_ctx->to->view : NULL);
     eos_free(anim_ctx);
 
+    _activity_ctx.transition_in_progress = false;
+
     EOS_LOG_I("Anim cleanup end");
 }
 
@@ -703,8 +705,11 @@ static void _anim_clean_up_activity(void *user_data)
               _activity_ctx.transition_in_progress);
 
     _activity_ctx.visible_activity = anim_ctx->to;
-    _activity_ctx.transition_in_progress = false;
-    EOS_LOG_I("Anim completed gate open: visible=%p[%s] trans=false",
+    /* NOTE: transition_in_progress stays TRUE until deferred cleanup completes.
+     * Clearing it here would allow a new transition to start before snapshots
+     * and old views are cleaned up, causing a race where the new transition's
+     * animations can be interfered with by the deferred cleanup of the old one. */
+    EOS_LOG_I("Anim completed gate open: visible=%p[%s] (deferred cleanup pending)",
               (void *)anim_ctx->to,
               _activity_type_to_str(anim_ctx->to ? anim_ctx->to->type : EOS_ACTIVITY_TYPE_NULL));
 
