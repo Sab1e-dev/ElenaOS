@@ -12,12 +12,32 @@ endif()
 file(GLOB_RECURSE ELENIXOS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.c
 )
-# Only include RemixIcon.c (icon font used as fallback in TTF mode)
-# Chinese bitmap fonts (source_han_sans_*.c) excluded since using TTF
-file(GLOB ELENIXOS_RES_FONT_SRC
+# Include RemixIcon.c (icon font used as fallback in all modes)
+file(GLOB ELENIXOS_RES_FONT_ICON_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/RemixIcon.c
 )
-list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_SRC})
+list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_ICON_SRC})
+
+# Conditionally include Chinese bitmap fonts when EOS_FONT_TYPE == EOS_FONT_C_MULTI
+# Read the generated Kconfig header to determine the font type
+set(_eos_font_type_gen_h "${CMAKE_BINARY_DIR}/generated/eos_config_gen.h")
+if(EXISTS "${_eos_font_type_gen_h}")
+    file(READ "${_eos_font_type_gen_h}" _eos_gen_config_content)
+    string(REGEX MATCH "#define EOS_FONT_TYPE ([0-9]+)" _eos_font_type_match "${_eos_gen_config_content}")
+    if(CMAKE_MATCH_1 EQUAL 0)
+        message(STATUS "ElenixOS: EOS_FONT_TYPE=C_MULTI — including bitmap font sources")
+        file(GLOB ELENIXOS_RES_FONT_BITMAP_SRC
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_22.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_26.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_30.c
+        )
+        list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_BITMAP_SRC})
+    else()
+        message(STATUS "ElenixOS: EOS_FONT_TYPE=TTF — skipping bitmap font sources")
+    endif()
+else()
+    message(WARNING "ElenixOS: generated config header not found — skipping bitmap font sources")
+endif()
 
 # Automatically collect all directories that contain header files
 file(GLOB_RECURSE HEADER_FILES
