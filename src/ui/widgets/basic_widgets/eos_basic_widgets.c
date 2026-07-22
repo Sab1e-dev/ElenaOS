@@ -1049,7 +1049,6 @@ lv_obj_t *eos_list_add_switch(lv_obj_t *list, const char *txt)
     // Switch
     lv_obj_t *sw = lv_switch_create(container);
     lv_obj_set_height(sw, _LIST_SWITCH_WIDTH);
-    lv_obj_update_layout(sw);
     lv_obj_set_width(sw, _LIST_SWITCH_HEIGHT);
     lv_obj_remove_flag(sw, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_add_event_cb(container, _list_switch_container_clicked_cb, LV_EVENT_CLICKED, sw);
