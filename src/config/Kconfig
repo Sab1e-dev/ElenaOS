@@ -79,6 +79,16 @@ config EOS_MEM_TRACK_ENABLE
     bool "Enable memory tracking"
     default y
 
+config EOS_MEM_TRACK_TABLE_SIZE
+    int "Memory track table size (entries)"
+    default 4096
+    depends on EOS_MEM_TRACK_ENABLE
+    help
+      Number of entries in the memory tracking table.  Each tracked
+      allocation occupies one entry.  Complex UIs may need more than
+      the default 4096 — increase if you see "Memory track table full"
+      warnings.  Simulator builds with large UIs may need 8192+.
+
 endmenu
 
 menu "Image cache"
@@ -96,12 +106,19 @@ config EOS_CACHE_ENABLE
 
 config EOS_CACHE_SIZE
     int "Cache memory budget (bytes)"
-    default 131072
+    default 393216
     depends on EOS_CACHE_ENABLE
     help
-      Default: 128 KB.  If IMAGE_CACHE_IN_PSRAM_SIZE or
-      IMAGE_CACHE_IN_SRAM_SIZE is defined, that value is used
-      automatically.
+      Default: 384 KB (393216 bytes).  Must be large enough to hold the
+      largest decoded image; otherwise that image can never be cached and
+      will fail to display.
+
+      Simulator (390×450): a full-screen ARGB8888 image is ~702 KB,
+      RGB565 ~351 KB, a typical QR code ~156 KB.
+
+      MCU targets should set this based on available PSRAM/SRAM.
+      If IMAGE_CACHE_IN_PSRAM_SIZE or IMAGE_CACHE_IN_SRAM_SIZE is
+      defined, that value is used automatically.
 
 config EOS_CACHE_HEADER_COUNT
     int "Max cached image header entries"

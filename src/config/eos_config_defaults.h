@@ -84,6 +84,10 @@
 #define EOS_MEM_TRACK_ENABLE 1
 #endif
 
+#ifndef EOS_MEM_TRACK_TABLE_SIZE
+#define EOS_MEM_TRACK_TABLE_SIZE 4096
+#endif
+
 /* Image cache ------------------------------------------------*/
 
 #ifndef EOS_CACHE_ENABLE
@@ -96,7 +100,7 @@
 #elif defined(IMAGE_CACHE_IN_SRAM_SIZE) && (IMAGE_CACHE_IN_SRAM_SIZE > 0)
 #define EOS_CACHE_SIZE ((uint32_t)(IMAGE_CACHE_IN_SRAM_SIZE))
 #else
-#define EOS_CACHE_SIZE (128U * 1024U)
+#define EOS_CACHE_SIZE (384U * 1024U)
 #endif
 #endif
 

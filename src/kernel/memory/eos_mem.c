@@ -17,7 +17,9 @@
 #include "eos_mem_port.h"
 /* Macros and Definitions -------------------------------------*/
 #if EOS_MEM_TRACK_ENABLE
-#define EOS_MEM_TRACK_MAX 2048
+#ifndef EOS_MEM_TRACK_MAX
+#define EOS_MEM_TRACK_MAX EOS_MEM_TRACK_TABLE_SIZE
+#endif
 typedef struct
 {
     void *ptr;
