@@ -97,6 +97,7 @@ void _init_style_switch(void)
 
     lv_style_init(&style_switch_indicator);
     lv_style_set_bg_color(&style_switch_indicator, SWITCH_BG_COLOR);
+    lv_style_set_bg_opa(&style_switch_indicator, LV_OPA_COVER);
 }
 
 void _init_style_list(void)
@@ -149,6 +150,46 @@ void _init_style_roller(void)
     lv_style_set_bg_opa(&style_roller_selected, LV_OPA_TRANSP);
 }
 
+/*
+ * Compatibility workaround for LVGL versions before the fix that skips
+ * state transitions for widgets that have not been rendered yet.
+ *
+ * In affected versions, changing the state of an unrendered widget may
+ * create a transition style before the first render. The transition style
+ * can then take precedence over the target state's local style during
+ * snapshot rendering, causing the snapshot to observe the transition's
+ * initial or intermediate value instead of the intended state style.
+ *
+ * The style is therefore resolved and synchronized to a local style before
+ * snapshot rendering.
+ *
+ * This workaround can be removed after upgrading to a LVGL version that
+ * contains the unrendered-widget transition fix.
+ */
+static void _switch_sync_indicator_style(lv_obj_t *sw)
+{
+    bool checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    if (checked)
+    {
+        lv_color_t c = lv_obj_get_style_bg_color(sw, LV_PART_INDICATOR);
+        lv_opa_t opa = lv_obj_get_style_bg_opa(sw, LV_PART_INDICATOR);
+        printf("[SYNC] EVT_CB: sw=%p state=%04x bg_color=(R=%d,G=%d,B=%d) bg_opa=%d\n",
+               (void *)sw, (unsigned)lv_obj_get_state(sw),
+               (int)c.red, (int)c.green, (int)c.blue, (int)opa);
+        lv_obj_set_style_bg_color(sw, c, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_opa(sw, opa, LV_PART_INDICATOR);
+    }
+    else
+    {
+        lv_obj_set_style_bg_opa(sw, LV_OPA_TRANSP, LV_PART_INDICATOR);
+    }
+}
+
+static void _switch_indicator_sync_cb(lv_event_t *e)
+{
+    _switch_sync_indicator_style(lv_event_get_target(e));
+}
+
 static void _theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
 {
     LV_UNUSED(th);
@@ -181,6 +222,12 @@ static void _theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
         lv_obj_add_event_cb(obj, _object_clicked_cb, LV_EVENT_CLICKED, NULL);
         lv_obj_add_style(obj, &style_switch_main, LV_PART_MAIN);
         lv_obj_add_style(obj, &style_switch_indicator, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+        /* Keep a non-state-dependent local copy of the indicator
+         * style in sync with the current CHECKED state so the
+         * snapshot path (lv_obj_redraw) renders the correct color. */
+        _switch_sync_indicator_style(obj);
+        lv_obj_add_event_cb(obj, _switch_indicator_sync_cb, LV_EVENT_STYLE_CHANGED, NULL);
     }
     /* SLIDER -----------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_slider_class))
