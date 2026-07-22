@@ -935,6 +935,17 @@ lv_obj_t *eos_activity_take_snapshot(eos_activity_t *activity, bool include_head
 
     lv_obj_update_layout(view);
 
+    {
+        lv_display_t *disp = lv_display_get_default();
+        if (disp)
+        {
+            /* Let pending animations (e.g. lv_slider with LV_ANIM_ON)
+             * complete before the snapshot is taken. */
+            lv_obj_invalidate(view);
+            lv_refr_now(disp);
+        }
+    }
+
     lv_result_t snapshot_result = lv_snapshot_take_to_draw_buf(view, _SNAPSHOT_COLOR_FORMAT, snapshot);
 
     if (was_hidden)
