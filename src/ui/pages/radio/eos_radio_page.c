@@ -80,6 +80,7 @@ uint32_t eos_radio_page_add_item(eos_radio_page_t *rp, const char *txt)
 {
     EOS_CHECK_PTR_RETURN_VAL(rp && txt && rp->radio_item_container, EOS_INVALID_RADIO_INDEX);
     lv_obj_t *item = lv_button_create(rp->radio_item_container);
+    lv_obj_remove_flag(item, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_set_size(item, lv_pct(100), _RADIO_ITEM_HEIGHT);
     lv_obj_set_style_bg_color(item, EOS_THEME_BUTTON_COLOR, 0);
     lv_obj_set_style_bg_opa(item, LV_OPA_COVER, 0);
