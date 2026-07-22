@@ -186,7 +186,7 @@ void jerry_port_init(void)
 
 void JERRY_ATTR_NORETURN jerry_port_fatal(jerry_fatal_code_t code)
 {
-    printf("[JerryScript] Fatal error: code=%d\r\n", (int)code);
+    EOS_LOG_E("[JerryScript] Fatal error: code=%d\r\n", (int)code);
 
     if (!script_engine_is_fatal_scope_active())
     {
