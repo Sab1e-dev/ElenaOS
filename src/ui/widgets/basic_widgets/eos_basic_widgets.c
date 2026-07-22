@@ -896,9 +896,7 @@ lv_obj_t *eos_list_add_button(lv_obj_t *list, const void *icon, const char *txt)
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     if (icon)
     {
-        img = lv_image_create(obj);
-        lv_image_set_src(img, icon);
-        eos_img_set_size(img, 64, 64);
+        img = eos_circle_image_create(obj, icon, 64);
     }
 
     if (txt)
@@ -1267,9 +1265,7 @@ lv_obj_t *eos_row_create(lv_obj_t *parent,
     // Left image
     if (left_img_path)
     {
-        lv_obj_t *icon = lv_image_create(row);
-        lv_image_set_src(icon, left_img_path);
-        eos_img_set_size(icon, icon_w, icon_h);
+        lv_obj_t *icon = eos_circle_image_create(row, left_img_path, icon_w);
     }
 
     // Left text
