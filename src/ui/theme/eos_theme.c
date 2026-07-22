@@ -173,9 +173,6 @@ static void _switch_sync_indicator_style(lv_obj_t *sw)
     {
         lv_color_t c = lv_obj_get_style_bg_color(sw, LV_PART_INDICATOR);
         lv_opa_t opa = lv_obj_get_style_bg_opa(sw, LV_PART_INDICATOR);
-        printf("[SYNC] EVT_CB: sw=%p state=%04x bg_color=(R=%d,G=%d,B=%d) bg_opa=%d\n",
-               (void *)sw, (unsigned)lv_obj_get_state(sw),
-               (int)c.red, (int)c.green, (int)c.blue, (int)opa);
         lv_obj_set_style_bg_color(sw, c, LV_PART_INDICATOR);
         lv_obj_set_style_bg_opa(sw, opa, LV_PART_INDICATOR);
     }
