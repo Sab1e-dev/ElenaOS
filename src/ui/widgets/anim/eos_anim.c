@@ -48,7 +48,7 @@ static void _snapshot_sync_to_target(eos_anim_t *anim);
 
 /* Function Implementations -----------------------------------*/
 
-/* 1. Basic Functionality -------------------------------------*/
+/* Basic Functionality ----------------------------------------*/
 
 void eos_anim_set_backend(eos_anim_t *anim, eos_anim_backend_type_t type)
 {
@@ -298,7 +298,7 @@ void eos_anim_blocker_hide(void)
     }
 }
 
-/* 2. Animation Execution Callbacks ---------------------------*/
+/* Animation Execution Callbacks ------------------------------*/
 
 static void _set_width_cb(void *var, int32_t v)
 {
@@ -345,7 +345,7 @@ static void _set_opa_main_cb(void *var, int32_t v)
     lv_obj_set_style_opa((lv_obj_t *)var, (lv_opa_t)v, 0);
 }
 
-/* 3. Animation Completion Callbacks --------------------------*/
+/* Animation Completion Callbacks -----------------------------*/
 
 static void _free_anim_later(lv_timer_t *t)
 {
@@ -410,7 +410,7 @@ static void _eos_anim_ready_cb(lv_anim_t *a)
     }
 }
 
-/* 4. Animation Initialization Functions ----------------------*/
+/* Animation Initialization Functions -------------------------*/
 
 static void _init_width_anim(lv_anim_t *a,
                              lv_obj_t *obj,
@@ -562,7 +562,7 @@ static void _init_opa_anim(lv_anim_t *a, lv_obj_t *obj, int32_t start, int32_t e
     lv_anim_set_user_data(a, ctx);
 }
 
-/* 5. Snapshot Backend ----------------------------------------*/
+/* Snapshot Backend -------------------------------------------*/
 
 /*
  * 方案五 — Batch snapshot for list transitions.
@@ -832,7 +832,7 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
 #endif
 }
 
-/* 6. Repeat / Playback helpers -------------------------------*/
+/* Repeat / Playback helpers ----------------------------------*/
 
 static void _apply_repeat_playback(lv_anim_t *a, eos_anim_t *anim)
 {
@@ -842,7 +842,7 @@ static void _apply_repeat_playback(lv_anim_t *a, eos_anim_t *anim)
         lv_anim_set_playback_time(a, anim->playback_time);
 }
 
-/* 7. Animation Creation and Start ----------------------------*/
+/* Animation Creation and Start -------------------------------*/
 
 static void _apply_delay(lv_anim_t *a, eos_anim_t *anim)
 {
