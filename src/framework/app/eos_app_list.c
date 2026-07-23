@@ -47,10 +47,10 @@
 #define _APP_LIST_ANIM_MIN_SACLE 64
 
 /* ease_out_quint cubic-bezier: (0.22, 1, 0.36, 1) in LVGL fixed-point */
-#define _EASE_OUT_QUINT_BX1  225
-#define _EASE_OUT_QUINT_BY1  1024
-#define _EASE_OUT_QUINT_BX2  368
-#define _EASE_OUT_QUINT_BY2  1024
+#define _EASE_OUT_QUINT_BX1 225
+#define _EASE_OUT_QUINT_BY1 1024
+#define _EASE_OUT_QUINT_BX2 368
+#define _EASE_OUT_QUINT_BY2 1024
 /* Variables --------------------------------------------------*/
 
 const char *eos_sys_app_id_list[EOS_SYS_APP_LAST] = {"sys.settings",
@@ -121,14 +121,17 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
 static void _app_list_paired_fade_exec_cb(void *var, int32_t v);
 static void _app_list_paired_fade_ready_cb(lv_anim_t *a);
-static void _app_list_start_paired_fade(lv_obj_t *obj_a, lv_obj_t *obj_b,
-                                         lv_obj_t *icon_clone,
-                                         lv_obj_t *app_snapshot,
-                                         int32_t focus_translate_x, int32_t focus_translate_y,
-                                         bool opening,
-                                         uint32_t duration, eos_anim_group_t *group,
-                                         lv_obj_t *focus_icon,
-                                         uint32_t delay);
+static void _app_list_start_paired_fade(lv_obj_t *obj_a,
+                                        lv_obj_t *obj_b,
+                                        lv_obj_t *icon_clone,
+                                        lv_obj_t *app_snapshot,
+                                        int32_t focus_translate_x,
+                                        int32_t focus_translate_y,
+                                        bool opening,
+                                        uint32_t duration,
+                                        eos_anim_group_t *group,
+                                        lv_obj_t *focus_icon,
+                                        uint32_t delay);
 static int32_t _app_list_find_sys_app(const char *app_id);
 static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
@@ -146,19 +149,19 @@ static uint32_t _app_list_icon_count = 0;
  * icon_clone and app_snapshot translates to keep their centers aligned. */
 typedef struct
 {
-    lv_obj_t *obj_a;                  /* fades out (255→0) */
-    lv_obj_t *obj_b;                  /* fades in  (0→255) */
-    lv_obj_t *icon_clone;             /* icon clone object */
-    lv_obj_t *app_snapshot;           /* app snapshot object */
-    int32_t icon_trans_start_x;      /* icon_clone translate_x at t=0 */
-    int32_t icon_trans_start_y;      /* icon_clone translate_y at t=0 */
-    int32_t icon_trans_end_x;        /* icon_clone translate_x at t=1 */
-    int32_t icon_trans_end_y;        /* icon_clone translate_y at t=1 */
-    int32_t snap_trans_start_x;      /* app_snapshot translate_x at t=0 */
-    int32_t snap_trans_start_y;      /* app_snapshot translate_y at t=0 */
-    int32_t snap_trans_end_x;        /* app_snapshot translate_x at t=1 */
-    int32_t snap_trans_end_y;        /* app_snapshot translate_y at t=1 */
-    bool opening;                     /* true=open anim, false=close anim */
+    lv_obj_t *obj_a; /* fades out (255→0) */
+    lv_obj_t *obj_b; /* fades in  (0→255) */
+    lv_obj_t *icon_clone; /* icon clone object */
+    lv_obj_t *app_snapshot; /* app snapshot object */
+    int32_t icon_trans_start_x; /* icon_clone translate_x at t=0 */
+    int32_t icon_trans_start_y; /* icon_clone translate_y at t=0 */
+    int32_t icon_trans_end_x; /* icon_clone translate_x at t=1 */
+    int32_t icon_trans_end_y; /* icon_clone translate_y at t=1 */
+    int32_t snap_trans_start_x; /* app_snapshot translate_x at t=0 */
+    int32_t snap_trans_start_y; /* app_snapshot translate_y at t=0 */
+    int32_t snap_trans_end_x; /* app_snapshot translate_x at t=1 */
+    int32_t snap_trans_end_y; /* app_snapshot translate_y at t=1 */
+    bool opening; /* true=open anim, false=close anim */
     lv_anim_t lv_anim;
     eos_anim_group_t *group;
     lv_obj_t *focus_icon;
@@ -581,10 +584,8 @@ static void _app_list_paired_fade_exec_cb(void *var, int32_t v)
     /* icon_clone translate: pure lerp */
     if (ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
     {
-        int32_t tx = ctx->icon_trans_start_x +
-                     ((ctx->icon_trans_end_x - ctx->icon_trans_start_x) * t + 127) / 255;
-        int32_t ty = ctx->icon_trans_start_y +
-                     ((ctx->icon_trans_end_y - ctx->icon_trans_start_y) * t + 127) / 255;
+        int32_t tx = ctx->icon_trans_start_x + ((ctx->icon_trans_end_x - ctx->icon_trans_start_x) * t + 127) / 255;
+        int32_t ty = ctx->icon_trans_start_y + ((ctx->icon_trans_end_y - ctx->icon_trans_start_y) * t + 127) / 255;
         lv_obj_set_style_translate_x(ctx->icon_clone, tx, 0);
         lv_obj_set_style_translate_y(ctx->icon_clone, ty, 0);
     }
@@ -592,10 +593,8 @@ static void _app_list_paired_fade_exec_cb(void *var, int32_t v)
     /* app_snapshot translate: pure lerp */
     if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
     {
-        int32_t tx = ctx->snap_trans_start_x +
-                     ((ctx->snap_trans_end_x - ctx->snap_trans_start_x) * t + 127) / 255;
-        int32_t ty = ctx->snap_trans_start_y +
-                     ((ctx->snap_trans_end_y - ctx->snap_trans_start_y) * t + 127) / 255;
+        int32_t tx = ctx->snap_trans_start_x + ((ctx->snap_trans_end_x - ctx->snap_trans_start_x) * t + 127) / 255;
+        int32_t ty = ctx->snap_trans_start_y + ((ctx->snap_trans_end_y - ctx->snap_trans_start_y) * t + 127) / 255;
         lv_obj_set_style_translate_x(ctx->app_snapshot, tx, 0);
         lv_obj_set_style_translate_y(ctx->app_snapshot, ty, 0);
     }
@@ -635,14 +634,17 @@ static void _app_list_paired_fade_ready_cb(lv_anim_t *a)
     lv_timer_set_repeat_count(t, 1);
 }
 
-static void _app_list_start_paired_fade(lv_obj_t *obj_a, lv_obj_t *obj_b,
-                                         lv_obj_t *icon_clone,
-                                         lv_obj_t *app_snapshot,
-                                         int32_t focus_translate_x, int32_t focus_translate_y,
-                                         bool opening,
-                                         uint32_t duration, eos_anim_group_t *group,
-                                         lv_obj_t *focus_icon,
-                                         uint32_t delay)
+static void _app_list_start_paired_fade(lv_obj_t *obj_a,
+                                        lv_obj_t *obj_b,
+                                        lv_obj_t *icon_clone,
+                                        lv_obj_t *app_snapshot,
+                                        int32_t focus_translate_x,
+                                        int32_t focus_translate_y,
+                                        bool opening,
+                                        uint32_t duration,
+                                        eos_anim_group_t *group,
+                                        lv_obj_t *focus_icon,
+                                        uint32_t delay)
 {
     if (!obj_a || !obj_b || !icon_clone || !app_snapshot || duration == 0)
     {
@@ -699,8 +701,10 @@ static void _app_list_start_paired_fade(lv_obj_t *obj_a, lv_obj_t *obj_b,
     lv_anim_set_exec_cb(&ctx->lv_anim, _app_list_paired_fade_exec_cb);
     lv_anim_set_path_cb(&ctx->lv_anim, lv_anim_path_custom_bezier3);
     lv_anim_set_bezier3_param(&ctx->lv_anim,
-                              _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1,
-                              _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                              _EASE_OUT_QUINT_BX1,
+                              _EASE_OUT_QUINT_BY1,
+                              _EASE_OUT_QUINT_BX2,
+                              _EASE_OUT_QUINT_BY2);
     lv_anim_set_duration(&ctx->lv_anim, duration);
     lv_anim_set_delay(&ctx->lv_anim, delay);
     lv_anim_set_completed_cb(&ctx->lv_anim, _app_list_paired_fade_ready_cb);
@@ -945,7 +949,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
 
     if (opening)
     {
-        /* --- from side: list_snapshot zoom out + move --- */
+        /* from side: list_snapshot zoom out + move -------------------*/
         if (list_snapshot)
         {
             lv_image_set_scale(list_snapshot, 256);
@@ -956,66 +960,83 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                 eos_anim_image_scale_create(list_snapshot, 256, _APP_LIST_ANIM_FOCUS_SCALE, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
 
-            anim = eos_anim_move_create(list_snapshot,
-                                        0, 0,
-                                        focus_translate_x, focus_translate_y,
-                                        total_duration, false);
+            anim =
+                eos_anim_move_create(list_snapshot, 0, 0, focus_translate_x, focus_translate_y, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
         }
 
-        /* --- icon_clone: scale up (fade + translate handled by paired fade, all in sync) --- */
+        /* icon_clone: scale up (fade + translate handled by paired fade, all in sync) -*/
         if (icon_clone)
         {
             lv_obj_set_style_transform_scale(icon_clone, 256, 0);
 
-            eos_anim_t *anim = eos_anim_transform_scale_create(icon_clone,
-                                                               256,
-                                                               _APP_LIST_ANIM_FOCUS_SCALE,
-                                                               total_duration,
-                                                               false);
+            eos_anim_t *anim =
+                eos_anim_transform_scale_create(icon_clone, 256, _APP_LIST_ANIM_FOCUS_SCALE, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
         }
 
-        /* --- to side: app_snapshot zoom in (scale + translate run in sync) --- */
+        /* to side: app_snapshot zoom in (scale + translate run in sync) -*/
         lv_image_set_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE);
 
-        eos_anim_t *anim = eos_anim_image_scale_create(app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, total_duration, false);
+        eos_anim_t *anim =
+            eos_anim_image_scale_create(app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, total_duration, false);
         if (anim)
         {
-            eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+            eos_anim_set_path_bezier3(anim,
+                                      _EASE_OUT_QUINT_BX1,
+                                      _EASE_OUT_QUINT_BY1,
+                                      _EASE_OUT_QUINT_BX2,
+                                      _EASE_OUT_QUINT_BY2);
             eos_anim_group_attach(anim, group);
             eos_anim_start(anim);
         }
     }
     else
     {
-        /* --- from side: app_snapshot zoom out (scale + translate run in sync) --- */
+        /* from side: app_snapshot zoom out (scale + translate run in sync) -*/
         lv_image_set_scale(app_snapshot, 256);
 
-        eos_anim_t *anim = eos_anim_image_scale_create(app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, total_duration, false);
+        eos_anim_t *anim =
+            eos_anim_image_scale_create(app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, total_duration, false);
         if (anim)
         {
-            eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+            eos_anim_set_path_bezier3(anim,
+                                      _EASE_OUT_QUINT_BX1,
+                                      _EASE_OUT_QUINT_BY1,
+                                      _EASE_OUT_QUINT_BX2,
+                                      _EASE_OUT_QUINT_BY2);
             eos_anim_group_attach(anim, group);
             eos_anim_start(anim);
         }
 
-        /* --- to side: list_snapshot zoom in + move --- */
+        /* to side: list_snapshot zoom in + move ----------------------*/
         if (list_snapshot)
         {
             lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
@@ -1026,21 +1047,30 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                 eos_anim_image_scale_create(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE, 256, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
 
-            anim = eos_anim_move_create(list_snapshot, focus_translate_x, focus_translate_y, 0, 0, total_duration, false);
+            anim =
+                eos_anim_move_create(list_snapshot, focus_translate_x, focus_translate_y, 0, 0, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
         }
 
-        /* --- icon_clone: scale down (fade + translate handled by paired fade, all in sync) --- */
+        /* icon_clone: scale down (fade + translate handled by paired fade, all in sync) -*/
         if (icon_clone)
         {
             lv_obj_set_style_transform_scale(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 0);
@@ -1049,7 +1079,11 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                 eos_anim_transform_scale_create(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 256, total_duration, false);
             if (anim)
             {
-                eos_anim_set_path_bezier3(anim, _EASE_OUT_QUINT_BX1, _EASE_OUT_QUINT_BY1, _EASE_OUT_QUINT_BX2, _EASE_OUT_QUINT_BY2);
+                eos_anim_set_path_bezier3(anim,
+                                          _EASE_OUT_QUINT_BX1,
+                                          _EASE_OUT_QUINT_BY1,
+                                          _EASE_OUT_QUINT_BX2,
+                                          _EASE_OUT_QUINT_BY2);
                 eos_anim_group_attach(anim, group);
                 eos_anim_start(anim);
             }
@@ -1069,10 +1103,17 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         lv_obj_t *fade_obj_b = opening ? app_snapshot : icon_clone;
         lv_obj_t *paired_focus_icon = opening ? NULL : focus_icon;
 
-        _app_list_start_paired_fade(fade_obj_a, fade_obj_b, icon_clone, app_snapshot,
-                                     focus_translate_x, focus_translate_y,
-                                     opening,
-                                     total_duration, group, paired_focus_icon, 0);
+        _app_list_start_paired_fade(fade_obj_a,
+                                    fade_obj_b,
+                                    icon_clone,
+                                    app_snapshot,
+                                    focus_translate_x,
+                                    focus_translate_y,
+                                    opening,
+                                    total_duration,
+                                    group,
+                                    paired_focus_icon,
+                                    0);
 
         /* Cleanup: when app_snapshot is deleted, also delete icon_clone */
         lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);

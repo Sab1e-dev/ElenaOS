@@ -255,8 +255,7 @@ void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb);
  * four control-point parameters on every underlying lv_anim_t.
  * Values are in LVGL fixed-point (LV_BEZIER_VAL_FLOAT(v) == (int16_t)(v * 1024)).
  */
-void eos_anim_set_path_bezier3(eos_anim_t *anim, int16_t bx1, int16_t by1,
-                                int16_t bx2, int16_t by2);
+void eos_anim_set_path_bezier3(eos_anim_t *anim, int16_t bx1, int16_t by1, int16_t bx2, int16_t by2);
 
 /* Animation Group --------------------------------------------*/
 
