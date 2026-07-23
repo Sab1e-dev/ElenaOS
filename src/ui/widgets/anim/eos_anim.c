@@ -26,6 +26,9 @@
 static lv_obj_t *blocker = NULL;
 static bool is_blocker_show = false;
 
+/* Debug intercept (simulator-side only) */
+static eos_anim_intercept_cb_t _eos_anim_intercept_cb = NULL;
+
 /* Batch snapshot mode */
 static bool _snap_batch_active = false;
 static int _snap_batch_count = 0;
@@ -121,6 +124,49 @@ void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb)
                 lv_anim_set_path_cb(&anim->anim.resize.a_h, path_cb);
             break;
     }
+}
+
+static void _apply_bezier3_params(eos_anim_t *anim, int16_t bx1, int16_t by1,
+                                   int16_t bx2, int16_t by2)
+{
+    if (!anim) return;
+    switch (anim->type) {
+    case EOS_ANIM_SCALE:
+        lv_anim_set_bezier3_param(&anim->anim.scale.a_width,  bx1, by1, bx2, by2);
+        lv_anim_set_bezier3_param(&anim->anim.scale.a_height, bx1, by1, bx2, by2);
+        break;
+    case EOS_ANIM_FADE:
+        lv_anim_set_bezier3_param(&anim->anim.fade.a_opa, bx1, by1, bx2, by2);
+        break;
+    case EOS_ANIM_MOVE:
+        if (!anim->cfg.move.disable_x)
+            lv_anim_set_bezier3_param(&anim->anim.move.a_x, bx1, by1, bx2, by2);
+        if (!anim->cfg.move.disable_y)
+            lv_anim_set_bezier3_param(&anim->anim.move.a_y, bx1, by1, bx2, by2);
+        break;
+    case EOS_ANIM_TRANSFORM_SCALE:
+        lv_anim_set_bezier3_param(&anim->anim.transform_scale.a_scale, bx1, by1, bx2, by2);
+        break;
+    case EOS_ANIM_IMAGE_SCALE:
+        lv_anim_set_bezier3_param(&anim->anim.image_scale.a_scale, bx1, by1, bx2, by2);
+        break;
+    case EOS_ANIM_RESIZE:
+        if (!anim->cfg.resize.disable_w)
+            lv_anim_set_bezier3_param(&anim->anim.resize.a_w, bx1, by1, bx2, by2);
+        if (!anim->cfg.resize.disable_h)
+            lv_anim_set_bezier3_param(&anim->anim.resize.a_h, bx1, by1, bx2, by2);
+        break;
+    default:
+        break;
+    }
+}
+
+void eos_anim_set_path_bezier3(eos_anim_t *anim, int16_t bx1, int16_t by1,
+                                int16_t bx2, int16_t by2)
+{
+    if (!anim) return;
+    eos_anim_set_path(anim, lv_anim_path_custom_bezier3);
+    _apply_bezier3_params(anim, bx1, by1, bx2, by2);
 }
 
 eos_anim_group_t *eos_anim_group_create(eos_anim_group_cb_t cb, void *user_data)
@@ -1156,6 +1202,13 @@ void eos_anim_resize_start(lv_obj_t *tar_obj,
         eos_anim_del(anim);
 }
 
+/* Debug Intercept --------------------------------------------*/
+
+void eos_anim_set_intercept_cb(eos_anim_intercept_cb_t cb)
+{
+    _eos_anim_intercept_cb = cb;
+}
+
 /* Animation Start --------------------------------------------*/
 
 bool eos_anim_start(eos_anim_t *anim)
@@ -1176,6 +1229,13 @@ bool eos_anim_start(eos_anim_t *anim)
     if (!anim->no_blocker)
     {
         eos_anim_blocker_show();
+    }
+
+    /* Debug intercept — allow simulator-side tools to inspect/modify
+     * animation parameters before the underlying lv_anim_t starts. */
+    if (_eos_anim_intercept_cb)
+    {
+        _eos_anim_intercept_cb(anim);
     }
 
     switch (anim->type)

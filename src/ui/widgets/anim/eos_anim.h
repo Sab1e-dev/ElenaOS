@@ -248,6 +248,16 @@ void eos_anim_set_preserve_layout(eos_anim_t *anim, bool preserve);
  */
 void eos_anim_set_path(eos_anim_t *anim, lv_anim_path_cb_t path_cb);
 
+/**
+ * @brief Set a custom cubic-bezier easing path (ease_out_quint, ease_in_back, etc.)
+ *
+ * Sets the path callback to lv_anim_path_custom_bezier3 and configures the
+ * four control-point parameters on every underlying lv_anim_t.
+ * Values are in LVGL fixed-point (LV_BEZIER_VAL_FLOAT(v) == (int16_t)(v * 1024)).
+ */
+void eos_anim_set_path_bezier3(eos_anim_t *anim, int16_t bx1, int16_t by1,
+                                int16_t bx2, int16_t by2);
+
 /* Animation Group --------------------------------------------*/
 
 eos_anim_group_t *eos_anim_group_create(eos_anim_group_cb_t cb, void *user_data);
@@ -365,6 +375,19 @@ void eos_anim_resize_start(lv_obj_t *tar_obj,
  */
 void eos_anim_snapshot_batch_begin(void);
 void eos_anim_snapshot_batch_flush(void);
+
+/**
+ * @brief Debug intercept callback — called right before an animation's
+ *        underlying lv_anim_t objects are started.
+ *
+ * The callback may inspect and modify the eos_anim_t (durations, path,
+ * delay, etc.) before lv_anim_start() is called.  Intended for
+ * simulator-side debug tooling only; never set in production builds.
+ *
+ * @param anim  The animation about to start (non-NULL).
+ */
+typedef void (*eos_anim_intercept_cb_t)(struct eos_anim_t *anim);
+void eos_anim_set_intercept_cb(eos_anim_intercept_cb_t cb);
 
 #ifdef __cplusplus
 }
