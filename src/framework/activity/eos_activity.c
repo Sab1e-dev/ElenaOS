@@ -215,6 +215,11 @@ static void _activity_run_destroy(eos_activity_t *activity)
     EOS_LOG_I("Activity destroy end");
 }
 
+void eos_activity_destroy(eos_activity_t *activity)
+{
+    _activity_run_destroy(activity);
+}
+
 static void _activity_reset_context(void)
 {
     _activity_ctx.root_activity = NULL;

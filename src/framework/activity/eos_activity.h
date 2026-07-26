@@ -69,6 +69,15 @@ eos_result_t eos_activity_controller_init(eos_activity_t *root_activity);
 eos_activity_t *eos_activity_create(const eos_activity_lifecycle_t *lifecycle);
 
 /**
+ * @brief Destroy an Activity that is NOT on the activity stack
+ * @param activity Activity pointer to destroy
+ * @note This is intended for off-stack activities (e.g. temporary test activities).
+ *       It calls on_destroy, deletes the view and frees the activity.
+ *       Do NOT use this on an activity that is currently on the stack or visible.
+ */
+void eos_activity_destroy(eos_activity_t *activity);
+
+/**
  * @brief Create a root Activity (watchface) with immediate view creation
  * @param lifecycle Activity lifecycle callbacks
  * @return eos_activity_t* Returns Activity pointer on success, NULL on failure

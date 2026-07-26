@@ -806,6 +806,50 @@ jerry_value_t sni_api_eos_clock_hand_center_style(const jerry_call_info_t *call_
     return jerry_undefined();
 }
 
+jerry_value_t sni_api_eos_activity_create(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count)
+{
+    eos_activity_t *activity;
+
+    (void)call_info_p;
+    (void)args_p;
+
+    if (args_count != 0)
+    {
+        return sni_api_throw_error("Invalid argument count");
+    }
+
+    activity = eos_activity_create(NULL);
+    if (!activity)
+    {
+        return sni_api_throw_error("Failed to create activity");
+    }
+    return sni_tb_c2js(&activity, SNI_H_EOS_ACTIVITY);
+}
+
+jerry_value_t sni_api_eos_activity_destroy(const jerry_call_info_t *call_info_p,
+                                           const jerry_value_t args_p[],
+                                           const jerry_length_t args_count)
+{
+    eos_activity_t *activity;
+
+    (void)call_info_p;
+
+    if (args_count != 1)
+    {
+        return sni_api_throw_error("Usage: activity.destroy(activity)");
+    }
+
+    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity))
+    {
+        return sni_api_throw_error("Invalid activity argument");
+    }
+
+    eos_activity_destroy(activity);
+    return jerry_undefined();
+}
+
 jerry_value_t sni_api_eos_activity_current(const jerry_call_info_t *call_info_p,
                                            const jerry_value_t args_p[],
                                            const jerry_length_t args_count)
@@ -1225,6 +1269,8 @@ const sni_method_desc_t eos_class_static_methods_clock_hand[] = {
 };
 
 const sni_method_desc_t eos_class_static_methods_activity[] = {
+    {.name = "create", .handler = sni_api_eos_activity_create},
+    {.name = "destroy", .handler = sni_api_eos_activity_destroy},
     {.name = "current", .handler = sni_api_eos_activity_current},
     {.name = "visible", .handler = sni_api_eos_activity_visible},
     {.name = "bottom", .handler = sni_api_eos_activity_bottom},
