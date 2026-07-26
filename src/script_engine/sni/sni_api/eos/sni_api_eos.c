@@ -14,6 +14,7 @@
 #include "lvgl.h"
 #include "sni_type_bridge.h"
 #include "sni_types.h"
+#include "sni_context.h"
 #include "sni_api_export.h"
 #include "eos_log.h"
 #include "eos_mem.h"
@@ -274,7 +275,11 @@ jerry_value_t sni_api_eos_view_active(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *result = eos_view_active();
-    return sni_tb_c2js(&result, SNI_H_LV_OBJ);
+    if (!result)
+    {
+        return jerry_null();
+    }
+    return sni_tb_c2js(&result, SNI_H_EOS_VIEW);
 }
 
 jerry_value_t sni_api_eos_config_set_str(const jerry_call_info_t *call_info_p,
@@ -847,6 +852,17 @@ jerry_value_t sni_api_eos_activity_destroy(const jerry_call_info_t *call_info_p,
     }
 
     eos_activity_destroy(activity);
+
+    /* Remove from the managed-resource list so the context sweep does not
+       encounter a dangling pointer.  This is safe even during sweep because:
+       if sweep already passed this node it's already freed; if sweep hasn't
+       reached it yet, remove_resource takes it out of the list first. */
+    sni_context_t *ctx = sni_get_current_context();
+    if (ctx)
+    {
+        sni_context_remove_resource(ctx, activity, SNI_H_EOS_ACTIVITY);
+    }
+
     return jerry_undefined();
 }
 
@@ -942,7 +958,7 @@ jerry_value_t sni_api_eos_activity_get_view(const jerry_call_info_t *call_info_p
     }
 
     view = eos_activity_get_view(activity);
-    return sni_tb_c2js(&view, SNI_H_LV_OBJ);
+    return sni_tb_c2js(&view, SNI_H_EOS_VIEW);
 }
 
 jerry_value_t sni_api_eos_activity_set_view(const jerry_call_info_t *call_info_p,
@@ -959,7 +975,7 @@ jerry_value_t sni_api_eos_activity_set_view(const jerry_call_info_t *call_info_p
         return sni_api_throw_error("Usage: activity.setView(activity, view)");
     }
 
-    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) || !sni_tb_js2c(args_p[1], SNI_H_LV_OBJ, &view))
+    if (!sni_tb_js2c(args_p[0], SNI_H_EOS_ACTIVITY, &activity) || !sni_tb_js2c_parent(args_p[1], (void **)&view))
     {
         return sni_api_throw_error("Invalid argument type");
     }
@@ -1158,18 +1174,11 @@ jerry_value_t sni_api_eos_activity_root_screen(const jerry_call_info_t *call_inf
                                                const jerry_value_t args_p[],
                                                const jerry_length_t args_count)
 {
-    lv_obj_t *screen;
-
     (void)call_info_p;
     (void)args_p;
+    (void)args_count;
 
-    if (args_count != 0)
-    {
-        return sni_api_throw_error("Invalid argument count");
-    }
-
-    screen = eos_activity_get_root_screen();
-    return sni_tb_c2js(&screen, SNI_H_LV_OBJ);
+    return sni_api_throw_error("eos.activity.rootScreen() is not available from JS scripts");
 }
 
 jerry_value_t sni_api_eos_activity_is_transition_in_progress(const jerry_call_info_t *call_info_p,

@@ -377,6 +377,19 @@ bool eos_activity_is_transition_in_progress(void);
  */
 eos_activity_t *eos_activity_get_bottom(void);
 
+/**
+ * @brief Check whether an Activity has ever been entered (has_started)
+ *
+ * Off-stack Activities created by JS scripts (eos_activity_create(NULL))
+ * are never entered and have has_started == false.  Native Activities
+ * launched by the app list are entered via eos_activity_enter() and have
+ * has_started == true.
+ *
+ * @param activity Activity pointer
+ * @return true if the activity has been entered at least once
+ */
+bool eos_activity_has_started(eos_activity_t *activity);
+
 #ifdef __cplusplus
 }
 #endif

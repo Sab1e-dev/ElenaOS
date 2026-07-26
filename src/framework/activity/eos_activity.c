@@ -215,6 +215,11 @@ static void _activity_run_destroy(eos_activity_t *activity)
     EOS_LOG_I("Activity destroy end");
 }
 
+bool eos_activity_has_started(eos_activity_t *activity)
+{
+    return activity ? activity->has_started : false;
+}
+
 void eos_activity_destroy(eos_activity_t *activity)
 {
     _activity_run_destroy(activity);

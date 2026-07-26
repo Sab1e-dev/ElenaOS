@@ -40,20 +40,9 @@ jerry_value_t sni_api_ctor_obj(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_obj_create(arg_parent);
@@ -442,7 +431,7 @@ jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t* call_info_p,
         return sni_api_throw_error("Invalid argument type");
     }
     lv_obj_t* arg_parent;
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
         return sni_api_throw_error("Failed to convert argument");
     }
@@ -475,7 +464,7 @@ jerry_value_t sni_api_lv_obj_swap(const jerry_call_info_t* call_info_p,
         return sni_api_throw_error("Invalid argument type");
     }
     lv_obj_t* arg_obj2;
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_obj2))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_obj2))
     {
         return sni_api_throw_error("Failed to convert argument");
     }
@@ -1352,7 +1341,7 @@ jerry_value_t sni_api_lv_obj_align_to(const jerry_call_info_t* call_info_p,
         return sni_api_throw_error("Invalid argument type");
     }
     const lv_obj_t* arg_base;
-    if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_base))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_base))
     {
         return sni_api_throw_error("Failed to convert argument");
     }
@@ -13232,20 +13221,9 @@ jerry_value_t sni_api_ctor_button(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_button_create(arg_parent);
@@ -13271,20 +13249,9 @@ jerry_value_t sni_api_ctor_label(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_label_create(arg_parent);
@@ -13921,20 +13888,9 @@ jerry_value_t sni_api_ctor_arc(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_arc_create(arg_parent);
@@ -14482,20 +14438,9 @@ jerry_value_t sni_api_ctor_bar(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_bar_create(arg_parent);
@@ -16641,20 +16586,9 @@ jerry_value_t sni_api_ctor_calendar(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_calendar_create(arg_parent);
@@ -16832,20 +16766,9 @@ jerry_value_t sni_api_ctor_chart(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_chart_create(arg_parent);
@@ -17736,20 +17659,9 @@ jerry_value_t sni_api_ctor_canvas(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_canvas_create(arg_parent);
@@ -18103,20 +18015,9 @@ jerry_value_t sni_api_ctor_checkbox(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_checkbox_create(arg_parent);
@@ -18249,20 +18150,9 @@ jerry_value_t sni_api_ctor_dropdown(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_dropdown_create(arg_parent);
@@ -19197,20 +19087,9 @@ jerry_value_t sni_api_ctor_image(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_image_create(arg_parent);
@@ -20401,20 +20280,9 @@ jerry_value_t sni_api_ctor_imagebutton(const jerry_call_info_t* call_info_p,
     }
 
     lv_obj_t* arg_parent;
-    if (jerry_value_is_null(args_p[0]))
+    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
     {
-        arg_parent = NULL;
-    }
-    else if (jerry_value_is_object(args_p[0]))
-    {
-        if (!sni_tb_js2c(args_p[0], SNI_H_LV_OBJ, &arg_parent))
-        {
-            return sni_api_throw_error("Failed to convert argument");
-        }
-    }
-    else
-    {
-        return sni_api_throw_error("Invalid argument type");
+        return sni_api_throw_error("Parent argument is required");
     }
 
     lv_obj_t* native_obj = lv_imagebutton_create(arg_parent);
@@ -22748,7 +22616,6 @@ const sni_class_desc_t* const lv_api_classes[] = {
     &lv_class_desc_label,
     &lv_class_desc_arc,
     &lv_class_desc_bar,
-    &lv_class_desc_screen,
     &lv_class_desc_color,
     &lv_class_desc_timer,
     &lv_class_desc_anim,

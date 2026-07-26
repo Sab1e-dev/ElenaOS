@@ -12,6 +12,7 @@
 #include "lvgl.h"
 #include "sni_callback_runtime.h"
 #include "sni_type_bridge.h"
+#include "eos_activity.h"
 #include "script_engine_core.h"
 #include "jerryscript.h"
 #define EOS_LOG_TAG "SNI-Context"
@@ -562,6 +563,28 @@ void sni_context_sweep_all(sni_context_t *ctx)
                             anim_ctx->active_anim = NULL;
                         }
                         eos_free(anim_ctx);
+                    }
+                }
+                else if (node->type == SNI_H_EOS_ACTIVITY)
+                {
+                    /* Only destroy off-stack Activities that were never entered
+                       (has_started == false).  These are JS-created Activities
+                       with NULL lifecycle that exist purely as managed resources.
+
+                       Native Activities (created by the app launcher) have
+                       on_destroy callbacks that tear down the script engine;
+                       destroying them from inside the sweep triggers a
+                       re-entrant cascade (on_destroy → spm_app_stop →
+                       _program_destroy → sni_context_sweep_all) and double-free.
+
+                       JS-created Activities that WERE entered (has_started==true)
+                       are managed by the activity controller and destroyed via
+                       the animation-callback path. */
+                    eos_activity_t *act = (eos_activity_t *)node->ptr;
+                    if (!eos_activity_has_started(act))
+                    {
+                        eos_activity_destroy(act);
+                        node->ptr = NULL;
                     }
                 }
             }

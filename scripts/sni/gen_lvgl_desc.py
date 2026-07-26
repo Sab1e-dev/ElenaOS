@@ -1126,8 +1126,24 @@ def render_constructor_wrapper(cls: ApiClass, ctor_func: ApiFunction) -> str:
     call_args: List[str] = []
     for idx, arg in enumerate(ctor_func.args):
         c_var = f"arg_{arg.name}"
-        render_result = render_arg_conversion(lines, f"args_p[{idx}]", arg, c_var, allow_null=True)
-        call_args.append(render_result.call_expr)
+        # Use sni_tb_js2c_parent() for SNI_H_LV_OBJ parent args so that
+        # both regular LVGL objects and Activity Views (SNI_H_EOS_VIEW)
+        # are accepted.  Null/undefined parent is rejected.
+        use_parent_helper = (
+            arg.bridge.js2c_mode == "bridge"
+            and arg.bridge.sni_type == "SNI_H_LV_OBJ"
+        )
+        if use_parent_helper:
+            lines.append(f"    {arg.c_type} {c_var};")
+            lines.append(f"    if (!sni_tb_js2c_parent(args_p[{idx}], (void**)&{c_var}))")
+            lines.append("    {")
+            lines.append('        return sni_api_throw_error("Parent argument is required");')
+            lines.append("    }")
+            call_args.append(c_var)
+            render_result = ArgRenderResult(call_expr=c_var, post_lines=[])
+        else:
+            render_result = render_arg_conversion(lines, f"args_p[{idx}]", arg, c_var, allow_null=True)
+            call_args.append(render_result.call_expr)
         lines.append("")
 
     call_text = ", ".join(call_args)

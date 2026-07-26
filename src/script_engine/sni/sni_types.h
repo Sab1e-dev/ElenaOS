@@ -73,6 +73,7 @@ typedef enum
     SNI_H_LV_COLOR_FILTER_DSC,
     SNI_H_LV_DISPLAY,
     SNI_H_EOS_ACTIVITY,
+    SNI_H_EOS_VIEW, /**< Activity View wrapper — immutable container, parent-only access */
     SNI_H_LV_DRAW_BUF,
     SNI_H_LV_DRAW_ARC_DSC,
     SNI_H_LV_DRAW_IMAGE_DSC,

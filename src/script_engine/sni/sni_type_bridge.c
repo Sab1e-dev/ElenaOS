@@ -59,7 +59,7 @@ static int sni_tb_get_destroy_cb_index(sni_type_t type)
     return (int)(type - __SNI_HANDLE_START - 1);
 }
 
-static sni_context_t *sni_get_current_context(void)
+sni_context_t *sni_get_current_context(void)
 {
     return sni_cb_get_context();
 }
@@ -961,6 +961,19 @@ void sni_tb_unlink_sub_resource(void *sub_ptr, sni_type_t sub_type)
     }
 
     sub_node->parent_cb = NULL;
+}
+
+bool sni_tb_js2c_parent(jerry_value_t val, void **out)
+{
+    if (sni_tb_js2c(val, SNI_H_LV_OBJ, out))
+    {
+        return true;
+    }
+    if (sni_tb_js2c(val, SNI_H_EOS_VIEW, out))
+    {
+        return true;
+    }
+    return false;
 }
 
 void sni_tb_init(void)

@@ -134,6 +134,26 @@ void sni_tb_init(void);
  */
 sni_control_block_t *sni_cb_from_obj(void *ptr);
 
+/**
+ * @brief Get the current SNI context for the active script realm
+ * @return sni_context_t* or NULL if no script is running
+ */
+struct sni_context *sni_get_current_context(void);
+
+/**
+ * @brief Convert JS value to a parent LVGL object pointer
+ *
+ * Tries SNI_H_LV_OBJ first (regular lv_obj_t*), then falls back to
+ * SNI_H_EOS_VIEW (Activity View wrapper). Use this for constructor
+ * parent arguments, setParent, alignTo, and swap so that both
+ * regular LVGL objects and Activity Views are accepted.
+ *
+ * @param val JerryScript value (parent argument)
+ * @param out Output lv_obj_t* pointer
+ * @return bool Whether conversion was successful
+ */
+bool sni_tb_js2c_parent(jerry_value_t val, void **out);
+
 #ifdef __cplusplus
 }
 #endif
