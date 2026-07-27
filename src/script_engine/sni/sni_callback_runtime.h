@@ -36,6 +36,7 @@ typedef struct sni_timer_callback_ctx
     sni_context_t *owner_ctx;
     sni_timer_state_t state;
     bool auto_delete;
+    uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
 } sni_timer_callback_ctx_t;
 
 /* Public function prototypes ---------------------------------*/
@@ -168,6 +169,7 @@ typedef struct sni_anim_callback_ctx
     lv_anim_path_cb_t builtin_path_fn;
     sni_context_t *owner_ctx;
     sni_anim_state_t state;
+    uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
 } sni_anim_callback_ctx_t;
 
 bool sni_cb_anim_create(sni_anim_callback_ctx_t **out_ctx);

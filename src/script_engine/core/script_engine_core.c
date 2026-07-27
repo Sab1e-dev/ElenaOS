@@ -804,7 +804,11 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
         engine_rt.fatal_recovering = false;
         engine_rt.fatal_scope_active = false;
 
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        /* Re-enable LVGL timers that were paused by spm_handle_engine_reset. */
+        lv_timer_enable(true);
+
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
 
@@ -1306,8 +1310,12 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
         engine_rt.initialized = true;
         engine_rt.fatal_recovering = false;
 
+        /* Re-enable LVGL timers that were paused by spm_handle_engine_reset. */
+        lv_timer_enable(true);
+
         /* Reset runtime state */
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
         return EOS_ERR_SCRIPT_EXCEPTION;
@@ -1445,7 +1453,8 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
 
     if (result != EOS_OK || engine_rt.pending_stop)
     {
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
     }

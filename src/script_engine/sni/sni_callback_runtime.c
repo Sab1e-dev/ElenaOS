@@ -43,6 +43,35 @@ static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
     *value = jerry_undefined();
 }
 
+/**
+ * @brief Detect whether a fatal engine recovery happened during spm_call
+ *
+ * After spm_call() returns, callers MUST invoke this before accessing any
+ * local jerry_value_t variables or native pointers (t, ctx, owner_ctx).
+ * If the engine generation changed, jerry_init() already wiped the heap
+ * and all jerry_value_t handles acquired before the call are invalid.
+ *
+ * @param saved_gen  script_engine_get_gen() value captured before spm_call
+ * @param owner_ctx  SNI context pointer (may be dangling after recovery)
+ * @return true if recovery destroyed the context — caller must return immediately
+ */
+static bool sni_cb_detect_recovery(uint32_t saved_gen, sni_context_t *owner_ctx)
+{
+    /* Engine generation changed → jerry_init() wiped the heap */
+    if (saved_gen != script_engine_get_gen())
+        return true;
+
+    /* Context / program destroyed */
+    if (!owner_ctx || !owner_ctx->owner)
+        return true;
+
+    /* Program is no longer active */
+    if (owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+        return true;
+
+    return false;
+}
+
 typedef struct sni_event_callback_ctx
 {
     lv_obj_t *owner;
@@ -51,6 +80,7 @@ typedef struct sni_event_callback_ctx
     jerry_value_t js_user_data;
     sni_context_t *owner_ctx;
     bool alive;
+    uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
     struct sni_event_callback_ctx *next;
 } sni_event_callback_ctx_t;
 
@@ -151,12 +181,33 @@ static void sni_cb_event_dispatch(lv_event_t *e)
         return;
     }
 
+    if (!ctx->owner_ctx || !ctx->owner_ctx->owner)
+    {
+        return;
+    }
+
+    if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+    {
+        return;
+    }
+
+    /* Capture engine generation BEFORE spm_call so we can detect
+     * fatal recovery / re-entrant destruction after the call returns. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     lv_event_t *event_ptr = e;
     jerry_value_t event_obj = sni_tb_c2js(&event_ptr, SNI_H_LV_EVENT);
     sni_cb_event_prepare_js_event(event_obj, e, ctx->js_user_data);
 
     jerry_value_t args[1] = {event_obj};
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+
+    /* If a fatal recovery happened inside spm_call, return immediately
+     * — all local jerry_value_t variables belong to the old heap. */
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -234,10 +285,23 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call so we can detect
+     * fatal recovery / re-entrant destruction after the call returns. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     lv_timer_t *timer_ptr = t;
     jerry_value_t js_timer = sni_tb_c2js(&timer_ptr, SNI_H_LV_TIMER);
     jerry_value_t args[1] = {js_timer};
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+
+    /* If a fatal recovery happened inside spm_call, the engine was
+     * reset (jerry_init), SNI context and callback ctx were freed,
+     * and all local jerry_value_t variables belong to the old heap.
+     * Return immediately — do NOT touch t, ctx, js_timer, or ret. */
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -277,6 +341,7 @@ bool sni_cb_event_add(lv_obj_t *obj,
     ctx->js_user_data = jerry_value_copy(js_user_data);
     ctx->owner_ctx = sni_cb_get_context();
     ctx->alive = true;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_event_dsc_t *dsc = lv_obj_add_event_cb(obj, sni_cb_event_dispatch, filter, ctx);
     if (!dsc)
@@ -405,6 +470,7 @@ bool sni_cb_timer_create(jerry_value_t js_cb, uint32_t period, lv_timer_t **out_
     ctx->owner_ctx = sni_cb_get_context();
     ctx->state = SNI_TIMER_STATE_ACTIVE;
     ctx->auto_delete = true;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_timer_t *timer = lv_timer_create(sni_cb_timer_dispatch, period, ctx);
     if (!timer)
@@ -544,9 +610,17 @@ static void sni_cb_anim_call_void_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -581,11 +655,19 @@ static void sni_cb_anim_custom_exec_dispatch(lv_anim_t *var, int32_t value)
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t js_value = sni_tb_c2js(&value, SNI_T_INT32);
     jerry_value_t args[2] = {js_anim, js_value};
     jerry_value_t ret =
         spm_call(ctx->owner_ctx->owner, ctx->cb_slots[SNI_ANIM_CB_SLOT_CUSTOM_EXEC], jerry_undefined(), args, 2);
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -656,10 +738,18 @@ static int32_t sni_cb_anim_call_int_slot(sni_anim_callback_ctx_t *ctx, sni_anim_
         return fallback;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     int32_t result = fallback;
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return fallback;  /* context destroyed — return safe default */
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -754,6 +844,7 @@ bool sni_cb_anim_create(sni_anim_callback_ctx_t **out_ctx)
     }
     ctx->owner_ctx = sni_cb_get_context();
     ctx->state = SNI_ANIM_STATE_ACTIVE;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_anim_init(&ctx->pre_anim);
     lv_anim_set_user_data(&ctx->pre_anim, ctx);

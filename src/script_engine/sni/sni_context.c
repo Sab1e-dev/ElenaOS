@@ -536,9 +536,20 @@ void sni_context_sweep_all(sni_context_t *ctx)
                 {
                     lv_timer_t *timer = (lv_timer_t *)node->ptr;
                     sni_timer_callback_ctx_t *cb_ctx = (sni_timer_callback_ctx_t *)lv_timer_get_user_data(timer);
-                    if (cb_ctx)
-                        eos_free(cb_ctx);
+
+                    /* Null out user_data and callback BEFORE freeing cb_ctx
+                     * so that even if the timer fires concurrently (race),
+                     * sni_cb_timer_dispatch sees NULL ctx and returns early. */
                     lv_timer_set_user_data(timer, NULL);
+                    lv_timer_set_cb(timer, NULL);
+
+                    if (cb_ctx)
+                    {
+                        cb_ctx->state = SNI_TIMER_STATE_DELETED;
+                        cb_ctx->owner_ctx = NULL;
+                        eos_free(cb_ctx);
+                    }
+
                     lv_timer_delete(timer);
                 }
                 else if (node->type == SNI_H_LV_ANIM)
@@ -546,6 +557,10 @@ void sni_context_sweep_all(sni_context_t *ctx)
                     sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
                     if (anim_ctx)
                     {
+                        /* Mark as DELETED so any concurrent dispatch sees it. */
+                        anim_ctx->state = SNI_ANIM_STATE_DELETED;
+                        anim_ctx->owner_ctx = NULL;
+
                         if (anim_ctx->active_anim)
                         {
                             /* Verify the pointer is still valid: if the

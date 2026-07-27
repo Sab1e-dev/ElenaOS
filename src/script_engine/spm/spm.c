@@ -595,6 +595,11 @@ void spm_handle_engine_reset(void)
 {
     EOS_LOG_W("SPM: emergency reset — destroying all programs");
 
+    /* Pause LVGL timer dispatch to prevent any pending callbacks from
+     * firing during or after the engine reset. Callers re-enable timers
+     * (lv_timer_enable(true)) after jerry_init() + sni_init() complete. */
+    lv_timer_enable(false);
+
     script_program_t *prog = s_program_list;
     while (prog)
     {
