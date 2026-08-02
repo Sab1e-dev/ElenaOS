@@ -851,6 +851,13 @@ jerry_value_t sni_api_eos_activity_destroy(const jerry_call_info_t *call_info_p,
         return sni_api_throw_error("Invalid activity argument");
     }
 
+    /* Capture view before destroy so we can clean up its EOS_VIEW
+     * managed-resource entry.  eos_activity_destroy calls lv_obj_delete
+     * on the view (which removes it from the LVGL tree) but the SNI
+     * context still holds a dangling reference until the sweep phase.
+     * Remove it now to prevent use-after-free during the sweep. */
+    lv_obj_t *view = eos_activity_get_view(activity);
+
     eos_activity_destroy(activity);
 
     /* Remove from the managed-resource list so the context sweep does not
@@ -860,6 +867,10 @@ jerry_value_t sni_api_eos_activity_destroy(const jerry_call_info_t *call_info_p,
     sni_context_t *ctx = sni_get_current_context();
     if (ctx)
     {
+        if (view)
+        {
+            sni_context_remove_resource(ctx, view, SNI_H_EOS_VIEW);
+        }
         sni_context_remove_resource(ctx, activity, SNI_H_EOS_ACTIVITY);
     }
 
@@ -980,7 +991,22 @@ jerry_value_t sni_api_eos_activity_set_view(const jerry_call_info_t *call_info_p
         return sni_api_throw_error("Invalid argument type");
     }
 
+    /* Capture the old view so we can clean up its EOS_VIEW resource
+     * after eos_activity_set_view deletes it via lv_obj_delete. */
+    lv_obj_t *old_view = eos_activity_get_view(activity);
+
     eos_activity_set_view(activity, view);
+
+    /* If setView deleted a previous auto-created view, remove its
+     * EOS_VIEW managed-resource entry from the SNI context. */
+    if (old_view && old_view != view)
+    {
+        sni_context_t *ctx = sni_get_current_context();
+        if (ctx)
+        {
+            sni_context_remove_resource(ctx, old_view, SNI_H_EOS_VIEW);
+        }
+    }
     return jerry_undefined();
 }
 
