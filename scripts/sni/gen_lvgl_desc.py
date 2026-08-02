@@ -61,6 +61,7 @@ SPECIAL_METHOD_WRAPPERS: Dict[str, str] = {
     "lv_obj_remove_event_dsc": "sni_api_lv_obj_remove_event_dsc",
     "lv_obj_remove_event_cb_with_user_data": "sni_api_lv_obj_remove_event_cb_with_user_data",
     "lv_obj_delete": "sni_api_lv_obj_delete",
+    "lv_obj_set_parent": "sni_api_lv_obj_set_parent",
     "lv_obj_remove_event": "sni_api_lv_obj_remove_event",
     "lv_obj_send_event": "sni_api_lv_obj_send_event",
     "lv_obj_set_user_data": "sni_api_lv_obj_set_user_data",
@@ -270,11 +271,11 @@ def normalize_c_type(type_info: Optional[Dict[str, Any]]) -> str:
         base = normalize_c_type(type_info.get("type"))
         quals = " ".join(type_info.get("quals", []))
         base_part = f"{quals} {base}".strip()
-        return f"{base_part}*"
+        return f"{base_part} *"
 
     if jt == "array":
         base = normalize_c_type(type_info.get("type"))
-        return f"{base}*"
+        return f"{base} *"
 
     if "name" in type_info:
         quals = " ".join(type_info.get("quals", []))
@@ -998,6 +999,15 @@ def build_api_function(
     return ApiFunction(name=name, return_type=ret_type, return_bridge=ret_bridge, args=args, lifecycle_class=ret_lifecycle_class)
 
 
+def fmt_var_decl(c_type: str, var_name: str) -> str:
+    """Format a variable declaration with right-aligned pointer spacing.
+
+    Produces 'lv_obj_t *var' for pointer types and 'int32_t var' otherwise.
+    """
+    c_type = c_type.strip()
+    return f"{c_type}{var_name}" if c_type.endswith("*") else f"{c_type} {var_name}"
+
+
 def render_arg_conversion(
     lines: List[str],
     arg_expr: str,
@@ -1015,7 +1025,7 @@ def render_arg_conversion(
     )
     if is_nullable_ptr:
         post_lines: List[str] = []
-        lines.append(f"    {arg.c_type} {c_var_name};")
+        lines.append(f"    {fmt_var_decl(arg.c_type, c_var_name)};")
         lines.append(f"    if (jerry_value_is_null({arg_expr}))")
         lines.append("    {")
         lines.append(f"        {c_var_name} = NULL;")
@@ -1045,9 +1055,9 @@ def render_arg_conversion(
         value_var = f"{c_var_name}_value"
         value_c_type = get_pointer_pointee_type(arg.c_type)
         if output_only_value_arg:
-            lines.append(f"    {value_c_type} {value_var} = {{0}};")
+            lines.append(f"    {fmt_var_decl(value_c_type, value_var)} = {{0}};")
         else:
-            lines.append(f"    {value_c_type} {value_var};")
+            lines.append(f"    {fmt_var_decl(value_c_type, value_var)};")
             lines.append(f"    if (!sni_tb_js2c({arg_expr}, {arg.bridge.sni_type}, &{value_var}))")
             lines.append("    {")
             lines.append('        return sni_api_throw_error("Failed to convert argument");')
@@ -1069,7 +1079,7 @@ def render_arg_conversion(
         lines.append('        return sni_api_throw_error("Invalid argument type");')
         lines.append("    }")
 
-    lines.append(f"    {arg.c_type} {c_var_name};")
+    lines.append(f"    {fmt_var_decl(arg.c_type, c_var_name)};")
 
     if arg.bridge.js2c_mode == "macro" and arg.bridge.js2c_expr:
         lines.append(f"    {c_var_name} = {arg.bridge.js2c_expr}({arg_expr});")
@@ -1110,9 +1120,11 @@ def render_constructor_wrapper(cls: ApiClass, ctor_func: ApiFunction) -> str:
     wrapper_name = f"sni_api_ctor_{sanitize_ident(cls.name)}"
     lines: List[str] = []
 
-    lines.append(f"jerry_value_t {wrapper_name}(const jerry_call_info_t *call_info_p,")
-    lines.append("                                const jerry_value_t args_p[],")
-    lines.append("                                const jerry_length_t args_count)")
+    func_prefix = f"jerry_value_t {wrapper_name}("
+    func_indent = " " * len(func_prefix)
+    lines.append(f"{func_prefix}const jerry_call_info_t *call_info_p,")
+    lines.append(f"{func_indent}const jerry_value_t args_p[],")
+    lines.append(f"{func_indent}const jerry_length_t args_count)")
     lines.append("{")
     lines.append("    if (jerry_value_is_undefined(call_info_p->new_target))")
     lines.append("    {")
@@ -1136,7 +1148,7 @@ def render_constructor_wrapper(cls: ApiClass, ctor_func: ApiFunction) -> str:
             and arg.bridge.sni_type == "SNI_H_LV_OBJ"
         )
         if use_parent_helper:
-            lines.append(f"    {arg.c_type} {c_var};")
+            lines.append(f"    {fmt_var_decl(arg.c_type, c_var)};")
             lines.append(f"    if (!sni_tb_js2c_parent(args_p[{idx}], (void**)&{c_var}))")
             lines.append("    {")
             lines.append('        return sni_api_throw_error("Parent argument is required");')
@@ -1154,7 +1166,7 @@ def render_constructor_wrapper(cls: ApiClass, ctor_func: ApiFunction) -> str:
         lines.append("}")
         return "\n".join(lines)
 
-    lines.append(f"    {ctor_func.return_type} native_obj = {ctor_func.name}({call_text});" if call_text else f"    {ctor_func.return_type} native_obj = {ctor_func.name}();")
+    lines.append(f"    {fmt_var_decl(ctor_func.return_type, 'native_obj')} = {ctor_func.name}({call_text});" if call_text else f"    {fmt_var_decl(ctor_func.return_type, 'native_obj')} = {ctor_func.name}();")
     lines.append(f"    if (!sni_tb_c2js_set_object(&native_obj, {ctor_func.return_bridge.sni_type}, call_info_p->this_value))")
     lines.append("    {")
     lines.append('        return sni_api_throw_error("Failed to bind native object");')
@@ -1202,9 +1214,11 @@ def render_method_wrapper(cls: ApiClass, func: ApiFunction) -> str:
     this_arg = func.args[0]
     js_arg_count = len(func.args) - 1
 
-    lines.append(f"jerry_value_t {wrapper_name}(const jerry_call_info_t *call_info_p,")
-    lines.append("                                const jerry_value_t args_p[],")
-    lines.append("                                const jerry_length_t args_count)")
+    func_prefix = f"jerry_value_t {wrapper_name}("
+    func_indent = " " * len(func_prefix)
+    lines.append(f"{func_prefix}const jerry_call_info_t *call_info_p,")
+    lines.append(f"{func_indent}const jerry_value_t args_p[],")
+    lines.append(f"{func_indent}const jerry_length_t args_count)")
     lines.append("{")
     lines.append(f"    if (args_count != {js_arg_count})")
     lines.append("    {")
@@ -1234,7 +1248,7 @@ def render_method_wrapper(cls: ApiClass, func: ApiFunction) -> str:
         lines.append("}")
         return "\n".join(lines)
 
-    lines.append(f"    {func.return_type} result = {func.name}({call_text});")
+    lines.append(f"    {fmt_var_decl(func.return_type, 'result')} = {func.name}({call_text});")
     if func.lifecycle_class == "sub_resource" and _is_create_method_for_sub_resource(func.name):
         lines.append(f"    sni_tb_link_sub_resource(self_obj, result, {func.return_bridge.sni_type});")
     if post_call_lines:
@@ -1248,9 +1262,11 @@ def render_static_wrapper(func: ApiFunction) -> str:
     wrapper_name = f"sni_api_{func.name}"
     lines: List[str] = []
 
-    lines.append(f"jerry_value_t {wrapper_name}(const jerry_call_info_t *call_info_p,")
-    lines.append("                                const jerry_value_t args_p[],")
-    lines.append("                                const jerry_length_t args_count)")
+    func_prefix = f"jerry_value_t {wrapper_name}("
+    func_indent = " " * len(func_prefix)
+    lines.append(f"{func_prefix}const jerry_call_info_t *call_info_p,")
+    lines.append(f"{func_indent}const jerry_value_t args_p[],")
+    lines.append(f"{func_indent}const jerry_length_t args_count)")
     lines.append("{")
     lines.append("    (void)call_info_p;")
     lines.append("")
@@ -1279,7 +1295,7 @@ def render_static_wrapper(func: ApiFunction) -> str:
         lines.append("}")
         return "\n".join(lines)
 
-    lines.append(f"    {func.return_type} result = {func.name}({call_text});" if call_text else f"    {func.return_type} result = {func.name}();")
+    lines.append(f"    {fmt_var_decl(func.return_type, 'result')} = {func.name}({call_text});" if call_text else f"    {fmt_var_decl(func.return_type, 'result')} = {func.name}();")
     if post_call_lines:
         lines.extend(post_call_lines)
     render_return_conversion(lines, func, "result")
@@ -1296,9 +1312,11 @@ def render_property_getter_wrapper(cls: ApiClass, prop: ApiProperty, func: ApiFu
 
     this_arg = func.args[0]
 
-    lines.append(f"jerry_value_t {wrapper_name}(const jerry_call_info_t *call_info_p,")
-    lines.append("                                const jerry_value_t args_p[],")
-    lines.append("                                const jerry_length_t args_count)")
+    func_prefix = f"jerry_value_t {wrapper_name}("
+    func_indent = " " * len(func_prefix)
+    lines.append(f"{func_prefix}const jerry_call_info_t *call_info_p,")
+    lines.append(f"{func_indent}const jerry_value_t args_p[],")
+    lines.append(f"{func_indent}const jerry_length_t args_count)")
     lines.append("{")
     lines.append("    (void)args_p;")
     lines.append("    if (args_count != 0)")
@@ -1313,7 +1331,7 @@ def render_property_getter_wrapper(cls: ApiClass, prop: ApiProperty, func: ApiFu
     if func.return_bridge.c2js_mode == "void":
         raise SystemExit(f"[Error] property getter {func.name} cannot return void")
 
-    lines.append(f"    {func.return_type} result = {func.name}({self_render.call_expr});")
+    lines.append(f"    {fmt_var_decl(func.return_type, 'result')} = {func.name}({self_render.call_expr});")
     render_return_conversion(lines, func, "result")
     lines.append("}")
     return "\n".join(lines)
@@ -1329,9 +1347,11 @@ def render_property_setter_wrapper(cls: ApiClass, prop: ApiProperty, func: ApiFu
     this_arg = func.args[0]
     value_arg = func.args[1]
 
-    lines.append(f"jerry_value_t {wrapper_name}(const jerry_call_info_t *call_info_p,")
-    lines.append("                                const jerry_value_t args_p[],")
-    lines.append("                                const jerry_length_t args_count)")
+    func_prefix = f"jerry_value_t {wrapper_name}("
+    func_indent = " " * len(func_prefix)
+    lines.append(f"{func_prefix}const jerry_call_info_t *call_info_p,")
+    lines.append(f"{func_indent}const jerry_value_t args_p[],")
+    lines.append(f"{func_indent}const jerry_length_t args_count)")
     lines.append("{")
     lines.append("    if (args_count != 1)")
     lines.append("    {")
