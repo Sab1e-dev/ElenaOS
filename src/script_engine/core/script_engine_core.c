@@ -43,6 +43,22 @@
 #define SCRIPT_DEFAULT_TIMEOUT_MS 3000
 #define TRACKED_MODULES_INIT_CAPACITY 4
 
+/* Module cache for ES module singleton semantics.
+ * _module_resolve_cb is called once per import site even for the same
+ * file. Without caching each call creates a new module instance with
+ * independent variable scopes — breaking ES module guarantees.
+ * The cache is keyed by canonical file path and cleared at engine stop. */
+#define MODULE_CACHE_MAX 64
+
+typedef struct
+{
+    char path[512];           /* canonical file path (key) */
+    jerry_value_t module;     /* parsed module value (one ref held) */
+} _module_cache_entry_t;
+
+static _module_cache_entry_t _module_cache[MODULE_CACHE_MAX];
+static int _module_cache_count = 0;
+
 typedef struct
 {
     jerry_value_t specifier;
@@ -926,6 +942,46 @@ eos_result_t script_engine_init(void)
     return EOS_OK;
 }
 
+/* Module cache helpers ----------------------------------------*/
+
+/* Return a jerry_value_copy of the cached module, or jerry_undefined(). */
+static jerry_value_t _module_cache_lookup(const char *canonical_path)
+{
+    for (int i = 0; i < _module_cache_count; i++) {
+        if (strcmp(_module_cache[i].path, canonical_path) == 0) {
+            EOS_LOG_D("MODULE CACHE HIT: %s (slot %d)", canonical_path, i);
+            return jerry_value_copy(_module_cache[i].module);
+        }
+    }
+    return jerry_undefined();
+}
+
+/* Insert a parsed module into the cache. */
+static void _module_cache_insert(const char *canonical_path, jerry_value_t module)
+{
+    if (_module_cache_count >= MODULE_CACHE_MAX) {
+        EOS_LOG_W("MODULE CACHE FULL: cannot cache %s", canonical_path);
+        return;
+    }
+    int idx = _module_cache_count++;
+    snprintf(_module_cache[idx].path, sizeof(_module_cache[idx].path),
+             "%s", canonical_path);
+    _module_cache[idx].module = jerry_value_copy(module);
+    EOS_LOG_D("MODULE CACHE INSERT: %s (slot %d)", canonical_path, idx);
+}
+
+/* Release all cached module references. */
+static void _module_cache_clear(void)
+{
+    EOS_LOG_D("MODULE CACHE CLEAR: freeing %d entries", _module_cache_count);
+    for (int i = 0; i < _module_cache_count; i++) {
+        jerry_value_free(_module_cache[i].module);
+        _module_cache[i].module = jerry_undefined();
+        _module_cache[i].path[0] = '\0';
+    }
+    _module_cache_count = 0;
+}
+
 /* Module system ----------------------------------------------*/
 
 static jerry_value_t _module_import_cb(const jerry_value_t specifier, const jerry_value_t user_value, void *user_p)
@@ -969,6 +1025,16 @@ static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jer
         snprintf(full_path, sizeof(full_path), "%s%s", _get_base_path(), (const char *)specifier_buffer + 2);
     else
         snprintf(full_path, sizeof(full_path), "%s", (const char *)specifier_buffer);
+
+    /* Check module cache first — ensures ES module singleton semantics.
+     * Without this, every import site gets a fresh module instance with
+     * independent variable scope, breaking shared state. */
+    jerry_value_t cached = _module_cache_lookup(full_path);
+    if (!jerry_value_is_undefined(cached))
+    {
+        return cached; /* already a jerry_value_copy from the cache */
+    }
+
     char *source_str = eos_storage_read_file(full_path);
     if (!source_str)
     {
@@ -988,6 +1054,12 @@ static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jer
     if (jerry_value_is_exception(result))
     {
         EOS_LOG_E("DEP PARSE FAILED: %s", specifier_buffer);
+    }
+    else
+    {
+        /* Cache the successfully parsed module so subsequent imports
+         * of the same file return the same module instance. */
+        _module_cache_insert(full_path, result);
     }
     /* Dependency modules are NOT tracked here. Their lifetime is managed by
      * JerryScript's module system. When the main module is freed via
@@ -1092,6 +1164,10 @@ static void _cleanup_module_queue(void)
     }
     eos_cqueue_destroy(_module_queue);
     _module_queue = NULL;
+
+    /* Clear the module resolve cache so the next program / engine
+     * restart starts with a clean slate. */
+    _module_cache_clear();
 }
 
 /* Manifest ---------------------------------------------------*/

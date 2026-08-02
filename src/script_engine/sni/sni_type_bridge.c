@@ -36,7 +36,7 @@
 
 static sni_val_obj_t sni_val_objs[__SNI_TYPE_MAX] = {0};
 static void sni_control_block_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
-static void sni_obj_deleted_cb(lv_event_t *e);
+void sni_obj_deleted_cb(struct lv_event_t *e);
 static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
 static const jerry_object_native_info_t sni_native_info = {
     .free_cb = sni_control_block_free_cb,
@@ -133,7 +133,7 @@ sni_control_block_t *sni_cb_from_obj(void *ptr)
     return (sni_control_block_t *)eos_wdata_get((lv_obj_t *)ptr, EOS_WDATA_SNI_CB);
 }
 
-static void sni_obj_deleted_cb(lv_event_t *e);
+void sni_obj_deleted_cb(struct lv_event_t *e);
 
 static void *sni_node_from_native(void *ptr, sni_type_t type)
 {
@@ -192,7 +192,7 @@ static void sni_handle_embed(void *ptr, sni_type_t type, jerry_value_t js_obj)
     sni_context_add_resource(ctx, ptr, js_obj, type);
 }
 
-static void sni_obj_deleted_cb(lv_event_t *e)
+void sni_obj_deleted_cb(struct lv_event_t *e)
 {
     lv_obj_t *obj = lv_event_get_target(e);
     sni_control_block_t *cb;
@@ -205,8 +205,13 @@ static void sni_obj_deleted_cb(lv_event_t *e)
     cb = (sni_control_block_t *)lv_event_get_user_data(e);
     if (!cb)
     {
+        EOS_LOG_I("LV_EVENT_DELETE: obj=%p cb=NULL (no control block)", (void *)obj);
         return;
     }
+
+    EOS_LOG_I("LV_EVENT_DELETE: obj=%p cb=%p is_alive=%d child_cnt=%u",
+              (void *)obj, (void *)cb, cb->is_alive,
+              lv_obj_get_child_count(obj));
 
     /* Stale control block from a previous engine session — the
      * cb->js_obj handle refers to a destroyed JerryScript heap.
@@ -218,6 +223,17 @@ static void sni_obj_deleted_cb(lv_event_t *e)
         cb->ptr = NULL;
         eos_wdata_remove(obj, EOS_WDATA_SNI_CB);
         eos_free(cb);
+        return;
+    }
+
+    /* If the control block is already dead (pre-cleaned by
+     * sni_api_lv_obj_delete before lv_obj_delete, or by independent
+     * GC via sni_control_block_free_cb), just clean up widget data
+     * and return — the JS reference was already released. */
+    if (!cb->is_alive)
+    {
+        EOS_LOG_I("LV_EVENT_DELETE: obj=%p cb already dead, cleaning wdata", (void *)obj);
+        eos_wdata_remove(obj, EOS_WDATA_SNI_CB);
         return;
     }
 
@@ -279,14 +295,18 @@ static void sni_control_block_free_cb(void *native_p, struct jerry_object_native
                 lv_obj_t *obj = (lv_obj_t *)cb->ptr;
                 if (lv_obj_is_valid(obj))
                 {
-                    /* Do NOT call lv_obj_remove_event_cb here.
-                   The event descriptor lifecycle is managed by
-                   LVGL's obj_delete_core → lv_event_remove_all.
-                   If this free_cb is triggered during
-                   lv_obj_send_event(LV_EVENT_DELETE) → sni_obj_deleted_cb
-                   → jerry_value_free → GC, the descriptor has
-                   already been freed by lv_event_remove_all,
-                   causing a double-free in lv_tlsf_free. */
+                    /* Remove the stale LV_EVENT_DELETE callback to prevent
+                     * use-after-free when this LVGL object is later deleted
+                     * via lv_obj_delete (which sends LV_EVENT_DELETE and
+                     * would invoke sni_obj_deleted_cb with a dangling cb).
+                     *
+                     * SAFE here because cb->ptr is still valid (not NULL),
+                     * meaning this is an independent GC — NOT a re-entrant
+                     * GC during sni_obj_deleted_cb → jerry_value_free where
+                     * cb->ptr was already set to NULL before the free call.
+                     * In that re-entrant case, cb->ptr==NULL so we skip
+                     * this block entirely. */
+                    lv_obj_remove_event_cb(obj, sni_obj_deleted_cb);
                     eos_wdata_remove(obj, EOS_WDATA_SNI_CB);
                 }
                 break;

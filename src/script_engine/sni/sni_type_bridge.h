@@ -154,6 +154,19 @@ struct sni_context *sni_get_current_context(void);
  */
 bool sni_tb_js2c_parent(jerry_value_t val, void **out);
 
+/**
+ * @brief LV_EVENT_DELETE callback registered on every SNI_H_LV_OBJ tree node.
+ *
+ * Marks the SNI control block dead, cascade-invalidates sub-resources,
+ * and releases the JerryScript reference.  Exported so that
+ * sni_api_lv_obj_delete can remove this callback before calling
+ * lv_obj_delete() when performing a JS-initiated deletion.
+ *
+ * @param e  LVGL event (code == LV_EVENT_DELETE)
+ */
+struct lv_event_t;
+void sni_obj_deleted_cb(struct lv_event_t *e);
+
 #ifdef __cplusplus
 }
 #endif

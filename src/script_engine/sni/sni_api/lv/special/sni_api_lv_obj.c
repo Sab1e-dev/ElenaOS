@@ -12,6 +12,8 @@
 #include "sni_type_bridge.h"
 #include "sni_types.h"
 #include "eos_font.h"
+#define EOS_LOG_TAG "SNI-LV-OBJ"
+#include "eos_log.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -420,6 +422,58 @@ jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
         return sni_api_throw_error("Failed to convert argument");
     }
 
+    /* Pre-clean the SNI control block before lv_obj_delete so that
+     * jerry_value_free runs OUTSIDE the LV_EVENT_DELETE dispatch context.
+     * This prevents JerryScript GC re-entrancy from interfering with
+     * LVGL's event iteration, which could cause lv_obj_send_event to
+     * return LV_RESULT_INVALID and obj_delete_core to silently abort
+     * the deletion — leaving the object and all its children permanently
+     * alive. */
+    sni_control_block_t *cb = sni_cb_from_obj(self_obj);
+    EOS_LOG_I("delete() called: obj=%p cb=%p is_alive=%d child_cnt=%u",
+              (void *)self_obj, (void *)cb,
+              cb ? cb->is_alive : -1,
+              lv_obj_get_child_count(self_obj));
+    if (cb && cb->is_alive)
+    {
+        cb->is_alive = false;
+
+        /* Cascade-invalidate sub-resource handles.  LVGL destroys
+         * sub-resource native objects when the parent is deleted, so
+         * their pointers are about to become dangling.  Mark them dead
+         * now and release their JerryScript references. */
+        sni_managed_resource_node_t *sub = cb->sub_resource_head;
+        while (sub)
+        {
+            sni_managed_resource_node_t *next = sub->next;
+            sub->is_alive = false;
+            sub->parent_cb = NULL;
+            sub->ptr = NULL;
+            if (!jerry_value_is_undefined(sub->js_obj) &&
+                !jerry_value_is_null(sub->js_obj))
+            {
+                sni_tb_clear_resource_native_ptr(sub->js_obj);
+                jerry_value_free(sub->js_obj);
+                sub->js_obj = jerry_undefined();
+            }
+            sub = next;
+        }
+        cb->sub_resource_head = NULL;
+
+        /* Release the JS reference now — GC runs here, outside the
+         * LV_EVENT_DELETE dispatch that lv_obj_delete will trigger. */
+        jerry_value_t js_obj = cb->js_obj;
+        cb->js_obj = jerry_undefined();
+        cb->ptr = NULL;
+        jerry_value_free(js_obj);
+
+        /* Remove the LV_EVENT_DELETE callback so sni_obj_deleted_cb
+         * won't fire redundantly during lv_obj_delete.  It would find
+         * cb->is_alive==false and bail out anyway, but removing it
+         * avoids the unnecessary call. */
+        lv_obj_remove_event_cb(self_obj, sni_obj_deleted_cb);
+    }
+
     /* Cancel any pending lv_obj_delete_delayed animation on this object
      * before deleting.  lv_obj_delete_delayed creates an lv_anim_t with
      * exec_cb=NULL and completed_cb=lv_obj_delete_anim_completed_cb.
@@ -429,6 +483,7 @@ jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
      * cancellation via lv_async_call_cancel. */
     lv_anim_delete(self_obj, NULL);
     lv_obj_delete(self_obj);
+    EOS_LOG_I("lv_obj_delete returned for obj=%p", (void *)self_obj);
     return jerry_undefined();
 }
 
@@ -489,7 +544,13 @@ jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t *call_info_p,
         return sni_api_throw_error("Failed to convert argument");
     }
 
+    EOS_LOG_I("setParent: obj=%p old_parent=%p new_parent=%p",
+              (void *)self_obj, (void *)lv_obj_get_parent(self_obj),
+              (void *)arg_parent);
     lv_obj_set_parent(self_obj, arg_parent);
+    EOS_LOG_I("setParent: after — obj=%p parent=%p child_cnt_of_new_parent=%u",
+              (void *)self_obj, (void *)lv_obj_get_parent(self_obj),
+              lv_obj_get_child_count(arg_parent));
     return jerry_undefined();
 }
 
