@@ -60,6 +60,8 @@ SPECIAL_METHOD_WRAPPERS: Dict[str, str] = {
     "lv_obj_remove_event_cb": "sni_api_lv_obj_remove_event_cb",
     "lv_obj_remove_event_dsc": "sni_api_lv_obj_remove_event_dsc",
     "lv_obj_remove_event_cb_with_user_data": "sni_api_lv_obj_remove_event_cb_with_user_data",
+    "lv_obj_delete": "sni_api_lv_obj_delete",
+    "lv_obj_remove_event": "sni_api_lv_obj_remove_event",
     "lv_obj_send_event": "sni_api_lv_obj_send_event",
     "lv_obj_set_user_data": "sni_api_lv_obj_set_user_data",
     "lv_obj_get_user_data": "sni_api_lv_obj_get_user_data",

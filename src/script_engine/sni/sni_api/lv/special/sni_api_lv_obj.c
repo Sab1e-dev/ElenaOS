@@ -405,6 +405,59 @@ jerry_value_t sni_api_prop_set_obj_user_data(const jerry_call_info_t *call_info_
     return sni_api_lv_obj_set_user_data(call_info_p, args_p, args_count);
 }
 
+jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
+                                    const jerry_value_t args_p[],
+                                    const jerry_length_t args_count)
+{
+    if (args_count != 0)
+    {
+        return sni_api_throw_error("Invalid argument count");
+    }
+
+    lv_obj_t *self_obj;
+    if (!sni_tb_js2c(call_info_p->this_value, SNI_H_LV_OBJ, &self_obj))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    /* Cancel any pending lv_obj_delete_delayed animation on this object
+     * before deleting.  lv_obj_delete_delayed creates an lv_anim_t with
+     * exec_cb=NULL and completed_cb=lv_obj_delete_anim_completed_cb.
+     * lv_anim_delete(var, NULL) matches and removes it, preventing a
+     * dangling-pointer callback after the object is freed.
+     * lv_obj_delete's own obj_delete_core already handles deleteAsync
+     * cancellation via lv_async_call_cancel. */
+    lv_anim_delete(self_obj, NULL);
+    lv_obj_delete(self_obj);
+    return jerry_undefined();
+}
+
+jerry_value_t sni_api_lv_obj_remove_event(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count)
+{
+    if (args_count != 1)
+    {
+        return sni_api_throw_error("Invalid argument count");
+    }
+
+    lv_obj_t *self_obj;
+    if (!sni_tb_js2c(call_info_p->this_value, SNI_H_LV_OBJ, &self_obj))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    uint32_t arg_index = sni_tb_js2c_uint32(args_p[0]);
+
+    /* Get the event descriptor first so we can clean up the SNI callback
+     * context (JerryScript references + context list entry) before the
+     * LVGL descriptor is removed.  This matches the pattern used by
+     * removeEventDsc / removeEventCb. */
+    lv_event_dsc_t *dsc = lv_obj_get_event_dsc(self_obj, arg_index);
+    bool result = sni_cb_event_remove_dsc(self_obj, dsc);
+    return sni_tb_c2js_boolean(result);
+}
+
 jerry_value_t sni_api_eos_label_set_font_size(const jerry_call_info_t *call_info_p,
                                               const jerry_value_t args_p[],
                                               const jerry_length_t args_count)

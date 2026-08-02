@@ -34,6 +34,14 @@ jerry_value_t sni_api_lv_obj_remove_event_cb_with_user_data(const jerry_call_inf
                                                             const jerry_value_t args_p[],
                                                             const jerry_length_t args_count);
 
+jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
+                                    const jerry_value_t args_p[],
+                                    const jerry_length_t args_count);
+
+jerry_value_t sni_api_lv_obj_remove_event(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count);
+
 jerry_value_t sni_api_lv_obj_send_event(const jerry_call_info_t *call_info_p,
                                         const jerry_value_t args_p[],
                                         const jerry_length_t args_count);
