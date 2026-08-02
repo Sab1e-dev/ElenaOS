@@ -535,6 +535,27 @@ void sni_context_sweep_all(sni_context_t *ctx)
                 if (node->type == SNI_H_LV_TIMER)
                 {
                     lv_timer_t *timer = (lv_timer_t *)node->ptr;
+
+                    /* If we are currently inside this timer's JS callback,
+                     * skip native deletion — lv_timer_delete() on the
+                     * executing timer would corrupt LVGL's internal
+                     * iteration and cause EXC_BAD_ACCESS when the timer
+                     * handler loop continues.  The timer will become a
+                     * harmless zombie (NULL cb + user_data) and be
+                     * cleaned up later. */
+                    if (sni_cb_is_dispatching_timer(timer))
+                    {
+                        EOS_LOG_W("SWEEP: skipping currently dispatching timer %p", (void *)timer);
+                        lv_timer_set_user_data(timer, NULL);
+                        lv_timer_set_cb(timer, NULL);
+                        /* Leave cb_ctx allocated — sni_cb_timer_dispatch
+                         * will return through sni_cb_detect_recovery and
+                         * we must not free ctx while it is on the stack.
+                         * Advance to next node without freeing this one. */
+                        node = next;
+                        continue;
+                    }
+
                     sni_timer_callback_ctx_t *cb_ctx = (sni_timer_callback_ctx_t *)lv_timer_get_user_data(timer);
 
                     /* Null out user_data and callback BEFORE freeing cb_ctx
@@ -555,6 +576,20 @@ void sni_context_sweep_all(sni_context_t *ctx)
                 else if (node->type == SNI_H_LV_ANIM)
                 {
                     sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
+
+                    /* If we are currently inside this animation's JS callback,
+                     * skip freeing the anim_ctx — it is still on the stack.
+                     * Mark it stale so the callback returns through
+                     * sni_cb_detect_recovery. */
+                    if (sni_cb_is_dispatching_anim(anim_ctx))
+                    {
+                        EOS_LOG_W("SWEEP: skipping currently dispatching anim ctx %p", (void *)anim_ctx);
+                        anim_ctx->state = SNI_ANIM_STATE_DELETED;
+                        anim_ctx->owner_ctx = NULL;
+                        node = next;
+                        continue;
+                    }
+
                     if (anim_ctx)
                     {
                         /* Mark as DELETED so any concurrent dispatch sees it. */
@@ -620,6 +655,65 @@ void sni_context_sweep_all(sni_context_t *ctx)
     sni_context_dump_counters(ctx);
 
     EOS_LOG_I("SWEEP: complete for ctx=%p", (void *)ctx);
+}
+
+/*
+ * Engine-reset helpers — neutralize native LVGL resources WITHOUT touching
+ * JerryScript values or deleting native objects.  Called from
+ * spm_handle_engine_reset() after a fatal assertion, when the engine heap
+ * may be internally inconsistent and any jerry_* API call can crash.
+ */
+
+void sni_context_neutralize_timers(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    int idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (idx < 0)
+        return;
+
+    sni_managed_resource_node_t *node = ctx->resource_heads[idx];
+    int count = 0;
+    while (node)
+    {
+        if (node->ptr)
+        {
+            lv_timer_t *timer = (lv_timer_t *)node->ptr;
+            lv_timer_set_user_data(timer, NULL);
+            lv_timer_set_cb(timer, NULL);
+            count++;
+        }
+        node = node->next;
+    }
+    if (count > 0)
+        EOS_LOG_I("NEUTRALIZE: nulled %d timer(s) — LVGL objects kept alive as zombies", count);
+}
+
+void sni_context_neutralize_anims(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    int idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (idx < 0)
+        return;
+
+    sni_managed_resource_node_t *node = ctx->resource_heads[idx];
+    int count = 0;
+    while (node)
+    {
+        if (node->ptr)
+        {
+            sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
+            anim_ctx->state = SNI_ANIM_STATE_DELETED;
+            anim_ctx->owner_ctx = NULL;
+            count++;
+        }
+        node = node->next;
+    }
+    if (count > 0)
+        EOS_LOG_I("NEUTRALIZE: nulled %d anim(s) — ctx blocks kept alive", count);
 }
 
 void sni_context_set_paused(sni_context_t *ctx, bool paused)

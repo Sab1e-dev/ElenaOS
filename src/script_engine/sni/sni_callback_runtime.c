@@ -22,6 +22,24 @@
 
 /* Macros and Definitions -------------------------------------*/
 
+/*
+ * Guards to prevent sni_context_sweep_all() from deleting the native
+ * LVGL timer / animation that is currently executing its JS callback.
+ * Deletion would corrupt LVGL's internal iteration and cause EXC_BAD_ACCESS.
+ */
+static lv_timer_t *s_dispatching_timer = NULL;
+static sni_anim_callback_ctx_t *s_dispatching_anim_ctx = NULL;
+
+bool sni_cb_is_dispatching_timer(lv_timer_t *t)
+{
+    return s_dispatching_timer != NULL && s_dispatching_timer == t;
+}
+
+bool sni_cb_is_dispatching_anim(sni_anim_callback_ctx_t *ctx)
+{
+    return s_dispatching_anim_ctx != NULL && s_dispatching_anim_ctx == ctx;
+}
+
 static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
 {
     if (!value)
@@ -292,7 +310,12 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
     lv_timer_t *timer_ptr = t;
     jerry_value_t js_timer = sni_tb_c2js(&timer_ptr, SNI_H_LV_TIMER);
     jerry_value_t args[1] = {js_timer};
+
+    /* Guard: prevent sni_context_sweep_all from deleting this timer
+     * while we are inside its callback (would corrupt LVGL internals). */
+    s_dispatching_timer = t;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+    s_dispatching_timer = NULL;
 
     /* If a fatal recovery happened inside spm_call, the engine was
      * reset (jerry_init), SNI context and callback ctx were freed,
@@ -615,7 +638,12 @@ static void sni_cb_anim_call_void_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb
 
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
+
+    /* Guard: prevent sni_context_sweep_all from deleting this anim ctx
+     * while we are inside its callback (would cause use-after-free). */
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+    s_dispatching_anim_ctx = NULL;
 
     if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
     {
@@ -661,8 +689,11 @@ static void sni_cb_anim_custom_exec_dispatch(lv_anim_t *var, int32_t value)
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t js_value = sni_tb_c2js(&value, SNI_T_INT32);
     jerry_value_t args[2] = {js_anim, js_value};
+
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret =
         spm_call(ctx->owner_ctx->owner, ctx->cb_slots[SNI_ANIM_CB_SLOT_CUSTOM_EXEC], jerry_undefined(), args, 2);
+    s_dispatching_anim_ctx = NULL;
 
     if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
     {
@@ -744,11 +775,14 @@ static int32_t sni_cb_anim_call_int_slot(sni_anim_callback_ctx_t *ctx, sni_anim_
     int32_t result = fallback;
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
+
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+    s_dispatching_anim_ctx = NULL;
 
     if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
     {
-        return fallback;  /* context destroyed — return safe default */
+        return fallback; /* context destroyed — return safe default */
     }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))

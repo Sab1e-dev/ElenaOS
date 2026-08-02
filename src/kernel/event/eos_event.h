@@ -47,6 +47,7 @@ typedef enum
     EOS_EVENT_SYSTEM_CONFIG_UPDATE, /**< Configuration file has been updated */
     EOS_EVENT_SCRIPT_STARTED, /**< Script has started */
     EOS_EVENT_SCRIPT_EXITED, /**< Script has exited */
+    EOS_EVENT_SCRIPT_FATAL, /**< JS engine fatally crashed and was reset */
     EOS_EVENT_ACTIVITY_SCREEN_SWITCHED, /**< Activity page transition completed, param is current activity view */
     EOS_EVENT_LANGUAGE_CHANGED, /**< Language has been changed */
     EOS_EVENT_LAST

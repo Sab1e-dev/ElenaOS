@@ -791,6 +791,18 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
          */
         EOS_LOG_E("Callback fatal error (code=%d) — resetting engine", fatal_code);
 
+        /* Build a local error message (matching script_engine_run's pattern)
+         * before spm_handle_engine_reset destroys programs.
+         * engine_rt.error_info may be NULL here — use the local string. */
+        char fatal_msg[64];
+        snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d)", fatal_code);
+        _set_error_info(fatal_msg);
+
+        {
+            script_program_t *prog = engine_rt.current_program;
+            spm_save_crash_context(prog ? prog->script.id : NULL, prog ? prog->type : SCRIPT_TYPE_UNKNOWN, fatal_msg);
+        }
+
         _cleanup_module_queue();
         _release_all_tracked_modules();
         _engine_cleanup();
@@ -811,6 +823,9 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
             _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
+
+        /* Schedule deferred crash notification (after timers re-enabled) */
+        spm_schedule_crash_notification();
 
         result = jerry_undefined();
     }
@@ -1276,6 +1291,16 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
         snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d, %s)", fatal_code, fatal_desc);
         _set_error_info(fatal_msg);
 
+        /* Save crash context BEFORE spm_handle_engine_reset destroys programs.
+         * Use engine_rt.current_program (global) instead of local prog because
+         * longjmp may leave local variables indeterminate. */
+        {
+            script_program_t *crash_prog = engine_rt.current_program;
+            spm_save_crash_context(crash_prog ? crash_prog->script.id : NULL,
+                                   crash_prog ? crash_prog->type : SCRIPT_TYPE_UNKNOWN,
+                                   fatal_msg);
+        }
+
         /*
          * CRITICAL ORDERING: Clean up ALL stale JS handles and C resources
          * BEFORE jerry_init() wipes the heap.
@@ -1312,6 +1337,11 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
 
         /* Re-enable LVGL timers that were paused by spm_handle_engine_reset. */
         lv_timer_enable(true);
+
+        /* NOTE: Do NOT schedule crash notification here — script_engine_run()
+         * returns EOS_ERR_SCRIPT_EXCEPTION, and the caller (_app_on_enter /
+         * _js_on_enter) already handles error display. Only script_engine_call_raw
+         * needs deferred notification because its error is silently swallowed. */
 
         /* Reset runtime state */
         if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)

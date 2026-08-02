@@ -140,6 +140,26 @@ void sni_context_sweep_js_refs(sni_context_t *ctx);
 
 void sni_context_clear_native_ptrs_all(sni_context_t *ctx);
 
+/**
+ * @brief Neutralize all LVGL timers in this context without deleting them.
+ *
+ * Sets cb and user_data to NULL on each timer so they become harmless
+ * zombies.  Does NOT call lv_timer_delete (unsafe during callback) and
+ * does NOT touch any JerryScript values (unsafe after fatal assertion).
+ * Safe to call during spm_handle_engine_reset.
+ */
+void sni_context_neutralize_timers(sni_context_t *ctx);
+
+/**
+ * @brief Neutralize all animation contexts without freeing them.
+ *
+ * Marks each anim_ctx as DELETED and clears owner_ctx so callbacks
+ * will be rejected by sni_cb_detect_recovery.  Does NOT free anim_ctx
+ * memory (may still be on the stack) and does NOT touch JerryScript.
+ * Safe to call during spm_handle_engine_reset.
+ */
+void sni_context_neutralize_anims(sni_context_t *ctx);
+
 void sni_context_dump_counters(sni_context_t *ctx);
 const char *sni_type_name(sni_type_t type);
 

@@ -12,6 +12,7 @@
 #include "eos_log.h"
 #include "eos_mem.h"
 #include "eos_event.h"
+#include "eos_dispatcher.h"
 #include "sni_context.h"
 #include "sni_callback_runtime.h"
 #include "jerryscript.h"
@@ -25,6 +26,7 @@ static script_program_t *s_program_list = NULL;
 static bool s_initialized = false;
 static spm_error_t s_last_error = {0};
 static bool s_has_last_error = false;
+static spm_crash_state_t s_crash_state = {0};
 
 /* Function Implementations -----------------------------------*/
 static void _lvgl_view_clean(void *view)
@@ -591,6 +593,60 @@ const spm_error_t *spm_get_last_error(void)
     return NULL;
 }
 
+/* Crash Context ----------------------------------------------*/
+
+void spm_save_crash_context(const char *id, script_pkg_type_t type, const char *error_info)
+{
+    memset(&s_crash_state, 0, sizeof(s_crash_state));
+    if (id)
+    {
+        size_t len = strlen(id);
+        if (len >= SPM_CRASH_ID_MAX)
+            len = SPM_CRASH_ID_MAX - 1;
+        memcpy(s_crash_state.script_id, id, len);
+        s_crash_state.script_id[len] = '\0';
+    }
+    s_crash_state.script_type = type;
+    if (error_info)
+    {
+        size_t len = strlen(error_info);
+        if (len >= SPM_ERROR_INFO_MAX)
+            len = SPM_ERROR_INFO_MAX - 1;
+        memcpy(s_crash_state.error_info, error_info, len);
+        s_crash_state.error_info[len] = '\0';
+    }
+    s_crash_state.has_crash = true;
+    EOS_LOG_W("SPM: crash context saved — id=%s type=%d info=%s",
+              s_crash_state.script_id,
+              s_crash_state.script_type,
+              s_crash_state.error_info);
+}
+
+const spm_crash_state_t *spm_get_crash_state(void)
+{
+    return s_crash_state.has_crash ? &s_crash_state : NULL;
+}
+
+void spm_clear_crash_state(void)
+{
+    EOS_LOG_I("SPM: crash context cleared");
+    memset(&s_crash_state, 0, sizeof(s_crash_state));
+}
+
+/* Deferred crash notification callback — posts EOS_EVENT_SCRIPT_FATAL */
+static void _spm_crash_event_cb(void *user_data)
+{
+    (void)user_data;
+    EOS_LOG_W("SPM: dispatching deferred crash notification");
+    eos_event_post(EOS_EVENT_SCRIPT_FATAL, NULL, NULL);
+}
+
+void spm_schedule_crash_notification(void)
+{
+    EOS_LOG_W("SPM: scheduling deferred crash notification");
+    eos_dispatcher_call(_spm_crash_event_cb, NULL);
+}
+
 void spm_handle_engine_reset(void)
 {
     EOS_LOG_W("SPM: emergency reset — destroying all programs");
@@ -605,6 +661,27 @@ void spm_handle_engine_reset(void)
     {
         script_program_t *next = prog->next;
 
+        if (prog->sni_ctx)
+        {
+            /* ORDER IS CRITICAL: neutralize SNI state BEFORE lv_obj_clean.
+             * lv_obj_clean triggers LV_EVENT_DELETE → sni_cb_event_dispatch
+             * → sni_cb_event_free_ctx → jerry_value_free, which will crash
+             * on the corrupted JerryScript heap.  We unregister event
+             * descriptors first so EVENT_DELETE is a no-op. */
+            sni_cb_context_cleanup_events(prog->sni_ctx);
+
+            /* Null out LVGL timer/animation callbacks and user_data so they
+             * become harmless zombies.  Do NOT delete timers or free callback
+             * contexts — the current callback may be on the stack, and
+             * lv_timer_delete on the executing timer corrupts LVGL internals.
+             * After jerry_init() wipes the heap, these zombies will be skipped
+             * (NULL cb) or rejected by sni_cb_detect_recovery (gen mismatch). */
+            sni_context_neutralize_timers(prog->sni_ctx);
+            sni_context_neutralize_anims(prog->sni_ctx);
+        }
+
+        /* Clean LVGL view tree — safe now because event descriptors were
+         * already unregistered above. */
         if (prog->cleanup_view)
         {
             prog->cleanup_view(prog->cleanup_user_data);
@@ -613,19 +690,23 @@ void spm_handle_engine_reset(void)
 
         if (prog->sni_ctx)
         {
-            sni_context_clear_native_ptrs_all(prog->sni_ctx);
-            sni_context_sweep_js_refs(prog->sni_ctx);
-            sni_cb_context_cleanup_events(prog->sni_ctx);
-            sni_context_sweep_all(prog->sni_ctx);
-            sni_context_destroy(prog->sni_ctx);
+            /* Free the SNI context shell.  We intentionally LEAK the
+             * managed-resource nodes and sni_*_callback_ctx_t blocks:
+             *   - The current timer/anim ctx may still be on the C stack.
+             *   - All jerry_* calls are unsafe after a fatal assertion.
+             *   - jerry_init() will zero the JerryScript heap.
+             * Engine crashes are rare; these small leaks are acceptable
+             * compared to the risk of use-after-free or double-free. */
+            sni_context_t *ctx = prog->sni_ctx;
             prog->sni_ctx = NULL;
+            eos_free(ctx);
         }
 
-        if (jerry_value_is_object(prog->realm))
-        {
-            jerry_value_free(prog->realm);
-            prog->realm = jerry_undefined();
-        }
+        /* Do NOT call jerry_value_is_object / jerry_value_free here.
+         * After a fatal assertion the JerryScript heap may be internally
+         * inconsistent, and even read-only queries can crash (EXC_BAD_ACCESS).
+         * jerry_init() will memset the entire context + heap to zero,
+         * so all old handles are implicitly discarded. */
 
         _script_free(&prog->script);
         eos_free(prog);

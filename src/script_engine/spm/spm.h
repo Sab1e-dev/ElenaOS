@@ -31,6 +31,7 @@ extern "C" {
 #define SPM_ERROR_INFO_MAX 256
 #define SPM_BACKTRACE_MAX_FRAMES 16
 #define SPM_BACKTRACE_SOURCE_SIZE 128
+#define SPM_CRASH_ID_MAX 64
 
 /* Public typedefs --------------------------------------------*/
 
@@ -56,6 +57,21 @@ typedef struct
     script_error_location_t backtrace[SPM_BACKTRACE_MAX_FRAMES];
     uint32_t backtrace_count;
 } spm_error_t;
+
+/**
+ * @brief Crash context that survives engine reset
+ *
+ * When the JS engine fatally crashes during a callback, spm_handle_engine_reset
+ * destroys all programs and clears s_last_error. This struct is saved BEFORE
+ * that cleanup so the crash can be reported to the user after recovery.
+ */
+typedef struct
+{
+    char script_id[SPM_CRASH_ID_MAX];
+    script_pkg_type_t script_type;
+    char error_info[SPM_ERROR_INFO_MAX];
+    bool has_crash;
+} spm_crash_state_t;
 
 /**
  * @brief Script program - the central managed entity
@@ -230,6 +246,33 @@ const script_error_location_t *spm_get_program_error_location(script_program_t *
  * @return Latest error snapshot, or NULL if no failure has been recorded
  */
 const spm_error_t *spm_get_last_error(void);
+
+/**
+ * @brief Save crash context that survives spm_handle_engine_reset
+ * @param id Script ID that crashed (app_id or watchface_id, or NULL)
+ * @param type Script type (SCRIPT_TYPE_APPLICATION, SCRIPT_TYPE_WATCHFACE)
+ * @param error_info Error description string
+ */
+void spm_save_crash_context(const char *id, script_pkg_type_t type, const char *error_info);
+
+/**
+ * @brief Get the saved crash context (survives engine reset)
+ * @return const spm_crash_state_t*, or NULL if no crash context
+ */
+const spm_crash_state_t *spm_get_crash_state(void);
+
+/**
+ * @brief Clear the saved crash context
+ */
+void spm_clear_crash_state(void);
+
+/**
+ * @brief Schedule deferred crash notification via eos_dispatcher_call
+ *
+ * Posts EOS_EVENT_SCRIPT_FATAL on the next main-loop tick.
+ * Safe to call after lv_timer_enable(true) following engine recovery.
+ */
+void spm_schedule_crash_notification(void);
 /**@}*/
 
 /** @name Simplified WatchFace APIs */

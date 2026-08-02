@@ -198,6 +198,18 @@ sni_context_t *sni_cb_get_context(void);
 
 void sni_cb_context_cleanup_events(sni_context_t *ctx);
 
+/**
+ * @brief Check if the given timer is currently dispatching (in-callback).
+ * Used by sni_context_sweep_all to avoid deleting the executing timer.
+ */
+bool sni_cb_is_dispatching_timer(lv_timer_t *t);
+
+/**
+ * @brief Check if the given animation context is currently dispatching.
+ * Used by sni_context_sweep_all to avoid freeing the executing anim ctx.
+ */
+bool sni_cb_is_dispatching_anim(struct sni_anim_callback_ctx *ctx);
+
 #ifdef __cplusplus
 }
 #endif
