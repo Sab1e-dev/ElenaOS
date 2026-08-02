@@ -431,7 +431,8 @@ jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
      * alive. */
     sni_control_block_t *cb = sni_cb_from_obj(self_obj);
     EOS_LOG_I("delete() called: obj=%p cb=%p is_alive=%d child_cnt=%u",
-              (void *)self_obj, (void *)cb,
+              (void *)self_obj,
+              (void *)cb,
               cb ? cb->is_alive : -1,
               lv_obj_get_child_count(self_obj));
     if (cb && cb->is_alive)
@@ -449,8 +450,7 @@ jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
             sub->is_alive = false;
             sub->parent_cb = NULL;
             sub->ptr = NULL;
-            if (!jerry_value_is_undefined(sub->js_obj) &&
-                !jerry_value_is_null(sub->js_obj))
+            if (!jerry_value_is_undefined(sub->js_obj) && !jerry_value_is_null(sub->js_obj))
             {
                 sni_tb_clear_resource_native_ptr(sub->js_obj);
                 jerry_value_free(sub->js_obj);
@@ -545,11 +545,13 @@ jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t *call_info_p,
     }
 
     EOS_LOG_I("setParent: obj=%p old_parent=%p new_parent=%p",
-              (void *)self_obj, (void *)lv_obj_get_parent(self_obj),
+              (void *)self_obj,
+              (void *)lv_obj_get_parent(self_obj),
               (void *)arg_parent);
     lv_obj_set_parent(self_obj, arg_parent);
     EOS_LOG_I("setParent: after — obj=%p parent=%p child_cnt_of_new_parent=%u",
-              (void *)self_obj, (void *)lv_obj_get_parent(self_obj),
+              (void *)self_obj,
+              (void *)lv_obj_get_parent(self_obj),
               lv_obj_get_child_count(arg_parent));
     return jerry_undefined();
 }

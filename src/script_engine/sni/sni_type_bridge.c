@@ -210,7 +210,9 @@ void sni_obj_deleted_cb(struct lv_event_t *e)
     }
 
     EOS_LOG_I("LV_EVENT_DELETE: obj=%p cb=%p is_alive=%d child_cnt=%u",
-              (void *)obj, (void *)cb, cb->is_alive,
+              (void *)obj,
+              (void *)cb,
+              cb->is_alive,
               lv_obj_get_child_count(obj));
 
     /* Stale control block from a previous engine session — the

@@ -52,8 +52,8 @@
 
 typedef struct
 {
-    char path[512];           /* canonical file path (key) */
-    jerry_value_t module;     /* parsed module value (one ref held) */
+    char path[512]; /* canonical file path (key) */
+    jerry_value_t module; /* parsed module value (one ref held) */
 } _module_cache_entry_t;
 
 static _module_cache_entry_t _module_cache[MODULE_CACHE_MAX];
@@ -942,13 +942,15 @@ eos_result_t script_engine_init(void)
     return EOS_OK;
 }
 
-/* Module cache helpers ----------------------------------------*/
+/* Module cache helpers ---------------------------------------*/
 
 /* Return a jerry_value_copy of the cached module, or jerry_undefined(). */
 static jerry_value_t _module_cache_lookup(const char *canonical_path)
 {
-    for (int i = 0; i < _module_cache_count; i++) {
-        if (strcmp(_module_cache[i].path, canonical_path) == 0) {
+    for (int i = 0; i < _module_cache_count; i++)
+    {
+        if (strcmp(_module_cache[i].path, canonical_path) == 0)
+        {
             EOS_LOG_D("MODULE CACHE HIT: %s (slot %d)", canonical_path, i);
             return jerry_value_copy(_module_cache[i].module);
         }
@@ -959,13 +961,13 @@ static jerry_value_t _module_cache_lookup(const char *canonical_path)
 /* Insert a parsed module into the cache. */
 static void _module_cache_insert(const char *canonical_path, jerry_value_t module)
 {
-    if (_module_cache_count >= MODULE_CACHE_MAX) {
+    if (_module_cache_count >= MODULE_CACHE_MAX)
+    {
         EOS_LOG_W("MODULE CACHE FULL: cannot cache %s", canonical_path);
         return;
     }
     int idx = _module_cache_count++;
-    snprintf(_module_cache[idx].path, sizeof(_module_cache[idx].path),
-             "%s", canonical_path);
+    snprintf(_module_cache[idx].path, sizeof(_module_cache[idx].path), "%s", canonical_path);
     _module_cache[idx].module = jerry_value_copy(module);
     EOS_LOG_D("MODULE CACHE INSERT: %s (slot %d)", canonical_path, idx);
 }
@@ -974,7 +976,8 @@ static void _module_cache_insert(const char *canonical_path, jerry_value_t modul
 static void _module_cache_clear(void)
 {
     EOS_LOG_D("MODULE CACHE CLEAR: freeing %d entries", _module_cache_count);
-    for (int i = 0; i < _module_cache_count; i++) {
+    for (int i = 0; i < _module_cache_count; i++)
+    {
         jerry_value_free(_module_cache[i].module);
         _module_cache[i].module = jerry_undefined();
         _module_cache[i].path[0] = '\0';
