@@ -135,6 +135,8 @@ static void _app_list_start_paired_fade(lv_obj_t *obj_a,
 static int32_t _app_list_find_sys_app(const char *app_id);
 static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
+static void _app_list_restart_cb(lv_event_t *e);
+static void _app_list_exit_cb(lv_event_t *e);
 
 static bool _anim_routes_registered = false;
 static bool _app_list_last_icon_center_valid = false;
@@ -211,9 +213,69 @@ static void _app_on_enter(eos_activity_t *a)
         // Only handle error if it hasn't been handled already (timeout is handled inside script_engine_run)
         if (ret != EOS_ERR_TIMEOUT)
         {
-            eos_app_handle_script_error(error_type, ret, ctx->app_id, NULL);
+            eos_script_error_handler_cfg_t app_cfg = {
+                .confirm_btn_id = STR_ID_APP_RESTART,
+                .confirm_cb = _app_list_restart_cb,
+                .cancel_btn_id = STR_ID_APP_EXIT,
+                .cancel_cb = _app_list_exit_cb,
+            };
+            eos_app_handle_script_error(error_type, ret, ctx->app_id, &app_cfg);
         }
         EOS_LOG_E("Application encounter a fatal error");
+    }
+}
+
+static void _app_list_restart_cb(lv_event_t *e)
+{
+    (void)e;
+    char app_id[64] = {0};
+
+    /* Try crash context first (for engine crash recovery path) */
+    const spm_crash_state_t *crash = spm_get_crash_state();
+    if (crash && crash->has_crash && crash->script_id[0])
+    {
+        snprintf(app_id, sizeof(app_id), "%s", crash->script_id);
+    }
+    else
+    {
+        /* Fallback: get app_id from current activity (initial load error path) */
+        eos_activity_t *current = eos_activity_get_current();
+        if (current)
+        {
+            app_launch_ctx_t *ctx = eos_activity_get_user_data(current);
+            if (ctx && ctx->app_id)
+            {
+                snprintf(app_id, sizeof(app_id), "%s", ctx->app_id);
+            }
+        }
+    }
+
+    spm_clear_crash_state();
+
+    if (app_id[0])
+    {
+        EOS_LOG_I("Restarting app from error panel: %s", app_id);
+        eos_activity_t *current = eos_activity_get_current();
+        eos_app_restart_in_place(app_id, current);
+    }
+    else
+    {
+        EOS_LOG_W("Restart app failed: no app_id available");
+        eos_activity_back_to_watchface();
+    }
+}
+
+static void _app_list_exit_cb(lv_event_t *e)
+{
+    (void)e;
+    EOS_LOG_I("Exiting app from error panel");
+    spm_clear_crash_state();
+    /* Try to return to the previous activity (app list) with animation.
+     * Falls back to watchface if the stack is empty or transition fails. */
+    if (eos_activity_back() != EOS_OK)
+    {
+        EOS_LOG_W("Activity back failed, falling back to watchface");
+        eos_activity_back_to_watchface();
     }
 }
 
@@ -329,6 +391,41 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
 
     eos_activity_enter(a);
     return EOS_OK;
+}
+
+eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity)
+{
+    LV_UNUSED(app_id);
+    EOS_CHECK_PTR_RETURN_VAL(activity, EOS_FAILED);
+
+    app_launch_ctx_t *ctx = (app_launch_ctx_t *)eos_activity_get_user_data(activity);
+    if (!ctx || !ctx->app_id || !ctx->pkg.script_str)
+    {
+        EOS_LOG_E("Restart in-place failed: invalid launch context");
+        return EOS_FAILED;
+    }
+
+    EOS_LOG_I("Restarting app in-place: %s", ctx->app_id);
+
+    /* Clear fault panel reference BEFORE cleaning view.
+     * lv_obj_clean will delete the panel's container widget, which triggers
+     * _eos_fault_panel_container_delete_cb → eos_free(fault_panel).
+     * We must clear the activity's pointer first to avoid a dangling reference. */
+    eos_activity_set_fault_panel(activity, NULL);
+
+    /* Clean all old widgets from the view (including fault panel UI).
+     * After an engine crash, the view still holds orphaned LVGL objects
+     * from the crashed script — their JS callbacks are inert (engine gen
+     * change), but the widgets themselves need to be removed so the
+     * restarted script gets a clean slate. */
+    lv_obj_t *view = eos_activity_get_view(activity);
+    if (view && lv_obj_is_valid(view))
+    {
+        lv_obj_clean(view);
+    }
+
+    /* Re-run the app script on the same activity */
+    return spm_app_run(&ctx->pkg);
 }
 
 /**

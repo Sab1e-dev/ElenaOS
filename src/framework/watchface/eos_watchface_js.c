@@ -21,6 +21,7 @@
 #include "eos_pkg_mgr.h"
 #include "eos_msg_list.h"
 #include "eos_control_center.h"
+#include "eos_event.h"
 
 /* Function Prototypes ----------------------------------------*/
 static void _js_on_enter(eos_activity_t *activity);
@@ -210,6 +211,9 @@ static script_pkg_t _js_load_package_from_disk(const char *watchface_id)
     return pkg;
 }
 
+/* Forward declaration for restart callback */
+static void _js_restart_cb(lv_event_t *e);
+
 static void _js_handle_error(eos_watchface_instance_t *self, int32_t error_code)
 {
     const char *error_info = script_engine_get_error_info();
@@ -226,15 +230,94 @@ static void _js_handle_error(eos_watchface_instance_t *self, int32_t error_code)
 
     eos_script_error_handler_cfg_t cfg = {
         .title_id = STR_ID_WATCHFACE_RUN_ERR_TITLE,
-        .button_id = STR_ID_WATCHFACE_SWITCH,
-        .button_callback = _js_long_pressed_cb,
+        .confirm_btn_id = STR_ID_RESTART,
+        .confirm_cb = _js_restart_cb,
+        .cancel_btn_id = STR_ID_WATCHFACE_SWITCH,
+        .cancel_cb = _js_long_pressed_cb,
     };
 
     eos_app_handle_script_error(error_type, error_code, self->id, &cfg);
     EOS_LOG_E("Watchface encountered a fatal error");
 }
 
+static void _js_restart_cb(lv_event_t *e)
+{
+    (void)e;
+    char wf_id[64] = {0};
+
+    /* Try crash context first (for engine crash recovery path) */
+    const spm_crash_state_t *crash = spm_get_crash_state();
+    if (crash && crash->has_crash && crash->script_id[0])
+    {
+        snprintf(wf_id, sizeof(wf_id), "%s", crash->script_id);
+    }
+    else
+    {
+        /* Fallback: get watchface_id from current activity */
+        eos_activity_t *current = eos_activity_get_current();
+        if (current)
+        {
+            eos_watchface_instance_t *self = eos_activity_get_user_data(current);
+            if (self && self->id[0])
+            {
+                snprintf(wf_id, sizeof(wf_id), "%s", self->id);
+            }
+        }
+    }
+
+    spm_clear_crash_state();
+
+    if (wf_id[0])
+    {
+        EOS_LOG_I("Restarting watchface: %s", wf_id);
+        eos_watchface_switch_to(wf_id);
+    }
+    else
+    {
+        EOS_LOG_W("Restart watchface failed: no id available, entering watchface list");
+        eos_watchface_list_enter();
+    }
+}
+
+/* EOS_EVENT_SCRIPT_FATAL handler for watchface callback crashes */
+static void _js_on_script_fatal(eos_event_t *event)
+{
+    (void)event;
+    const spm_crash_state_t *crash = spm_get_crash_state();
+    if (!crash || !crash->has_crash)
+    {
+        EOS_LOG_W("Script fatal event but no crash context (WF)");
+        return;
+    }
+
+    if (crash->script_type != SCRIPT_TYPE_WATCHFACE)
+        return;
+
+    EOS_LOG_W("Handling watchface script fatal: id=%s", crash->script_id);
+
+    eos_activity_t *current = eos_activity_get_current();
+    if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_WATCHFACE)
+    {
+        eos_script_error_handler_cfg_t cfg = {
+            .title_id = STR_ID_WATCHFACE_RUN_ERR_TITLE,
+            .confirm_btn_id = STR_ID_RESTART,
+            .confirm_cb = _js_restart_cb,
+            .cancel_btn_id = STR_ID_WATCHFACE_SWITCH,
+            .cancel_cb = _js_long_pressed_cb,
+        };
+        eos_app_handle_script_error(EOS_SCRIPT_FAULT_ENGINE_CRASH, EOS_ERR_SCRIPT_EXCEPTION, crash->script_id, &cfg);
+    }
+
+    /* NOTE: Do NOT clear crash state here — callbacks clear it when user taps a button */
+}
+
 static void _js_long_pressed_cb(lv_event_t *e)
 {
     eos_watchface_list_enter();
+}
+
+void eos_watchface_js_crash_handler_init(void)
+{
+    eos_event_subscribe(EOS_EVENT_SCRIPT_FATAL, _js_on_script_fatal, NULL);
+    EOS_LOG_I("Watchface JS crash handler initialized");
 }

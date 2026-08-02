@@ -49,6 +49,16 @@ eos_result_t eos_app_launch_immediately(const char *app_id);
  * @return eos_activity_t* App list activity object
  */
 void eos_app_list_enter(void);
+
+/**
+ * @brief Restart an app in-place on its existing activity (no navigation, no animation)
+ * @param app_id The app ID (for logging/validation)
+ * @param activity The current app activity to restart
+ * @return eos_result_t EOS_OK on success, EOS_FAILED on error
+ * @note Cleans all child widgets from the activity view and re-runs the app script.
+ *       The activity stack is preserved — this does NOT navigate.
+ */
+eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity);
 #ifdef __cplusplus
 }
 #endif

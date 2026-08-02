@@ -600,6 +600,9 @@ eos_result_t eos_app_init(void)
         }
     }
 
+    /* Register crash recovery handler */
+    eos_app_crash_handler_init();
+
     return EOS_OK;
 }
 
@@ -636,12 +639,12 @@ void eos_app_handle_script_error(eos_script_error_type_t error_type,
         .icon_color = EOS_COLOR_RED,
         .title_id = STR_ID_ERROR,
         .message_text = eos_lang_get_text(STR_ID_APP_RUN_ERR),
-        .confirm_btn_id = 0,
-        .confirm_btn_text = NULL,
-        .confirm_cb = NULL,
-        .cancel_btn_id = cfg && cfg->button_id != 0 ? cfg->button_id : STR_ID_BACK,
-        .cancel_btn_text = cfg && cfg->button_text ? cfg->button_text : NULL,
-        .cancel_cb = cfg && cfg->button_callback ? cfg->button_callback : NULL,
+        .confirm_btn_id = cfg && cfg->confirm_btn_id != 0 ? cfg->confirm_btn_id : 0,
+        .confirm_btn_text = cfg && cfg->confirm_btn_text ? cfg->confirm_btn_text : NULL,
+        .confirm_cb = cfg && cfg->confirm_cb ? cfg->confirm_cb : NULL,
+        .cancel_btn_id = cfg && cfg->cancel_btn_id != 0 ? cfg->cancel_btn_id : STR_ID_BACK,
+        .cancel_btn_text = cfg && cfg->cancel_btn_text ? cfg->cancel_btn_text : NULL,
+        .cancel_cb = cfg && cfg->cancel_cb ? cfg->cancel_cb : NULL,
     };
 
     eos_activity_t *current = eos_activity_get_current();
@@ -773,4 +776,89 @@ void eos_app_handle_script_error(eos_script_error_type_t error_type,
             }
         }
     }
+}
+
+/* Engine Crash Recovery --------------------------------------*/
+
+static void _app_restart_cb(lv_event_t *e)
+{
+    (void)e;
+    const spm_crash_state_t *crash = spm_get_crash_state();
+    char app_id[SPM_CRASH_ID_MAX] = {0};
+
+    if (crash && crash->has_crash && crash->script_id[0])
+    {
+        snprintf(app_id, sizeof(app_id), "%s", crash->script_id);
+    }
+
+    spm_clear_crash_state();
+
+    if (app_id[0])
+    {
+        EOS_LOG_I("Restarting app: %s", app_id);
+        eos_activity_t *current = eos_activity_get_current();
+        eos_app_restart_in_place(app_id, current);
+    }
+    else
+    {
+        EOS_LOG_W("Restart app failed: no app_id available, returning to watchface");
+        eos_activity_back_to_watchface();
+    }
+}
+
+static void _app_exit_cb(lv_event_t *e)
+{
+    (void)e;
+    EOS_LOG_I("Exiting app after crash");
+    spm_clear_crash_state();
+    /* Try to return to the previous activity (app list) with animation.
+     * The activity stack is still intact after engine reset — only JS
+     * programs were destroyed.  If that fails (empty stack, already at
+     * root, or transition in progress), fall back to watchface. */
+    if (eos_activity_back() != EOS_OK)
+    {
+        EOS_LOG_W("Activity back failed, falling back to watchface");
+        eos_activity_back_to_watchface();
+    }
+}
+
+static void _on_script_fatal(eos_event_t *event)
+{
+    (void)event;
+    const spm_crash_state_t *crash = spm_get_crash_state();
+    if (!crash || !crash->has_crash)
+    {
+        EOS_LOG_W("Script fatal event but no crash context found");
+        return;
+    }
+
+    EOS_LOG_W("Handling script fatal: type=%d id=%s", crash->script_type, crash->script_id);
+
+    if (crash->script_type == SCRIPT_TYPE_APPLICATION)
+    {
+        eos_activity_t *current = eos_activity_get_current();
+        if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_APP)
+        {
+            eos_script_error_handler_cfg_t cfg = {
+                .confirm_btn_id = STR_ID_APP_RESTART,
+                .confirm_cb = _app_restart_cb,
+                .cancel_btn_id = STR_ID_APP_EXIT,
+                .cancel_cb = _app_exit_cb,
+            };
+            eos_app_handle_script_error(EOS_SCRIPT_FAULT_ENGINE_CRASH,
+                                        EOS_ERR_SCRIPT_EXCEPTION,
+                                        crash->script_id,
+                                        &cfg);
+        }
+    }
+    /* Watchface case is handled in eos_watchface_js.c */
+
+    /* NOTE: Do NOT clear crash state here — the restart/exit callbacks
+     * need it when the user presses a button. Callbacks clear it. */
+}
+
+void eos_app_crash_handler_init(void)
+{
+    eos_event_subscribe(EOS_EVENT_SCRIPT_FATAL, _on_script_fatal, NULL);
+    EOS_LOG_I("App crash handler initialized");
 }

@@ -153,6 +153,9 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_PERM_NO_PERMISSIONS] = "No special permissions required",
     [STR_ID_PERM_MANAGEMENT] = "Permission Management",
     [STR_ID_PERM_TITLE] = "Permission",
+    [STR_ID_APP_RESTART] = "Restart App",
+    [STR_ID_APP_EXIT] = "Exit App",
+    [STR_ID_RESTART] = "Restart",
     // Add new string IDs and English translations here as needed
 };
 
@@ -286,6 +289,9 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_PERM_NO_PERMISSIONS] = "此应用无需特殊权限",
     [STR_ID_PERM_MANAGEMENT] = "权限管理",
     [STR_ID_PERM_TITLE] = "权限",
+    [STR_ID_APP_RESTART] = "重启应用",
+    [STR_ID_APP_EXIT] = "退出应用",
+    [STR_ID_RESTART] = "重启",
     // Add new string IDs and Chinese translations here as needed
 };
 

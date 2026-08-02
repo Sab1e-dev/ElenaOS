@@ -24,6 +24,12 @@ extern "C" {
  */
 eos_watchface_instance_t *eos_watchface_js_create(const char *watchface_id);
 
+/**
+ * @brief Initialize JS watchface crash recovery handler
+ * Subscribes to EOS_EVENT_SCRIPT_FATAL for watchface callback crashes
+ */
+void eos_watchface_js_crash_handler_init(void);
+
 #ifdef __cplusplus
 }
 #endif
