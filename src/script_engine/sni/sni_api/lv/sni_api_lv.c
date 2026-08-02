@@ -12373,25 +12373,6 @@ jerry_value_t sni_api_prop_get_obj_parent(const jerry_call_info_t *call_info_p,
     return sni_tb_c2js(&result, SNI_H_LV_OBJ);
 }
 
-jerry_value_t sni_api_prop_set_obj_parent(const jerry_call_info_t *call_info_p,
-                                          const jerry_value_t args_p[],
-                                          const jerry_length_t args_count)
-{
-    if (args_count != 1)
-    {
-        return sni_api_throw_error("Invalid argument count");
-    }
-
-    lv_obj_t *self_obj;
-    return sni_api_throw_error("Unsupported argument conversion");
-
-    lv_obj_t *prop_value;
-    return sni_api_throw_error("Unsupported argument conversion");
-
-    lv_obj_set_parent(self_obj, prop_value);
-    return jerry_undefined();
-}
-
 jerry_value_t sni_api_prop_get_obj_screen(const jerry_call_info_t *call_info_p,
                                           const jerry_value_t args_p[],
                                           const jerry_length_t args_count)

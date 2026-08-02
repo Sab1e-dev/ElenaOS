@@ -110,6 +110,7 @@ SPECIAL_PROPERTY_GETTER_WRAPPERS: Dict[Tuple[str, str, str], str] = {
 SPECIAL_PROPERTY_SETTER_WRAPPERS: Dict[Tuple[str, str, str], str] = {
     ("timer", "cb", "lv_timer_set_cb"): "sni_api_prop_set_timer_cb",
     ("obj", "user_data", "lv_obj_set_user_data"): "sni_api_prop_set_obj_user_data",
+    ("obj", "parent", "lv_obj_set_parent"): "sni_api_prop_set_obj_parent",
     ("anim", "var", "lv_anim_set_var"): "sni_api_prop_set_anim_var",
     ("anim", "delay", "lv_anim_set_delay"): "sni_api_lv_anim_set_delay",
     ("anim", "duration", "lv_anim_set_duration"): "sni_api_lv_anim_set_duration",

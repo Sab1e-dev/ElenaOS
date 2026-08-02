@@ -334,6 +334,16 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
     jerry_value_free(ret);
     jerry_value_free(js_timer);
 
+    /* If the JS callback called timer.delete() on itself, sni_context_
+     * delete_timer_sync() marked the context PENDING_DELETE and deferred
+     * the actual free.  Now that spm_call has returned and s_dispatching_
+     * timer is NULL, it's safe to finish the deletion. */
+    if (ctx->state == SNI_TIMER_STATE_PENDING_DELETE)
+    {
+        sni_context_delete_timer_sync(ctx->owner_ctx, t);
+        return;
+    }
+
     if (t->repeat_count <= 0 && ctx->auto_delete && ctx->state == SNI_TIMER_STATE_ACTIVE)
     {
         sni_context_request_async_delete_timer(ctx->owner_ctx, t);

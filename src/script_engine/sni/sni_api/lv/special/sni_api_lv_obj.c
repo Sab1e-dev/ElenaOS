@@ -458,6 +458,72 @@ jerry_value_t sni_api_lv_obj_remove_event(const jerry_call_info_t *call_info_p,
     return sni_tb_c2js_boolean(result);
 }
 
+jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t *call_info_p,
+                                        const jerry_value_t args_p[],
+                                        const jerry_length_t args_count)
+{
+    if (args_count != 1)
+    {
+        return sni_api_throw_error("Invalid argument count");
+    }
+
+    if (!jerry_value_is_object(call_info_p->this_value))
+    {
+        return sni_api_throw_error("Invalid argument type");
+    }
+    lv_obj_t *self_obj;
+    if (!sni_tb_js2c(call_info_p->this_value, SNI_H_LV_OBJ, &self_obj))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    if (!jerry_value_is_object(args_p[0]))
+    {
+        return sni_api_throw_error("Invalid argument type");
+    }
+    lv_obj_t *arg_parent;
+    /* Use sni_tb_js2c_parent so both regular LVGL objects and EOS Activity
+     * Views are accepted — matches the constructor's parent conversion. */
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    lv_obj_set_parent(self_obj, arg_parent);
+    return jerry_undefined();
+}
+
+jerry_value_t sni_api_prop_set_obj_parent(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count)
+{
+    if (args_count != 1)
+    {
+        return sni_api_throw_error("Invalid argument count");
+    }
+
+    lv_obj_t *self_obj;
+    if (!sni_tb_js2c(call_info_p->this_value, SNI_H_LV_OBJ, &self_obj))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    if (!jerry_value_is_object(args_p[0]))
+    {
+        return sni_api_throw_error("Invalid argument type");
+    }
+    lv_obj_t *prop_value;
+    /* Use sni_tb_js2c_parent so both regular LVGL objects and EOS Activity
+     * Views are accepted — matches the constructor's parent conversion. */
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&prop_value))
+    {
+        return sni_api_throw_error("Failed to convert argument");
+    }
+
+    lv_obj_set_parent(self_obj, prop_value);
+    return jerry_undefined();
+}
+
 jerry_value_t sni_api_eos_label_set_font_size(const jerry_call_info_t *call_info_p,
                                               const jerry_value_t args_p[],
                                               const jerry_length_t args_count)

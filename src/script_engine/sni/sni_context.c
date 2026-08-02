@@ -361,6 +361,23 @@ void sni_context_delete_timer_sync(sni_context_t *ctx, lv_timer_t *timer)
 
     if (cb_ctx)
     {
+        /* If this timer is currently executing its JS callback (i.e. the
+         * script called timer.delete() on itself), we must NOT free the
+         * callback context or the JerryScript function — both are still
+         * on the C/JS call stack.  Instead mark the timer pending-delete
+         * and null out the LVGL callback.  sni_cb_timer_dispatch() will
+         * perform the actual deletion after spm_call() returns. */
+        if (sni_cb_is_dispatching_timer(timer))
+        {
+            cb_ctx->state = SNI_TIMER_STATE_PENDING_DELETE;
+            /* Null out the LVGL callback so the timer won't fire again,
+             * but keep user_data intact so the deferred cleanup in
+             * sni_cb_timer_dispatch() can find cb_ctx after spm_call
+             * returns. */
+            lv_timer_set_cb(timer, NULL);
+            return;
+        }
+
         _sni_ctx_safe_js_free(&cb_ctx->js_cb);
         cb_ctx->state = SNI_TIMER_STATE_DELETED;
         eos_free(cb_ctx);

@@ -38,6 +38,10 @@ jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
                                     const jerry_value_t args_p[],
                                     const jerry_length_t args_count);
 
+jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t *call_info_p,
+                                        const jerry_value_t args_p[],
+                                        const jerry_length_t args_count);
+
 jerry_value_t sni_api_lv_obj_remove_event(const jerry_call_info_t *call_info_p,
                                           const jerry_value_t args_p[],
                                           const jerry_length_t args_count);
@@ -81,6 +85,10 @@ jerry_value_t sni_api_prop_get_obj_user_data(const jerry_call_info_t *call_info_
 jerry_value_t sni_api_prop_set_obj_user_data(const jerry_call_info_t *call_info_p,
                                              const jerry_value_t args_p[],
                                              const jerry_length_t args_count);
+
+jerry_value_t sni_api_prop_set_obj_parent(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count);
 
 jerry_value_t sni_api_eos_label_set_font_size(const jerry_call_info_t *call_info_p,
                                               const jerry_value_t args_p[],
