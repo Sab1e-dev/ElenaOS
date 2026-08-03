@@ -127,7 +127,8 @@ static void _program_destroy(script_program_t *prog)
 
     if (prog->sni_ctx)
     {
-        sni_cb_context_cleanup_events(prog->sni_ctx);
+        /* sni_cb_context_cleanup_events already called in Phase 2 before
+         * script_engine_stop — event list is empty by this point. */
         sni_context_sweep_all(prog->sni_ctx);
         sni_context_destroy(prog->sni_ctx);
         prog->sni_ctx = NULL;
@@ -278,7 +279,25 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
         memcpy(&s_last_error, &prog->error, sizeof(spm_error_t));
         s_has_last_error = true;
 
-        /* Clean up event callbacks BEFORE engine stop (see spm_terminate_program for rationale) */
+        /* Phase 0: JS-Native decouple — clear native_ptrs BEFORE stopping
+         * the engine so JerryScript GC doesn't fire native free callbacks
+         * on still-linked resource nodes. */
+        if (prog->sni_ctx)
+        {
+            prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_DECOUPLE;
+            sni_context_clear_native_ptrs_all(prog->sni_ctx);
+        }
+
+        /* Phase 1: Release JS callback refs (timers, anims) while
+         * the JS heap is still alive so jerry_value_free works. */
+        if (prog->sni_ctx)
+        {
+            prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_REFS;
+            sni_context_sweep_js_refs(prog->sni_ctx);
+        }
+
+        /* Phase 2: Clean up LVGL event callbacks BEFORE engine stop
+         * (see spm_terminate_program for rationale) */
         if (prog->sni_ctx)
         {
             prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_LVGL_EVENTS;
