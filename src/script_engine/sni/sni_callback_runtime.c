@@ -848,6 +848,18 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
     if (!ctx)
         return;
 
+    /* Phase guard: this function removes event descriptors from LIVE LVGL
+     * objects and frees JS values.  Both require the JS heap and LVGL tree
+     * to be intact.  If called after ENGINE_STOPPED, jerry_value_free on
+     * stale handles is UB.  If called after LVGL tree deletion, the owner
+     * object is a dangling pointer. */
+    if (ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
+    {
+        EOS_LOG_E("cleanup_events called at phase %d — JS heap may be stale! "
+                  "Must run before script_engine_stop (Phase 3).",
+                  ctx->teardown_phase);
+    }
+
     sni_event_callback_ctx_t *event_ctx = *(sni_event_callback_ctx_t **)&ctx->event_ctx_list;
     *(sni_event_callback_ctx_t **)&ctx->event_ctx_list = NULL;
     while (event_ctx)

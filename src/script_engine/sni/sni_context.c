@@ -81,7 +81,7 @@ void sni_context_dump_counters(sni_context_t *ctx)
     if (!ctx)
         return;
     int total = 0;
-    EOS_LOG_I("[COUNTER] ctx=%p resource counts:", (void *)ctx);
+    EOS_LOG_I("[COUNTER] ctx=%p phase=%d resource counts:", (void *)ctx, ctx->teardown_phase);
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         if (ctx->resource_counts[i] > 0)
@@ -185,7 +185,8 @@ void sni_context_destroy(sni_context_t *ctx)
         return;
     }
 
-    EOS_LOG_D("DESTROY context=%p", (void *)ctx);
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_COMPLETE;
+    EOS_LOG_D("DESTROY context=%p phase=%d", (void *)ctx, ctx->teardown_phase);
     sni_context_dump_counters(ctx);
 
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
@@ -543,7 +544,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
     if (!ctx)
         return;
 
-    EOS_LOG_I("SWEEP: ctx=%p", (void *)ctx);
+    EOS_LOG_I("SWEEP: ctx=%p entry_phase=%d", (void *)ctx, ctx->teardown_phase);
     sni_context_dump_counters(ctx);
 
     _SWEEP_HEAP_LOG("sweep start");
@@ -580,6 +581,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
      *   internally reference Pure resources (styles, fonts, etc.). */
 
     /* Phase 4a: Tree-Dependent Resources -------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_TREE_DEP;
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
@@ -628,6 +630,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
     }
 
     /* Phase 4b: Hybrid Resources ---------------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_HYBRID;
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
@@ -684,6 +687,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
     }
 
     /* Phase 4c: Pure Managed Resources ---------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_PURE;
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
@@ -835,6 +839,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
     }
 
     /* Value-like & unhandled types: free node memory only --------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_VALUE_LIKE;
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         if (ctx->resource_heads[i] == NULL)
@@ -866,10 +871,12 @@ void sni_context_sweep_all(sni_context_t *ctx)
         }
     }
 
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_CTX_DESTROY;
+
     _SWEEP_HEAP_LOG("sweep end");
     sni_context_dump_counters(ctx);
 
-    EOS_LOG_I("SWEEP: complete for ctx=%p", (void *)ctx);
+    EOS_LOG_I("SWEEP: complete for ctx=%p phase=%d", (void *)ctx, ctx->teardown_phase);
 }
 
 /*

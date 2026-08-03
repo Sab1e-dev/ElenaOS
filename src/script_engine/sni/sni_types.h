@@ -270,6 +270,28 @@ typedef struct sni_managed_resource_node
 } sni_managed_resource_node_t;
 
 /**
+ * @brief Teardown phase state machine
+ *
+ * Tracks the current phase during Realm destruction.  Each phase restricts
+ * which APIs are safe to call.  See sni.mdx "Realm 销毁顺序" for the full
+ * specification.  The sweep (sni_context_sweep_all) advances through 4a→4d.
+ */
+typedef enum
+{
+    SNI_TEARDOWN_PHASE_NONE = 0, /**< Normal runtime — all APIs allowed */
+    SNI_TEARDOWN_PHASE_JS_DECOUPLE, /**< Phase 0: sni_context_clear_native_ptrs_all */
+    SNI_TEARDOWN_PHASE_JS_REFS, /**< Phase 1: sni_context_sweep_js_refs */
+    SNI_TEARDOWN_PHASE_LVGL_EVENTS, /**< Phase 2: sni_cb_context_cleanup_events */
+    SNI_TEARDOWN_PHASE_ENGINE_STOPPED, /**< Phase 3: script_engine_stop — no jerry_value_free */
+    SNI_TEARDOWN_PHASE_SWEEP_TREE_DEP, /**< Phase 4a: Tree-Dependent unlinking */
+    SNI_TEARDOWN_PHASE_SWEEP_HYBRID, /**< Phase 4b: Hybrid (Activity) destruction */
+    SNI_TEARDOWN_PHASE_SWEEP_PURE, /**< Phase 4c: Pure Managed native destruction */
+    SNI_TEARDOWN_PHASE_SWEEP_VALUE_LIKE, /**< Phase 4d: Value-like node cleanup */
+    SNI_TEARDOWN_PHASE_CTX_DESTROY, /**< Phase 5: sni_context_destroy */
+    SNI_TEARDOWN_PHASE_COMPLETE, /**< Phase 6+: LVGL tree deletion — no SNI access */
+} sni_teardown_phase_t;
+
+/**
  * @brief Per-Realm SNI context
  *
  * Maintains type-indexed linked lists of managed resources for lifecycle management.
@@ -284,6 +306,7 @@ typedef struct sni_context
     void *event_ctx_list;
     struct script_program *owner;
     bool paused;
+    sni_teardown_phase_t teardown_phase; /**< Current phase during Realm destruction */
 } sni_context_t;
 
 #ifdef __cplusplus

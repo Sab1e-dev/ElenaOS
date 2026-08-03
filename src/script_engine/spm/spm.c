@@ -279,10 +279,14 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
         s_has_last_error = true;
 
         /* Clean up event callbacks BEFORE engine stop (see spm_terminate_program for rationale) */
-        if (prog->sni_ctx)
+        if (prog->sni_ctx) {
+            prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_LVGL_EVENTS;
             sni_cb_context_cleanup_events(prog->sni_ctx);
+        }
 
         script_engine_stop();
+        if (prog->sni_ctx)
+            prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_ENGINE_STOPPED;
         EOS_LOG_E("spm_start_program: execution failed ret=%d", ret);
         _program_list_remove(prog);
         _program_destroy(prog);
@@ -365,33 +369,44 @@ eos_result_t spm_terminate_program(script_program_t *prog)
         prog->cleanup_view = NULL;
     }
 
+    // -- Teardown Phase 0: JS-Native decouple --
     // Clear JS object native_ptrs BEFORE stopping the JS engine.
     // This prevents JerryScript GC (triggered by _collect_script_garbage
     // inside script_engine_stop) from calling native free callbacks
     // that would free sni_managed_resource_node_t nodes while they are
     // still linked in the context's resource lists.
-    if (prog->sni_ctx)
+    if (prog->sni_ctx) {
+        prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_DECOUPLE;
         sni_context_clear_native_ptrs_all(prog->sni_ctx);
+    }
 
+    // -- Teardown Phase 1: Release JS callback refs --
     // Release all JS callback references BEFORE stopping the engine.
     // Timer/animation callbacks hold JS function references that keep
     // bytecode alive. Freeing them here (with multiple GC passes) ensures
     // bytecode refcounts reach zero before script_engine_stop releases modules.
-    if (prog->sni_ctx)
+    if (prog->sni_ctx) {
+        prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_REFS;
         sni_context_sweep_js_refs(prog->sni_ctx);
+    }
 
-    // Clean up LVGL event callbacks BEFORE stopping the JS engine.
+    // -- Teardown Phase 2: Clean up LVGL event callbacks --
     // Must run while the JS heap is still valid (so jerry_value_free works)
     // and while the Activity's view hierarchy is still intact (so
     // lv_obj_remove_event_dsc does not access freed LVGL objects).
     // If we wait until _program_destroy runs after script_engine_stop,
     // both the JS heap AND potentially some LVGL objects have been freed,
     // causing EXC_BAD_ACCESS inside lv_array_size → lv_event_remove_dsc.
-    if (prog->sni_ctx)
+    if (prog->sni_ctx) {
+        prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_LVGL_EVENTS;
         sni_cb_context_cleanup_events(prog->sni_ctx);
+    }
 
+    // -- Teardown Phase 3: Stop the JS engine --
     // Let Core finish its stop/cleanup while the program object is still valid.
     script_engine_stop();
+    if (prog->sni_ctx)
+        prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_ENGINE_STOPPED;
     // Remove the program from the list first so it can no longer be discovered
     _program_list_remove(prog);
 
