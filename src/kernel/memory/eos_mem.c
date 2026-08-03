@@ -30,6 +30,7 @@ typedef struct
 #if EOS_MEM_TRACK_ENABLE
 static lv_mem_monitor_t mon;
 static eos_mem_track_t _mem_track[EOS_MEM_TRACK_MAX];
+static bool _track_table_full_warned = false;
 #endif /* EOS_MEM_TRACK_ENABLE */
 /* Function Implementations -----------------------------------*/
 
@@ -64,7 +65,11 @@ static void eos_mem_track_add(void *ptr, size_t size)
             return;
         }
     }
-    EOS_LOG_W("Memory track table full");
+    if (!_track_table_full_warned)
+    {
+        EOS_LOG_W("Memory track table full (%d entries) — raise CONFIG_EOS_MEM_TRACK_TABLE_SIZE", EOS_MEM_TRACK_MAX);
+        _track_table_full_warned = true;
+    }
 }
 static size_t eos_mem_track_remove(void *ptr)
 {
@@ -77,6 +82,7 @@ static size_t eos_mem_track_remove(void *ptr)
             size_t sz = _mem_track[i].size;
             _mem_track[i].ptr = NULL;
             _mem_track[i].size = 0;
+            _track_table_full_warned = false;
             mon.free_cnt++;
             mon.free_size += sz;
             mon.used_cnt--;
