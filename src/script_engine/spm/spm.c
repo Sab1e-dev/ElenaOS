@@ -279,7 +279,8 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
         s_has_last_error = true;
 
         /* Clean up event callbacks BEFORE engine stop (see spm_terminate_program for rationale) */
-        if (prog->sni_ctx) {
+        if (prog->sni_ctx)
+        {
             prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_LVGL_EVENTS;
             sni_cb_context_cleanup_events(prog->sni_ctx);
         }
@@ -375,7 +376,8 @@ eos_result_t spm_terminate_program(script_program_t *prog)
     // inside script_engine_stop) from calling native free callbacks
     // that would free sni_managed_resource_node_t nodes while they are
     // still linked in the context's resource lists.
-    if (prog->sni_ctx) {
+    if (prog->sni_ctx)
+    {
         prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_DECOUPLE;
         sni_context_clear_native_ptrs_all(prog->sni_ctx);
     }
@@ -385,7 +387,8 @@ eos_result_t spm_terminate_program(script_program_t *prog)
     // Timer/animation callbacks hold JS function references that keep
     // bytecode alive. Freeing them here (with multiple GC passes) ensures
     // bytecode refcounts reach zero before script_engine_stop releases modules.
-    if (prog->sni_ctx) {
+    if (prog->sni_ctx)
+    {
         prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_JS_REFS;
         sni_context_sweep_js_refs(prog->sni_ctx);
     }
@@ -397,7 +400,8 @@ eos_result_t spm_terminate_program(script_program_t *prog)
     // If we wait until _program_destroy runs after script_engine_stop,
     // both the JS heap AND potentially some LVGL objects have been freed,
     // causing EXC_BAD_ACCESS inside lv_array_size → lv_event_remove_dsc.
-    if (prog->sni_ctx) {
+    if (prog->sni_ctx)
+    {
         prog->sni_ctx->teardown_phase = SNI_TEARDOWN_PHASE_LVGL_EVENTS;
         sni_cb_context_cleanup_events(prog->sni_ctx);
     }
