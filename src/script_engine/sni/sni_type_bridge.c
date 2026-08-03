@@ -340,6 +340,51 @@ static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native
 
     node->is_alive = false;
 
+    /* Unlink from parent control block's sub_resource_head.
+     * Tree-Dependent resources (chart series/cursor) are linked here;
+     * if not unlinked, the parent's LV_EVENT_DELETE handler would walk
+     * freed node memory when the parent tree node is later deleted. */
+    if (node->parent_cb)
+    {
+        sni_managed_resource_node_t **pp = &node->parent_cb->sub_resource_head;
+        while (*pp)
+        {
+            if (*pp == node)
+            {
+                *pp = node->next;
+                break;
+            }
+            pp = &(*pp)->next;
+        }
+        node->parent_cb = NULL;
+    }
+
+    /* Remove from the context's type-indexed resource list so that
+     * subsequent sweep / find_resource / destroy do not walk a
+     * dangling pointer.  sni_context_clear_native_ptrs_all prevents
+     * this callback from firing during the sweep itself, but it can
+     * fire during normal runtime when JS drops a reference. */
+    sni_context_t *ctx = sni_get_current_context();
+    if (ctx)
+    {
+        int idx = sni_context_get_type_index(node->type);
+        if (idx >= 0 && idx < SNI_MANAGED_RESOURCE_COUNT)
+        {
+            sni_managed_resource_node_t **pp = &ctx->resource_heads[idx];
+            while (*pp)
+            {
+                if (*pp == node)
+                {
+                    *pp = node->next;
+                    if (ctx->resource_counts[idx] > 0)
+                        ctx->resource_counts[idx]--;
+                    break;
+                }
+                pp = &(*pp)->next;
+            }
+        }
+    }
+
     if (!jerry_value_is_undefined(node->js_obj) && !jerry_value_is_null(node->js_obj))
     {
         jerry_value_free(node->js_obj);

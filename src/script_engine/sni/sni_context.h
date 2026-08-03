@@ -94,6 +94,20 @@ void sni_context_remove_resource(sni_context_t *ctx, void *ptr, sni_type_t type)
 sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void *ptr, sni_type_t type);
 
 /**
+ * @brief Invalidate a resource without freeing its node.
+ *
+ * Sets node->ptr = NULL so the sweep (Phase 4b) does not double-free a
+ * Hybrid Resource already destroyed by another subsystem (e.g. Activity
+ * Controller).  The node memory itself is NOT freed — the sweep will
+ * free it during Phase 4b.
+ *
+ * @param ctx Target context (NULL-safe)
+ * @param ptr Native resource pointer (NULL-safe)
+ * @param type Resource type
+ */
+void sni_context_invalidate_resource(sni_context_t *ctx, void *ptr, sni_type_t type);
+
+/**
  * @brief Iterate over all resources in a specific type
  * @param ctx Target context
  * @param type Resource type

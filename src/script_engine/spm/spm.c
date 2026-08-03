@@ -278,6 +278,10 @@ script_program_t *spm_start_program(const script_pkg_t *pkg)
         memcpy(&s_last_error, &prog->error, sizeof(spm_error_t));
         s_has_last_error = true;
 
+        /* Clean up event callbacks BEFORE engine stop (see spm_terminate_program for rationale) */
+        if (prog->sni_ctx)
+            sni_cb_context_cleanup_events(prog->sni_ctx);
+
         script_engine_stop();
         EOS_LOG_E("spm_start_program: execution failed ret=%d", ret);
         _program_list_remove(prog);
@@ -375,6 +379,16 @@ eos_result_t spm_terminate_program(script_program_t *prog)
     // bytecode refcounts reach zero before script_engine_stop releases modules.
     if (prog->sni_ctx)
         sni_context_sweep_js_refs(prog->sni_ctx);
+
+    // Clean up LVGL event callbacks BEFORE stopping the JS engine.
+    // Must run while the JS heap is still valid (so jerry_value_free works)
+    // and while the Activity's view hierarchy is still intact (so
+    // lv_obj_remove_event_dsc does not access freed LVGL objects).
+    // If we wait until _program_destroy runs after script_engine_stop,
+    // both the JS heap AND potentially some LVGL objects have been freed,
+    // causing EXC_BAD_ACCESS inside lv_array_size → lv_event_remove_dsc.
+    if (prog->sni_ctx)
+        sni_cb_context_cleanup_events(prog->sni_ctx);
 
     // Let Core finish its stop/cleanup while the program object is still valid.
     script_engine_stop();

@@ -50,9 +50,10 @@ static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
         return;
     }
 
-    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_UNINITIALIZED)
+    script_engine_state_t state = script_engine_get_state();
+    if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
     {
-        EOS_LOG_W("Skip jerry_value_free: engine not initialized");
+        EOS_LOG_W("Skip jerry_value_free: engine not running (state=%d)", state);
         *value = jerry_undefined();
         return;
     }
@@ -857,7 +858,15 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
 
         if (event_ctx->dsc && event_ctx->owner)
         {
-            lv_obj_remove_event_dsc(event_ctx->owner, event_ctx->dsc);
+            /* Only remove the event descriptor if the owner object is still
+             * in LVGL's widget tree.  If the object has already been freed
+             * (e.g. by a deferred cleanup timer or off-stack activity
+             * destruction), its spec_attr→event_list is garbage and calling
+             * lv_obj_remove_event_dsc would EXC_BAD_ACCESS. */
+            if (lv_obj_is_valid(event_ctx->owner))
+            {
+                lv_obj_remove_event_dsc(event_ctx->owner, event_ctx->dsc);
+            }
             event_ctx->dsc = NULL;
         }
 
