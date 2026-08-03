@@ -368,19 +368,37 @@ void sni_context_remove_anim(sni_context_t *ctx, void *ptr)
 
 /* Unified resource lifecycle management ----------------------*/
 
-static inline void _sni_ctx_safe_js_free(jerry_value_t *value)
+static inline void _sni_ctx_safe_js_free(sni_context_t *ctx, jerry_value_t *value)
 {
     if (!value)
         return;
     if (jerry_value_is_undefined(*value) || jerry_value_is_null(*value))
         return;
-    script_engine_state_t state = script_engine_get_state();
-    if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
+
+    /* Key off teardown_phase, not global engine state.
+     * During teardown Phases 0-2 the engine is IDLE but the JS heap
+     * is still alive — jerry_value_free MUST be called to release
+     * references.  Only skip when the engine has actually been stopped
+     * (Phase >= ENGINE_STOPPED). */
+    if (ctx && ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
     {
-        EOS_LOG_W("Skip jerry_value_free: engine not running (state=%d)", state);
         *value = jerry_undefined();
         return;
     }
+
+    /* No context (runtime path) — only free if engine is RUNNING.
+     * An IDLE engine outside of teardown means the heap may be in a
+     * transitional state; overwriting the handle is the safe choice. */
+    if (!ctx)
+    {
+        script_engine_state_t state = script_engine_get_state();
+        if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
+        {
+            *value = jerry_undefined();
+            return;
+        }
+    }
+
     jerry_value_free(*value);
     *value = jerry_undefined();
 }
@@ -411,7 +429,7 @@ void sni_context_delete_timer_sync(sni_context_t *ctx, lv_timer_t *timer)
             return;
         }
 
-        _sni_ctx_safe_js_free(&cb_ctx->js_cb);
+        _sni_ctx_safe_js_free(ctx, &cb_ctx->js_cb);
         cb_ctx->state = SNI_TIMER_STATE_DELETED;
         eos_free(cb_ctx);
     }
@@ -509,7 +527,7 @@ void sni_context_sweep_js_refs(sni_context_t *ctx)
                 sni_timer_callback_ctx_t *cb_ctx =
                     (sni_timer_callback_ctx_t *)lv_timer_get_user_data((lv_timer_t *)node->ptr);
                 if (cb_ctx)
-                    _sni_ctx_safe_js_free(&cb_ctx->js_cb);
+                    _sni_ctx_safe_js_free(ctx, &cb_ctx->js_cb);
             }
             else if (node->type == SNI_H_LV_ANIM && node->ptr)
             {
@@ -517,7 +535,7 @@ void sni_context_sweep_js_refs(sni_context_t *ctx)
                 if (anim_ctx)
                 {
                     for (int j = 0; j < SNI_ANIM_CB_SLOT_COUNT; j++)
-                        _sni_ctx_safe_js_free(&anim_ctx->cb_slots[j]);
+                        _sni_ctx_safe_js_free(ctx, &anim_ctx->cb_slots[j]);
                 }
             }
 

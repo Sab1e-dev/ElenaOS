@@ -40,7 +40,7 @@ bool sni_cb_is_dispatching_anim(sni_anim_callback_ctx_t *ctx)
     return s_dispatching_anim_ctx != NULL && s_dispatching_anim_ctx == ctx;
 }
 
-static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
+static inline void sni_cb_safe_jerry_value_free(sni_context_t *owner_ctx, jerry_value_t *value)
 {
     if (!value)
         return;
@@ -50,10 +50,26 @@ static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
         return;
     }
 
+    /* Key off teardown_phase when we have context, not global engine state.
+     * During teardown Phases 0-2 the engine is IDLE but the JS heap is
+     * still alive — jerry_value_free MUST be called.  Only skip when the
+     * engine has actually been stopped (Phase >= ENGINE_STOPPED). */
+    if (owner_ctx)
+    {
+        if (owner_ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
+        {
+            *value = jerry_undefined();
+            return;
+        }
+        jerry_value_free(*value);
+        *value = jerry_undefined();
+        return;
+    }
+
+    /* No context (runtime path) — only free if engine is RUNNING. */
     script_engine_state_t state = script_engine_get_state();
     if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
     {
-        EOS_LOG_W("Skip jerry_value_free: engine not running (state=%d)", state);
         *value = jerry_undefined();
         return;
     }
@@ -175,8 +191,8 @@ static void sni_cb_event_free_ctx(sni_event_callback_ctx_t *ctx)
         }
     }
 
-    sni_cb_safe_jerry_value_free(&ctx->js_cb);
-    sni_cb_safe_jerry_value_free(&ctx->js_user_data);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->js_user_data);
 
     eos_free(ctx);
 }
@@ -509,7 +525,7 @@ bool sni_cb_timer_create(jerry_value_t js_cb, uint32_t period, lv_timer_t **out_
     lv_timer_t *timer = lv_timer_create(sni_cb_timer_dispatch, period, ctx);
     if (!timer)
     {
-        sni_cb_safe_jerry_value_free(&ctx->js_cb);
+        sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
         eos_free(ctx);
         return false;
     }
@@ -537,7 +553,7 @@ bool sni_cb_timer_set_cb(lv_timer_t *timer, jerry_value_t js_cb)
 
     if (!jerry_value_is_undefined(ctx->js_cb) && !jerry_value_is_null(ctx->js_cb))
     {
-        sni_cb_safe_jerry_value_free(&ctx->js_cb);
+        sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
     }
 
     ctx->js_cb = jerry_value_copy(js_cb);
@@ -600,7 +616,7 @@ static void sni_cb_anim_clear_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb_slo
         return;
     }
 
-    sni_cb_safe_jerry_value_free(&ctx->cb_slots[slot]);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->cb_slots[slot]);
 }
 
 static bool sni_cb_anim_store_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb_slot_t slot, jerry_value_t js_cb)
@@ -882,8 +898,8 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
             event_ctx->dsc = NULL;
         }
 
-        sni_cb_safe_jerry_value_free(&event_ctx->js_cb);
-        sni_cb_safe_jerry_value_free(&event_ctx->js_user_data);
+        sni_cb_safe_jerry_value_free(ctx, &event_ctx->js_cb);
+        sni_cb_safe_jerry_value_free(ctx, &event_ctx->js_user_data);
 
         eos_free(event_ctx);
         event_ctx = next;
