@@ -245,7 +245,7 @@ static bool _test_spm_stress(void)
 
     /* Final report */
     unsigned long final = _stress_get_alloc();
-    long total_delta = (long)final - (long)baseline;
+    long total_delta = (long) final - (long)baseline;
 
     EOS_LOG_I("[STRESS] Test complete.  %d cycles, baseline=%lu final=%lu delta=%ld",
               SPM_STRESS_MAX_CYCLES,
