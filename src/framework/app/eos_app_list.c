@@ -40,6 +40,7 @@
 #include "eos_accordion.h"
 #include "eos_loading_spinner.h"
 #include "eos_overlay_layer.h"
+#include "eos_recent_apps.h"
 #ifdef EOS_ENABLE_TEST_APP
 #include "eos_test.h"
 #endif
@@ -92,6 +93,8 @@ const eos_sys_app_entry_t eos_sys_app_entry_list[EOS_SYS_APP_LAST] = {eos_settin
 static void _app_list_on_resueme(eos_activity_t *a);
 
 static void _app_on_enter(eos_activity_t *a);
+static void _app_on_pause(eos_activity_t *a);
+static void _app_on_resume(eos_activity_t *a);
 static eos_activity_lifecycle_t app_list_lifecycle = {
     .on_enter = NULL,
     .on_destroy = NULL,
@@ -104,8 +107,8 @@ static void _app_on_destroy(eos_activity_t *a);
 static eos_activity_lifecycle_t app_lifecycle = {
     .on_enter = _app_on_enter,
     .on_destroy = _app_on_destroy,
-    .on_pause = NULL,
-    .on_resume = NULL,
+    .on_pause = _app_on_pause,
+    .on_resume = _app_on_resume,
 };
 
 typedef struct
@@ -118,6 +121,7 @@ typedef struct
     lv_obj_t *status_label; /* Status text ("Reading app...", etc.) */
     uint32_t loading_start_ms; /* Tick when loading began (eos_tick_get) */
     bool launch_running; /* Guard against re-entrant JS launch */
+    bool is_resuming; /* True when resuming from recents (skip loading UI) */
     /* Chunked I/O state */
     eos_file_t script_file; /* Open file handle during chunked read */
     char *script_buf; /* Accumulated file buffer */
@@ -215,10 +219,70 @@ struct _transition_anim_ctx_t
 
 /* Lifecycle --------------------------------------------------*/
 
+static void _app_on_pause(eos_activity_t *a)
+{
+    app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
+    if (!ctx || !ctx->app_id)
+        return;
+
+    /* Only AppRoot handles SPM suspend.
+     * Sub-activities share the realm; their on_pause fires via the
+     * lifecycle callback if set from JS. */
+    if (eos_activity_get_type(a) == EOS_ACTIVITY_TYPE_APP)
+    {
+        /* Suspend the SPM program (pauses sni_ctx, preserves realm) */
+        eos_result_t ret = spm_app_suspend();
+        if (ret != EOS_OK)
+        {
+            EOS_LOG_W("spm_app_suspend failed for '%s': %d", ctx->app_id, ret);
+        }
+    }
+}
+
+static void _app_on_resume(eos_activity_t *a)
+{
+    app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
+    if (!ctx || !ctx->app_id)
+        return;
+
+    /* Only AppRoot handles SPM resume and resource strategies.
+     * Sub-activities share the realm; their on_resume fires via the
+     * lifecycle callback if set from JS. */
+    if (eos_activity_get_type(a) == EOS_ACTIVITY_TYPE_APP)
+    {
+        eos_result_t ret = spm_app_resume(ctx->app_id);
+        if (ret != EOS_OK)
+        {
+            EOS_LOG_W("spm_app_resume failed for '%s': %d", ctx->app_id, ret);
+        }
+
+        /* Timer/animation strategies are applied by eos_recent_apps_resume()
+         * via sni_context_resume_resources() on the program's sni_ctx.
+         * We also apply them here for the case where resume happens
+         * without going through the recents flow. */
+        script_program_t *prog = spm_get_program_by_id_any_state(ctx->app_id);
+        if (prog && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE && prog->sni_ctx)
+        {
+            uint32_t timer_strat = (uint32_t)CONFIG_EOS_RECENT_APPS_TIMER_STRATEGY;
+            uint32_t anim_strat = (uint32_t)CONFIG_EOS_RECENT_APPS_ANIM_STRATEGY;
+            sni_context_resume_resources(prog->sni_ctx, (int)timer_strat, (int)anim_strat);
+        }
+    }
+}
+
 static void _app_on_destroy(eos_activity_t *a)
 {
-    /* Stop the app script (if any) before destroying context */
-    spm_app_stop();
+    app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
+    /* Stop the app script by ID (safe when multiple app programs exist) */
+    if (ctx && ctx->app_id)
+    {
+        spm_app_stop_by_id(ctx->app_id);
+    }
+    else
+    {
+        /* Fallback: stop any running app program */
+        spm_app_stop();
+    }
 
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     if (ctx)
@@ -263,6 +327,15 @@ static void _app_on_enter(eos_activity_t *a)
 {
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     EOS_CHECK_PTR_RETURN(ctx);
+
+    /* When resuming from recents, skip the loading UI entirely.
+     * The transition animation uses the stored screenshot instead. */
+    if (ctx->is_resuming)
+    {
+        EOS_LOG_I("App resumed from recents — skipping loading UI");
+        ctx->is_resuming = false;
+        return;
+    }
 
     /* Phase A: show loading placeholder and start polling timer.
      * The zoom animation (APP_LIST → APP) plays immediately after
@@ -987,13 +1060,35 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
         return EOS_FAILED;
     }
 
-    // If currently inside an app (or app sub-activity), pop back to watchface first
-    // This ensures all app-internal activities are cleaned up before launching new app
-    eos_activity_type_t current_type = eos_activity_get_type(eos_activity_get_current());
-    if (current_type == EOS_ACTIVITY_TYPE_APP)
+    /* Check if the app is already in the recents list — resume instead of fresh launch */
+    if (eos_recent_apps_find(app_id))
     {
-        EOS_LOG_I("Returning to app list before launching new app");
-        _app_list_pop_to_app_list();
+        EOS_LOG_I("App '%s' found in recents — resuming", app_id);
+        /* If another script app is active, suspend it first */
+        eos_activity_t *cur = eos_activity_get_current();
+        if (cur && eos_recent_apps_is_suspendable(cur))
+        {
+            eos_recent_apps_suspend_current();
+        }
+        return eos_recent_apps_resume_by_id(app_id);
+    }
+
+    /* If currently inside a script app, suspend it first instead of destroying */
+    eos_activity_t *cur = eos_activity_get_current();
+    if (cur && eos_recent_apps_is_suspendable(cur))
+    {
+        EOS_LOG_I("Suspending current app before launching new app");
+        eos_recent_apps_suspend_current();
+    }
+    else
+    {
+        /* For non-script current (e.g. system app), use the old pop behavior */
+        eos_activity_type_t current_type = eos_activity_get_type(cur);
+        if (current_type == EOS_ACTIVITY_TYPE_APP)
+        {
+            EOS_LOG_I("Returning to app list before launching new app");
+            _app_list_pop_to_app_list();
+        }
     }
 
     return _app_list_launch_script_app(app_id);
