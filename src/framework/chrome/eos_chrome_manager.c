@@ -20,6 +20,8 @@
 #include "eos_service_pm.h"
 #include "eos_service_lock.h"
 #include "eos_stack.h"
+#include "eos_recent_apps.h"
+#include "eos_recent_apps_page.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -258,9 +260,59 @@ void eos_chrome_manager_handle_crown_click(void)
     {
         eos_app_list_enter();
     }
+    else if (eos_recent_apps_is_suspendable(current))
+    {
+        /* Suspend the app instead of destroying it */
+        EOS_LOG_I("Crown click: suspending current app");
+        eos_recent_apps_suspend_current();
+    }
     else
     {
         eos_activity_back();
+    }
+}
+
+void eos_chrome_manager_handle_crown_double_click(void)
+{
+    /* Wake up first if sleeping */
+    if (eos_pm_get_state() == EOS_PM_SLEEP)
+    {
+        eos_pm_wake_up();
+        return;
+    }
+
+    /* Don't allow crown double-click to bypass lock screen */
+    if (eos_lock_screen_is_active())
+    {
+        return;
+    }
+
+    eos_pm_reset_timer();
+
+    /* If any overlay is open, pull back topmost */
+    if (eos_chrome_manager_any_overlay_open())
+    {
+        eos_chrome_manager_pull_back_top();
+        return;
+    }
+
+    eos_activity_t *current = eos_activity_get_current();
+
+    /* If currently in a script app, suspend it so it appears in recents */
+    if (current && eos_recent_apps_is_suspendable(current)
+        && eos_activity_get_type(current) != EOS_ACTIVITY_TYPE_RECENT_APPS)
+    {
+        eos_recent_apps_suspend_current();
+    }
+
+    /* Toggle: if already on recents page, close it; otherwise open */
+    if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_RECENT_APPS)
+    {
+        eos_activity_back();
+    }
+    else
+    {
+        eos_recent_apps_page_enter();
     }
 }
 

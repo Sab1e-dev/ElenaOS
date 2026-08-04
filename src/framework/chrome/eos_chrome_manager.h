@@ -112,6 +112,14 @@ void eos_chrome_manager_remove_overlay(const eos_chrome_overlay_t *overlay);
 void eos_chrome_manager_handle_crown_click(void);
 
 /**
+ * @brief Handle a crown double-click event
+ *
+ * Opens the Recent Apps page. If currently in a script app, suspends it first
+ * so it appears in the recents list.
+ */
+void eos_chrome_manager_handle_crown_double_click(void);
+
+/**
  * @brief Handle activity switch (called during activity transitions)
  *
  * Pulls back any open overlays (with animation) when leaving the watchface,

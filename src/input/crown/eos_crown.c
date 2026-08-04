@@ -220,13 +220,35 @@ static void _scrollbar_hide_set_anim(void)
     _scrollbar_schedule_hide();
 }
 
+static lv_timer_t *_double_click_timer = NULL;
+
+static void _single_click_timeout_cb(lv_timer_t *t)
+{
+    LV_UNUSED(t);
+    _double_click_timer = NULL;
+    eos_chrome_manager_handle_crown_click();
+}
+
 static void _crown_button_async_cb(void *user_data)
 {
     eos_button_state_t state = (eos_button_state_t)(intptr_t)user_data;
     switch (state)
     {
         case EOS_BUTTON_STATE_CLICKED:
-            eos_chrome_manager_handle_crown_click();
+            if (_double_click_timer)
+            {
+                /* Second click within window → double-click */
+                lv_timer_del(_double_click_timer);
+                _double_click_timer = NULL;
+                eos_chrome_manager_handle_crown_double_click();
+            }
+            else
+            {
+                /* First click → start double-click detection window */
+                _double_click_timer = lv_timer_create(_single_click_timeout_cb,
+                    (uint32_t)CONFIG_EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
+                lv_timer_set_repeat_count(_double_click_timer, 1);
+            }
             break;
         default:
             break;
