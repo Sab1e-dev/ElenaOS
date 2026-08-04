@@ -55,11 +55,7 @@ static void _register_anim_routes(void)
     if (_anim_routes_registered)
         return;
     _anim_routes_registered = true;
-
-    /* Register simple fade transitions for the recents page.
-     * The detailed zoom-for-resume is handled by the app-list's existing
-     * APP_LIST→APP route when the recents page triggers an app launch. */
-    /* Routes are registered but actual animations are minimal for now */
+    /* No custom animations needed — default activity switch handles it. */
 }
 
 static void _card_free_app_id(lv_event_t *e)
@@ -80,6 +76,7 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_set_size(card, _RECENT_CARD_WIDTH, _RECENT_CARD_HEIGHT);
     lv_obj_set_style_radius(card, 16, 0);
     lv_obj_set_style_bg_color(card, lv_color_hex(0x1C1C1E), 0);
+    lv_obj_set_style_bg_color(card, lv_color_hex(0x2C2C2E), LV_STATE_PRESSED);
     lv_obj_set_style_border_width(card, 0, 0);
     lv_obj_set_style_pad_all(card, 0, 0);
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
@@ -285,7 +282,7 @@ void eos_recent_apps_page_enter(void)
     lv_obj_set_style_bg_color(view, lv_color_black(), 0);
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_RECENT_APPS);
     eos_activity_set_title(a, "Recent Apps");
-    eos_activity_set_app_header_visible(a, true);
+    eos_activity_set_app_header_visible(a, false);
 
     eos_activity_enter(a);
 }

@@ -2047,6 +2047,8 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
     }
 
     _activity_ctx.current_activity = substack_top;
+    _activity_show(substack_top);
+    _activity_mark_visible(substack_top);
 
     EOS_LOG_I("Re-attached app sub-stack: root=%p[%s] top=%p[%s] depth=%u",
               (void *)app_root,
