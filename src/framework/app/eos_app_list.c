@@ -185,24 +185,24 @@ static uint32_t _app_list_icon_count = 0;
  * t = 255 - v  goes 0→255 (eased).  All lerps use (val * t + 127) / 255. */
 struct _transition_anim_ctx_t
 {
-    /* ---- layers ------------------------------------------------*/
+    /* layers -----------------------------------------------------*/
     lv_obj_t *list_snapshot; /* app-list screenshot (may be NULL)   */
     lv_obj_t *icon_clone; /* cloned icon                         */
     lv_obj_t *app_snapshot; /* target-activity screenshot          */
     lv_obj_t *obj_a; /* fades out (255→0)                   */
     lv_obj_t *obj_b; /* fades in  (0→255)                   */
 
-    /* ---- list_snapshot ----------------------------------------*/
+    /* list_snapshot ----------------------------------------------*/
     int32_t list_scale_start, list_scale_end; /* lv_image_set_scale   */
     int32_t list_tx_start, list_tx_end; /* translate_x          */
     int32_t list_ty_start, list_ty_end; /* translate_y          */
 
-    /* ---- icon_clone -------------------------------------------*/
+    /* icon_clone -------------------------------------------------*/
     int32_t icon_scale_start, icon_scale_end; /* transform_scale      */
     int32_t icon_tx_start, icon_tx_end; /* translate_x          */
     int32_t icon_ty_start, icon_ty_end; /* translate_y          */
 
-    /* ---- app_snapshot -----------------------------------------*/
+    /* app_snapshot -----------------------------------------------*/
     int32_t app_scale_start, app_scale_end; /* lv_image_set_scale   */
     int32_t app_tx_start, app_tx_end; /* translate_x          */
     int32_t app_ty_start, app_ty_end; /* translate_y          */
@@ -1143,7 +1143,7 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
     _transition_anim_ctx_t *ctx = (_transition_anim_ctx_t *)var;
     int32_t t = 255 - v; /* t: 0→255 eased */
 
-    /* ---- list_snapshot scale + translate ----------------------*/
+    /* list_snapshot scale + translate ----------------------------*/
     if (ctx->list_snapshot && lv_obj_is_valid(ctx->list_snapshot))
     {
         lv_image_set_scale(ctx->list_snapshot, _elerp(ctx->list_scale_start, ctx->list_scale_end, t));
@@ -1151,7 +1151,7 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
         lv_obj_set_style_translate_y(ctx->list_snapshot, _elerp(ctx->list_ty_start, ctx->list_ty_end, t), 0);
     }
 
-    /* ---- icon_clone transform scale + translate + opacity -----*/
+    /* icon_clone transform scale + translate + opacity -----------*/
     if (ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
     {
         lv_obj_set_style_transform_scale(ctx->icon_clone, _elerp(ctx->icon_scale_start, ctx->icon_scale_end, t), 0);
@@ -1159,7 +1159,7 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
         lv_obj_set_style_translate_y(ctx->icon_clone, _elerp(ctx->icon_ty_start, ctx->icon_ty_end, t), 0);
     }
 
-    /* ---- app_snapshot image scale + translate + opacity -------*/
+    /* app_snapshot image scale + translate + opacity -------------*/
     if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
     {
         lv_image_set_scale(ctx->app_snapshot, _elerp(ctx->app_scale_start, ctx->app_scale_end, t));
@@ -1167,7 +1167,7 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
         lv_obj_set_style_translate_y(ctx->app_snapshot, _elerp(ctx->app_ty_start, ctx->app_ty_end, t), 0);
     }
 
-    /* ---- Opacity crossfade (keyed to scale midpoint) ----------*/
+    /* Opacity crossfade (keyed to scale midpoint) ----------------*/
     int32_t icon_opa;
     if (ctx->opening)
     {
@@ -1523,7 +1523,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
     ctx->group = group;
     ctx->opening = opening;
 
-    /* ---- list_snapshot params ---------------------------------*/
+    /* list_snapshot params ---------------------------------------*/
     if (list_snapshot)
     {
         ctx->list_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
@@ -1534,7 +1534,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         ctx->list_ty_end = opening ? focus_translate_y : 0;
     }
 
-    /* ---- icon_clone params ------------------------------------*/
+    /* icon_clone params ------------------------------------------*/
     if (icon_clone)
     {
         ctx->icon_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
@@ -1545,7 +1545,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         ctx->icon_ty_end = opening ? focus_translate_y : 0;
     }
 
-    /* ---- app_snapshot params ----------------------------------*/
+    /* app_snapshot params ----------------------------------------*/
     ctx->app_scale_start = opening ? _APP_LIST_ANIM_MIN_SACLE : 256;
     ctx->app_scale_end = opening ? 256 : _APP_LIST_ANIM_MIN_SACLE;
     /* app_snapshot translate keeps its visual center aligned with
@@ -1555,7 +1555,7 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
     ctx->app_ty_start = opening ? -focus_translate_y : 0;
     ctx->app_ty_end = opening ? 0 : -focus_translate_y;
 
-    /* ---- opacity crossfade pair -------------------------------*/
+    /* opacity crossfade pair -------------------------------------*/
     ctx->obj_a = opening ? icon_clone : app_snapshot; /* fades out */
     ctx->obj_b = opening ? app_snapshot : icon_clone; /* fades in  */
     ctx->focus_icon = opening ? NULL : focus_icon; /* restored on close */

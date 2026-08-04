@@ -135,7 +135,7 @@ static void _spinner_draw_infinite(eos_loading_spinner_t *spinner, lv_obj_t *obj
      * emerge_progress sweeps from 0 to (n + EMERGE_WINDOW_DOTS) * _EMERGE_UNITS.
      * At any moment, up to EMERGE_WINDOW_DOTS are in transition,
      * creating a smooth sweeping fade-in around the ring. */
-#define _EMERGE_UNITS      384
+#define _EMERGE_UNITS 384
 #define _EMERGE_WINDOW_DOTS 5
     uint16_t emerge_end = (uint16_t)((n + _EMERGE_WINDOW_DOTS) * _EMERGE_UNITS);
     bool emerging = spinner->emerge_progress < emerge_end;
@@ -171,7 +171,8 @@ static void _spinner_draw_infinite(eos_loading_spinner_t *spinner, lv_obj_t *obj
             d_ideal = max_d - (uint32_t)i * (max_d - min_d) / (n - 1);
         }
         uint16_t d_lo = (uint16_t)((d_ideal / 256) & ~1U);
-        if (d_lo < 2) d_lo = 2;
+        if (d_lo < 2)
+            d_lo = 2;
         uint16_t d_hi = d_lo + 2;
         /* frac: 0=at d_lo, 255=almost at d_hi */
         uint8_t d_blend = 0;
@@ -706,7 +707,7 @@ void eos_loading_spinner_delete(eos_loading_spinner_t *spinner)
     }
 }
 
-/* Infinite mode -----------------------------------------------*/
+/* Infinite mode ----------------------------------------------*/
 
 /**
  * @brief Emerge animation execution callback — advances the sequential
@@ -799,7 +800,7 @@ void eos_loading_spinner_set_infinite(eos_loading_spinner_t *spinner, bool infin
         /* Sequential dot emerge intro with overlapping window.
          * _EMERGE_UNITS=384 sub-units per dot, _EMERGE_WINDOW_DOTS=5 extra
          * so the last dots fully emerge. ~100ms per dot gives a smooth sweep. */
-#define _EMERGE_UNITS      384
+#define _EMERGE_UNITS 384
 #define _EMERGE_WINDOW_DOTS 5
         spinner->emerge_progress = 0;
         lv_anim_init(&spinner->emerge_anim);
@@ -808,8 +809,7 @@ void eos_loading_spinner_set_infinite(eos_loading_spinner_t *spinner, bool infin
         lv_anim_set_values(&spinner->emerge_anim,
                            0,
                            (int32_t)(spinner->bar_count + _EMERGE_WINDOW_DOTS) * _EMERGE_UNITS);
-        lv_anim_set_duration(&spinner->emerge_anim,
-                             (uint32_t)(spinner->bar_count + _EMERGE_WINDOW_DOTS) * 100);
+        lv_anim_set_duration(&spinner->emerge_anim, (uint32_t)(spinner->bar_count + _EMERGE_WINDOW_DOTS) * 100);
         lv_anim_set_path_cb(&spinner->emerge_anim, lv_anim_path_linear);
         lv_anim_start(&spinner->emerge_anim);
 #undef _EMERGE_UNITS
