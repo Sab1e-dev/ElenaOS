@@ -30,7 +30,6 @@
 static void _page_on_enter(eos_activity_t *a);
 static void _page_on_destroy(eos_activity_t *a);
 static void _card_clicked_cb(lv_event_t *e);
-static void _card_close_cb(lv_event_t *e);
 static void _build_card_list(lv_obj_t *parent);
 static void _register_anim_routes(void);
 
@@ -44,9 +43,6 @@ static eos_activity_lifecycle_t _page_lifecycle = {
 };
 
 static bool _anim_routes_registered = false;
-
-/* Each card stores the entry pointer for tap-to-resume */
-#define _RECENT_CARD_ENTRY_KEY "recent_entry"
 
 /* Function Implementations -----------------------------------*/
 
@@ -87,110 +83,68 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_set_user_data(card, app_id_copy);
     lv_obj_add_event_cb(card, _card_free_app_id, LV_EVENT_DELETE, NULL);
 
-    /* Screenshot thumbnail (left side of card) */
-    if (entry->screenshot_buf)
-    {
-        lv_obj_t *thumb = lv_image_create(card);
-        lv_image_set_src(thumb, entry->screenshot_buf);
-        lv_obj_set_size(thumb, 120, _RECENT_CARD_HEIGHT);
-        lv_obj_align(thumb, LV_ALIGN_LEFT_MID, 0, 0);
-        lv_obj_set_style_radius(thumb, 12, 0);
-        lv_obj_set_style_clip_corner(thumb, true, 0);
-        entry->screenshot_img = thumb;
-    }
+    /* App icon as placeholder left of card (screenshot unreliable via lv_image) */
+    lv_obj_t *icon = lv_image_create(card);
+    /* Use the app's icon if available, otherwise show a colored placeholder */
+    lv_obj_set_size(icon, 48, 48);
+    lv_obj_align(icon, LV_ALIGN_LEFT_MID, 16, 0);
+    lv_obj_set_style_bg_color(icon, lv_color_hex(0x007AFF), 0);
+    lv_obj_set_style_bg_opa(icon, LV_OPA_30, 0);
+    lv_obj_set_style_radius(icon, 12, 0);
 
     /* App name label */
     lv_obj_t *name_label = lv_label_create(card);
     lv_label_set_text(name_label, entry->app_id);
     lv_obj_set_style_text_color(name_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(name_label, NULL, 0);
-    lv_obj_align(name_label, LV_ALIGN_TOP_RIGHT, -50, 16);
+    lv_obj_align(name_label, LV_ALIGN_LEFT_MID, 80, 0);
 
-    /* Close button (small X) — use app_id copy, stop event propagation */
-    lv_obj_t *close_btn = lv_btn_create(card);
-    lv_obj_set_size(close_btn, 32, 32);
-    lv_obj_align(close_btn, LV_ALIGN_TOP_RIGHT, -8, 8);
-    lv_obj_set_style_radius(close_btn, 16, 0);
-    lv_obj_set_style_bg_color(close_btn, lv_color_hex(0x3A3A3C), 0);
-    lv_obj_set_style_bg_opa(close_btn, LV_OPA_70, 0);
-
-    lv_obj_t *close_label = lv_label_create(close_btn);
-    lv_label_set_text(close_label, LV_SYMBOL_CLOSE);
-    lv_obj_set_style_text_color(close_label, lv_color_white(), 0);
-    lv_obj_center(close_label);
-
-    /* Store app_id copy on close button too */
-    char *close_app_id = eos_strdup(entry->app_id);
-    lv_obj_set_user_data(close_btn, close_app_id);
-    lv_obj_add_event_cb(close_btn, _card_free_app_id, LV_EVENT_DELETE, NULL);
-
-    /* Tap to resume */
+    /* Tap on card → resume app */
     lv_obj_add_event_cb(card, _card_clicked_cb, LV_EVENT_CLICKED, NULL);
-    /* Close button: stop event bubbling to prevent card's _card_clicked_cb */
-    lv_obj_add_event_cb(close_btn, _card_close_cb, LV_EVENT_CLICKED, NULL);
 
     return card;
 }
 
 static void _card_clicked_cb(lv_event_t *e)
 {
-    /* Only handle clicks directly on the card, not bubbled from children */
-    lv_obj_t *card = lv_event_get_current_target_obj(e);
-    const char *app_id = (const char *)lv_obj_get_user_data(card);
-    if (!app_id)
-        return;
+    EOS_LOG_I("Card clicked!");
 
-    /* Look up the entry — it may have been freed if close button was clicked */
+    lv_obj_t *target = lv_event_get_target_obj(e);
+    EOS_LOG_I("Click target: %p", (void *)target);
+
+    /* Walk up to find the card (which has user_data = app_id) */
+    lv_obj_t *obj = target;
+    const char *app_id = NULL;
+    while (obj)
+    {
+        app_id = (const char *)lv_obj_get_user_data(obj);
+        if (app_id)
+            break;
+        obj = lv_obj_get_parent(obj);
+    }
+
+    if (!app_id)
+    {
+        EOS_LOG_W("No app_id found in click chain");
+        return;
+    }
+
+    EOS_LOG_I("App ID from click: '%s'", app_id);
+
     eos_recent_app_entry_t *entry = eos_recent_apps_find(app_id);
     if (!entry)
+    {
+        EOS_LOG_W("Entry not found for app_id: '%s'", app_id);
         return;
+    }
 
-    EOS_LOG_I("Recent app tapped: '%s'", app_id);
+    EOS_LOG_I("Resuming app: '%s'", app_id);
+    eos_result_t ret = eos_recent_apps_resume(entry);
+    EOS_LOG_I("Resume returned: %d", ret);
 
-    /* Resume the app */
-    eos_recent_apps_resume(entry);
-
-    /* Close the recents page */
+    EOS_LOG_I("Closing recents page...");
     eos_activity_back();
-}
-
-static void _card_close_cb(lv_event_t *e)
-{
-    /* Stop event from bubbling to card (which would trigger _card_clicked_cb) */
-    lv_event_stop_bubbling(e);
-
-    lv_obj_t *btn = lv_event_get_target_obj(e);
-    const char *app_id = (const char *)lv_obj_get_user_data(btn);
-    if (!app_id)
-        return;
-
-    /* Look up the entry */
-    eos_recent_app_entry_t *entry = eos_recent_apps_find(app_id);
-    if (!entry)
-        return;
-
-    EOS_LOG_I("Closing recent app: '%s'", app_id);
-
-    /* Evict the app */
-    eos_recent_apps_evict(entry);
-
-    /* Rebuild the card list */
-    eos_activity_t *a = eos_activity_get_current();
-    if (a)
-    {
-        lv_obj_t *view = eos_activity_get_view(a);
-        if (view && lv_obj_is_valid(view))
-        {
-            lv_obj_clean(view);
-            _build_card_list(view);
-        }
-    }
-
-    /* If no more entries, close the page */
-    if (eos_recent_apps_count() == 0)
-    {
-        eos_activity_back();
-    }
+    EOS_LOG_I("Back returned");
 }
 
 static void _build_card_list(lv_obj_t *parent)
@@ -256,11 +210,8 @@ static void _page_on_destroy(eos_activity_t *a)
 
 void eos_recent_apps_page_enter(void)
 {
-    if (!eos_recent_apps_init)
-    {
-        /* Init if not already done */
-        eos_recent_apps_init();
-    }
+    /* Init if not already called (always safe to call — has guard) */
+    eos_recent_apps_init();
 
     if (eos_activity_is_transition_in_progress())
     {
