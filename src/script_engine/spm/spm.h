@@ -289,6 +289,38 @@ bool spm_watchface_has_context(void);
 /**@{*/
 eos_result_t spm_app_run(const script_pkg_t *pkg);
 eos_result_t spm_app_stop(void);
+
+/**
+ * @brief Suspend the currently active APPLICATION program
+ * @return EOS_OK on success
+ * @note Sets state to SUSPENDED and pauses SNI context.
+ *       Realm is preserved; script_engine_stop() is NOT called.
+ */
+eos_result_t spm_app_suspend(void);
+
+/**
+ * @brief Resume a suspended APPLICATION program by id
+ * @param app_id Application package ID
+ * @return EOS_OK on success
+ * @note Restores program to ACTIVE state and unpauses SNI context.
+ */
+eos_result_t spm_app_resume(const char *app_id);
+
+/**
+ * @brief Fully terminate an APPLICATION program by id (for eviction)
+ * @param app_id Application package ID
+ * @return EOS_OK on success (including if program not found)
+ * @note Performs full 6-phase teardown including realm destruction.
+ */
+eos_result_t spm_app_stop_by_id(const char *app_id);
+
+/**
+ * @brief Find a program by script ID in any non-terminated state
+ * @param id Script package ID to search for
+ * @return Program pointer, or NULL if not found or terminated
+ * @note Unlike spm_get_program_by_id(), this matches SUSPENDED programs too.
+ */
+script_program_t *spm_get_program_by_id_any_state(const char *id);
 /**@}*/
 
 #ifdef __cplusplus

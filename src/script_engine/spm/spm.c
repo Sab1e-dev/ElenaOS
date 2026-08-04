@@ -328,7 +328,7 @@ eos_result_t spm_suspend_program(script_program_t *prog)
 {
     if (!prog)
         return EOS_ERR_SCRIPT_NULL_PACKAGE;
-    if (prog->type != SCRIPT_TYPE_WATCHFACE)
+    if (prog->type != SCRIPT_TYPE_WATCHFACE && prog->type != SCRIPT_TYPE_APPLICATION)
         return EOS_ERR_SCRIPT_INVALID_TYPE;
     if (prog->state != SCRIPT_PROGRAM_STATE_ACTIVE)
         return EOS_ERR_INVALID_STATE;
@@ -624,6 +624,53 @@ eos_result_t spm_app_stop(void)
         return EOS_OK;
     eos_result_t ret = spm_terminate_program(prog);
     return ret;
+}
+
+eos_result_t spm_app_suspend(void)
+{
+    script_program_t *prog = spm_get_active_program();
+    if (!prog || prog->type != SCRIPT_TYPE_APPLICATION)
+        return EOS_ERR_INVALID_STATE;
+    return spm_suspend_program(prog);
+}
+
+eos_result_t spm_app_resume(const char *app_id)
+{
+    if (!app_id)
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    script_program_t *prog = spm_get_program_by_id_any_state(app_id);
+    if (!prog || prog->type != SCRIPT_TYPE_APPLICATION)
+        return EOS_ERR_INVALID_STATE;
+    if (prog->state != SCRIPT_PROGRAM_STATE_SUSPENDED)
+        return EOS_ERR_INVALID_STATE;
+    return spm_resume_program(prog);
+}
+
+eos_result_t spm_app_stop_by_id(const char *app_id)
+{
+    if (!app_id)
+        return EOS_ERR_SCRIPT_NULL_PACKAGE;
+    script_program_t *prog = spm_get_program_by_id_any_state(app_id);
+    if (!prog || prog->type != SCRIPT_TYPE_APPLICATION)
+        return EOS_OK; /* Already gone or never existed */
+    return spm_terminate_program(prog);
+}
+
+script_program_t *spm_get_program_by_id_any_state(const char *id)
+{
+    if (!id)
+        return NULL;
+    script_program_t *prog = s_program_list;
+    while (prog)
+    {
+        if (prog->script.id && strcmp(prog->script.id, id) == 0
+            && prog->state != SCRIPT_PROGRAM_STATE_TERMINATED)
+        {
+            return prog;
+        }
+        prog = prog->next;
+    }
+    return NULL;
 }
 
 const spm_error_t *spm_get_last_error(void)
