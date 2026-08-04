@@ -53,6 +53,7 @@ typedef struct
     eos_activity_t *from;
     eos_activity_t *to;
     bool destroy_from;
+    bool suspend_from; /**< Park 'from' activity instead of destroying (recent apps) */
     bool cleanup_scheduled;
     eos_activity_snapshot_node_t *snapshots;
 } eos_activity_anim_ctx_t;
@@ -67,6 +68,10 @@ struct eos_activity_t
     lv_color_t app_header_time_only_text_color;
     bool destroy_on_exit;
     bool has_started;
+    bool suspend_on_exit;       /**< Park sub-stack instead of destroying after transition */
+    bool suspended;              /**< Activity is parked in recents registry */
+    struct eos_activity_t *app_substack_next; /**< Next activity toward app root */
+    struct eos_activity_t *app_root;          /**< APP-type root activity of this app */
     struct
     {
         lv_color_t color;
@@ -156,6 +161,13 @@ static bool _controller_initialized(void)
 static void _activity_run_destroy(eos_activity_t *activity)
 {
     EOS_CHECK_PTR_RETURN(activity);
+
+    /* Never destroy a suspended (parked) activity */
+    if (activity->suspended)
+    {
+        EOS_LOG_W("Activity destroy skipped (suspended): %p[%s]", (void *)activity, _activity_type_to_str(activity->type));
+        return;
+    }
 
     EOS_LOG_I("Activity destroy begin: activity=%p type=%s destroy_on_exit=%d started=%d view=%p valid=%d "
               "snapshot_ref=%u header_visible=%d header_time_only=%d user_data=%p",
@@ -390,7 +402,8 @@ static void _anim_clean_up_activity_deferred(void *user_data)
         snapshot_count++;
         node = node->next;
     }
-    EOS_LOG_E("DEFERRED cleanup: snapshot_count=%d destroy_from=%d", snapshot_count, anim_ctx->destroy_from);
+    EOS_LOG_E("DEFERRED cleanup: snapshot_count=%d destroy_from=%d suspend_from=%d",
+              snapshot_count, anim_ctx->destroy_from, anim_ctx->suspend_from);
     node = anim_ctx->snapshots;
     while (node)
     {
@@ -410,7 +423,24 @@ static void _anim_clean_up_activity_deferred(void *user_data)
     anim_ctx->snapshots = NULL;
     EOS_LOG_E("DEFERRED cleanup: snapshots freed");
 
-    if (anim_ctx->destroy_from && anim_ctx->from)
+    if (anim_ctx->suspend_from && anim_ctx->from)
+    {
+        /* Park the from activity: hide view, mark suspended, do NOT destroy */
+        if (anim_ctx->from->view && lv_obj_is_valid(anim_ctx->from->view))
+        {
+            lv_obj_add_flag(anim_ctx->from->view, LV_OBJ_FLAG_HIDDEN);
+        }
+        anim_ctx->from->suspended = true;
+        anim_ctx->from->suspend_on_exit = false;
+        EOS_LOG_I("Activity parked (suspended): %p[%s]",
+                  (void *)anim_ctx->from,
+                  _activity_type_to_str(anim_ctx->from->type));
+        if (!eos_activity_is_app_header_visible(anim_ctx->to))
+        {
+            eos_app_header_hide();
+        }
+    }
+    else if (anim_ctx->destroy_from && anim_ctx->from)
     {
         if (!eos_activity_is_app_header_visible(anim_ctx->to))
         {
@@ -579,11 +609,13 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             anim_ctx->from = cur_activity;
             anim_ctx->to = next_activity;
             anim_ctx->destroy_from = cur_activity ? cur_activity->destroy_on_exit : false;
+            anim_ctx->suspend_from = cur_activity ? cur_activity->suspend_on_exit : false;
 
-            EOS_LOG_I("Activity transition start: from=%p[%s destroy=%d] to=%p[%s destroy=%d] anim_cb=%p list_anim=%d",
+            EOS_LOG_I("Activity transition start: from=%p[%s destroy=%d suspend=%d] to=%p[%s destroy=%d] anim_cb=%p list_anim=%d",
                       (void *)cur_activity,
                       _activity_type_to_str(cur_activity ? cur_activity->type : EOS_ACTIVITY_TYPE_NULL),
                       cur_activity ? cur_activity->destroy_on_exit : false,
+                      cur_activity ? cur_activity->suspend_on_exit : false,
                       (void *)next_activity,
                       _activity_type_to_str(next_activity->type),
                       next_activity->destroy_on_exit,
@@ -1716,4 +1748,333 @@ eos_activity_t *eos_activity_get_bottom(void)
 
     // Stack empty, return root activity
     return _activity_ctx.root_activity;
+}
+
+/* Standalone Snapshot -----------------------------------------*/
+
+lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, bool include_header)
+{
+#if LV_USE_SNAPSHOT
+    EOS_CHECK_PTR_RETURN_VAL(activity, NULL);
+
+    lv_obj_t *view = activity->view;
+    if (!(view && lv_obj_is_valid(view)))
+    {
+        return NULL;
+    }
+
+    lv_draw_buf_t *snapshot = eos_draw_buf_create((uint32_t)lv_obj_get_width(view),
+                                                  (uint32_t)lv_obj_get_height(view),
+                                                  _SNAPSHOT_COLOR_FORMAT,
+                                                  0);
+    if (!snapshot)
+    {
+        return NULL;
+    }
+
+    bool prev_header_visible = eos_app_header_is_visible();
+    eos_activity_t *prev_visible_activity = eos_activity_get_visible();
+    bool need_attach_header = include_header && activity->is_app_header_visible;
+    if (need_attach_header)
+    {
+        eos_app_header_show(activity);
+        eos_app_header_attach_to_view(view);
+    }
+
+    bool was_hidden = lv_obj_has_flag(view, LV_OBJ_FLAG_HIDDEN);
+    if (was_hidden)
+    {
+        lv_obj_remove_flag(view, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    lv_obj_update_layout(view);
+
+    {
+        lv_display_t *disp = lv_display_get_default();
+        if (disp)
+        {
+            lv_obj_invalidate(view);
+            lv_refr_now(disp);
+        }
+    }
+
+    lv_result_t snapshot_result = lv_snapshot_take_to_draw_buf(view, _SNAPSHOT_COLOR_FORMAT, snapshot);
+
+    if (was_hidden)
+    {
+        lv_obj_add_flag(view, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (need_attach_header)
+    {
+        eos_app_header_detach_from_view();
+        if (prev_header_visible)
+        {
+            if (prev_visible_activity)
+            {
+                eos_app_header_show(prev_visible_activity);
+            }
+            else
+            {
+                eos_app_header_show(eos_activity_get_current());
+            }
+        }
+        else
+        {
+            eos_app_header_hide();
+        }
+    }
+
+    if (snapshot_result != LV_RESULT_OK)
+    {
+        eos_draw_buf_destroy(snapshot);
+        return NULL;
+    }
+
+    return snapshot;
+#else
+    LV_UNUSED(activity);
+    LV_UNUSED(include_header);
+    EOS_LOG_W("snapshot not supported (LV_USE_SNAPSHOT=0)");
+    return NULL;
+#endif
+}
+
+/* Sub-Stack Management ----------------------------------------*/
+
+eos_activity_t *eos_activity_detach_app_substack(void)
+{
+    eos_activity_t *current = _activity_ctx.current_activity;
+    if (!current)
+        return NULL;
+
+    /* Walk down the app_substack_next chain to find AppRoot */
+    eos_activity_t *app_root = current;
+    uint32_t depth = 0;
+    while (app_root && app_root->app_substack_next)
+    {
+        app_root = app_root->app_substack_next;
+        depth++;
+    }
+
+    /* Validate: the chain must end at an APP-type activity */
+    if (!app_root || app_root->type != EOS_ACTIVITY_TYPE_APP)
+    {
+        EOS_LOG_W("detach_app_substack: AppRoot not found or invalid type=%d",
+                  app_root ? app_root->type : -1);
+        return NULL;
+    }
+
+    /* Call on_pause top-down (current → AppRoot) */
+    eos_activity_t *node = current;
+    while (node && node != app_root->app_substack_next)
+    {
+        if (node->lifecycle.on_pause)
+        {
+            node->lifecycle.on_pause(node);
+        }
+        node = node->app_substack_next;
+    }
+
+    /* Remove each sub-stack activity from the main stack */
+    /* First, collect them in order by popping */
+    uint32_t stack_size = eos_stack_get_size(_activity_ctx.activity_stack);
+    eos_activity_t **substack = eos_malloc_zeroed((depth + 2) * sizeof(eos_activity_t *));
+    if (!substack)
+    {
+        EOS_LOG_E("detach_app_substack: malloc failed");
+        return NULL;
+    }
+
+    uint32_t substack_count = 0;
+    eos_activity_t **temp = eos_malloc_zeroed(stack_size * sizeof(eos_activity_t *));
+    if (!temp)
+    {
+        eos_free(substack);
+        return NULL;
+    }
+
+    /* Pop everything off the stack into temp */
+    uint32_t temp_count = 0;
+    while (eos_stack_get_size(_activity_ctx.activity_stack) > 0)
+    {
+        temp[temp_count++] = (eos_activity_t *)eos_stack_pop(_activity_ctx.activity_stack);
+    }
+
+    /* Find where the sub-stack starts in the popped array */
+    /* temp[0] was the top of stack (current). Walk until we find AppRoot. */
+    uint32_t substack_start = 0;
+    for (uint32_t i = 0; i < temp_count; i++)
+    {
+        if (temp[i] == app_root)
+        {
+            substack_count = i + 1; /* Everything from temp[0] to temp[i] (AppRoot) */
+            break;
+        }
+    }
+
+    /* Push back non-substack activities (bottom-up) */
+    for (uint32_t i = temp_count; i > substack_count; i--)
+    {
+        eos_stack_push(_activity_ctx.activity_stack, temp[i - 1]);
+    }
+
+    /* Save sub-stack for return */
+    for (uint32_t i = 0; i < substack_count; i++)
+    {
+        substack[i] = temp[i];
+    }
+
+    eos_free(temp);
+
+    /* Update current_activity to the new stack top */
+    if (eos_stack_get_size(_activity_ctx.activity_stack) > 0)
+    {
+        _activity_ctx.current_activity = (eos_activity_t *)eos_stack_peek(_activity_ctx.activity_stack);
+    }
+    else
+    {
+        _activity_ctx.current_activity = _activity_ctx.root_activity;
+    }
+
+    EOS_LOG_I("Detached app sub-stack: root=%p[%s] depth=%u new_current=%p[%s]",
+              (void *)app_root,
+              _activity_type_to_str(app_root->type),
+              substack_count,
+              (void *)_activity_ctx.current_activity,
+              _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
+                                                                    : EOS_ACTIVITY_TYPE_NULL));
+
+    eos_free(substack);
+    return current; /* Return the sub-stack top */
+}
+
+void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
+{
+    if (!substack_top)
+        return;
+
+    /* Walk down to AppRoot to count and find root */
+    eos_activity_t *app_root = substack_top;
+    uint32_t depth = 0;
+    while (app_root && app_root->app_substack_next)
+    {
+        app_root = app_root->app_substack_next;
+        depth++;
+    }
+
+    if (!app_root || app_root->type != EOS_ACTIVITY_TYPE_APP)
+    {
+        EOS_LOG_W("reattach_app_substack: invalid chain");
+        return;
+    }
+
+    /* Build ordered array: [AppRoot ... substack_top] */
+    eos_activity_t **ordered = eos_malloc_zeroed((depth + 2) * sizeof(eos_activity_t *));
+    if (!ordered)
+        return;
+
+    uint32_t count = 0;
+    eos_activity_t *node = substack_top;
+    while (node)
+    {
+        ordered[count++] = node;
+        if (node == app_root)
+            break;
+        node = node->app_substack_next;
+    }
+
+    /* Push onto main stack bottom-up (AppRoot first) */
+    for (uint32_t i = count; i > 0; i--)
+    {
+        eos_activity_t *a = ordered[i - 1];
+        eos_stack_push(_activity_ctx.activity_stack, a);
+        a->suspended = false;
+        if (a->view && lv_obj_is_valid(a->view))
+        {
+            lv_obj_clear_flag(a->view, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    eos_free(ordered);
+
+    /* Call on_resume bottom-up (AppRoot → substack_top) */
+    node = app_root;
+    while (node)
+    {
+        if (node->lifecycle.on_resume)
+        {
+            node->lifecycle.on_resume(node);
+        }
+        if (node == substack_top)
+            break;
+        /* Find parent in chain (the one whose app_substack_next points to node) */
+        eos_activity_t *parent = substack_top;
+        while (parent)
+        {
+            if (parent->app_substack_next == node)
+            {
+                node = parent;
+                break;
+            }
+            if (parent == app_root)
+            {
+                parent = NULL;
+                break;
+            }
+            parent = parent->app_substack_next;
+        }
+        if (!parent)
+            break;
+    }
+
+    _activity_ctx.current_activity = substack_top;
+
+    EOS_LOG_I("Re-attached app sub-stack: root=%p[%s] top=%p[%s] depth=%u",
+              (void *)app_root,
+              _activity_type_to_str(app_root->type),
+              (void *)substack_top,
+              _activity_type_to_str(substack_top->type),
+              depth + 1);
+}
+
+/* Accessors ---------------------------------------------------*/
+
+void eos_activity_set_suspend_on_exit(eos_activity_t *activity, bool suspend_on_exit)
+{
+    if (activity)
+        activity->suspend_on_exit = suspend_on_exit;
+}
+
+bool eos_activity_is_suspended(eos_activity_t *activity)
+{
+    return activity ? activity->suspended : false;
+}
+
+void eos_activity_set_suspended(eos_activity_t *activity, bool suspended)
+{
+    if (activity)
+        activity->suspended = suspended;
+}
+
+void eos_activity_set_app_substack_next(eos_activity_t *activity, eos_activity_t *next)
+{
+    if (activity)
+        activity->app_substack_next = next;
+}
+
+eos_activity_t *eos_activity_get_app_substack_next(eos_activity_t *activity)
+{
+    return activity ? activity->app_substack_next : NULL;
+}
+
+void eos_activity_set_app_root(eos_activity_t *activity, eos_activity_t *app_root)
+{
+    if (activity)
+        activity->app_root = app_root;
+}
+
+eos_activity_t *eos_activity_get_app_root(eos_activity_t *activity)
+{
+    return activity ? activity->app_root : NULL;
 }

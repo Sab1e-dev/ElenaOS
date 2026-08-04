@@ -34,6 +34,7 @@ typedef enum
     EOS_ACTIVITY_TYPE_WATCHFACE,
     EOS_ACTIVITY_TYPE_WATCHFACE_LIST,
     EOS_ACTIVITY_TYPE_LOCK_SCREEN,
+    EOS_ACTIVITY_TYPE_RECENT_APPS,
     EOS_ACTIVITY_TYPE_COUNT
 } eos_activity_type_t;
 
@@ -389,6 +390,80 @@ eos_activity_t *eos_activity_get_bottom(void);
  * @return true if the activity has been entered at least once
  */
 bool eos_activity_has_started(eos_activity_t *activity);
+
+/**
+ * @brief Take a standalone snapshot of an Activity's view (not tied to an animation window)
+ * @param activity Activity pointer
+ * @param include_header Whether to include the AppHeader in the snapshot
+ * @return lv_draw_buf_t* Owned RGB565 draw buffer, or NULL on failure
+ * @note The caller owns the returned draw buffer and must free it via eos_draw_buf_destroy().
+ */
+lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, bool include_header);
+
+/**
+ * @brief Detach the app sub-stack from current_activity down to the APP-type root
+ * @return eos_activity_t* The sub-stack top (the previous current_activity), or NULL
+ * @note Walks app_substack_next chain. Calls on_pause top-down. Removes from main stack.
+ *       After call, current_activity is the activity immediately below AppRoot.
+ */
+eos_activity_t *eos_activity_detach_app_substack(void);
+
+/**
+ * @brief Re-attach a previously detached app sub-stack to the main activity stack
+ * @param substack_top Topmost activity of the sub-stack (was current at suspend time)
+ * @note Pushes activities bottom-up (AppRoot first). Calls on_resume bottom-up.
+ *       After call, current_activity is substack_top.
+ */
+void eos_activity_reattach_app_substack(eos_activity_t *substack_top);
+
+/**
+ * @brief Set the suspend_on_exit flag on an activity (park instead of destroy after transition)
+ * @param activity Activity pointer
+ * @param suspend_on_exit Whether to park the activity on exit
+ */
+void eos_activity_set_suspend_on_exit(eos_activity_t *activity, bool suspend_on_exit);
+
+/**
+ * @brief Check if an activity is suspended (parked in recents registry)
+ * @param activity Activity pointer
+ * @return true if suspended
+ */
+bool eos_activity_is_suspended(eos_activity_t *activity);
+
+/**
+ * @brief Mark an activity as suspended
+ * @param activity Activity pointer
+ * @param suspended Suspended state
+ */
+void eos_activity_set_suspended(eos_activity_t *activity, bool suspended);
+
+/**
+ * @brief Set the app_substack_next link (next activity toward app root, stack-down direction)
+ * @param activity Activity pointer
+ * @param next The next activity in the substack chain (closer to AppRoot), or NULL
+ */
+void eos_activity_set_app_substack_next(eos_activity_t *activity, eos_activity_t *next);
+
+/**
+ * @brief Get the app_substack_next link
+ * @param activity Activity pointer
+ * @return eos_activity_t* Next in substack chain, or NULL
+ */
+eos_activity_t *eos_activity_get_app_substack_next(eos_activity_t *activity);
+
+/**
+ * @brief Set the app_root reference for this activity
+ * @param activity Activity pointer
+ * @param app_root The APP-type root activity of this app
+ */
+void eos_activity_set_app_root(eos_activity_t *activity, eos_activity_t *app_root);
+
+/**
+ * @brief Get the app_root reference
+ * @param activity Activity pointer
+ * @return eos_activity_t* The app root, or NULL
+ */
+eos_activity_t *eos_activity_get_app_root(eos_activity_t *activity);
 
 #ifdef __cplusplus
 }
