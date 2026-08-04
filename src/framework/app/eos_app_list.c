@@ -263,8 +263,8 @@ static void _app_on_resume(eos_activity_t *a)
         script_program_t *prog = spm_get_program_by_id_any_state(ctx->app_id);
         if (prog && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE && prog->sni_ctx)
         {
-            uint32_t timer_strat = (uint32_t)CONFIG_EOS_RECENT_APPS_TIMER_STRATEGY;
-            uint32_t anim_strat = (uint32_t)CONFIG_EOS_RECENT_APPS_ANIM_STRATEGY;
+            uint32_t timer_strat = (uint32_t)EOS_RECENT_APPS_TIMER_STRATEGY;
+            uint32_t anim_strat = (uint32_t)EOS_RECENT_APPS_ANIM_STRATEGY;
             sni_context_resume_resources(prog->sni_ctx, (int)timer_strat, (int)anim_strat);
         }
     }

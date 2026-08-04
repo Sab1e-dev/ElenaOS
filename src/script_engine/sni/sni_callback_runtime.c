@@ -1110,7 +1110,7 @@ void sni_cb_timer_resume_with_strategy(lv_timer_t *timer, sni_timer_resume_strat
         return;
     }
 
-    uint32_t period = lv_timer_get_period(timer);
+    uint32_t period = timer->period;
     if (period == 0)
     {
         lv_timer_resume(timer);

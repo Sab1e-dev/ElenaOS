@@ -91,8 +91,8 @@ static uint32_t _estimate_entry_mem(eos_recent_app_entry_t *e)
 
 static void _lru_eviction_check(void)
 {
-    uint32_t max = (uint32_t)CONFIG_EOS_RECENT_APPS_MAX;
-    uint32_t watermark = (uint32_t)CONFIG_EOS_RECENT_APPS_MEM_HIGH_WATERMARK;
+    uint32_t max = (uint32_t)EOS_RECENT_APPS_MAX;
+    uint32_t watermark = (uint32_t)EOS_RECENT_APPS_MEM_HIGH_WATERMARK;
 
     while ((s_count > max || s_total_mem_bytes > watermark) && s_tail)
     {
@@ -110,11 +110,11 @@ void eos_recent_apps_init(void)
         return;
 
     /* Load strategy from Kconfig */
-#if defined(CONFIG_EOS_RECENT_APPS_TIMER_STRATEGY)
-    s_timer_strategy = (eos_suspend_timer_strategy_t)CONFIG_EOS_RECENT_APPS_TIMER_STRATEGY;
+#if defined(EOS_RECENT_APPS_TIMER_STRATEGY)
+    s_timer_strategy = (eos_suspend_timer_strategy_t)EOS_RECENT_APPS_TIMER_STRATEGY;
 #endif
-#if defined(CONFIG_EOS_RECENT_APPS_ANIM_STRATEGY)
-    s_anim_strategy = (eos_suspend_anim_strategy_t)CONFIG_EOS_RECENT_APPS_ANIM_STRATEGY;
+#if defined(EOS_RECENT_APPS_ANIM_STRATEGY)
+    s_anim_strategy = (eos_suspend_anim_strategy_t)EOS_RECENT_APPS_ANIM_STRATEGY;
 #endif
 
     /* Subscribe to app uninstall events for cleanup */
@@ -122,8 +122,8 @@ void eos_recent_apps_init(void)
 
     s_initialized = true;
     EOS_LOG_I("Recent Apps initialized: max=%d mem_limit=%d timer_strat=%d anim_strat=%d",
-              CONFIG_EOS_RECENT_APPS_MAX,
-              CONFIG_EOS_RECENT_APPS_MEM_HIGH_WATERMARK,
+              EOS_RECENT_APPS_MAX,
+              EOS_RECENT_APPS_MEM_HIGH_WATERMARK,
               (int)s_timer_strategy,
               (int)s_anim_strategy);
 }

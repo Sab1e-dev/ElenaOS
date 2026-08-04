@@ -16,7 +16,6 @@
 #include "eos_recent_apps.h"
 #include "eos_app_header.h"
 #include "eos_theme.h"
-#include "eos_font.h"
 #include "eos_anim.h"
 #include "eos_overlay_layer.h"
 #include "eos_crown.h"
@@ -93,7 +92,7 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_t *name_label = lv_label_create(card);
     lv_label_set_text(name_label, entry->app_id);
     lv_obj_set_style_text_color(name_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(name_label, eos_font_get_medium(), 0);
+    lv_obj_set_style_text_font(name_label, NULL, 0);
     lv_obj_align(name_label, LV_ALIGN_TOP_RIGHT, -50, 16);
 
     /* Close button (small X) */
@@ -174,7 +173,7 @@ static void _build_card_list(lv_obj_t *parent)
         lv_obj_t *empty_label = lv_label_create(parent);
         lv_label_set_text(empty_label, "No recent apps");
         lv_obj_set_style_text_color(empty_label, lv_color_hex(0x8E8E93), 0);
-        lv_obj_set_style_text_font(empty_label, eos_font_get_medium(), 0);
+        lv_obj_set_style_text_font(empty_label, NULL, 0);
         lv_obj_center(empty_label);
         return;
     }
@@ -199,7 +198,7 @@ static void _build_card_list(lv_obj_t *parent)
     lv_obj_t *title = lv_label_create(list);
     lv_label_set_text(title, "Recent Apps");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
-    lv_obj_set_style_text_font(title, eos_font_get_large(), 0);
+    lv_obj_set_style_text_font(title, NULL, 0);
 
     /* Need to iterate entries. Since we can't access s_head directly,
      * use eos_recent_apps_find with known IDs from the activity titles.
