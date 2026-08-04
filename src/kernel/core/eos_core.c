@@ -42,6 +42,7 @@
 #include "eos_dispatcher.h"
 #include "eos_anim.h"
 #include "eos_control_center.h"
+#include "eos_recent_apps.h"
 #include "eos_chrome_manager.h"
 #include "eos_service_audio.h"
 #include "eos_service_storage.h"
@@ -190,6 +191,7 @@ void eos_init(void)
     eos_msg_list_init();
     eos_control_center_init();
     eos_chrome_manager_init();
+    eos_recent_apps_init();
     eos_service_pm_init();
     eos_service_audio_init();
     eos_service_lock_init();

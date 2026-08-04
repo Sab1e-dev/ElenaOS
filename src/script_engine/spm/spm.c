@@ -13,6 +13,7 @@
 #include "eos_mem.h"
 #include "eos_event.h"
 #include "eos_dispatcher.h"
+#include "eos_recent_apps.h"
 #include "sni_context.h"
 #include "sni_callback_runtime.h"
 #include "jerryscript.h"
@@ -816,6 +817,9 @@ void spm_handle_engine_reset(void)
     s_wf_program = NULL;
     s_has_last_error = false;
     memset(&s_last_error, 0, sizeof(spm_error_t));
+
+    /* Notify recents registry that all programs were destroyed */
+    eos_recent_apps_on_engine_reset();
 
     EOS_LOG_I("SPM: all programs destroyed, engine reset ready");
 }
