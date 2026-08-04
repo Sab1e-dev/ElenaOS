@@ -20,6 +20,7 @@
 #include "sni_context.h"
 #include "sni_callback_runtime.h"
 #include "eos_config.h"
+#include "eos_basic_widgets.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -117,7 +118,7 @@ void eos_recent_apps_init(void)
 #endif
 
     /* Subscribe to app uninstall events for cleanup */
-    eos_event_subscribe(EOS_EVENT_APP_UNINSTALLED, _app_uninstalled_cb);
+    eos_event_subscribe_ex(EOS_EVENT_APP_UNINSTALLED, _app_uninstalled_cb, NULL, NULL);
 
     s_initialized = true;
     EOS_LOG_I("Recent Apps initialized: max=%d mem_limit=%d timer_strat=%d anim_strat=%d",
@@ -431,9 +432,9 @@ bool eos_recent_apps_is_suspendable(eos_activity_t *activity)
 
 static void _app_uninstalled_cb(eos_event_t *e)
 {
-    if (!e || !e->data)
+    const char *app_id = (const char *)eos_event_get_param(e);
+    if (!app_id)
         return;
-    const char *app_id = (const char *)e->data;
     EOS_LOG_I("App uninstalled: '%s' — checking recents", app_id);
     eos_recent_app_entry_t *entry = eos_recent_apps_find(app_id);
     if (entry)

@@ -284,7 +284,6 @@ static void _app_on_destroy(eos_activity_t *a)
         spm_app_stop();
     }
 
-    app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     if (ctx)
     {
         /* Cancel the Phase B polling / chunk-read timer if still pending */
