@@ -59,11 +59,13 @@
 #define _APP_LIST_LOADING_PHASE_READ 1
 #define _APP_LIST_LOADING_PHASE_ENGINE 2
 
-/* ease_out_quint cubic-bezier: (0.22, 1, 0.36, 1) in LVGL fixed-point */
-#define _EASE_OUT_QUINT_BX1 225
-#define _EASE_OUT_QUINT_BY1 1024
-#define _EASE_OUT_QUINT_BX2 368
-#define _EASE_OUT_QUINT_BY2 1024
+/* Custom ease-out curve: P1=(0.22,1) keeps the snap/elastic feel,
+ * P2=(0.43,1) avoids the quintic tail-flatness that causes a
+ * perceptible one-frame stall at max simulator zoom. */
+#define _EASE_OUT_SNAP_BX1 225
+#define _EASE_OUT_SNAP_BY1 1024
+#define _EASE_OUT_SNAP_BX2 440
+#define _EASE_OUT_SNAP_BY2 1024
 /* Variables --------------------------------------------------*/
 
 const char *eos_sys_app_id_list[EOS_SYS_APP_LAST] = {"sys.settings",
@@ -143,19 +145,14 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *to,
                                            bool opening);
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
-static void _app_list_paired_fade_exec_cb(void *var, int32_t v);
-static void _app_list_paired_fade_ready_cb(lv_anim_t *a);
-static void _app_list_start_paired_fade(lv_obj_t *obj_a,
-                                        lv_obj_t *obj_b,
-                                        lv_obj_t *icon_clone,
-                                        lv_obj_t *app_snapshot,
-                                        int32_t focus_translate_x,
-                                        int32_t focus_translate_y,
-                                        bool opening,
-                                        uint32_t duration,
-                                        eos_anim_group_t *group,
-                                        lv_obj_t *focus_icon,
-                                        uint32_t delay);
+
+/* Forward-declare the unified-animation context so the start-function
+ * prototype can use the typedef rather than the raw struct tag. */
+typedef struct _transition_anim_ctx_t _transition_anim_ctx_t;
+
+static void _transition_anim_exec_cb(void *var, int32_t v);
+static void _transition_anim_ready_cb(lv_anim_t *a);
+static void _transition_anim_start(_transition_anim_ctx_t *ctx, uint32_t duration, uint32_t delay);
 static int32_t _app_list_find_sys_app(const char *app_id);
 static eos_result_t _app_list_build_manifest(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
@@ -177,28 +174,44 @@ static int32_t _app_list_last_click_index = -1;
 static char _app_list_last_launch_app_id[64] = {0};
 static uint32_t _app_list_icon_count = 0;
 
-/* Paired crossfade context — one master lv_anim drives opacity + translate in sync.
- * obj_a fades 255→0, obj_b fades 0→255 (complementary).
- * icon_clone and app_snapshot translates to keep their centers aligned. */
-typedef struct
+/* Unified transition-animation context.
+ * ONE lv_anim drives ALL properties (scale + translate + opacity) for every
+ * layer in lockstep.  This eliminates the per-frame rounding drift that occurs
+ * when independent lv_anim instances with different value ranges run against
+ * the same easing curve — small-range anims (e.g. app_snapshot 64→256,
+ * range=192) would quantise to zero delta at the tail, causing a visible
+ * one-frame stall.
+ *
+ * t = 255 - v  goes 0→255 (eased).  All lerps use (val * t + 127) / 255. */
+struct _transition_anim_ctx_t
 {
-    lv_obj_t *obj_a; /* fades out (255→0) */
-    lv_obj_t *obj_b; /* fades in  (0→255) */
-    lv_obj_t *icon_clone; /* icon clone object */
-    lv_obj_t *app_snapshot; /* app snapshot object */
-    int32_t icon_trans_start_x; /* icon_clone translate_x at t=0 */
-    int32_t icon_trans_start_y; /* icon_clone translate_y at t=0 */
-    int32_t icon_trans_end_x; /* icon_clone translate_x at t=1 */
-    int32_t icon_trans_end_y; /* icon_clone translate_y at t=1 */
-    int32_t snap_trans_start_x; /* app_snapshot translate_x at t=0 */
-    int32_t snap_trans_start_y; /* app_snapshot translate_y at t=0 */
-    int32_t snap_trans_end_x; /* app_snapshot translate_x at t=1 */
-    int32_t snap_trans_end_y; /* app_snapshot translate_y at t=1 */
-    bool opening; /* true=open anim, false=close anim */
+    /* ---- layers ------------------------------------------------*/
+    lv_obj_t *list_snapshot; /* app-list screenshot (may be NULL)   */
+    lv_obj_t *icon_clone; /* cloned icon                         */
+    lv_obj_t *app_snapshot; /* target-activity screenshot          */
+    lv_obj_t *obj_a; /* fades out (255→0)                   */
+    lv_obj_t *obj_b; /* fades in  (0→255)                   */
+
+    /* ---- list_snapshot ----------------------------------------*/
+    int32_t list_scale_start, list_scale_end; /* lv_image_set_scale   */
+    int32_t list_tx_start, list_tx_end; /* translate_x          */
+    int32_t list_ty_start, list_ty_end; /* translate_y          */
+
+    /* ---- icon_clone -------------------------------------------*/
+    int32_t icon_scale_start, icon_scale_end; /* transform_scale      */
+    int32_t icon_tx_start, icon_tx_end; /* translate_x          */
+    int32_t icon_ty_start, icon_ty_end; /* translate_y          */
+
+    /* ---- app_snapshot -----------------------------------------*/
+    int32_t app_scale_start, app_scale_end; /* lv_image_set_scale   */
+    int32_t app_tx_start, app_tx_end; /* translate_x          */
+    int32_t app_ty_start, app_ty_end; /* translate_y          */
+
+    bool opening;
     lv_anim_t lv_anim;
     eos_anim_group_t *group;
-    lv_obj_t *focus_icon;
-} _paired_fade_ctx_t;
+    lv_obj_t *focus_icon; /* restored when closing anim completes  */
+};
 
 /* Lifecycle --------------------------------------------------*/
 
@@ -1103,33 +1116,61 @@ static void _app_list_cleanup_extra_cb(lv_event_t *e)
     }
 }
 
-/* Paired crossfade + center-aligned translate:
- * One lv_anim drives:
- *  1. Opacity remapped by scale: icon reaches full transparency at
- *     FOCUS_SCALE/2 (scale 1024). Opening: t=0→109 (43% eased progress),
- *     Closing: t=146→255 (last 43% eased progress). App opacity is always
- *     complementary (sum=255).
- *  2. icon_clone translate: lerp between pre-computed start/end
- *  3. app_snapshot translate: lerp between pre-computed start/end
+/* ===================================================================
+ * Unified transition animation — ONE lv_anim drives everything.
  *
- * v goes from 255 to 0; progress t = 255-v, t: 0→1 eased.
+ * All properties (scale, translate, opacity) for every layer are
+ * computed from a single eased progress value `t` (0→255).  This
+ * guarantees lockstep synchronisation and avoids the zero-delta
+ * frames that occur when independent lv_anim instances with small
+ * value ranges (e.g. app_snapshot 64→256, range=192) quantise to
+ * zero at the tail of an ease-out curve.
  *
- * Scale goes 256↔2048 (range 1792). FOCUS_SCALE/2 = 1024.
- * Opening (256→2048): scale=1024 at f=768/1792=3/7, t=255*3/7≈109.
- * Closing (2048→256): scale=1024 at f=1024/1792=4/7, t=255*4/7≈146.
- */
-static void _app_list_paired_fade_exec_cb(void *var, int32_t v)
-{
-    _paired_fade_ctx_t *ctx = (_paired_fade_ctx_t *)var;
-    int32_t t = 255 - v; /* t: 0→255 eased (same curve as scale) */
+ * Icon opacity crossfade thresholds are keyed to the scale midpoint
+ * (FOCUS_SCALE/2 = 1024), same as before:
+ *   Opening  (256→2048): scale=1024 at t≈109
+ *   Closing  (2048→256): scale=1024 at t≈146
+ * =================================================================== */
 
-    /* Icon opacity driven by scale: reaches 0/255 at FOCUS_SCALE/2.
-     * Opening: icon fades out 255→0 over t=0..109, then stays 0.
-     * Closing: icon stays 0 until t=146, then fades in 0→255. */
+/** Helper: eased lerp with proper rounding. */
+static inline int32_t _elerp(int32_t a, int32_t b, int32_t t)
+{
+    return a + ((b - a) * t + 127) / 255;
+}
+
+static void _transition_anim_exec_cb(void *var, int32_t v)
+{
+    _transition_anim_ctx_t *ctx = (_transition_anim_ctx_t *)var;
+    int32_t t = 255 - v; /* t: 0→255 eased */
+
+    /* ---- list_snapshot scale + translate ----------------------*/
+    if (ctx->list_snapshot && lv_obj_is_valid(ctx->list_snapshot))
+    {
+        lv_image_set_scale(ctx->list_snapshot, _elerp(ctx->list_scale_start, ctx->list_scale_end, t));
+        lv_obj_set_style_translate_x(ctx->list_snapshot, _elerp(ctx->list_tx_start, ctx->list_tx_end, t), 0);
+        lv_obj_set_style_translate_y(ctx->list_snapshot, _elerp(ctx->list_ty_start, ctx->list_ty_end, t), 0);
+    }
+
+    /* ---- icon_clone transform scale + translate + opacity -----*/
+    if (ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
+    {
+        lv_obj_set_style_transform_scale(ctx->icon_clone, _elerp(ctx->icon_scale_start, ctx->icon_scale_end, t), 0);
+        lv_obj_set_style_translate_x(ctx->icon_clone, _elerp(ctx->icon_tx_start, ctx->icon_tx_end, t), 0);
+        lv_obj_set_style_translate_y(ctx->icon_clone, _elerp(ctx->icon_ty_start, ctx->icon_ty_end, t), 0);
+    }
+
+    /* ---- app_snapshot image scale + translate + opacity -------*/
+    if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
+    {
+        lv_image_set_scale(ctx->app_snapshot, _elerp(ctx->app_scale_start, ctx->app_scale_end, t));
+        lv_obj_set_style_translate_x(ctx->app_snapshot, _elerp(ctx->app_tx_start, ctx->app_tx_end, t), 0);
+        lv_obj_set_style_translate_y(ctx->app_snapshot, _elerp(ctx->app_ty_start, ctx->app_ty_end, t), 0);
+    }
+
+    /* ---- Opacity crossfade (keyed to scale midpoint) ----------*/
     int32_t icon_opa;
     if (ctx->opening)
     {
-        /* scale 256→1024 in first 109/255 of eased progress: fast fade-out */
         if (t < 109)
             icon_opa = 255 - (t * 255 / 109);
         else
@@ -1137,7 +1178,6 @@ static void _app_list_paired_fade_exec_cb(void *var, int32_t v)
     }
     else
     {
-        /* scale 1024→256 in last 109/255 of eased progress: fast fade-in */
         if (t < 146)
             icon_opa = 0;
         else
@@ -1145,45 +1185,21 @@ static void _app_list_paired_fade_exec_cb(void *var, int32_t v)
     }
     int32_t app_opa = 255 - icon_opa;
 
-    /* opening: obj_a=icon_clone(fading out), obj_b=app_snapshot(fading in)
-     * closing: obj_a=app_snapshot(fading out), obj_b=icon_clone(fading in) */
     if (ctx->obj_a && lv_obj_is_valid(ctx->obj_a))
-    {
         lv_obj_set_style_opa(ctx->obj_a, (lv_opa_t)(ctx->opening ? icon_opa : app_opa), 0);
-    }
     if (ctx->obj_b && lv_obj_is_valid(ctx->obj_b))
-    {
         lv_obj_set_style_opa(ctx->obj_b, (lv_opa_t)(ctx->opening ? app_opa : icon_opa), 0);
-    }
-
-    /* icon_clone translate: pure lerp */
-    if (ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
-    {
-        int32_t tx = ctx->icon_trans_start_x + ((ctx->icon_trans_end_x - ctx->icon_trans_start_x) * t + 127) / 255;
-        int32_t ty = ctx->icon_trans_start_y + ((ctx->icon_trans_end_y - ctx->icon_trans_start_y) * t + 127) / 255;
-        lv_obj_set_style_translate_x(ctx->icon_clone, tx, 0);
-        lv_obj_set_style_translate_y(ctx->icon_clone, ty, 0);
-    }
-
-    /* app_snapshot translate: pure lerp */
-    if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
-    {
-        int32_t tx = ctx->snap_trans_start_x + ((ctx->snap_trans_end_x - ctx->snap_trans_start_x) * t + 127) / 255;
-        int32_t ty = ctx->snap_trans_start_y + ((ctx->snap_trans_end_y - ctx->snap_trans_start_y) * t + 127) / 255;
-        lv_obj_set_style_translate_x(ctx->app_snapshot, tx, 0);
-        lv_obj_set_style_translate_y(ctx->app_snapshot, ty, 0);
-    }
 }
 
-static void _free_paired_fade_ctx(lv_timer_t *t)
+static void _free_transition_anim_ctx(lv_timer_t *t)
 {
-    _paired_fade_ctx_t *ctx = lv_timer_get_user_data(t);
+    _transition_anim_ctx_t *ctx = lv_timer_get_user_data(t);
     eos_free(ctx);
 }
 
-static void _app_list_paired_fade_ready_cb(lv_anim_t *a)
+static void _transition_anim_ready_cb(lv_anim_t *a)
 {
-    _paired_fade_ctx_t *ctx = (_paired_fade_ctx_t *)lv_anim_get_user_data(a);
+    _transition_anim_ctx_t *ctx = (_transition_anim_ctx_t *)lv_anim_get_user_data(a);
 
     /* Restore focus icon when closing animation finishes */
     if (ctx->focus_icon && lv_obj_is_valid(ctx->focus_icon))
@@ -1197,7 +1213,6 @@ static void _app_list_paired_fade_ready_cb(lv_anim_t *a)
         eos_anim_group_t *g = ctx->group;
         ctx->group = NULL;
         g->completed++;
-        EOS_LOG_E("Paired fade group[%p]: completed=%d expected=%d", g, g->completed, g->expected);
         if (g->completed >= g->expected && g->callback)
         {
             g->callback(g->user_data);
@@ -1205,90 +1220,55 @@ static void _app_list_paired_fade_ready_cb(lv_anim_t *a)
     }
 
     /* Defer free to avoid use-after-free in lv_anim internals */
-    lv_timer_t *t = lv_timer_create(_free_paired_fade_ctx, 10, ctx);
+    lv_timer_t *t = lv_timer_create(_free_transition_anim_ctx, 10, ctx);
     lv_timer_set_repeat_count(t, 1);
 }
 
-static void _app_list_start_paired_fade(lv_obj_t *obj_a,
-                                        lv_obj_t *obj_b,
-                                        lv_obj_t *icon_clone,
-                                        lv_obj_t *app_snapshot,
-                                        int32_t focus_translate_x,
-                                        int32_t focus_translate_y,
-                                        bool opening,
-                                        uint32_t duration,
-                                        eos_anim_group_t *group,
-                                        lv_obj_t *focus_icon,
-                                        uint32_t delay)
+/** Set up the unified transition animation that drives everything. */
+static void _transition_anim_start(_transition_anim_ctx_t *ctx, uint32_t duration, uint32_t delay)
 {
-    if (!obj_a || !obj_b || !icon_clone || !app_snapshot || duration == 0)
+    /* Apply initial values for all properties */
+    if (ctx->list_snapshot && lv_obj_is_valid(ctx->list_snapshot))
     {
-        return;
+        lv_image_set_scale(ctx->list_snapshot, ctx->list_scale_start);
+        lv_obj_set_style_translate_x(ctx->list_snapshot, ctx->list_tx_start, 0);
+        lv_obj_set_style_translate_y(ctx->list_snapshot, ctx->list_ty_start, 0);
     }
-
-    _paired_fade_ctx_t *ctx = eos_malloc_zeroed(sizeof(_paired_fade_ctx_t));
-    if (!ctx)
+    if (ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
     {
-        return;
+        lv_obj_set_style_transform_scale(ctx->icon_clone, ctx->icon_scale_start, 0);
+        lv_obj_set_style_translate_x(ctx->icon_clone, ctx->icon_tx_start, 0);
+        lv_obj_set_style_translate_y(ctx->icon_clone, ctx->icon_ty_start, 0);
     }
-
-    ctx->obj_a = obj_a;
-    ctx->obj_b = obj_b;
-    ctx->icon_clone = icon_clone;
-    ctx->app_snapshot = app_snapshot;
-    ctx->group = group;
-    ctx->focus_icon = focus_icon;
-    ctx->opening = opening;
-
-    /* icon_clone: positioned at icon coords, pivot at own center.
-     * Its visual center = icon_center + translate.
-     * Translate from icon_center → display_center (opening) or reverse (closing).
-     */
-    ctx->icon_trans_start_x = opening ? 0 : focus_translate_x;
-    ctx->icon_trans_start_y = opening ? 0 : focus_translate_y;
-    ctx->icon_trans_end_x = opening ? focus_translate_x : 0;
-    ctx->icon_trans_end_y = opening ? focus_translate_y : 0;
-
-    /* app_snapshot: positioned at (0,0), pivot at own center (W/2, H/2).
-     * Its visual center = display_center + translate.
-     * To align with icon_clone center (= icon_center + icon_translate):
-     *   snap_translate = icon_center + icon_translate - display_center
-     *                   = icon_translate - focus_translate
-     * Opening: icon_translate goes 0→focus_translate, so snap -focus_translate→0.
-     * Closing: icon_translate goes focus_translate→0, so snap 0→-focus_translate.
-     */
-    ctx->snap_trans_start_x = opening ? -focus_translate_x : 0;
-    ctx->snap_trans_start_y = opening ? -focus_translate_y : 0;
-    ctx->snap_trans_end_x = opening ? 0 : -focus_translate_x;
-    ctx->snap_trans_end_y = opening ? 0 : -focus_translate_y;
-
-    /* Set initial values */
-    lv_obj_set_style_opa(obj_a, LV_OPA_COVER, 0);
-    lv_obj_set_style_opa(obj_b, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_translate_x(icon_clone, ctx->icon_trans_start_x, 0);
-    lv_obj_set_style_translate_y(icon_clone, ctx->icon_trans_start_y, 0);
-    lv_obj_set_style_translate_x(app_snapshot, ctx->snap_trans_start_x, 0);
-    lv_obj_set_style_translate_y(app_snapshot, ctx->snap_trans_start_y, 0);
+    if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
+    {
+        lv_image_set_scale(ctx->app_snapshot, ctx->app_scale_start);
+        lv_obj_set_style_translate_x(ctx->app_snapshot, ctx->app_tx_start, 0);
+        lv_obj_set_style_translate_y(ctx->app_snapshot, ctx->app_ty_start, 0);
+    }
+    if (ctx->obj_a && lv_obj_is_valid(ctx->obj_a))
+        lv_obj_set_style_opa(ctx->obj_a, LV_OPA_COVER, 0);
+    if (ctx->obj_b && lv_obj_is_valid(ctx->obj_b))
+        lv_obj_set_style_opa(ctx->obj_b, LV_OPA_TRANSP, 0);
 
     lv_anim_init(&ctx->lv_anim);
     lv_anim_set_var(&ctx->lv_anim, ctx);
     lv_anim_set_values(&ctx->lv_anim, 255, 0);
-    lv_anim_set_exec_cb(&ctx->lv_anim, _app_list_paired_fade_exec_cb);
+    lv_anim_set_exec_cb(&ctx->lv_anim, _transition_anim_exec_cb);
     lv_anim_set_path_cb(&ctx->lv_anim, lv_anim_path_custom_bezier3);
     lv_anim_set_bezier3_param(&ctx->lv_anim,
-                              _EASE_OUT_QUINT_BX1,
-                              _EASE_OUT_QUINT_BY1,
-                              _EASE_OUT_QUINT_BX2,
-                              _EASE_OUT_QUINT_BY2);
+                              _EASE_OUT_SNAP_BX1,
+                              _EASE_OUT_SNAP_BY1,
+                              _EASE_OUT_SNAP_BX2,
+                              _EASE_OUT_SNAP_BY2);
     lv_anim_set_duration(&ctx->lv_anim, duration);
     lv_anim_set_delay(&ctx->lv_anim, delay);
-    lv_anim_set_completed_cb(&ctx->lv_anim, _app_list_paired_fade_ready_cb);
+    lv_anim_set_completed_cb(&ctx->lv_anim, _transition_anim_ready_cb);
     lv_anim_set_user_data(&ctx->lv_anim, ctx);
 
-    if (group)
+    if (ctx->group)
     {
-        group->expected++;
-        EOS_LOG_I("Paired fade attached to group[%p] (expected=%d)", group, group->expected);
+        ctx->group->expected++;
     }
 
     lv_anim_start(&ctx->lv_anim);
@@ -1522,177 +1502,68 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
               focus_translate_x,
               focus_translate_y);
 
-    if (opening)
+    /* ================================================================
+     * Unified transition animation — ONE lv_anim for everything.
+     * All scale/translate/opacity values for every layer are computed
+     * from a single eased progress `t` in _transition_anim_exec_cb,
+     * guaranteeing lockstep sync regardless of value-range size.
+     * ================================================================ */
+
+    _transition_anim_ctx_t *ctx = eos_malloc_zeroed(sizeof(_transition_anim_ctx_t));
+    if (!ctx)
     {
-        /* from side: list_snapshot zoom out + move -------------------*/
-        if (list_snapshot)
-        {
-            lv_image_set_scale(list_snapshot, 256);
-            lv_obj_set_style_translate_x(list_snapshot, 0, 0);
-            lv_obj_set_style_translate_y(list_snapshot, 0, 0);
-
-            eos_anim_t *anim =
-                eos_anim_image_scale_create(list_snapshot, 256, _APP_LIST_ANIM_FOCUS_SCALE, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-
-            anim =
-                eos_anim_move_create(list_snapshot, 0, 0, focus_translate_x, focus_translate_y, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-        }
-
-        /* icon_clone: scale up (fade + translate handled by paired fade, all in sync) -*/
         if (icon_clone)
-        {
-            lv_obj_set_style_transform_scale(icon_clone, 256, 0);
-
-            eos_anim_t *anim =
-                eos_anim_transform_scale_create(icon_clone, 256, _APP_LIST_ANIM_FOCUS_SCALE, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-        }
-
-        /* to side: app_snapshot zoom in (scale + translate run in sync) -*/
-        lv_image_set_scale(app_snapshot, _APP_LIST_ANIM_MIN_SACLE);
-
-        eos_anim_t *anim =
-            eos_anim_image_scale_create(app_snapshot, _APP_LIST_ANIM_MIN_SACLE, 256, total_duration, false);
-        if (anim)
-        {
-            eos_anim_set_path_bezier3(anim,
-                                      _EASE_OUT_QUINT_BX1,
-                                      _EASE_OUT_QUINT_BY1,
-                                      _EASE_OUT_QUINT_BX2,
-                                      _EASE_OUT_QUINT_BY2);
-            eos_anim_group_attach(anim, group);
-            eos_anim_start(anim);
-        }
+            lv_obj_delete(icon_clone);
+        return;
     }
-    else
+
+    ctx->list_snapshot = list_snapshot;
+    ctx->icon_clone = icon_clone;
+    ctx->app_snapshot = app_snapshot;
+    ctx->group = group;
+    ctx->opening = opening;
+
+    /* ---- list_snapshot params ---------------------------------*/
+    if (list_snapshot)
     {
-        /* from side: app_snapshot zoom out (scale + translate run in sync) -*/
-        lv_image_set_scale(app_snapshot, 256);
-
-        eos_anim_t *anim =
-            eos_anim_image_scale_create(app_snapshot, 256, _APP_LIST_ANIM_MIN_SACLE, total_duration, false);
-        if (anim)
-        {
-            eos_anim_set_path_bezier3(anim,
-                                      _EASE_OUT_QUINT_BX1,
-                                      _EASE_OUT_QUINT_BY1,
-                                      _EASE_OUT_QUINT_BX2,
-                                      _EASE_OUT_QUINT_BY2);
-            eos_anim_group_attach(anim, group);
-            eos_anim_start(anim);
-        }
-
-        /* to side: list_snapshot zoom in + move ----------------------*/
-        if (list_snapshot)
-        {
-            lv_image_set_scale(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE);
-            lv_obj_set_style_translate_x(list_snapshot, focus_translate_x, 0);
-            lv_obj_set_style_translate_y(list_snapshot, focus_translate_y, 0);
-
-            eos_anim_t *anim =
-                eos_anim_image_scale_create(list_snapshot, _APP_LIST_ANIM_FOCUS_SCALE, 256, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-
-            anim =
-                eos_anim_move_create(list_snapshot, focus_translate_x, focus_translate_y, 0, 0, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-        }
-
-        /* icon_clone: scale down (fade + translate handled by paired fade, all in sync) -*/
-        if (icon_clone)
-        {
-            lv_obj_set_style_transform_scale(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 0);
-
-            eos_anim_t *anim =
-                eos_anim_transform_scale_create(icon_clone, _APP_LIST_ANIM_FOCUS_SCALE, 256, total_duration, false);
-            if (anim)
-            {
-                eos_anim_set_path_bezier3(anim,
-                                          _EASE_OUT_QUINT_BX1,
-                                          _EASE_OUT_QUINT_BY1,
-                                          _EASE_OUT_QUINT_BX2,
-                                          _EASE_OUT_QUINT_BY2);
-                eos_anim_group_attach(anim, group);
-                eos_anim_start(anim);
-            }
-        }
+        ctx->list_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
+        ctx->list_scale_end = opening ? _APP_LIST_ANIM_FOCUS_SCALE : 256;
+        ctx->list_tx_start = opening ? 0 : focus_translate_x;
+        ctx->list_tx_end = opening ? focus_translate_x : 0;
+        ctx->list_ty_start = opening ? 0 : focus_translate_y;
+        ctx->list_ty_end = opening ? focus_translate_y : 0;
     }
 
-    /* --- Paired crossfade + center-aligned translate:
-     * One master lv_anim drives opacity (complementary) + translate for both
-     * icon_clone and app_snapshot, keeping their visual centers aligned.
-     *
-     * opening: icon center → screen center; icon_clone fades out, app_snapshot fades in
-     * closing: screen center → icon center; app_snapshot fades out, icon_clone fades in
-     */
-    if (icon_clone && app_snapshot)
+    /* ---- icon_clone params ------------------------------------*/
+    if (icon_clone)
     {
-        lv_obj_t *fade_obj_a = opening ? icon_clone : app_snapshot;
-        lv_obj_t *fade_obj_b = opening ? app_snapshot : icon_clone;
-        lv_obj_t *paired_focus_icon = opening ? NULL : focus_icon;
-
-        _app_list_start_paired_fade(fade_obj_a,
-                                    fade_obj_b,
-                                    icon_clone,
-                                    app_snapshot,
-                                    focus_translate_x,
-                                    focus_translate_y,
-                                    opening,
-                                    total_duration,
-                                    group,
-                                    paired_focus_icon,
-                                    0);
-
-        /* Cleanup: when app_snapshot is deleted, also delete icon_clone */
-        lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);
+        ctx->icon_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
+        ctx->icon_scale_end = opening ? _APP_LIST_ANIM_FOCUS_SCALE : 256;
+        ctx->icon_tx_start = opening ? 0 : focus_translate_x;
+        ctx->icon_tx_end = opening ? focus_translate_x : 0;
+        ctx->icon_ty_start = opening ? 0 : focus_translate_y;
+        ctx->icon_ty_end = opening ? focus_translate_y : 0;
     }
+
+    /* ---- app_snapshot params ----------------------------------*/
+    ctx->app_scale_start = opening ? _APP_LIST_ANIM_MIN_SACLE : 256;
+    ctx->app_scale_end = opening ? 256 : _APP_LIST_ANIM_MIN_SACLE;
+    /* app_snapshot translate keeps its visual center aligned with
+     * icon_clone: snap_translate = icon_translate - focus_translate */
+    ctx->app_tx_start = opening ? -focus_translate_x : 0;
+    ctx->app_tx_end = opening ? 0 : -focus_translate_x;
+    ctx->app_ty_start = opening ? -focus_translate_y : 0;
+    ctx->app_ty_end = opening ? 0 : -focus_translate_y;
+
+    /* ---- opacity crossfade pair -------------------------------*/
+    ctx->obj_a = opening ? icon_clone : app_snapshot; /* fades out */
+    ctx->obj_b = opening ? app_snapshot : icon_clone; /* fades in  */
+    ctx->focus_icon = opening ? NULL : focus_icon; /* restored on close */
+
+    _transition_anim_start(ctx, total_duration, 0);
+
+    /* Cleanup: when app_snapshot is deleted, also delete icon_clone */
+    lv_obj_add_event_cb(app_snapshot, _app_list_cleanup_extra_cb, LV_EVENT_DELETE, icon_clone);
 
     EOS_LOG_E("Transition ANIMS: group[%p] expected=%d opening=%d", group, group->expected, opening);
 }
