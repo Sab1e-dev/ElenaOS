@@ -78,10 +78,11 @@ static void _lru_unlink(eos_recent_app_entry_t *entry)
     entry->prev = NULL;
 }
 
-static uint32_t _estimate_entry_mem(eos_recent_app_entry_t *entry)
+static uint32_t _estimate_entry_mem(eos_recent_app_entry_t *e)
 {
+    LV_UNUSED(e);
     /* Screenshot: width * height * 2 bytes (RGB565) */
-    uint32_t img_bytes = (390 * 450 * 2);
+    uint32_t img_bytes = (uint32_t)(390 * 450 * 2);
     /* Rough estimate for realm + sni_ctx + activity structs */
     uint32_t overhead = 64 * 1024;
     return img_bytes + overhead;
@@ -157,31 +158,19 @@ eos_result_t eos_recent_apps_suspend_current(void)
     /* Walk to AppRoot and count depth */
     eos_activity_t *app_root = current;
     uint32_t depth = 1;
-    while (app_root->app_substack_next)
+    while (eos_activity_get_app_substack_next(app_root))
     {
-        app_root = app_root->app_substack_next;
+        app_root = eos_activity_get_app_substack_next(app_root);
         depth++;
     }
 
-    if (app_root->type != EOS_ACTIVITY_TYPE_APP)
+    if (eos_activity_get_type(app_root) != EOS_ACTIVITY_TYPE_APP)
     {
         EOS_LOG_W("AppRoot not found");
         return EOS_FAILED;
     }
 
-    /* Get app_id from the AppRoot's user_data (app_launch_ctx_t) */
-    /* The app_launch_ctx_t is defined in eos_app_list.c — we access it via user_data */
-    void *user_data = eos_activity_get_user_data(app_root);
-    if (!user_data)
-    {
-        EOS_LOG_W("AppRoot has no user_data");
-        return EOS_FAILED;
-    }
-
-    /* app_launch_ctx_t has app_id as the second field after pkg.
-     * We can't include eos_app_list internals here, so use a forward-compatible approach:
-     * the app_id is at offset sizeof(script_pkg_t) inside app_launch_ctx_t.
-     * For now, get it via the title which was set from pkg.name during launch. */
+    /* Get the app_id from the title (set from pkg.name during launch) */
     const char *title = eos_activity_get_title(app_root);
     if (!title)
     {
@@ -225,7 +214,7 @@ eos_result_t eos_recent_apps_suspend_current(void)
 
     /* Mark sub-stack for suspend park */
     eos_activity_t *node = current;
-    while (node && node != app_root->app_substack_next)
+    while (node && node != eos_activity_get_app_substack_next(app_root))
     {
         eos_activity_set_suspend_on_exit(node, true);
         eos_activity_set_suspended(node, true);
@@ -341,48 +330,21 @@ eos_result_t eos_recent_apps_evict(eos_recent_app_entry_t *entry)
 
     _lru_unlink(entry);
 
-    /* Destroy the entire sub-stack: walk app_substack_next chain from top down */
+    /* Destroy the entire sub-stack: walk app_substack_next chain from top down.
+     * Use eos_activity_destroy() which handles the full teardown including
+     * on_destroy lifecycle, view cleanup, and memory free. */
     eos_activity_t *node = entry->saved_stack_top;
     while (node)
     {
-        eos_activity_t *next = node->app_substack_next;
+        eos_activity_t *next = eos_activity_get_app_substack_next(node);
+
         /* Clear suspended flag so _activity_run_destroy proceeds */
-        node->suspended = false;
-        node->suspend_on_exit = false;
+        eos_activity_set_suspended(node, false);
+        eos_activity_set_suspend_on_exit(node, false);
 
-        if (node == entry->activity)
-        {
-            /* AppRoot: call on_destroy which triggers spm_app_stop_by_id */
-            if (node->lifecycle.on_destroy)
-            {
-                node->lifecycle.on_destroy(node);
-            }
-        }
-        else if (node->lifecycle.on_destroy)
-        {
-            node->lifecycle.on_destroy(node);
-        }
-
-        /* Delete the activity (view, snap_container, struct) */
-        /* We must manually do what _activity_run_destroy does since
-         * activities are off-stack */
-        if (node->view && lv_obj_is_valid(node->view))
-        {
-            lv_obj_delete(node->view);
-            node->view = NULL;
-        }
-        if (node->snap_container && lv_obj_is_valid(node->snap_container))
-        {
-            lv_obj_delete(node->snap_container);
-            node->snap_container = NULL;
-        }
-        if (node->title.type == 1 && node->title.string)
-        {
-            /* _TITLE_TYPE_STRING = 1 */
-            eos_free(node->title.string);
-            node->title.string = NULL;
-        }
-        eos_free(node);
+        /* Destroy the activity (calls on_destroy, deletes view, frees memory).
+         * For the AppRoot, on_destroy triggers spm_app_stop_by_id(). */
+        eos_activity_destroy(node);
 
         if (node == entry->activity)
             break;
@@ -422,7 +384,7 @@ void eos_recent_apps_on_engine_reset(void)
         eos_recent_app_entry_t *next = entry->next;
         /* Mark as not suspended so cleanup proceeds */
         if (entry->activity)
-            entry->activity->suspended = false;
+            eos_activity_set_suspended(entry->activity, false);
         if (entry->screenshot_buf)
         {
             eos_draw_buf_destroy(entry->screenshot_buf);
@@ -456,11 +418,11 @@ bool eos_recent_apps_is_suspendable(eos_activity_t *activity)
 {
     if (!activity)
         return false;
-    if (activity->type == EOS_ACTIVITY_TYPE_APP)
+    if (eos_activity_get_type(activity) == EOS_ACTIVITY_TYPE_APP)
         return true;
     /* Check if it's a sub-activity with an app_root set */
     eos_activity_t *root = eos_activity_get_app_root(activity);
-    if (root && root->type == EOS_ACTIVITY_TYPE_APP)
+    if (root && eos_activity_get_type(root) == EOS_ACTIVITY_TYPE_APP)
         return true;
     return false;
 }
