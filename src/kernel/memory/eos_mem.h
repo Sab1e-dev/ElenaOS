@@ -58,6 +58,18 @@ void eos_free(void *ptr);
  */
 void *eos_realloc(void *ptr, size_t new_size);
 
+/**
+ * @brief Get total used bytes from tracked C-heap allocations
+ * @return size_t Used bytes (0 if memory tracking is disabled)
+ */
+size_t eos_mem_get_used_bytes(void);
+
+/**
+ * @brief Get estimated free bytes (tracked free + port-reported headroom)
+ * @return size_t Free bytes estimate
+ */
+size_t eos_mem_get_free_bytes(void);
+
 #ifdef __cplusplus
 }
 #endif

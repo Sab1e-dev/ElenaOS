@@ -72,6 +72,14 @@ void eos_bluetooth_disable(void);
  */
 void eos_locate_phone(void);
 
+/**
+ * @brief Get platform-reported free memory (SRAM/PSRAM headroom)
+ * @return size_t Free bytes available (default 0 if not overridden)
+ * @note Port implementations should override this with a strong definition.
+ *       The OS uses this value for LRU eviction decisions.
+ */
+EOS_WEAK size_t eos_port_get_free_mem(void);
+
 #ifdef __cplusplus
 }
 #endif

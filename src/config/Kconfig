@@ -393,6 +393,96 @@ config EOS_LOG_ENABLE_STD
 
 endmenu
 
+menu "Recent Apps"
+
+config EOS_RECENT_APPS_ENABLE
+    bool "Enable Recent Apps (app switcher)"
+    default y
+    help
+      When enabled, pressing the crown while in an app suspends it
+      instead of destroying it.  Double-click the crown to open the
+      Recent Apps switcher.  Suspended apps consume memory but resume
+      instantly without re-loading from Flash.
+
+config EOS_RECENT_APPS_MAX
+    int "Maximum suspended apps"
+    default 3
+    depends on EOS_RECENT_APPS_ENABLE
+    help
+      Maximum number of apps kept in the Recent Apps list.
+      When exceeded, the least-recently-used app is evicted.
+
+config EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS
+    int "Crown double-click window (ms)"
+    default 400
+    depends on EOS_RECENT_APPS_ENABLE
+    help
+      Time window for crown double-click detection.
+      Single-click actions are delayed by this amount.
+
+config EOS_RECENT_APPS_MEM_HIGH_WATERMARK
+    int "Memory high-watermark (bytes)"
+    default 2621440
+    depends on EOS_RECENT_APPS_ENABLE
+    help
+      When total estimated memory used by suspended apps exceeds
+      this value, LRU eviction is triggered (default 2.5 MB).
+
+choice
+    prompt "Timer resume strategy"
+    default EOS_RECENT_APPS_TIMER_RUN_ONCE
+    depends on EOS_RECENT_APPS_ENABLE
+
+config EOS_RECENT_APPS_TIMER_RUN_ONCE
+    bool "Run once (default)"
+    help
+      On resume, fire each timer callback at most once if the
+      suspend period exceeded its interval, then resume normally.
+
+config EOS_RECENT_APPS_TIMER_RUN_ALL
+    bool "Run all missed"
+    help
+      On resume, fire each timer callback N times where
+      N = elapsed / period (capped at 10 to avoid stall).
+
+config EOS_RECENT_APPS_TIMER_SKIP
+    bool "Skip missed"
+    help
+      On resume, reset timers — no missed callbacks are fired.
+endchoice
+
+config EOS_RECENT_APPS_TIMER_STRATEGY
+    int
+    default 0 if EOS_RECENT_APPS_TIMER_RUN_ONCE
+    default 1 if EOS_RECENT_APPS_TIMER_RUN_ALL
+    default 2 if EOS_RECENT_APPS_TIMER_SKIP
+    default 0
+
+choice
+    prompt "Animation resume strategy"
+    default EOS_RECENT_APPS_ANIM_CONTINUE
+    depends on EOS_RECENT_APPS_ENABLE
+
+config EOS_RECENT_APPS_ANIM_CONTINUE
+    bool "Continue (default)"
+    help
+      On resume, continue animations from their paused position.
+
+config EOS_RECENT_APPS_ANIM_JUMP_TO_END
+    bool "Jump to end"
+    help
+      On resume, jump animations to their end state and fire
+      the completed callback.
+endchoice
+
+config EOS_RECENT_APPS_ANIM_STRATEGY
+    int
+    default 0 if EOS_RECENT_APPS_ANIM_CONTINUE
+    default 1 if EOS_RECENT_APPS_ANIM_JUMP_TO_END
+    default 0
+
+endmenu
+
 menu "Miscellaneous"
 
 config EOS_ENABLE_TEST_APP

@@ -175,6 +175,29 @@ void *eos_malloc_zeroed(size_t size)
     return p;
 }
 
+/* Memory Query ------------------------------------------------*/
+
+size_t eos_mem_get_used_bytes(void)
+{
+#if EOS_MEM_TRACK_ENABLE
+    if (mon.total_size >= mon.free_size)
+        return mon.total_size - mon.free_size;
+    return 0;
+#else
+    return 0;
+#endif
+}
+
+size_t eos_mem_get_free_bytes(void)
+{
+    size_t free_bytes = 0;
+#if EOS_MEM_TRACK_ENABLE
+    free_bytes += mon.free_size;
+#endif
+    free_bytes += eos_port_get_free_mem();
+    return free_bytes;
+}
+
 /* LVGL -------------------------------------------------------*/
 
 #if EOS_OVERRIDE_LVGL_STDLIB_MALLOC_ENABLE

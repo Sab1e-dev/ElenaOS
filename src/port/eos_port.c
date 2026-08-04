@@ -42,3 +42,8 @@ EOS_WEAK void eos_locate_phone(void)
 {
     return;
 }
+
+EOS_WEAK size_t eos_port_get_free_mem(void)
+{
+    return 0;
+}
