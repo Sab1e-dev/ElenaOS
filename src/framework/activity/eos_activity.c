@@ -1602,8 +1602,10 @@ eos_result_t eos_activity_back(void)
     /* If leaving an APP-type activity (app root), register for suspend */
     if (eos_activity_get_type(cur_activity) == EOS_ACTIVITY_TYPE_APP)
     {
+        EOS_LOG_I("Activity back: APP type detected, registering for suspend");
         /* Register in recents (takes screenshot, creates entry, suspends SPM) */
-        eos_recent_apps_register_for_suspend(cur_activity);
+        eos_result_t reg_ret = eos_recent_apps_register_for_suspend(cur_activity);
+        EOS_LOG_I("Activity back: register_for_suspend returned %d", reg_ret);
         cur_activity->suspend_on_exit = true;
     }
     else

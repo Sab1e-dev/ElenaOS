@@ -154,6 +154,19 @@ uint32_t eos_recent_apps_count(void);
 bool eos_recent_apps_is_suspendable(eos_activity_t *activity);
 
 /**
+ * @brief Get the first (MRU) entry in the recents list for iteration
+ * @return eos_recent_app_entry_t* Head entry, or NULL if empty
+ */
+eos_recent_app_entry_t *eos_recent_apps_get_head(void);
+
+/**
+ * @brief Get the next entry in the recents list
+ * @param entry Current entry
+ * @return eos_recent_app_entry_t* Next entry, or NULL if at end
+ */
+eos_recent_app_entry_t *eos_recent_apps_get_next(eos_recent_app_entry_t *entry);
+
+/**
  * @brief Register an app activity for suspend (take snapshot, create entry, suspend SPM)
  *
  * Called from eos_activity_back() when leaving an APP-type activity.

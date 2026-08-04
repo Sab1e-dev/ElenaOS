@@ -475,6 +475,16 @@ uint32_t eos_recent_apps_count(void)
     return s_count;
 }
 
+eos_recent_app_entry_t *eos_recent_apps_get_head(void)
+{
+    return s_head;
+}
+
+eos_recent_app_entry_t *eos_recent_apps_get_next(eos_recent_app_entry_t *entry)
+{
+    return entry ? entry->next : NULL;
+}
+
 bool eos_recent_apps_is_suspendable(eos_activity_t *activity)
 {
     if (!activity)

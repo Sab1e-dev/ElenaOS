@@ -178,13 +178,7 @@ static void _build_card_list(lv_obj_t *parent)
         return;
     }
 
-    /* Build a simple vertical list of cards */
-    /* Iterate LRU list from head (MRU) */
-    eos_recent_app_entry_t *entry = NULL;
-    /* We'll find the head by looking at the first entry from the API */
-    /* Since s_head is static in eos_recent_apps.c, we iterate by index */
-    /* For now, create cards indexed by position */
-
+    /* Build a vertical list of cards */
     lv_obj_t *list = lv_obj_create(parent);
     lv_obj_set_size(list, lv_pct(90), lv_pct(85));
     lv_obj_align(list, LV_ALIGN_CENTER, 0, 10);
@@ -193,6 +187,8 @@ static void _build_card_list(lv_obj_t *parent)
     lv_obj_set_style_pad_all(list, _RECENT_LIST_PAD, 0);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scroll_dir(list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_OFF);
 
     /* Title */
     lv_obj_t *title = lv_label_create(list);
@@ -200,23 +196,16 @@ static void _build_card_list(lv_obj_t *parent)
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, NULL, 0);
 
-    /* Need to iterate entries. Since we can't access s_head directly,
-     * use eos_recent_apps_find with known IDs from the activity titles.
-     * For now, build placeholder cards based on count.
-     *
-     * ACTUAL IMPLEMENTATION NOTE:
-     * The eos_recent_apps module should expose an iteration API.
-     * For Phase 4 we use a simple approach: the recents page has access
-     * to the internal linked list via a future iterate function.
-     * For now, cards are created dynamically via a helper.
-     */
-    LV_UNUSED(entry); /* entry will be used when iteration API is added */
-
-    /* For a functional MVP, create one card per recent app.
-     * We iterate by known count using a simple counter approach.
-     * In practice, each entry's card is created during _page_on_enter
-     * by walking the linked list via eos_recent_apps internals.
-     */
+    /* Iterate LRU list and create a card for each entry */
+    int index = 0;
+    eos_recent_app_entry_t *entry = eos_recent_apps_get_head();
+    while (entry)
+    {
+        lv_obj_t *card = _create_card(list, entry, index);
+        LV_UNUSED(card);
+        index++;
+        entry = eos_recent_apps_get_next(entry);
+    }
 }
 
 static void _page_on_enter(eos_activity_t *a)
