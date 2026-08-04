@@ -260,12 +260,6 @@ void eos_chrome_manager_handle_crown_click(void)
     {
         eos_app_list_enter();
     }
-    else if (eos_recent_apps_is_suspendable(current))
-    {
-        /* Suspend the app instead of destroying it */
-        EOS_LOG_I("Crown click: suspending current app");
-        eos_recent_apps_suspend_current();
-    }
     else
     {
         eos_activity_back();
@@ -297,13 +291,6 @@ void eos_chrome_manager_handle_crown_double_click(void)
     }
 
     eos_activity_t *current = eos_activity_get_current();
-
-    /* If currently in a script app, suspend it so it appears in recents */
-    if (current && eos_recent_apps_is_suspendable(current)
-        && eos_activity_get_type(current) != EOS_ACTIVITY_TYPE_RECENT_APPS)
-    {
-        eos_recent_apps_suspend_current();
-    }
 
     /* Toggle: if already on recents page, close it; otherwise open */
     if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_RECENT_APPS)

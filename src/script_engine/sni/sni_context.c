@@ -1018,8 +1018,7 @@ void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int an
         {
             if (node->ptr && node->is_alive)
             {
-                sni_cb_timer_resume_with_strategy((lv_timer_t *)node->ptr,
-                                                   (sni_timer_resume_strategy_t)timer_strategy);
+                sni_cb_timer_resume_with_strategy((lv_timer_t *)node->ptr, (sni_timer_resume_strategy_t)timer_strategy);
             }
             node = node->next;
         }
@@ -1035,7 +1034,7 @@ void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int an
             if (node->ptr && node->is_alive)
             {
                 sni_cb_anim_resume_with_strategy((sni_anim_callback_ctx_t *)node->ptr,
-                                                  (sni_anim_resume_strategy_t)anim_strategy);
+                                                 (sni_anim_resume_strategy_t)anim_strategy);
             }
             node = node->next;
         }

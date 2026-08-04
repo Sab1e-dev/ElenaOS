@@ -191,9 +191,7 @@ void sni_context_pause_resources(sni_context_t *ctx);
  * @param timer_strategy How to handle missed timer callbacks
  * @param anim_strategy How to handle paused animations
  */
-void sni_context_resume_resources(sni_context_t *ctx,
-                                   int timer_strategy,
-                                   int anim_strategy);
+void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int anim_strategy);
 
 #ifdef __cplusplus
 }

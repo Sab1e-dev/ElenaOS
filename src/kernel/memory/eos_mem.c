@@ -175,7 +175,7 @@ void *eos_malloc_zeroed(size_t size)
     return p;
 }
 
-/* Memory Query ------------------------------------------------*/
+/* Memory Query -----------------------------------------------*/
 
 size_t eos_mem_get_used_bytes(void)
 {

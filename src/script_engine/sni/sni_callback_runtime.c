@@ -1088,7 +1088,7 @@ bool sni_cb_anim_start(sni_anim_callback_ctx_t *ctx)
     return true;
 }
 
-/* Timer Suspend/Resume ----------------------------------------*/
+/* Timer Suspend/Resume ---------------------------------------*/
 
 void sni_cb_timer_pause(lv_timer_t *timer)
 {
@@ -1122,44 +1122,44 @@ void sni_cb_timer_resume_with_strategy(lv_timer_t *timer, sni_timer_resume_strat
 
     switch (strategy)
     {
-    case SNI_TIMER_RESUME_RUN_ONCE:
-    default:
-        if (missed >= 1)
-        {
-            /* Fire exactly one callback on the next lv_timer_handler() */
-            lv_timer_ready(timer);
-        }
-        lv_timer_resume(timer);
-        break;
+        case SNI_TIMER_RESUME_RUN_ONCE:
+        default:
+            if (missed >= 1)
+            {
+                /* Fire exactly one callback on the next lv_timer_handler() */
+                lv_timer_ready(timer);
+            }
+            lv_timer_resume(timer);
+            break;
 
-    case SNI_TIMER_RESUME_RUN_ALL:
-        if (missed > 0)
-        {
-            /* Cap to avoid MCU stall from hundreds of accumulated callbacks */
-            uint32_t fire_count = missed > 10 ? 10 : missed;
-            /* Use lv_timer_ready to schedule one immediate fire;
+        case SNI_TIMER_RESUME_RUN_ALL:
+            if (missed > 0)
+            {
+                /* Cap to avoid MCU stall from hundreds of accumulated callbacks */
+                uint32_t fire_count = missed > 10 ? 10 : missed;
+                /* Use lv_timer_ready to schedule one immediate fire;
              * the remaining (fire_count - 1) will fire naturally as
              * the timer repeats.  For simplicity we set repeat_count
              * temporarily.  Actually lv_timer_set_repeat_count with
              * fire_count and rely on lv_timer_ready(). */
-            lv_timer_ready(timer);
-            /* LVGL fires one callback per lv_timer_handler() invocation.
+                lv_timer_ready(timer);
+                /* LVGL fires one callback per lv_timer_handler() invocation.
              * To fire N times, we rely on the timer being repeating with
              * period=0 temporarily: set repeat to fire_count + 1 to
              * account for the ready() trigger. */
-            lv_timer_set_repeat_count(timer, (int32_t)fire_count);
-        }
-        lv_timer_resume(timer);
-        break;
+                lv_timer_set_repeat_count(timer, (int32_t)fire_count);
+            }
+            lv_timer_resume(timer);
+            break;
 
-    case SNI_TIMER_RESUME_SKIP:
-        lv_timer_resume(timer);
-        lv_timer_reset(timer);
-        break;
+        case SNI_TIMER_RESUME_SKIP:
+            lv_timer_resume(timer);
+            lv_timer_reset(timer);
+            break;
     }
 }
 
-/* Animation Suspend/Resume ------------------------------------*/
+/* Animation Suspend/Resume -----------------------------------*/
 
 void sni_cb_anim_pause(sni_anim_callback_ctx_t *ctx)
 {
@@ -1188,43 +1188,44 @@ void sni_cb_anim_resume_with_strategy(sni_anim_callback_ctx_t *ctx, sni_anim_res
 
     switch (strategy)
     {
-    case SNI_ANIM_RESUME_JUMP_TO_END:
-    {
-        /* Fire completed callback if present, then mark deleted */
-        if (!jerry_value_is_undefined(ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED])
-            && ctx->owner_ctx && ctx->owner_ctx->owner
-            && ctx->owner_ctx->owner->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+        case SNI_ANIM_RESUME_JUMP_TO_END:
         {
-            uint32_t saved_gen = script_engine_get_gen();
-            jerry_value_t js_anim = sni_tb_c2js((void **)&ctx, SNI_H_LV_ANIM);
-            s_dispatching_anim_ctx = ctx;
-            spm_call(ctx->owner_ctx->owner,
-                     ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED],
-                     jerry_undefined(), &js_anim, 1);
-            s_dispatching_anim_ctx = NULL;
-            if (!sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+            /* Fire completed callback if present, then mark deleted */
+            if (!jerry_value_is_undefined(ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED]) && ctx->owner_ctx
+                && ctx->owner_ctx->owner && ctx->owner_ctx->owner->state == SCRIPT_PROGRAM_STATE_ACTIVE)
             {
-                jerry_value_free(js_anim);
+                uint32_t saved_gen = script_engine_get_gen();
+                jerry_value_t js_anim = sni_tb_c2js((void **)&ctx, SNI_H_LV_ANIM);
+                s_dispatching_anim_ctx = ctx;
+                spm_call(ctx->owner_ctx->owner,
+                         ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED],
+                         jerry_undefined(),
+                         &js_anim,
+                         1);
+                s_dispatching_anim_ctx = NULL;
+                if (!sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+                {
+                    jerry_value_free(js_anim);
+                }
             }
+            ctx->state = SNI_ANIM_STATE_DELETED;
+            break;
         }
-        ctx->state = SNI_ANIM_STATE_DELETED;
-        break;
-    }
 
-    case SNI_ANIM_RESUME_CONTINUE:
-    default:
-    {
-        /* Re-attach to LVGL by re-starting the animation from saved act_time */
-        lv_anim_t *anim = ctx->active_anim;
-        if (anim)
+        case SNI_ANIM_RESUME_CONTINUE:
+        default:
         {
-            /* Restore user_data for LVGL callback chain */
-            lv_anim_set_user_data(anim, ctx);
-            /* Set act_time to saved position; LVGL will continue from there.
+            /* Re-attach to LVGL by re-starting the animation from saved act_time */
+            lv_anim_t *anim = ctx->active_anim;
+            if (anim)
+            {
+                /* Restore user_data for LVGL callback chain */
+                lv_anim_set_user_data(anim, ctx);
+                /* Set act_time to saved position; LVGL will continue from there.
              * Note: lv_anim_t.act_time is writable in LVGL 9.x */
-            anim->act_time = ctx->saved_act_time;
+                anim->act_time = ctx->saved_act_time;
+            }
+            break;
         }
-        break;
-    }
     }
 }

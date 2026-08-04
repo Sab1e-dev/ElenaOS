@@ -51,6 +51,13 @@ eos_result_t eos_app_launch_immediately(const char *app_id);
 void eos_app_list_enter(void);
 
 /**
+ * @brief Get the app_id from an APP-type activity's launch context
+ * @param activity The activity (must be EOS_ACTIVITY_TYPE_APP)
+ * @return const char* App ID string, or NULL if not a script app activity
+ */
+const char *eos_app_list_get_app_id(eos_activity_t *activity);
+
+/**
  * @brief Restart an app in-place on its existing activity (no navigation, no animation)
  * @param app_id The app ID (for logging/validation)
  * @param activity The current app activity to restart

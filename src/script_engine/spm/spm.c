@@ -664,8 +664,7 @@ script_program_t *spm_get_program_by_id_any_state(const char *id)
     script_program_t *prog = s_program_list;
     while (prog)
     {
-        if (prog->script.id && strcmp(prog->script.id, id) == 0
-            && prog->state != SCRIPT_PROGRAM_STATE_TERMINATED)
+        if (prog->script.id && strcmp(prog->script.id, id) == 0 && prog->state != SCRIPT_PROGRAM_STATE_TERMINATED)
         {
             return prog;
         }

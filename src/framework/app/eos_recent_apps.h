@@ -48,14 +48,14 @@ typedef struct eos_recent_app_entry
     struct eos_recent_app_entry *next; /**< LRU: more recently used */
     struct eos_recent_app_entry *prev; /**< LRU: less recently used */
 
-    char app_id[64];              /**< Script package ID, stable key */
-    eos_activity_t *activity;     /**< AppRoot activity (parked, kept alive) */
+    char app_id[64]; /**< Script package ID, stable key */
+    eos_activity_t *activity; /**< AppRoot activity (parked, kept alive) */
     eos_activity_t *saved_stack_top; /**< Sub-stack top at suspend time */
-    uint32_t saved_stack_depth;   /**< Sub-stack depth (1 = just AppRoot) */
+    uint32_t saved_stack_depth; /**< Sub-stack depth (1 = just AppRoot) */
     lv_draw_buf_t *screenshot_buf; /**< Owned RGB565 draw buf */
-    lv_obj_t *screenshot_img;     /**< lv_image wrapping screenshot_buf */
-    uint32_t last_used_tick;      /**< LRU timestamp (eos_tick_get) */
-    uint32_t est_mem_bytes;       /**< Estimated memory footprint */
+    lv_obj_t *screenshot_img; /**< lv_image wrapping screenshot_buf */
+    uint32_t last_used_tick; /**< LRU timestamp (eos_tick_get) */
+    uint32_t est_mem_bytes; /**< Estimated memory footprint */
 } eos_recent_app_entry_t;
 
 /* Public function prototypes ---------------------------------*/
@@ -152,6 +152,18 @@ uint32_t eos_recent_apps_count(void);
  * @return true if the activity or its app_root is APP type
  */
 bool eos_recent_apps_is_suspendable(eos_activity_t *activity);
+
+/**
+ * @brief Register an app activity for suspend (take snapshot, create entry, suspend SPM)
+ *
+ * Called from eos_activity_back() when leaving an APP-type activity.
+ * Does NOT detach the sub-stack — the caller handles that via the normal
+ * back() / transition / suspend_on_exit flow.
+ *
+ * @param app_activity The APP-type activity being left
+ * @return EOS_OK on success
+ */
+eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity);
 
 #ifdef __cplusplus
 }

@@ -169,7 +169,7 @@ typedef struct sni_anim_callback_ctx
     lv_anim_path_cb_t builtin_path_fn;
     sni_context_t *owner_ctx;
     sni_anim_state_t state;
-    bool suspended;     /**< True when anim was paused by app suspend (not JS delete) */
+    bool suspended; /**< True when anim was paused by app suspend (not JS delete) */
     int32_t saved_act_time; /**< act_time recorded at suspend for CONTINUE strategy */
     uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
 } sni_anim_callback_ctx_t;
@@ -212,7 +212,7 @@ bool sni_cb_is_dispatching_timer(lv_timer_t *t);
  */
 bool sni_cb_is_dispatching_anim(struct sni_anim_callback_ctx *ctx);
 
-/* Suspend/Resume Strategies ------------------------------------*/
+/* Suspend/Resume Strategies ----------------------------------*/
 
 /**
  * @brief Timer resume strategy

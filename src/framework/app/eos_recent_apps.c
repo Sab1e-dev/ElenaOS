@@ -97,7 +97,10 @@ static void _lru_eviction_check(void)
     while ((s_count > max || s_total_mem_bytes > watermark) && s_tail)
     {
         EOS_LOG_W("LRU eviction triggered: count=%u (max=%u) mem=%u (limit=%u)",
-                  s_count, max, s_total_mem_bytes, watermark);
+                  s_count,
+                  max,
+                  s_total_mem_bytes,
+                  watermark);
         eos_recent_apps_evict(s_tail);
     }
 }
@@ -126,6 +129,61 @@ void eos_recent_apps_init(void)
               EOS_RECENT_APPS_MEM_HIGH_WATERMARK,
               (int)s_timer_strategy,
               (int)s_anim_strategy);
+}
+
+eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity)
+{
+    if (!s_initialized || !app_activity)
+        return EOS_FAILED;
+
+    if (eos_activity_get_type(app_activity) != EOS_ACTIVITY_TYPE_APP)
+        return EOS_FAILED;
+
+    /* Get the real app_id from the launch context (not the display title) */
+    const char *app_id = eos_app_list_get_app_id(app_activity);
+    if (!app_id)
+        return EOS_FAILED;
+
+    /* Take snapshot before the view gets hidden by transition */
+    lv_draw_buf_t *screenshot = eos_activity_take_snapshot_standalone(app_activity, false);
+
+    /* Deduplicate */
+    eos_recent_app_entry_t *existing = eos_recent_apps_find(app_id);
+    if (existing)
+    {
+        EOS_LOG_I("App '%s' already in recents, evicting old entry", app_id);
+        eos_recent_apps_evict(existing);
+    }
+
+    /* Allocate entry */
+    eos_recent_app_entry_t *entry = eos_malloc_zeroed(sizeof(eos_recent_app_entry_t));
+    if (!entry)
+    {
+        if (screenshot)
+            eos_draw_buf_destroy(screenshot);
+        return EOS_FAILED;
+    }
+
+    snprintf(entry->app_id, sizeof(entry->app_id), "%s", app_id);
+    entry->activity = app_activity;
+    entry->saved_stack_top = app_activity;
+    entry->saved_stack_depth = 1;
+    entry->screenshot_buf = screenshot;
+    entry->last_used_tick = eos_tick_get();
+    entry->est_mem_bytes = _estimate_entry_mem(entry);
+
+    /* Suspend SPM program (preserves realm) */
+    spm_app_suspend();
+
+    /* Link to LRU head */
+    _lru_link_head(entry);
+
+    EOS_LOG_I("App registered for suspend: '%s' total_count=%u", entry->app_id, s_count);
+
+    /* Run LRU eviction check */
+    _lru_eviction_check();
+
+    return EOS_OK;
 }
 
 eos_result_t eos_recent_apps_suspend_current(void)
@@ -244,7 +302,11 @@ eos_result_t eos_recent_apps_suspend_current(void)
     _lru_link_head(entry);
 
     EOS_LOG_I("App suspended: '%s' depth=%u mem=%u total_count=%u total_mem=%u",
-              entry->app_id, depth, entry->est_mem_bytes, s_count, s_total_mem_bytes);
+              entry->app_id,
+              depth,
+              entry->est_mem_bytes,
+              s_count,
+              s_total_mem_bytes);
 
     /* Run LRU eviction check */
     _lru_eviction_check();
@@ -279,9 +341,7 @@ eos_result_t eos_recent_apps_resume(eos_recent_app_entry_t *entry)
     script_program_t *prog = spm_get_program_by_id_any_state(entry->app_id);
     if (prog && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE && prog->sni_ctx)
     {
-        sni_context_resume_resources(prog->sni_ctx,
-                                      (int)s_timer_strategy,
-                                      (int)s_anim_strategy);
+        sni_context_resume_resources(prog->sni_ctx, (int)s_timer_strategy, (int)s_anim_strategy);
     }
 
     /* Free screenshot after resume transition completes */

@@ -25,6 +25,7 @@
 #include "eos_event.h"
 #include "eos_image.h"
 #include "eos_widget_data.h"
+#include "eos_recent_apps.h"
 /* Macros and Definitions -------------------------------------*/
 #define _ACTIVITY_STACK_INIT_CAPACITY 8
 #define _DEFAULT_TITLE_COLOR EOS_COLOR_BLUE
@@ -68,10 +69,10 @@ struct eos_activity_t
     lv_color_t app_header_time_only_text_color;
     bool destroy_on_exit;
     bool has_started;
-    bool suspend_on_exit;       /**< Park sub-stack instead of destroying after transition */
-    bool suspended;              /**< Activity is parked in recents registry */
+    bool suspend_on_exit; /**< Park sub-stack instead of destroying after transition */
+    bool suspended; /**< Activity is parked in recents registry */
     struct eos_activity_t *app_substack_next; /**< Next activity toward app root */
-    struct eos_activity_t *app_root;          /**< APP-type root activity of this app */
+    struct eos_activity_t *app_root; /**< APP-type root activity of this app */
     struct
     {
         lv_color_t color;
@@ -165,7 +166,9 @@ static void _activity_run_destroy(eos_activity_t *activity)
     /* Never destroy a suspended (parked) activity */
     if (activity->suspended)
     {
-        EOS_LOG_W("Activity destroy skipped (suspended): %p[%s]", (void *)activity, _activity_type_to_str(activity->type));
+        EOS_LOG_W("Activity destroy skipped (suspended): %p[%s]",
+                  (void *)activity,
+                  _activity_type_to_str(activity->type));
         return;
     }
 
@@ -403,7 +406,9 @@ static void _anim_clean_up_activity_deferred(void *user_data)
         node = node->next;
     }
     EOS_LOG_E("DEFERRED cleanup: snapshot_count=%d destroy_from=%d suspend_from=%d",
-              snapshot_count, anim_ctx->destroy_from, anim_ctx->suspend_from);
+              snapshot_count,
+              anim_ctx->destroy_from,
+              anim_ctx->suspend_from);
     node = anim_ctx->snapshots;
     while (node)
     {
@@ -611,7 +616,8 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
             anim_ctx->destroy_from = cur_activity ? cur_activity->destroy_on_exit : false;
             anim_ctx->suspend_from = cur_activity ? cur_activity->suspend_on_exit : false;
 
-            EOS_LOG_I("Activity transition start: from=%p[%s destroy=%d suspend=%d] to=%p[%s destroy=%d] anim_cb=%p list_anim=%d",
+            EOS_LOG_I("Activity transition start: from=%p[%s destroy=%d suspend=%d] to=%p[%s destroy=%d] anim_cb=%p "
+                      "list_anim=%d",
                       (void *)cur_activity,
                       _activity_type_to_str(cur_activity ? cur_activity->type : EOS_ACTIVITY_TYPE_NULL),
                       cur_activity ? cur_activity->destroy_on_exit : false,
@@ -1592,7 +1598,18 @@ eos_result_t eos_activity_back(void)
     EOS_CHECK_PTR_RETURN_VAL(current, EOS_FAILED);
 
     eos_activity_t *cur_activity = _activity_ctx.current_activity;
-    cur_activity->destroy_on_exit = true;
+
+    /* If leaving an APP-type activity (app root), register for suspend */
+    if (eos_activity_get_type(cur_activity) == EOS_ACTIVITY_TYPE_APP)
+    {
+        /* Register in recents (takes screenshot, creates entry, suspends SPM) */
+        eos_recent_apps_register_for_suspend(cur_activity);
+        cur_activity->suspend_on_exit = true;
+    }
+    else
+    {
+        cur_activity->destroy_on_exit = true;
+    }
 
     eos_activity_t *prev = NULL;
     if (eos_stack_get_size(_activity_ctx.activity_stack) == 0)
@@ -1750,7 +1767,7 @@ eos_activity_t *eos_activity_get_bottom(void)
     return _activity_ctx.root_activity;
 }
 
-/* Standalone Snapshot -----------------------------------------*/
+/* Standalone Snapshot ----------------------------------------*/
 
 lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, bool include_header)
 {
@@ -1840,7 +1857,7 @@ lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, b
 #endif
 }
 
-/* Sub-Stack Management ----------------------------------------*/
+/* Sub-Stack Management ---------------------------------------*/
 
 eos_activity_t *eos_activity_detach_app_substack(void)
 {
@@ -1860,8 +1877,7 @@ eos_activity_t *eos_activity_detach_app_substack(void)
     /* Validate: the chain must end at an APP-type activity */
     if (!app_root || app_root->type != EOS_ACTIVITY_TYPE_APP)
     {
-        EOS_LOG_W("detach_app_substack: AppRoot not found or invalid type=%d",
-                  app_root ? app_root->type : -1);
+        EOS_LOG_W("detach_app_substack: AppRoot not found or invalid type=%d", app_root ? app_root->type : -1);
         return NULL;
     }
 
@@ -1943,7 +1959,7 @@ eos_activity_t *eos_activity_detach_app_substack(void)
               substack_count,
               (void *)_activity_ctx.current_activity,
               _activity_type_to_str(_activity_ctx.current_activity ? _activity_ctx.current_activity->type
-                                                                    : EOS_ACTIVITY_TYPE_NULL));
+                                                                   : EOS_ACTIVITY_TYPE_NULL));
 
     eos_free(substack);
     return current; /* Return the sub-stack top */
@@ -2038,7 +2054,7 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
               depth + 1);
 }
 
-/* Accessors ---------------------------------------------------*/
+/* Accessors --------------------------------------------------*/
 
 void eos_activity_set_suspend_on_exit(eos_activity_t *activity, bool suspend_on_exit)
 {

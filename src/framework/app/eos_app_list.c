@@ -956,6 +956,16 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
     return EOS_OK;
 }
 
+const char *eos_app_list_get_app_id(eos_activity_t *activity)
+{
+    if (!activity)
+        return NULL;
+    app_launch_ctx_t *ctx = (app_launch_ctx_t *)eos_activity_get_user_data(activity);
+    if (!ctx)
+        return NULL;
+    return ctx->app_id;
+}
+
 eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity)
 {
     LV_UNUSED(app_id);

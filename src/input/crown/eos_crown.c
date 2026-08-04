@@ -245,8 +245,8 @@ static void _crown_button_async_cb(void *user_data)
             else
             {
                 /* First click → start double-click detection window */
-                _double_click_timer = lv_timer_create(_single_click_timeout_cb,
-                    (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
+                _double_click_timer =
+                    lv_timer_create(_single_click_timeout_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
                 lv_timer_set_repeat_count(_double_click_timer, 1);
             }
             break;
