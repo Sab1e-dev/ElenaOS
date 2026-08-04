@@ -62,6 +62,17 @@ static void _register_anim_routes(void)
     /* Routes are registered but actual animations are minimal for now */
 }
 
+static void _card_free_app_id(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target_obj(e);
+    void *user_data = lv_obj_get_user_data(obj);
+    if (user_data)
+    {
+        eos_free(user_data);
+        lv_obj_set_user_data(obj, NULL);
+    }
+}
+
 static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, int index)
 {
     /* Card container */
@@ -73,8 +84,11 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_set_style_pad_all(card, 0, 0);
     lv_obj_add_flag(card, LV_OBJ_FLAG_CLICKABLE);
 
-    /* Store entry in user_data for tap handler */
-    lv_obj_set_user_data(card, entry);
+    /* Store a COPY of the app_id in user_data (NOT the entry pointer —
+     * the entry may be freed before the card is destroyed). */
+    char *app_id_copy = eos_strdup(entry->app_id);
+    lv_obj_set_user_data(card, app_id_copy);
+    lv_obj_add_event_cb(card, _card_free_app_id, LV_EVENT_DELETE, NULL);
 
     /* Screenshot thumbnail (left side of card) */
     if (entry->screenshot_buf)
@@ -95,7 +109,7 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_set_style_text_font(name_label, NULL, 0);
     lv_obj_align(name_label, LV_ALIGN_TOP_RIGHT, -50, 16);
 
-    /* Close button (small X) */
+    /* Close button (small X) — use app_id copy, stop event propagation */
     lv_obj_t *close_btn = lv_btn_create(card);
     lv_obj_set_size(close_btn, 32, 32);
     lv_obj_align(close_btn, LV_ALIGN_TOP_RIGHT, -8, 8);
@@ -108,23 +122,33 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry, i
     lv_obj_set_style_text_color(close_label, lv_color_white(), 0);
     lv_obj_center(close_label);
 
-    lv_obj_set_user_data(close_btn, entry);
-    lv_obj_add_event_cb(close_btn, _card_close_cb, LV_EVENT_CLICKED, NULL);
+    /* Store app_id copy on close button too */
+    char *close_app_id = eos_strdup(entry->app_id);
+    lv_obj_set_user_data(close_btn, close_app_id);
+    lv_obj_add_event_cb(close_btn, _card_free_app_id, LV_EVENT_DELETE, NULL);
 
     /* Tap to resume */
     lv_obj_add_event_cb(card, _card_clicked_cb, LV_EVENT_CLICKED, NULL);
+    /* Close button: stop event bubbling to prevent card's _card_clicked_cb */
+    lv_obj_add_event_cb(close_btn, _card_close_cb, LV_EVENT_CLICKED, NULL);
 
     return card;
 }
 
 static void _card_clicked_cb(lv_event_t *e)
 {
-    lv_obj_t *card = lv_event_get_target_obj(e);
-    eos_recent_app_entry_t *entry = (eos_recent_app_entry_t *)lv_obj_get_user_data(card);
+    /* Only handle clicks directly on the card, not bubbled from children */
+    lv_obj_t *card = lv_event_get_current_target_obj(e);
+    const char *app_id = (const char *)lv_obj_get_user_data(card);
+    if (!app_id)
+        return;
+
+    /* Look up the entry — it may have been freed if close button was clicked */
+    eos_recent_app_entry_t *entry = eos_recent_apps_find(app_id);
     if (!entry)
         return;
 
-    EOS_LOG_I("Recent app tapped: '%s'", entry->app_id);
+    EOS_LOG_I("Recent app tapped: '%s'", app_id);
 
     /* Resume the app */
     eos_recent_apps_resume(entry);
@@ -135,12 +159,20 @@ static void _card_clicked_cb(lv_event_t *e)
 
 static void _card_close_cb(lv_event_t *e)
 {
+    /* Stop event from bubbling to card (which would trigger _card_clicked_cb) */
+    lv_event_stop_bubbling(e);
+
     lv_obj_t *btn = lv_event_get_target_obj(e);
-    eos_recent_app_entry_t *entry = (eos_recent_app_entry_t *)lv_obj_get_user_data(btn);
+    const char *app_id = (const char *)lv_obj_get_user_data(btn);
+    if (!app_id)
+        return;
+
+    /* Look up the entry */
+    eos_recent_app_entry_t *entry = eos_recent_apps_find(app_id);
     if (!entry)
         return;
 
-    EOS_LOG_I("Closing recent app: '%s'", entry->app_id);
+    EOS_LOG_I("Closing recent app: '%s'", app_id);
 
     /* Evict the app */
     eos_recent_apps_evict(entry);
