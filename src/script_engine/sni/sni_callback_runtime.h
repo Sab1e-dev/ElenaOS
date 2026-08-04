@@ -169,6 +169,8 @@ typedef struct sni_anim_callback_ctx
     lv_anim_path_cb_t builtin_path_fn;
     sni_context_t *owner_ctx;
     sni_anim_state_t state;
+    bool suspended;     /**< True when anim was paused by app suspend (not JS delete) */
+    int32_t saved_act_time; /**< act_time recorded at suspend for CONTINUE strategy */
     uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
 } sni_anim_callback_ctx_t;
 
@@ -209,6 +211,53 @@ bool sni_cb_is_dispatching_timer(lv_timer_t *t);
  * Used by sni_context_sweep_all to avoid freeing the executing anim ctx.
  */
 bool sni_cb_is_dispatching_anim(struct sni_anim_callback_ctx *ctx);
+
+/* Suspend/Resume Strategies ------------------------------------*/
+
+/**
+ * @brief Timer resume strategy
+ */
+typedef enum
+{
+    SNI_TIMER_RESUME_RUN_ONCE = 0, /**< Fire callback once if elapsed >= period, then resume */
+    SNI_TIMER_RESUME_RUN_ALL, /**< Fire N = min(elapsed/period, 10) callbacks */
+    SNI_TIMER_RESUME_SKIP, /**< Reset timer, drop all missed callbacks */
+} sni_timer_resume_strategy_t;
+
+/**
+ * @brief Animation resume strategy
+ */
+typedef enum
+{
+    SNI_ANIM_RESUME_CONTINUE = 0, /**< Continue from paused act_time */
+    SNI_ANIM_RESUME_JUMP_TO_END, /**< Jump to end state, fire completed callback */
+} sni_anim_resume_strategy_t;
+
+/**
+ * @brief Pause an LVGL timer (stops firing, preserves last_run)
+ * @param timer LVGL timer to pause
+ */
+void sni_cb_timer_pause(lv_timer_t *timer);
+
+/**
+ * @brief Resume a paused timer with the given strategy
+ * @param timer LVGL timer to resume
+ * @param strategy How to handle missed callbacks
+ */
+void sni_cb_timer_resume_with_strategy(lv_timer_t *timer, sni_timer_resume_strategy_t strategy);
+
+/**
+ * @brief Pause an animation (record act_time, detach from LVGL)
+ * @param ctx Animation callback context
+ */
+void sni_cb_anim_pause(sni_anim_callback_ctx_t *ctx);
+
+/**
+ * @brief Resume a paused animation with the given strategy
+ * @param ctx Animation callback context
+ * @param strategy How to handle the paused animation
+ */
+void sni_cb_anim_resume_with_strategy(sni_anim_callback_ctx_t *ctx, sni_anim_resume_strategy_t strategy);
 
 #ifdef __cplusplus
 }

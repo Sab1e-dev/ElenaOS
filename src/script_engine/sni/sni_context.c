@@ -967,3 +967,77 @@ bool sni_context_is_paused(sni_context_t *ctx)
 {
     return ctx ? ctx->paused : false;
 }
+
+void sni_context_pause_resources(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    /* Pause all timers */
+    int timer_idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (timer_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[timer_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_timer_pause((lv_timer_t *)node->ptr);
+            }
+            node = node->next;
+        }
+    }
+
+    /* Pause all animations */
+    int anim_idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (anim_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[anim_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_anim_pause((sni_anim_callback_ctx_t *)node->ptr);
+            }
+            node = node->next;
+        }
+    }
+}
+
+void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int anim_strategy)
+{
+    if (!ctx)
+        return;
+
+    /* Resume all timers */
+    int timer_idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (timer_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[timer_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_timer_resume_with_strategy((lv_timer_t *)node->ptr,
+                                                   (sni_timer_resume_strategy_t)timer_strategy);
+            }
+            node = node->next;
+        }
+    }
+
+    /* Resume all animations */
+    int anim_idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (anim_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[anim_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_anim_resume_with_strategy((sni_anim_callback_ctx_t *)node->ptr,
+                                                  (sni_anim_resume_strategy_t)anim_strategy);
+            }
+            node = node->next;
+        }
+    }
+}

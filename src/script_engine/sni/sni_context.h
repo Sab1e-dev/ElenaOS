@@ -177,6 +177,24 @@ void sni_context_neutralize_anims(sni_context_t *ctx);
 void sni_context_dump_counters(sni_context_t *ctx);
 const char *sni_type_name(sni_type_t type);
 
+/**
+ * @brief Pause all managed timers and animations in this context
+ * @param ctx Target context
+ * @note Calls lv_timer_pause() on each timer and sni_cb_anim_pause() on each anim.
+ *       The sni_context_set_paused() gate is a separate layer that blocks new callbacks.
+ */
+void sni_context_pause_resources(sni_context_t *ctx);
+
+/**
+ * @brief Resume all managed timers and animations with the given strategies
+ * @param ctx Target context
+ * @param timer_strategy How to handle missed timer callbacks
+ * @param anim_strategy How to handle paused animations
+ */
+void sni_context_resume_resources(sni_context_t *ctx,
+                                   int timer_strategy,
+                                   int anim_strategy);
+
 #ifdef __cplusplus
 }
 #endif
