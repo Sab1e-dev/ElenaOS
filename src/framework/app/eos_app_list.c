@@ -7,6 +7,7 @@
 #include "eos_app_list.h"
 
 /* Includes ---------------------------------------------------*/
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +46,11 @@
 #define _APP_LIST_ANIM_DURATION 350
 #define _APP_LIST_ANIM_FOCUS_SCALE 2048
 #define _APP_LIST_ANIM_MIN_SACLE 64
+
+/* Loading screen: poll interval and minimum display time.
+ * MIN_MS must be >= ANIM_DURATION so fast apps don't flash. */
+#define _APP_LIST_LOADING_TICK_MS 20
+#define _APP_LIST_LOADING_MIN_MS   450
 
 /* ease_out_quint cubic-bezier: (0.22, 1, 0.36, 1) in LVGL fixed-point */
 #define _EASE_OUT_QUINT_BX1 225
@@ -97,6 +103,17 @@ typedef struct
 {
     script_pkg_t pkg;
     char *app_id;
+    lv_timer_t *loading_timer;   /* Phase B polling / chunk-read timer */
+    lv_obj_t *loading_widget;    /* Loading placeholder root container */
+    lv_obj_t *progress_bar;      /* Determinate progress bar */
+    lv_obj_t *status_label;      /* Status text ("Reading app...", etc.) */
+    uint32_t loading_start_ms;   /* Tick when loading began (eos_tick_get) */
+    bool launch_running;         /* Guard against re-entrant JS launch */
+    /* Chunked I/O state */
+    eos_file_t script_file;      /* Open file handle during chunked read */
+    char *script_buf;            /* Accumulated file buffer */
+    uint32_t script_size;        /* Total file size in bytes */
+    uint32_t script_read;        /* Bytes read so far */
 } app_launch_ctx_t;
 
 /* Function Implementations -----------------------------------*/
@@ -133,10 +150,17 @@ static void _app_list_start_paired_fade(lv_obj_t *obj_a,
                                         lv_obj_t *focus_icon,
                                         uint32_t delay);
 static int32_t _app_list_find_sys_app(const char *app_id);
-static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg);
+static eos_result_t _app_list_build_manifest(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
 static void _app_list_restart_cb(lv_event_t *e);
 static void _app_list_exit_cb(lv_event_t *e);
+static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx);
+static void _app_list_loading_tick(lv_timer_t *t);
+static void _app_list_start_chunked_read(app_launch_ctx_t *ctx);
+static void _app_list_read_chunk_tick(lv_timer_t *t);
+static void _app_list_do_launch_script(app_launch_ctx_t *ctx);
+static void _app_handle_script_run_result(eos_activity_t *a, app_launch_ctx_t *ctx, eos_result_t ret);
+static void _app_list_update_loading_status(app_launch_ctx_t *ctx, const char *msg);
 
 static bool _anim_routes_registered = false;
 static bool _app_list_last_icon_center_valid = false;
@@ -173,12 +197,40 @@ typedef struct
 
 static void _app_on_destroy(eos_activity_t *a)
 {
-    // Stop the app script (if any) before destroying context
+    /* Stop the app script (if any) before destroying context */
     spm_app_stop();
 
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     if (ctx)
     {
+        /* Cancel the Phase B polling / chunk-read timer if still pending */
+        if (ctx->loading_timer)
+        {
+            lv_timer_del(ctx->loading_timer);
+            ctx->loading_timer = NULL;
+        }
+
+        /* Close the chunked-I/O file handle if still open */
+        if (ctx->script_file != EOS_FILE_INVALID)
+        {
+            eos_fs_close(ctx->script_file);
+            ctx->script_file = EOS_FILE_INVALID;
+        }
+
+        /* Free the chunked-I/O buffer (may not have been assigned to pkg yet) */
+        if (ctx->script_buf)
+        {
+            eos_free(ctx->script_buf);
+            ctx->script_buf = NULL;
+        }
+
+        /* Clean up loading placeholder if it wasn't already removed */
+        if (ctx->loading_widget && lv_obj_is_valid(ctx->loading_widget))
+        {
+            lv_obj_del(ctx->loading_widget);
+            ctx->loading_widget = NULL;
+        }
+
         eos_pkg_free(&ctx->pkg);
         eos_free(ctx->app_id);
         eos_free(ctx);
@@ -191,38 +243,376 @@ static void _app_on_enter(eos_activity_t *a)
     app_launch_ctx_t *ctx = eos_activity_get_user_data(a);
     EOS_CHECK_PTR_RETURN(ctx);
 
+    /* Phase A: show loading placeholder and start polling timer.
+     * The zoom animation (APP_LIST → APP) plays immediately after
+     * this returns, capturing the loading UI in its snapshot.
+     * JS execution is deferred to Phase B after the animation completes. */
+    _app_list_show_loading(a, ctx);
+}
+
+/* ---------- Phase B: deferred script loading ---------- */
+
+#define _APP_LIST_CHUNK_SIZE 4096  /* Bytes per tick during chunked I/O */
+
+#if EOS_COMPILE_MODE == DEBUG
+/* Debug: artificial delays to simulate slow Flash / slow JS parsing.
+ * Set via eos_app_list_set_debug_loading_delay(). Zero = no delay. */
+static uint32_t _debug_io_delay_ms = 0;
+static uint32_t _debug_eval_delay_ms = 0;
+
+void eos_app_list_set_debug_loading_delay(uint32_t io_delay_ms, uint32_t eval_delay_ms)
+{
+    _debug_io_delay_ms = io_delay_ms;
+    _debug_eval_delay_ms = eval_delay_ms;
+    EOS_LOG_I("Debug loading delay set: io=%" PRIu32 "ms eval=%" PRIu32 "ms", io_delay_ms, eval_delay_ms);
+}
+
+void eos_app_list_get_debug_loading_delay(uint32_t *io_delay_ms, uint32_t *eval_delay_ms)
+{
+    if (io_delay_ms) *io_delay_ms = _debug_io_delay_ms;
+    if (eval_delay_ms) *eval_delay_ms = _debug_eval_delay_ms;
+}
+#endif /* EOS_COMPILE_MODE == DEBUG */
+
+/**
+ * @brief Update the status label text on the loading screen.
+ */
+static void _app_list_update_loading_status(app_launch_ctx_t *ctx, const char *msg)
+{
+    if (ctx->status_label && lv_obj_is_valid(ctx->status_label))
+    {
+        lv_label_set_text(ctx->status_label, msg);
+    }
+}
+
+/**
+ * @brief Build the loading UI with a determinate progress bar and status text.
+ *
+ * Layout (centered column):
+ *   [App Name]
+ *   [████████░░░░░░░░]  ← progress bar
+ *   "Reading app..."    ← status label
+ *
+ * The zoom animation (APP_LIST → APP) snapshots this UI so the
+ * user sees the progress bar during the icon-zoom transition.
+ */
+static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx)
+{
+    /* Hide the header during loading; restored before JS runs */
+    eos_activity_set_app_header_visible(a, false);
+
+    lv_obj_t *view = eos_activity_get_view(a);
+    if (!view)
+    {
+        return;
+    }
+
+    /* Full-screen loading container */
+    lv_obj_t *loading = lv_obj_create(view);
+    lv_obj_remove_style_all(loading);
+    lv_obj_set_size(loading, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(loading, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(loading, LV_OPA_80, 0);
+    lv_obj_set_style_border_width(loading, 0, 0);
+    lv_obj_set_flex_flow(loading, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(loading, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_all(loading, 32, 0);
+
+    /* App name label */
+    if (ctx->pkg.name && ctx->pkg.name[0])
+    {
+        lv_obj_t *name_label = lv_label_create(loading);
+        lv_label_set_text(name_label, ctx->pkg.name);
+        lv_obj_set_style_text_color(name_label, EOS_COLOR_WHITE, 0);
+        lv_obj_set_style_text_font(name_label, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_pad_bottom(name_label, 24, 0);
+    }
+
+    /* Progress bar — determinate, starts at 0% */
+    lv_obj_t *bar = lv_bar_create(loading);
+    lv_obj_set_size(bar, lv_pct(70), 4);
+    lv_bar_set_range(bar, 0, 100);
+    lv_bar_set_value(bar, 0, LV_ANIM_OFF);
+    lv_obj_set_style_radius(bar, 2, 0);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x404040), 0);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x2196F3), LV_PART_INDICATOR);
+    lv_obj_set_style_radius(bar, 2, LV_PART_INDICATOR);
+    ctx->progress_bar = bar;
+
+    /* Status label */
+    lv_obj_t *status = lv_label_create(loading);
+    lv_label_set_text(status, "");
+    lv_obj_set_style_text_color(status, EOS_COLOR_GREY, 0);
+    lv_obj_set_style_text_font(status, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_pad_top(status, 12, 0);
+    ctx->status_label = status;
+
+    ctx->loading_widget = loading;
+    ctx->loading_start_ms = eos_tick_get();
+    ctx->launch_running = false;
+    ctx->loading_timer = lv_timer_create(_app_list_loading_tick, _APP_LIST_LOADING_TICK_MS, ctx);
+}
+
+/**
+ * @brief Polling timer — waits for transition + min display time,
+ *        then switches to chunked I/O reading.
+ */
+static void _app_list_loading_tick(lv_timer_t *t)
+{
+    app_launch_ctx_t *ctx = (app_launch_ctx_t *)lv_timer_get_user_data(t);
+    if (!ctx || ctx->launch_running)
+    {
+        return;
+    }
+
+    /* Wait for the zoom animation to complete */
+    if (eos_activity_is_transition_in_progress())
+    {
+        return;
+    }
+
+    /* Enforce minimum display time so fast apps don't flash */
+    uint32_t elapsed = eos_tick_get() - ctx->loading_start_ms;
+    if (elapsed < _APP_LIST_LOADING_MIN_MS)
+    {
+        return;
+    }
+
+    /* Both conditions met — stop polling, start chunked I/O */
+    ctx->launch_running = true;
+    lv_timer_del(t);
+    ctx->loading_timer = NULL;
+
+    /* Set base_path now (fast, no I/O) so the package is valid for spm_app_run */
+    char base_path[EOS_FS_PATH_MAX];
+    snprintf(base_path, sizeof(base_path), EOS_APP_INSTALLED_DIR "%s/", ctx->app_id);
+    ctx->pkg.base_path = eos_strdup(base_path);
+    if (!ctx->pkg.base_path)
+    {
+        EOS_LOG_E("Failed to allocate base_path for %s", ctx->app_id);
+        eos_activity_back();
+        return;
+    }
+
+    _app_list_start_chunked_read(ctx);
+}
+
+/**
+ * @brief Open the script file and begin chunked reading.
+ *
+ * Opens main.js via the VFS, gets the file size, allocates a buffer,
+ * updates the progress bar range, and starts the per-tick read timer.
+ */
+static void _app_list_start_chunked_read(app_launch_ctx_t *ctx)
+{
+    char script_path[EOS_FS_PATH_MAX];
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME, ctx->app_id);
+
+    ctx->script_file = eos_fs_open_read(script_path);
+    if (ctx->script_file == EOS_FILE_INVALID)
+    {
+        EOS_LOG_E("Failed to open script: %s", script_path);
+        eos_activity_back();
+        return;
+    }
+
+    uint32_t file_size = 0;
+    if (eos_fs_size(ctx->script_file, &file_size) != EOS_OK || file_size == 0)
+    {
+        EOS_LOG_E("Invalid script size for %s", script_path);
+        eos_fs_close(ctx->script_file);
+        ctx->script_file = EOS_FILE_INVALID;
+        eos_activity_back();
+        return;
+    }
+
+    ctx->script_buf = eos_malloc(file_size + 1);
+    if (!ctx->script_buf)
+    {
+        EOS_LOG_E("Failed to allocate script buffer (%" PRIu32 " bytes)", file_size);
+        eos_fs_close(ctx->script_file);
+        ctx->script_file = EOS_FILE_INVALID;
+        eos_activity_back();
+        return;
+    }
+
+    ctx->script_size = file_size;
+    ctx->script_read = 0;
+
+    /* Update progress bar range to reflect actual byte count */
+    if (ctx->progress_bar && lv_obj_is_valid(ctx->progress_bar))
+    {
+        lv_bar_set_range(ctx->progress_bar, 0, (int32_t)file_size);
+        lv_bar_set_value(ctx->progress_bar, 0, LV_ANIM_OFF);
+    }
+
+    _app_list_update_loading_status(ctx, "Reading app...");
+
+    /* Replace the polling timer with the chunk-read timer */
+    ctx->loading_timer = lv_timer_create(_app_list_read_chunk_tick, _APP_LIST_LOADING_TICK_MS, ctx);
+}
+
+/**
+ * @brief Per-tick chunked read callback.
+ *
+ * Each invocation reads up to _APP_LIST_CHUNK_SIZE bytes from the
+ * open file, advances the progress bar, and updates the status.
+ * When all bytes are read the file is closed and JS evaluation begins.
+ */
+static void _app_list_read_chunk_tick(lv_timer_t *t)
+{
+    app_launch_ctx_t *ctx = (app_launch_ctx_t *)lv_timer_get_user_data(t);
+    if (!ctx)
+    {
+        return;
+    }
+
+#if EOS_COMPILE_MODE == DEBUG
+    /* Debug: inject artificial per-chunk delay to simulate slow Flash */
+    if (_debug_io_delay_ms > 0)
+    {
+        uint32_t chunk_delay = _debug_io_delay_ms / ((ctx->script_size / _APP_LIST_CHUNK_SIZE) + 1);
+        if (chunk_delay > 0)
+        {
+            eos_delay(chunk_delay);
+        }
+    }
+#endif
+
+    uint32_t remaining = ctx->script_size - ctx->script_read;
+    uint32_t chunk = remaining < _APP_LIST_CHUNK_SIZE ? remaining : _APP_LIST_CHUNK_SIZE;
+
+    int nread = eos_fs_read(ctx->script_file, ctx->script_buf + ctx->script_read, chunk);
+    if (nread < 0)
+    {
+        EOS_LOG_E("Read error at offset %" PRIu32 " for %s", ctx->script_read, ctx->app_id);
+        eos_fs_close(ctx->script_file);
+        ctx->script_file = EOS_FILE_INVALID;
+        eos_free(ctx->script_buf);
+        ctx->script_buf = NULL;
+        eos_activity_back();
+        return;
+    }
+    if (nread == 0)
+    {
+        /* EOF reached — shouldn't happen if size was correct, but handle gracefully */
+        nread = (int)remaining;
+    }
+
+    ctx->script_read += (uint32_t)nread;
+
+    /* Update progress bar */
+    if (ctx->progress_bar && lv_obj_is_valid(ctx->progress_bar))
+    {
+        lv_bar_set_value(ctx->progress_bar, (int32_t)ctx->script_read, LV_ANIM_OFF);
+    }
+
+    if (ctx->script_read >= ctx->script_size)
+    {
+        /* All bytes read — finalize and proceed to JS eval */
+        eos_fs_close(ctx->script_file);
+        ctx->script_file = EOS_FILE_INVALID;
+        ctx->script_buf[ctx->script_size] = '\0';
+        ctx->pkg.script_str = ctx->script_buf;
+        ctx->script_buf = NULL; /* Ownership transferred to pkg */
+
+        lv_timer_del(t);
+        ctx->loading_timer = NULL;
+
+        _app_list_update_loading_status(ctx, "Starting engine...");
+        _app_list_do_launch_script(ctx);
+    }
+}
+
+/**
+ * @brief Final phase: run the JS engine and reveal the app.
+ *
+ * The progress bar shows ~100% and the status reads "Starting engine...".
+ * This call blocks the main thread (JerryScript is synchronous) but the
+ * user sees a meaningful status message on screen.
+ */
+static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
+{
+    /* Verify the activity still exists (user may have navigated back) */
+    eos_activity_t *a = eos_activity_get_current();
+    if (!a || eos_activity_get_type(a) != EOS_ACTIVITY_TYPE_APP)
+    {
+        EOS_LOG_E("App activity gone during launch");
+        eos_activity_back();
+        return;
+    }
+
+#if EOS_COMPILE_MODE == DEBUG
+    /* Debug: simulate slow JS parse/eval */
+    if (_debug_eval_delay_ms > 0)
+    {
+        EOS_LOG_I("Debug: simulating slow JS eval delay %" PRIu32 "ms", _debug_eval_delay_ms);
+        uint32_t elapsed = 0;
+        while (elapsed < _debug_eval_delay_ms)
+        {
+            uint32_t step = 16;
+            if (elapsed + step > _debug_eval_delay_ms) step = _debug_eval_delay_ms - elapsed;
+            eos_delay(step);
+            lv_timer_handler();
+            elapsed += step;
+        }
+    }
+#endif
+
+    /* Restore default header visibility before JS runs.
+     * The app's JS may call setAppHeaderVisible(false) to hide it. */
+    eos_activity_set_app_header_visible(a, true);
+
+    /* Run the JS — synchronous, blocks the main thread.
+     * The loading UI (progress bar at 100%, "Starting engine...")
+     * remains visible as the last rendered frame. */
     eos_result_t ret = spm_app_run(&ctx->pkg);
     if (ret != EOS_OK)
     {
-        // Determine error type based on error code
-        eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
-        if (ret == EOS_ERR_TIMEOUT)
+        _app_handle_script_run_result(a, ctx, ret);
+        return;
+    }
+
+    /* Success: remove the loading placeholder.  The app's JS widgets
+     * are already on the view — they will render on the next tick. */
+    if (ctx->loading_widget && lv_obj_is_valid(ctx->loading_widget))
+    {
+        lv_obj_del(ctx->loading_widget);
+        ctx->loading_widget = NULL;
+    }
+}
+
+/**
+ * @brief Error handling for script launch failures — extracted from
+ *        the original _app_on_enter for reuse in the deferred path.
+ */
+static void _app_handle_script_run_result(eos_activity_t *a, app_launch_ctx_t *ctx, eos_result_t ret)
+{
+    eos_script_error_type_t error_type = EOS_SCRIPT_FAULT_ERROR_EXCEPTION;
+    if (ret == EOS_ERR_TIMEOUT)
+    {
+        error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
+    }
+    else
+    {
+        const char *error_info = script_engine_get_error_info();
+        if (error_info && strstr(error_info, "timeout"))
         {
             error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
         }
-        else
-        {
-            // Check error info for timeout if code doesn't indicate it
-            const char *error_info = script_engine_get_error_info();
-            if (error_info && strstr(error_info, "timeout"))
-            {
-                error_type = EOS_SCRIPT_FAULT_UNRESPONSIVE;
-            }
-        }
-
-        // Only handle error if it hasn't been handled already (timeout is handled inside script_engine_run)
-        if (ret != EOS_ERR_TIMEOUT)
-        {
-            eos_script_error_handler_cfg_t app_cfg = {
-                .confirm_btn_id = STR_ID_APP_RESTART,
-                .confirm_cb = _app_list_restart_cb,
-                .cancel_btn_id = STR_ID_APP_EXIT,
-                .cancel_cb = _app_list_exit_cb,
-            };
-            eos_app_handle_script_error(error_type, ret, ctx->app_id, &app_cfg);
-        }
-        EOS_LOG_E("Application encounter a fatal error");
     }
+
+    if (ret != EOS_ERR_TIMEOUT)
+    {
+        eos_script_error_handler_cfg_t app_cfg = {
+            .confirm_btn_id = STR_ID_APP_RESTART,
+            .confirm_cb = _app_list_restart_cb,
+            .cancel_btn_id = STR_ID_APP_EXIT,
+            .cancel_cb = _app_list_exit_cb,
+        };
+        eos_app_handle_script_error(error_type, ret, ctx->app_id, &app_cfg);
+    }
+    EOS_LOG_E("Application encounter a fatal error");
 }
 
 static void _app_list_restart_cb(lv_event_t *e)
@@ -297,7 +687,10 @@ static int32_t _app_list_find_sys_app(const char *app_id)
     return -1;
 }
 
-static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t *pkg)
+/**
+ * @brief Read manifest only (fast, small file) — used in Phase A for app name
+ */
+static eos_result_t _app_list_build_manifest(const char *app_id, script_pkg_t *pkg)
 {
     if (!(app_id && pkg))
     {
@@ -314,41 +707,17 @@ static eos_result_t _app_list_build_script_pkg(const char *app_id, script_pkg_t 
         return EOS_FAILED;
     }
 
-    char script_path[EOS_FS_PATH_MAX];
-    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME, app_id);
-
-    char base_path[EOS_FS_PATH_MAX];
-    snprintf(base_path, sizeof(base_path), EOS_APP_INSTALLED_DIR "%s/", app_id);
-    pkg->base_path = eos_strdup(base_path);
-    if (!pkg->base_path)
-    {
-        eos_pkg_free(pkg);
-        return EOS_ERR_MEM;
-    }
-
-    if (!eos_storage_is_file(script_path))
-    {
-        EOS_LOG_E("Can't find script: %s", script_path);
-        eos_pkg_free(pkg);
-        return EOS_FAILED;
-    }
-
-    pkg->script_str = eos_storage_read_file(script_path);
-    if (!pkg->script_str)
-    {
-        EOS_LOG_E("Failed to read script: %s", script_path);
-        eos_pkg_free(pkg);
-        return EOS_FAILED;
-    }
-
     return EOS_OK;
 }
 
 static eos_result_t _app_list_launch_script_app(const char *app_id)
 {
-    script_pkg_t pkg = {0};
-    if (_app_list_build_script_pkg(app_id, &pkg) != EOS_OK)
+    /* Quick-fail: main.js must exist before we show a loading screen */
+    char script_path[EOS_FS_PATH_MAX];
+    snprintf(script_path, sizeof(script_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_SCRIPT_ENTRY_FILE_NAME, app_id);
+    if (!eos_storage_is_file(script_path))
     {
+        EOS_LOG_E("Can't find script: %s", script_path);
         return EOS_FAILED;
     }
 
@@ -356,16 +725,22 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
     if (!ctx)
     {
         EOS_LOG_E("Failed to allocate app launch context");
-        eos_pkg_free(&pkg);
         return EOS_FAILED;
     }
 
-    ctx->pkg = pkg;
     ctx->app_id = eos_strdup(app_id);
     if (!ctx->app_id)
     {
         EOS_LOG_E("Failed to copy app id");
+        eos_free(ctx);
+        return EOS_FAILED;
+    }
+
+    /* Phase A: read manifest only (small, fast) to get the app name */
+    if (_app_list_build_manifest(app_id, &ctx->pkg) != EOS_OK)
+    {
         eos_pkg_free(&ctx->pkg);
+        eos_free(ctx->app_id);
         eos_free(ctx);
         return EOS_FAILED;
     }
@@ -384,11 +759,13 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
     lv_obj_set_size(app_view, EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT);
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_APP);
     eos_activity_set_user_data(a, ctx);
-    eos_activity_set_title(a, pkg.name);
+    eos_activity_set_title(a, ctx->pkg.name);
     eos_activity_set_app_header_visible(a, true);
 
     EOS_LOG_D("view_size: %d, %d", lv_obj_get_width(app_view), lv_obj_get_height(app_view));
 
+    /* Enter the activity immediately: loads the loading placeholder,
+     * plays the zoom animation, then defers JS load to Phase B. */
     eos_activity_enter(a);
     return EOS_OK;
 }
