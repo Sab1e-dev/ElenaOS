@@ -414,7 +414,7 @@ config EOS_RECENT_APPS_MAX
 
 config EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS
     int "Crown double-click window (ms)"
-    default 400
+    default 250
     depends on EOS_RECENT_APPS_ENABLE
     help
       Time window for crown double-click detection.

@@ -225,14 +225,15 @@ static bool _double_click_pending = false;
 
 /**
  * @brief Timeout callback: no second click arrived within the double-click window.
- *        The single-click action already fired immediately on the first click,
- *        so this just resets the pending state.
+ *        The single-click action fires now — after the window expired without a
+ *        second click, confirming the user intended a single click.
  */
-static void _double_click_timeout_cb(lv_timer_t *t)
+static void _single_click_deferred_cb(lv_timer_t *t)
 {
     LV_UNUSED(t);
     _double_click_timer = NULL;
     _double_click_pending = false;
+    eos_chrome_manager_handle_crown_click();
 }
 
 static void _crown_button_async_cb(void *user_data)
@@ -244,7 +245,8 @@ static void _crown_button_async_cb(void *user_data)
 #if EOS_RECENT_APPS_ENABLE
             if (_double_click_pending && _double_click_timer)
             {
-                /* Second click within window → double-click (recents toggle) */
+                /* Second click within window → double-click (recents toggle).
+                 * Cancel the deferred single-click timer and open recents. */
                 lv_timer_del(_double_click_timer);
                 _double_click_timer = NULL;
                 _double_click_pending = false;
@@ -252,14 +254,12 @@ static void _crown_button_async_cb(void *user_data)
             }
             else
             {
-                /* First click → back immediately (zero latency).
-                 * The single-click action fires NOW, not after a delay. */
-                eos_chrome_manager_handle_crown_click();
-
-                /* Start the double-click detection window */
+                /* First click → arm the double-click detection window.
+                 * The single-click action is deferred until the timer
+                 * expires, avoiding the need to "undo" a premature back(). */
                 _double_click_pending = true;
                 _double_click_timer =
-                    lv_timer_create(_double_click_timeout_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
+                    lv_timer_create(_single_click_deferred_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
                 lv_timer_set_repeat_count(_double_click_timer, 1);
             }
 #else
