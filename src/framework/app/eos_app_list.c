@@ -111,8 +111,11 @@ static eos_activity_lifecycle_t app_lifecycle = {
     .on_resume = _app_on_resume,
 };
 
+#define _APP_LAUNCH_CTX_MAGIC 0xE05A7070 /* "EOS App" */
+
 typedef struct
 {
+    uint32_t magic; /**< Magic sentinel: _APP_LAUNCH_CTX_MAGIC */
     script_pkg_t pkg;
     char *app_id;
     lv_timer_t *loading_timer; /* Phase B polling / chunk-read timer */
@@ -256,17 +259,22 @@ static void _app_on_resume(eos_activity_t *a)
             EOS_LOG_W("spm_app_resume failed for '%s': %d", ctx->app_id, ret);
         }
 
+#if EOS_RECENT_APPS_ENABLE
         /* Timer/animation strategies are applied by eos_recent_apps_resume()
          * via sni_context_resume_resources() on the program's sni_ctx.
          * We also apply them here for the case where resume happens
          * without going through the recents flow. */
         script_program_t *prog = spm_get_program_by_id_any_state(ctx->app_id);
-        if (prog && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE && prog->sni_ctx)
+        if (prog && prog->sni_ctx && prog->state != SCRIPT_PROGRAM_STATE_TERMINATED
+            && prog->state != SCRIPT_PROGRAM_STATE_STOPPING)
         {
+#if defined(EOS_RECENT_APPS_TIMER_STRATEGY) && defined(EOS_RECENT_APPS_ANIM_STRATEGY)
             uint32_t timer_strat = (uint32_t)EOS_RECENT_APPS_TIMER_STRATEGY;
             uint32_t anim_strat = (uint32_t)EOS_RECENT_APPS_ANIM_STRATEGY;
             sni_context_resume_resources(prog->sni_ctx, (int)timer_strat, (int)anim_strat);
+#endif
         }
+#endif /* EOS_RECENT_APPS_ENABLE */
     }
 }
 
@@ -914,6 +922,8 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
         return EOS_FAILED;
     }
 
+    ctx->magic = _APP_LAUNCH_CTX_MAGIC;
+
     ctx->app_id = eos_strdup(app_id);
     if (!ctx->app_id)
     {
@@ -962,6 +972,10 @@ const char *eos_app_list_get_app_id(eos_activity_t *activity)
         return NULL;
     app_launch_ctx_t *ctx = (app_launch_ctx_t *)eos_activity_get_user_data(activity);
     if (!ctx)
+        return NULL;
+    /* Validate the sentinel to avoid type-confusion with other user_data
+     * types (e.g. Flashlight uses _flash_light_card_pager_ctx_t). */
+    if (ctx->magic != _APP_LAUNCH_CTX_MAGIC)
         return NULL;
     return ctx->app_id;
 }

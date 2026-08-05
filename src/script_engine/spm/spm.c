@@ -818,7 +818,9 @@ void spm_handle_engine_reset(void)
     memset(&s_last_error, 0, sizeof(spm_error_t));
 
     /* Notify recents registry that all programs were destroyed */
+#if EOS_RECENT_APPS_ENABLE
     eos_recent_apps_on_engine_reset();
+#endif
 
     EOS_LOG_I("SPM: all programs destroyed, engine reset ready");
 }

@@ -221,12 +221,18 @@ static void _scrollbar_hide_set_anim(void)
 }
 
 static lv_timer_t *_double_click_timer = NULL;
+static bool _double_click_pending = false;
 
-static void _single_click_timeout_cb(lv_timer_t *t)
+/**
+ * @brief Timeout callback: no second click arrived within the double-click window.
+ *        The single-click action already fired immediately on the first click,
+ *        so this just resets the pending state.
+ */
+static void _double_click_timeout_cb(lv_timer_t *t)
 {
     LV_UNUSED(t);
     _double_click_timer = NULL;
-    eos_chrome_manager_handle_crown_click();
+    _double_click_pending = false;
 }
 
 static void _crown_button_async_cb(void *user_data)
@@ -235,20 +241,31 @@ static void _crown_button_async_cb(void *user_data)
     switch (state)
     {
         case EOS_BUTTON_STATE_CLICKED:
-            if (_double_click_timer)
+#if EOS_RECENT_APPS_ENABLE
+            if (_double_click_pending && _double_click_timer)
             {
-                /* Second click within window → double-click */
+                /* Second click within window → double-click (recents toggle) */
                 lv_timer_del(_double_click_timer);
                 _double_click_timer = NULL;
+                _double_click_pending = false;
                 eos_chrome_manager_handle_crown_double_click();
             }
             else
             {
-                /* First click → start double-click detection window */
+                /* First click → back immediately (zero latency).
+                 * The single-click action fires NOW, not after a delay. */
+                eos_chrome_manager_handle_crown_click();
+
+                /* Start the double-click detection window */
+                _double_click_pending = true;
                 _double_click_timer =
-                    lv_timer_create(_single_click_timeout_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
+                    lv_timer_create(_double_click_timeout_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
                 lv_timer_set_repeat_count(_double_click_timer, 1);
             }
+#else
+            /* Recents disabled: single-click fires immediately */
+            eos_chrome_manager_handle_crown_click();
+#endif
             break;
         default:
             break;

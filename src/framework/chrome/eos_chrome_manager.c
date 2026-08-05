@@ -22,6 +22,7 @@
 #include "eos_stack.h"
 #include "eos_recent_apps.h"
 #include "eos_recent_apps_page.h"
+#include "eos_event.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -31,6 +32,7 @@
 static const eos_chrome_overlay_t *_overlays[_MAX_OVERLAYS];
 static uint32_t _overlay_count = 0;
 static eos_stack_t *_overlay_stack = NULL;
+static bool _pending_recents_open = false;
 
 /* Function Implementations -----------------------------------*/
 
@@ -266,6 +268,30 @@ void eos_chrome_manager_handle_crown_click(void)
     }
 }
 
+/**
+ * @brief Event callback: transition completed, open recents if deferred.
+ */
+static void _recents_deferred_open_cb(eos_event_t *e)
+{
+    LV_UNUSED(e);
+    if (!_pending_recents_open)
+        return;
+    _pending_recents_open = false;
+
+    eos_activity_t *current = eos_activity_get_current();
+    if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_RECENT_APPS)
+    {
+        /* Recents page is already open (race) — nothing to do */
+        return;
+    }
+
+    if (current && eos_recent_apps_is_suspendable(current))
+    {
+        eos_recent_apps_suspend_current();
+    }
+    eos_recent_apps_page_enter();
+}
+
 void eos_chrome_manager_handle_crown_double_click(void)
 {
     /* Wake up first if sleeping */
@@ -296,11 +322,26 @@ void eos_chrome_manager_handle_crown_double_click(void)
     if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_RECENT_APPS)
     {
         eos_activity_back();
+        return;
     }
-    else
+
+    /* If a transition is in progress (e.g. the single-click back() from
+     * the first crown press is still animating), defer the recents open
+     * until the transition completes. The event callback will open it. */
+    if (eos_activity_is_transition_in_progress())
     {
-        eos_recent_apps_page_enter();
+        EOS_LOG_I("Crown double-click during transition — deferring recents open");
+        _pending_recents_open = true;
+        return;
     }
+
+    /* If currently inside a suspendable script app, suspend it first
+     * so it appears in the recents list when the page opens. */
+    if (current && eos_recent_apps_is_suspendable(current))
+    {
+        eos_recent_apps_suspend_current();
+    }
+    eos_recent_apps_page_enter();
 }
 
 void eos_chrome_manager_handle_activity_switch(void)
@@ -324,6 +365,13 @@ void eos_chrome_manager_init(void)
     eos_chrome_manager_register_overlay(eos_control_center_get_overlay_descriptor());
     eos_chrome_manager_register_overlay(eos_msg_list_get_overlay_descriptor());
     eos_chrome_manager_register_overlay(eos_flash_light_get_overlay_descriptor());
+
+    /* Subscribe to screen-switched events for deferred recents-open.
+     * When crown double-click arrives during a transition (from the
+     * immediate-back first click), we defer opening recents until the
+     * transition completes and this event fires. */
+    eos_event_subscribe_ex(EOS_EVENT_ACTIVITY_SCREEN_SWITCHED, _recents_deferred_open_cb, NULL, NULL);
+
     EOS_LOG_I("Chrome manager initialized");
 }
 

@@ -26,6 +26,9 @@
 #include "eos_image.h"
 #include "eos_widget_data.h"
 #include "eos_recent_apps.h"
+#include "eos_app.h"
+#include "eos_service_storage.h"
+#include "eos_app_list.h"
 /* Macros and Definitions -------------------------------------*/
 #define _ACTIVITY_STACK_INIT_CAPACITY 8
 #define _DEFAULT_TITLE_COLOR EOS_COLOR_BLUE
@@ -140,6 +143,8 @@ static const char *_activity_type_to_str(eos_activity_type_t type)
             return "WATCHFACE_LIST";
         case EOS_ACTIVITY_TYPE_LOCK_SCREEN:
             return "LOCK_SCREEN";
+        case EOS_ACTIVITY_TYPE_RECENT_APPS:
+            return "RECENT_APPS";
         default:
             return "UNKNOWN";
     }
@@ -1599,14 +1604,24 @@ eos_result_t eos_activity_back(void)
 
     eos_activity_t *cur_activity = _activity_ctx.current_activity;
 
-    /* If leaving an APP-type activity (app root), register for suspend */
-    if (eos_activity_get_type(cur_activity) == EOS_ACTIVITY_TYPE_APP)
+    /* If leaving a suspendable APP activity, register it in recents.
+     * Only script apps with a valid launch context are suspendable —
+     * native system apps (Settings, Flashlight) and JS sub-activities
+     * are APP-type but NOT suspendable and must be destroyed instead. */
+    if (eos_activity_get_type(cur_activity) == EOS_ACTIVITY_TYPE_APP && eos_recent_apps_is_suspendable(cur_activity))
     {
         EOS_LOG_I("Activity back: APP type detected, registering for suspend");
-        /* Register in recents (takes screenshot, creates entry, suspends SPM) */
         eos_result_t reg_ret = eos_recent_apps_register_for_suspend(cur_activity);
         EOS_LOG_I("Activity back: register_for_suspend returned %d", reg_ret);
-        cur_activity->suspend_on_exit = true;
+        if (reg_ret == EOS_OK)
+        {
+            cur_activity->suspend_on_exit = true;
+        }
+        else
+        {
+            EOS_LOG_W("Activity back: suspend registration failed, falling back to destroy");
+            cur_activity->destroy_on_exit = true;
+        }
     }
     else
     {
@@ -2046,9 +2061,44 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
             break;
     }
 
-    _activity_ctx.current_activity = substack_top;
-    _activity_show(substack_top);
-    _activity_mark_visible(substack_top);
+    /* Create a temporary placeholder on the view so the opening
+     * transition animation has something to snapshot.  The real widgets
+     * from before suspend are still in the tree but the snapshot
+     * renderer may not see them in a freshly-unhidden view.  Show
+     * the app's icon on a black background so the zoom animation
+     * looks correct.  The placeholder is removed after _activity_switch_to
+     * returns — the snapshot was already taken synchronously. */
+    lv_obj_t *placeholder = lv_obj_create(substack_top->view);
+    lv_obj_set_size(placeholder, lv_pct(100), lv_pct(100));
+    lv_obj_set_style_bg_color(placeholder, lv_color_black(), 0);
+    lv_obj_set_style_border_width(placeholder, 0, 0);
+    lv_obj_set_style_radius(placeholder, 0, 0);
+    lv_obj_remove_flag(placeholder, LV_OBJ_FLAG_SCROLLABLE);
+
+    /* Show the app icon centered on the placeholder */
+    {
+        const char *placeholder_app_id = eos_app_list_get_app_id(app_root);
+        if (placeholder_app_id)
+        {
+            char icon_path[EOS_FS_PATH_MAX];
+            snprintf(icon_path,
+                     sizeof(icon_path),
+                     EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+                     placeholder_app_id);
+            const void *icon_src = eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
+            lv_obj_t *icon = eos_circle_image_create(placeholder, icon_src, 64);
+            lv_obj_center(icon);
+        }
+    }
+
+    /* Route through _activity_switch_to() to get the APP_LIST→APP
+     * zoom animation and proper AppHeader reconciliation.  The sub-
+     * stack is already pushed and on_resume has already run. */
+    _activity_switch_to(substack_top, false);
+
+    /* The animation callback took its snapshot synchronously —
+     * the placeholder is no longer needed. */
+    lv_obj_del(placeholder);
 
     EOS_LOG_I("Re-attached app sub-stack: root=%p[%s] top=%p[%s] depth=%u",
               (void *)app_root,

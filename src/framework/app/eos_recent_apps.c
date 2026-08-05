@@ -5,6 +5,8 @@
 
 #include "eos_recent_apps.h"
 
+#if EOS_RECENT_APPS_ENABLE
+
 /* Includes ---------------------------------------------------*/
 #include <string.h>
 #include <stdio.h>
@@ -58,6 +60,14 @@ static void _lru_link_head(eos_recent_app_entry_t *entry)
 
 static void _lru_unlink(eos_recent_app_entry_t *entry)
 {
+    /* Guard against double-unlink: if both pointers are NULL and this
+     * isn't the sole head entry, it was already unlinked. */
+    if (!entry->next && !entry->prev && s_head != entry)
+    {
+        EOS_LOG_W("Attempted to unlink an already-detached entry");
+        return;
+    }
+
     if (entry->prev)
         entry->prev->next = entry->next;
     else
@@ -81,12 +91,12 @@ static void _lru_unlink(eos_recent_app_entry_t *entry)
 
 static uint32_t _estimate_entry_mem(eos_recent_app_entry_t *e)
 {
-    LV_UNUSED(e);
-    /* Screenshot: width * height * 2 bytes (RGB565) */
-    uint32_t img_bytes = (uint32_t)(390 * 450 * 2);
-    /* Rough estimate for realm + sni_ctx + activity structs */
+    if (!e)
+        return 0;
+    /* Entry struct + overhead estimate for SPM realm + sni_ctx + activity */
+    uint32_t struct_bytes = (uint32_t)sizeof(eos_recent_app_entry_t);
     uint32_t overhead = 64 * 1024;
-    return img_bytes + overhead;
+    return struct_bytes + overhead;
 }
 
 static void _lru_eviction_check(void)
@@ -131,23 +141,39 @@ void eos_recent_apps_init(void)
               (int)s_anim_strategy);
 }
 
-eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity)
+/**
+ * @brief Internal: suspend an app and register it in the LRU recents list
+ *
+ * Shared by register_for_suspend() and suspend_current(). Handles:
+ *  1. Screenshot capture of snapshot_target
+ *  2. Dedup (finds by app_id, evicts old entry if exists)
+ *  3. Entry allocation and LRU linking
+ *  4. Optional sub-stack detach (with flag marking)
+ *  5. SPM program suspend
+ *  6. LRU eviction check
+ *
+ * @param app_root       The AppRoot activity (carries the app_id)
+ * @param stack_top      Top of the sub-stack (might equal app_root)
+ * @param snapshot_target Activity whose view to screenshot
+ * @param depth          Sub-stack depth (1 = just AppRoot)
+ * @param detach         If true, mark flags and detach the sub-stack
+ * @return EOS_OK on success
+ */
+static eos_result_t _suspend_and_register(eos_activity_t *app_root,
+                                          eos_activity_t *stack_top,
+                                          eos_activity_t *snapshot_target,
+                                          uint32_t depth,
+                                          bool detach)
 {
-    if (!s_initialized || !app_activity)
-        return EOS_FAILED;
-
-    if (eos_activity_get_type(app_activity) != EOS_ACTIVITY_TYPE_APP)
-        return EOS_FAILED;
-
-    /* Get the real app_id from the launch context (not the display title) */
-    const char *app_id = eos_app_list_get_app_id(app_activity);
+    /* Get the real app_id from the launch context (NOT the display title) */
+    const char *app_id = eos_app_list_get_app_id(app_root);
     if (!app_id)
+    {
+        EOS_LOG_W("AppRoot has no app_id");
         return EOS_FAILED;
+    }
 
-    /* Take snapshot before the view gets hidden by transition */
-    lv_draw_buf_t *screenshot = eos_activity_take_snapshot_standalone(app_activity, false);
-
-    /* Deduplicate */
+    /* Deduplicate: if this app is already in recents, evict the old entry */
     eos_recent_app_entry_t *existing = eos_recent_apps_find(app_id);
     if (existing)
     {
@@ -159,31 +185,78 @@ eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity)
     eos_recent_app_entry_t *entry = eos_malloc_zeroed(sizeof(eos_recent_app_entry_t));
     if (!entry)
     {
-        if (screenshot)
-            eos_draw_buf_destroy(screenshot);
+        EOS_LOG_E("Failed to allocate recents entry");
         return EOS_FAILED;
     }
 
     snprintf(entry->app_id, sizeof(entry->app_id), "%s", app_id);
-    entry->activity = app_activity;
-    entry->saved_stack_top = app_activity;
-    entry->saved_stack_depth = 1;
-    entry->screenshot_buf = screenshot;
+
+    /* Store the display name for the recents page UI */
+    const char *title = eos_activity_get_title(app_root);
+    snprintf(entry->app_name, sizeof(entry->app_name), "%s", title ? title : app_id);
+
+    entry->activity = app_root;
+    entry->saved_stack_top = stack_top;
+    entry->saved_stack_depth = depth;
     entry->last_used_tick = eos_tick_get();
     entry->est_mem_bytes = _estimate_entry_mem(entry);
 
+    if (detach)
+    {
+        /* Mark sub-stack for suspend park BEFORE detach */
+        eos_activity_t *node = stack_top;
+        while (node && node != eos_activity_get_app_substack_next(app_root))
+        {
+            eos_activity_set_suspend_on_exit(node, true);
+            eos_activity_set_suspended(node, true);
+            node = eos_activity_get_app_substack_next(node);
+        }
+
+        /* Detach sub-stack from main activity stack (calls on_pause chain) */
+        eos_activity_t *detached = eos_activity_detach_app_substack();
+        if (!detached)
+        {
+            EOS_LOG_E("Failed to detach app sub-stack");
+            eos_free(entry);
+            return EOS_FAILED;
+        }
+    }
+
     /* Suspend SPM program (preserves realm) */
-    spm_app_suspend();
+    eos_result_t spm_ret = spm_app_suspend();
+    if (spm_ret != EOS_OK)
+    {
+        EOS_LOG_W("SPM suspend returned %d (may already be suspended)", spm_ret);
+    }
 
     /* Link to LRU head */
     _lru_link_head(entry);
 
-    EOS_LOG_I("App registered for suspend: '%s' total_count=%u", entry->app_id, s_count);
+    EOS_LOG_I("App %s: '%s' depth=%u mem=%u total_count=%u total_mem=%u",
+              detach ? "suspended" : "registered for suspend",
+              entry->app_id,
+              depth,
+              entry->est_mem_bytes,
+              s_count,
+              s_total_mem_bytes);
 
     /* Run LRU eviction check */
     _lru_eviction_check();
 
     return EOS_OK;
+}
+
+eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity)
+{
+    if (!s_initialized || !app_activity)
+        return EOS_FAILED;
+
+    if (eos_activity_get_type(app_activity) != EOS_ACTIVITY_TYPE_APP)
+        return EOS_FAILED;
+
+    /* Called from eos_activity_back() — the back/transition flow handles
+     * the detach, so we only register without detaching. */
+    return _suspend_and_register(app_activity, app_activity, app_activity, 1, false);
 }
 
 eos_result_t eos_recent_apps_suspend_current(void)
@@ -229,89 +302,8 @@ eos_result_t eos_recent_apps_suspend_current(void)
         return EOS_FAILED;
     }
 
-    /* Get the app_id from the title (set from pkg.name during launch) */
-    const char *title = eos_activity_get_title(app_root);
-    if (!title)
-    {
-        EOS_LOG_W("AppRoot has no title");
-        return EOS_FAILED;
-    }
-
-    /* Deduplicate: if this app is already in recents, evict the old entry */
-    eos_recent_app_entry_t *existing = eos_recent_apps_find(title);
-    if (existing)
-    {
-        EOS_LOG_I("App '%s' already in recents, evicting old entry", title);
-        eos_recent_apps_evict(existing);
-    }
-
-    /* Take standalone snapshot of the stack top view (what the user sees) */
-    lv_draw_buf_t *screenshot = eos_activity_take_snapshot_standalone(current, false);
-    if (!screenshot)
-    {
-        EOS_LOG_W("Failed to take snapshot for '%s'", title);
-        /* Continue without screenshot — resume will use a placeholder */
-    }
-
-    /* Allocate entry */
-    eos_recent_app_entry_t *entry = eos_malloc_zeroed(sizeof(eos_recent_app_entry_t));
-    if (!entry)
-    {
-        EOS_LOG_E("Failed to allocate recents entry");
-        if (screenshot)
-            eos_draw_buf_destroy(screenshot);
-        return EOS_FAILED;
-    }
-
-    snprintf(entry->app_id, sizeof(entry->app_id), "%s", title);
-    entry->activity = app_root;
-    entry->saved_stack_top = current;
-    entry->saved_stack_depth = depth;
-    entry->screenshot_buf = screenshot;
-    entry->last_used_tick = eos_tick_get();
-    entry->est_mem_bytes = _estimate_entry_mem(entry);
-
-    /* Mark sub-stack for suspend park */
-    eos_activity_t *node = current;
-    while (node && node != eos_activity_get_app_substack_next(app_root))
-    {
-        eos_activity_set_suspend_on_exit(node, true);
-        eos_activity_set_suspended(node, true);
-        node = eos_activity_get_app_substack_next(node);
-    }
-
-    /* Detach sub-stack from main activity stack (calls on_pause chain) */
-    eos_activity_t *detached = eos_activity_detach_app_substack();
-    if (!detached)
-    {
-        EOS_LOG_E("Failed to detach app sub-stack");
-        if (entry->screenshot_buf)
-            eos_draw_buf_destroy(entry->screenshot_buf);
-        eos_free(entry);
-        return EOS_FAILED;
-    }
-
-    /* Suspend SPM program */
-    eos_result_t spm_ret = spm_app_suspend();
-    if (spm_ret != EOS_OK)
-    {
-        EOS_LOG_W("SPM suspend returned %d (may already be suspended)", spm_ret);
-    }
-
-    /* Link to LRU head */
-    _lru_link_head(entry);
-
-    EOS_LOG_I("App suspended: '%s' depth=%u mem=%u total_count=%u total_mem=%u",
-              entry->app_id,
-              depth,
-              entry->est_mem_bytes,
-              s_count,
-              s_total_mem_bytes);
-
-    /* Run LRU eviction check */
-    _lru_eviction_check();
-
-    return EOS_OK;
+    /* Explicit suspend: detach the sub-stack, mark flags, suspend SPM */
+    return _suspend_and_register(app_root, current, current, depth, true);
 }
 
 eos_result_t eos_recent_apps_resume(eos_recent_app_entry_t *entry)
@@ -344,13 +336,6 @@ eos_result_t eos_recent_apps_resume(eos_recent_app_entry_t *entry)
         sni_context_resume_resources(prog->sni_ctx, (int)s_timer_strategy, (int)s_anim_strategy);
     }
 
-    /* Free screenshot after resume transition completes */
-    if (entry->screenshot_buf)
-    {
-        eos_draw_buf_destroy(entry->screenshot_buf);
-        entry->screenshot_buf = NULL;
-    }
-    entry->screenshot_img = NULL;
     entry->activity = NULL;
     entry->saved_stack_top = NULL;
 
@@ -412,13 +397,6 @@ eos_result_t eos_recent_apps_evict(eos_recent_app_entry_t *entry)
         node = next;
     }
 
-    /* Free screenshot */
-    if (entry->screenshot_buf)
-    {
-        eos_draw_buf_destroy(entry->screenshot_buf);
-        entry->screenshot_buf = NULL;
-    }
-
     eos_free(entry);
     return EOS_OK;
 }
@@ -438,18 +416,19 @@ void eos_recent_apps_on_engine_reset(void)
 {
     EOS_LOG_W("Engine reset detected — clearing recents");
     /* Walk and evict all entries. The programs are already destroyed
-     * by spm_handle_engine_reset, so we only need to clean up C structures. */
+     * by spm_handle_engine_reset, so we must destroy the parked activity
+     * objects (views, launch contexts) that would otherwise leak. */
     eos_recent_app_entry_t *entry = s_head;
     while (entry)
     {
         eos_recent_app_entry_t *next = entry->next;
-        /* Mark as not suspended so cleanup proceeds */
+        /* Destroy the parked activity tree (clears suspended flags,
+         * calls on_destroy lifecycle, frees views and user_data). */
         if (entry->activity)
-            eos_activity_set_suspended(entry->activity, false);
-        if (entry->screenshot_buf)
         {
-            eos_draw_buf_destroy(entry->screenshot_buf);
-            entry->screenshot_buf = NULL;
+            eos_activity_set_suspended(entry->activity, false);
+            eos_activity_set_suspend_on_exit(entry->activity, false);
+            eos_activity_destroy(entry->activity);
         }
         eos_free(entry);
         entry = next;
@@ -513,3 +492,5 @@ static void _app_uninstalled_cb(eos_event_t *e)
         eos_recent_apps_evict(entry);
     }
 }
+
+#endif /* EOS_RECENT_APPS_ENABLE */

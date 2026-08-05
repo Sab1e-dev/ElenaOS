@@ -191,7 +191,9 @@ void eos_init(void)
     eos_msg_list_init();
     eos_control_center_init();
     eos_chrome_manager_init();
+#if EOS_RECENT_APPS_ENABLE
     eos_recent_apps_init();
+#endif
     eos_service_pm_init();
     eos_service_audio_init();
     eos_service_lock_init();
