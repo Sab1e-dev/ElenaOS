@@ -56,6 +56,7 @@ typedef struct eos_recent_app_entry
     uint32_t saved_stack_depth; /**< Sub-stack depth (1 = just AppRoot) */
     uint32_t last_used_tick; /**< LRU timestamp (eos_tick_get) */
     uint32_t est_mem_bytes; /**< Estimated memory footprint */
+    lv_draw_buf_t *snap_buf; /**< Screenshot of app view at suspend time, used for resume animation */
 } eos_recent_app_entry_t;
 
 /* Public function prototypes ---------------------------------*/

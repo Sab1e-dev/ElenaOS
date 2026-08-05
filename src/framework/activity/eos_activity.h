@@ -401,6 +401,31 @@ bool eos_activity_has_started(eos_activity_t *activity);
 lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, bool include_header);
 
 /**
+ * @brief Set a pre-captured snapshot on an activity for the resume transition animation
+ * @param activity Activity to attach the snapshot to
+ * @param snap_buf Pre-captured RGB565 draw buffer (ownership transfers), or NULL to clear
+ * @note Set before _activity_switch_to. The APP_LIST→APP callback consumes and clears it.
+ */
+void eos_activity_set_snap_buf(eos_activity_t *activity, lv_draw_buf_t *snap_buf);
+
+/**
+ * @brief Get the pre-captured snapshot from an activity
+ * @param activity Activity to query
+ * @return lv_draw_buf_t* The stored snapshot, or NULL. Caller does NOT take ownership.
+ */
+lv_draw_buf_t *eos_activity_get_snap_buf(eos_activity_t *activity);
+
+/**
+ * @brief Register a snapshot image for automatic cleanup on animation completion
+ * @param snapshot_obj lv_image to auto-delete when the current transition finishes
+ * @param draw_buf Draw buffer owned by snapshot_obj (freed on delete)
+ * @param owner Activity the snapshot references (held until cleanup)
+ * @note Must be called inside an animation callback (active_anim_ctx is set).
+ *       Mirrors the registration that eos_activity_take_snapshot performs internally.
+ */
+void eos_activity_register_snapshot_for_cleanup(lv_obj_t *snapshot_obj, lv_draw_buf_t *draw_buf, eos_activity_t *owner);
+
+/**
  * @brief Detach the app sub-stack from current_activity down to the APP-type root
  * @return eos_activity_t* The sub-stack top (the previous current_activity), or NULL
  * @note Walks app_substack_next chain. Calls on_pause top-down. Removes from main stack.
@@ -411,10 +436,14 @@ eos_activity_t *eos_activity_detach_app_substack(void);
 /**
  * @brief Re-attach a previously detached app sub-stack to the main activity stack
  * @param substack_top Topmost activity of the sub-stack (was current at suspend time)
+ * @param snap_buf Optional snapshot draw buffer captured at suspend time. If non-NULL,
+ *                 an lv_image is created from it on the view for the resume transition
+ *                 animation to snapshot. Ownership transfers — the function destroys
+ *                 the buffer when done. NULL to use the fallback placeholder.
  * @note Pushes activities bottom-up (AppRoot first). Calls on_resume bottom-up.
  *       After call, current_activity is substack_top.
  */
-void eos_activity_reattach_app_substack(eos_activity_t *substack_top);
+void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf);
 
 /**
  * @brief Set the suspend_on_exit flag on an activity (park instead of destroy after transition)

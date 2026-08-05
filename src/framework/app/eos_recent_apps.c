@@ -317,13 +317,20 @@ eos_result_t eos_recent_apps_resume(eos_recent_app_entry_t *entry)
         return EOS_FAILED;
     }
 
-    EOS_LOG_I("Resuming app: '%s' depth=%u", entry->app_id, entry->saved_stack_depth);
+    EOS_LOG_I("Resuming app: '%s' depth=%u snap_buf=%p",
+              entry->app_id,
+              entry->saved_stack_depth,
+              (void *)entry->snap_buf);
 
     /* Unlink from LRU list */
     _lru_unlink(entry);
 
-    /* Re-attach sub-stack to main activity stack (calls on_resume chain bottom-up) */
-    eos_activity_reattach_app_substack(entry->saved_stack_top);
+    /* Re-attach sub-stack to main activity stack (calls on_resume chain bottom-up).
+     * Pass the stored snapshot so the transition animation shows the actual app
+     * screenshot instead of a black placeholder.  Ownership of snap_buf transfers
+     * to eos_activity_reattach_app_substack which destroys it after use. */
+    eos_activity_reattach_app_substack(entry->saved_stack_top, entry->snap_buf);
+    entry->snap_buf = NULL;
 
     /* Resume SPM program (AppRoot's on_resume handles this) */
     /* Note: The on_resume chain was already called during reattach.
@@ -397,6 +404,13 @@ eos_result_t eos_recent_apps_evict(eos_recent_app_entry_t *entry)
         node = next;
     }
 
+    /* Free the stored snapshot if it was never used for resume */
+    if (entry->snap_buf)
+    {
+        eos_draw_buf_destroy(entry->snap_buf);
+        entry->snap_buf = NULL;
+    }
+
     eos_free(entry);
     return EOS_OK;
 }
@@ -429,6 +443,12 @@ void eos_recent_apps_on_engine_reset(void)
             eos_activity_set_suspended(entry->activity, false);
             eos_activity_set_suspend_on_exit(entry->activity, false);
             eos_activity_destroy(entry->activity);
+        }
+        /* Free the stored snapshot if the app never got a chance to resume */
+        if (entry->snap_buf)
+        {
+            eos_draw_buf_destroy(entry->snap_buf);
+            entry->snap_buf = NULL;
         }
         eos_free(entry);
         entry = next;

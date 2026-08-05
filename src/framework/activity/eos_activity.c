@@ -94,6 +94,10 @@ struct eos_activity_t
     void *fault_panel;
 
     lv_obj_t *snap_container;
+
+    lv_draw_buf_t *snap_buf; /**< Pre-captured screenshot for resume animation. Set before
+                                   _activity_switch_to, consumed and cleared by the
+                                   APP_LIST→APP animation callback. */
 };
 
 typedef struct
@@ -1794,17 +1798,41 @@ lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, b
     lv_obj_t *view = activity->view;
     if (!(view && lv_obj_is_valid(view)))
     {
+        EOS_LOG_W("[SNAP_STANDALONE] activity=%p view=%p — view invalid or NULL", (void *)activity, (void *)view);
         return NULL;
     }
 
-    lv_draw_buf_t *snapshot = eos_draw_buf_create((uint32_t)lv_obj_get_width(view),
-                                                  (uint32_t)lv_obj_get_height(view),
-                                                  _SNAPSHOT_COLOR_FORMAT,
-                                                  0);
-    if (!snapshot)
+    int32_t vw = lv_obj_get_width(view);
+    int32_t vh = lv_obj_get_height(view);
+    bool was_hidden = lv_obj_has_flag(view, LV_OBJ_FLAG_HIDDEN);
+    lv_display_t *obj_disp = lv_obj_get_display(view);
+    uint32_t child_cnt = lv_obj_get_child_cnt(view);
+    EOS_LOG_I("[SNAP_STANDALONE] view=%p size=%dx%d hidden=%d children=%u disp=%p def_disp=%p",
+              (void *)view,
+              (int)vw,
+              (int)vh,
+              was_hidden,
+              (unsigned int)child_cnt,
+              (void *)obj_disp,
+              (void *)lv_display_get_default());
+
+    if (vw <= 0 || vh <= 0)
     {
+        EOS_LOG_W("[SNAP_STANDALONE] view has zero size — cannot snapshot");
         return NULL;
     }
+
+    lv_draw_buf_t *snapshot = eos_draw_buf_create((uint32_t)vw, (uint32_t)vh, _SNAPSHOT_COLOR_FORMAT, 0);
+    if (!snapshot)
+    {
+        EOS_LOG_W("[SNAP_STANDALONE] eos_draw_buf_create(%dx%d) failed", (int)vw, (int)vh);
+        return NULL;
+    }
+    EOS_LOG_I("[SNAP_STANDALONE] draw_buf=%p created %dx%d stride=%d",
+              (void *)snapshot,
+              (int)vw,
+              (int)vh,
+              (int)snapshot->header.stride);
 
     bool prev_header_visible = eos_app_header_is_visible();
     eos_activity_t *prev_visible_activity = eos_activity_get_visible();
@@ -1815,7 +1843,6 @@ lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, b
         eos_app_header_attach_to_view(view);
     }
 
-    bool was_hidden = lv_obj_has_flag(view, LV_OBJ_FLAG_HIDDEN);
     if (was_hidden)
     {
         lv_obj_remove_flag(view, LV_OBJ_FLAG_HIDDEN);
@@ -1830,9 +1857,14 @@ lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, b
             lv_obj_invalidate(view);
             lv_refr_now(disp);
         }
+        else
+        {
+            EOS_LOG_W("[SNAP_STANDALONE] lv_display_get_default() returned NULL — skipping refr_now");
+        }
     }
 
     lv_result_t snapshot_result = lv_snapshot_take_to_draw_buf(view, _SNAPSHOT_COLOR_FORMAT, snapshot);
+    EOS_LOG_I("[SNAP_STANDALONE] lv_snapshot_take_to_draw_buf returned %d", (int)snapshot_result);
 
     if (was_hidden)
     {
@@ -1861,10 +1893,12 @@ lv_draw_buf_t *eos_activity_take_snapshot_standalone(eos_activity_t *activity, b
 
     if (snapshot_result != LV_RESULT_OK)
     {
+        EOS_LOG_W("[SNAP_STANDALONE] snapshot FAILED — destroying draw_buf");
         eos_draw_buf_destroy(snapshot);
         return NULL;
     }
 
+    EOS_LOG_I("[SNAP_STANDALONE] SUCCESS — returning snapshot %p", (void *)snapshot);
     return snapshot;
 #else
     LV_UNUSED(activity);
@@ -1982,7 +2016,7 @@ eos_activity_t *eos_activity_detach_app_substack(void)
     return current; /* Return the sub-stack top */
 }
 
-void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
+void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf)
 {
     if (!substack_top)
         return;
@@ -2061,44 +2095,64 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top)
             break;
     }
 
-    /* Create a temporary placeholder on the view so the opening
-     * transition animation has something to snapshot.  The real widgets
-     * from before suspend are still in the tree but the snapshot
-     * renderer may not see them in a freshly-unhidden view.  Show
-     * the app's icon on a black background so the zoom animation
-     * looks correct.  The placeholder is removed after _activity_switch_to
-     * returns — the snapshot was already taken synchronously. */
-    lv_obj_t *placeholder = lv_obj_create(substack_top->view);
-    lv_obj_set_size(placeholder, lv_pct(100), lv_pct(100));
-    lv_obj_set_style_bg_color(placeholder, lv_color_black(), 0);
-    lv_obj_set_style_border_width(placeholder, 0, 0);
-    lv_obj_set_style_radius(placeholder, 0, 0);
-    lv_obj_remove_flag(placeholder, LV_OBJ_FLAG_SCROLLABLE);
+    /* If a pre-captured screenshot (snap_buf) was taken at click time,
+     * store it on the activity so the APP_LIST→APP animation callback
+     * can create the app_snapshot image directly from the draw buffer
+     * on the snapshot layer — bypassing eos_activity_take_snapshot(view).
+     *
+     * The callback is responsible for registering the image for animation
+     * cleanup via eos_activity_register_snapshot_for_cleanup().
+     *
+     * If no snapshot is available, fall back to a black placeholder. */
+    lv_obj_t *placeholder = NULL;
 
-    /* Show the app icon centered on the placeholder */
+    if (snap_buf)
     {
-        const char *placeholder_app_id = eos_app_list_get_app_id(app_root);
-        if (placeholder_app_id)
+        EOS_LOG_I("[REATTACH_SNAP] Storing snapshot on activity=%p: buf=%p size=%dx%d",
+                  (void *)substack_top,
+                  (void *)snap_buf,
+                  (int)snap_buf->header.w,
+                  (int)snap_buf->header.h);
+        eos_activity_set_snap_buf(substack_top, snap_buf);
+    }
+    else
+    {
+        EOS_LOG_I("[REATTACH_SNAP] No snapshot — using black placeholder");
+        placeholder = lv_obj_create(substack_top->view);
+        lv_obj_set_size(placeholder, lv_pct(100), lv_pct(100));
+        lv_obj_set_style_bg_color(placeholder, lv_color_black(), 0);
+        lv_obj_set_style_border_width(placeholder, 0, 0);
+        lv_obj_set_style_radius(placeholder, 0, 0);
+        lv_obj_remove_flag(placeholder, LV_OBJ_FLAG_SCROLLABLE);
+
         {
-            char icon_path[EOS_FS_PATH_MAX];
-            snprintf(icon_path,
-                     sizeof(icon_path),
-                     EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-                     placeholder_app_id);
-            const void *icon_src = eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
-            lv_obj_t *icon = eos_circle_image_create(placeholder, icon_src, 64);
-            lv_obj_center(icon);
+            const char *placeholder_app_id = eos_app_list_get_app_id(app_root);
+            if (placeholder_app_id)
+            {
+                char icon_path[EOS_FS_PATH_MAX];
+                snprintf(icon_path,
+                         sizeof(icon_path),
+                         EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
+                         placeholder_app_id);
+                const void *icon_src =
+                    eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
+                lv_obj_t *icon = eos_circle_image_create(placeholder, icon_src, 64);
+                lv_obj_center(icon);
+            }
         }
     }
 
     /* Route through _activity_switch_to() to get the APP_LIST→APP
-     * zoom animation and proper AppHeader reconciliation.  The sub-
-     * stack is already pushed and on_resume has already run. */
+     * zoom animation and proper AppHeader reconciliation. */
     _activity_switch_to(substack_top, false);
 
-    /* The animation callback took its snapshot synchronously —
-     * the placeholder is no longer needed. */
-    lv_obj_del(placeholder);
+    if (placeholder)
+    {
+        lv_obj_del(placeholder);
+    }
+
+    /* snap_buf ownership was transferred to the activity. It is consumed
+     * and destroyed by the animation callback. Do NOT free it here. */
 
     EOS_LOG_I("Re-attached app sub-stack: root=%p[%s] top=%p[%s] depth=%u",
               (void *)app_root,
@@ -2147,4 +2201,43 @@ void eos_activity_set_app_root(eos_activity_t *activity, eos_activity_t *app_roo
 eos_activity_t *eos_activity_get_app_root(eos_activity_t *activity)
 {
     return activity ? activity->app_root : NULL;
+}
+
+void eos_activity_set_snap_buf(eos_activity_t *activity, lv_draw_buf_t *snap_buf)
+{
+    if (activity)
+        activity->snap_buf = snap_buf;
+}
+
+lv_draw_buf_t *eos_activity_get_snap_buf(eos_activity_t *activity)
+{
+    return activity ? activity->snap_buf : NULL;
+}
+
+/**
+ * @brief Register a snapshot image for automatic cleanup when the current
+ *        animation transition completes.  Must be called inside an animation
+ *        callback (when active_anim_ctx is set).
+ *
+ * @param snapshot_obj  The lv_image to auto-delete on transition completion
+ * @param draw_buf      The draw buffer owned by snapshot_obj (freed on delete)
+ * @param owner         The activity the snapshot references (held until cleanup)
+ */
+void eos_activity_register_snapshot_for_cleanup(lv_obj_t *snapshot_obj, lv_draw_buf_t *draw_buf, eos_activity_t *owner)
+{
+    if (!_activity_ctx.active_anim_ctx)
+        return;
+
+    eos_activity_snapshot_node_t *node = eos_malloc_zeroed(sizeof(eos_activity_snapshot_node_t));
+    if (!node)
+        return;
+
+    node->snapshot_obj = snapshot_obj;
+    node->draw_buf = draw_buf;
+    node->owner = owner;
+    node->next = _activity_ctx.active_anim_ctx->snapshots;
+    _activity_ctx.active_anim_ctx->snapshots = node;
+
+    lv_obj_add_event_cb(snapshot_obj, _snapshot_img_delete_cb, LV_EVENT_DELETE, node);
+    _activity_snapshot_hold(owner);
 }

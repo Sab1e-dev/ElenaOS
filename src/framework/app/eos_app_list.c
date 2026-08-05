@@ -1084,9 +1084,88 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
     }
 
     /* Check if the app is already in the recents list — resume instead of fresh launch */
-    if (eos_recent_apps_find(app_id))
+    eos_recent_app_entry_t *recent_entry = eos_recent_apps_find(app_id);
+    if (recent_entry)
     {
         EOS_LOG_I("App '%s' found in recents — resuming", app_id);
+
+        /* Capture a screenshot of the parked app's view right now, before resuming.
+         * The app is detached/hidden but its LVGL widget tree is intact — snapshot
+         * renders it directly into a draw buffer, independent of screen attachment.
+         * This screenshot is used by the resume transition animation instead of the
+         * black placeholder. */
+        if (recent_entry->saved_stack_top)
+        {
+            lv_obj_t *parked_view = eos_activity_get_view(recent_entry->saved_stack_top);
+            bool view_valid = (parked_view && lv_obj_is_valid(parked_view));
+            EOS_LOG_I("[RECENT_CAPTURE] saved_stack_top=%p view=%p valid=%d",
+                      (void *)recent_entry->saved_stack_top,
+                      (void *)parked_view,
+                      view_valid);
+            if (view_valid)
+            {
+                int32_t vw = lv_obj_get_width(parked_view);
+                int32_t vh = lv_obj_get_height(parked_view);
+                bool hidden = lv_obj_has_flag(parked_view, LV_OBJ_FLAG_HIDDEN);
+                uint32_t child_cnt = lv_obj_get_child_cnt(parked_view);
+                lv_display_t *disp = lv_obj_get_display(parked_view);
+                /* Check grandchildren: the 1st child may be the app's root container */
+                uint32_t grandchild_cnt = 0;
+                if (child_cnt > 0)
+                {
+                    lv_obj_t *first_child = lv_obj_get_child(parked_view, 0);
+                    if (first_child)
+                    {
+                        grandchild_cnt = lv_obj_get_child_cnt(first_child);
+                    }
+                }
+                EOS_LOG_I("[RECENT_CAPTURE] view size=%dx%d hidden=%d children=%u grandchildren=%u display=%p",
+                          (int)vw,
+                          (int)vh,
+                          hidden,
+                          (unsigned int)child_cnt,
+                          (unsigned int)grandchild_cnt,
+                          (void *)disp);
+            }
+
+            recent_entry->snap_buf = eos_activity_take_snapshot_standalone(recent_entry->saved_stack_top, true);
+            if (recent_entry->snap_buf)
+            {
+                /* Sample a few pixels from the center of the draw buffer to
+                 * verify it contains non-black data */
+                lv_draw_buf_t *buf = recent_entry->snap_buf;
+                int cx = buf->header.w / 2;
+                int cy = buf->header.h / 2;
+                uint16_t pixel_center = 0;
+                uint16_t pixel_top_left = 0;
+                uint16_t pixel_bottom_right = 0;
+                if (buf->data)
+                {
+                    pixel_center = ((uint16_t *)buf->data)[cy * (buf->header.stride / 2) + cx];
+                    pixel_top_left = ((uint16_t *)buf->data)[0];
+                    pixel_bottom_right =
+                        ((uint16_t *)buf->data)[(buf->header.h - 1) * (buf->header.stride / 2) + (buf->header.w - 1)];
+                }
+                EOS_LOG_I("[RECENT_CAPTURE] snapshot OK: %dx%d stride=%d cf=%d "
+                          "pixels[TL=%04X C=%04X BR=%04X]",
+                          (int)buf->header.w,
+                          (int)buf->header.h,
+                          (int)buf->header.stride,
+                          (int)buf->header.cf,
+                          (unsigned int)pixel_top_left,
+                          (unsigned int)pixel_center,
+                          (unsigned int)pixel_bottom_right);
+            }
+            else
+            {
+                EOS_LOG_W("[RECENT_CAPTURE] snapshot FAILED for '%s' — will use placeholder", app_id);
+            }
+        }
+        else
+        {
+            EOS_LOG_W("[RECENT_CAPTURE] saved_stack_top is NULL for '%s'", app_id);
+        }
+
         /* If another script app is active, suspend it first */
         eos_activity_t *cur = eos_activity_get_current();
         if (cur && eos_recent_apps_is_suspendable(cur))
@@ -1555,18 +1634,46 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
 
     if (opening)
     {
-        app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
-        if (!app_snapshot)
+        /* Check for a pre-captured screenshot (from recents resume).
+         * If present, create the app_snapshot image directly from the
+         * draw buffer on the snapshot layer — bypassing the view-capture
+         * step.  Register it for cleanup so the animation system deletes
+         * it when the transition completes. */
+        lv_draw_buf_t *stored = eos_activity_get_snap_buf(to);
+        if (stored)
         {
-            EOS_LOG_E("OPEN ANIM: app_snapshot FAILED to %p", to);
-            if (icon_clone)
+            app_snapshot = lv_image_create(eos_overlay_get_snapshot_layer());
+            lv_image_set_src(app_snapshot, stored);
+            lv_obj_set_size(app_snapshot, stored->header.w, stored->header.h);
+            /* Match the real view's position for correct pivot/translate math */
             {
-                lv_obj_delete(icon_clone);
-                icon_clone = NULL;
+                lv_obj_t *to_view = eos_activity_get_view(to);
+                if (to_view)
+                    lv_obj_set_pos(app_snapshot, lv_obj_get_x(to_view), lv_obj_get_y(to_view));
             }
-            return;
+            /* Register for cleanup: image auto-deleted, draw_buf freed on transition end */
+            eos_activity_register_snapshot_for_cleanup(app_snapshot, stored, to);
+            eos_activity_set_snap_buf(to, NULL); /* consumed */
+            EOS_LOG_I("OPEN ANIM: app_snapshot from stored snap_buf=%p (%dx%d)",
+                      (void *)stored,
+                      (int)stored->header.w,
+                      (int)stored->header.h);
         }
-        EOS_LOG_E("OPEN ANIM: app_snapshot CREATED to %p", to);
+        else
+        {
+            app_snapshot = eos_activity_take_snapshot(to, include_header_in_snapshot);
+            if (!app_snapshot)
+            {
+                EOS_LOG_E("OPEN ANIM: app_snapshot FAILED to %p", to);
+                if (icon_clone)
+                {
+                    lv_obj_delete(icon_clone);
+                    icon_clone = NULL;
+                }
+                return;
+            }
+            EOS_LOG_E("OPEN ANIM: app_snapshot CREATED to %p", to);
+        }
     }
 
     int32_t list_pivot_x = 0;
