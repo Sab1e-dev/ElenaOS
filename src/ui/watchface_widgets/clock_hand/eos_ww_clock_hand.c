@@ -20,7 +20,7 @@
 static void clock_hand_second_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
@@ -35,7 +35,7 @@ static void clock_hand_second_timer_cb(lv_timer_t *timer)
 static void clock_hand_minute_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
@@ -50,7 +50,7 @@ static void clock_hand_minute_timer_cb(lv_timer_t *timer)
 static void clock_hand_hour_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
@@ -140,7 +140,7 @@ lv_obj_t *eos_clock_hand_create(lv_obj_t *parent,
 static void _clock_hand_second_style_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
@@ -152,7 +152,7 @@ static void _clock_hand_second_style_timer_cb(lv_timer_t *timer)
 static void _clock_hand_minute_style_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
@@ -164,7 +164,7 @@ static void _clock_hand_minute_style_timer_cb(lv_timer_t *timer)
 static void _clock_hand_hour_style_timer_cb(lv_timer_t *timer)
 {
     lv_obj_t *hand = lv_timer_get_user_data(timer);
-    if (!hand || !lv_obj_is_valid(hand))
+    if (!hand || !lv_obj_is_valid(hand) || lv_obj_has_flag(hand, LV_OBJ_FLAG_HIDDEN))
         return;
     eos_datetime_t now = eos_time_get();
 
