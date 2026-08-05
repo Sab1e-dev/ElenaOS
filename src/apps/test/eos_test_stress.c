@@ -72,6 +72,7 @@ static bool _stress_pump_until(bool (*cond)(void), uint32_t timeout_ms)
     while (!cond())
     {
         lv_timer_handler();
+        eos_delay(5); /* 5ms delay to prevent CPU saturation in busy-loop */
         uint32_t now = lv_tick_get();
         if (now - start >= timeout_ms)
             return false;
