@@ -128,6 +128,11 @@ static eos_activity_ctx_t _activity_ctx = {
 
 static eos_activity_anim_cb_t _anim_callback_routes[EOS_ACTIVITY_TYPE_COUNT][EOS_ACTIVITY_TYPE_COUNT] = {0};
 
+/* Parking lot: a parentless container for suspended activity views.
+ * Moving parked views here removes them from the active screen tree
+ * so LVGL does not traverse them during rendering. */
+static lv_obj_t *_parking_lot = NULL;
+
 /* Function Implementations -----------------------------------*/
 static const char *_activity_type_to_str(eos_activity_type_t type)
 {
@@ -439,10 +444,20 @@ static void _anim_clean_up_activity_deferred(void *user_data)
 
     if (anim_ctx->suspend_from && anim_ctx->from)
     {
-        /* Park the from activity: hide view, mark suspended, do NOT destroy */
+        /* Park the from activity: hide view, move to parking lot,
+         * mark suspended, do NOT destroy. */
         if (anim_ctx->from->view && lv_obj_is_valid(anim_ctx->from->view))
         {
             lv_obj_add_flag(anim_ctx->from->view, LV_OBJ_FLAG_HIDDEN);
+
+            /* Move parked view out of the active screen tree so LVGL
+             * does not traverse it during rendering.  This keeps the
+             * widget state intact for fast resume. */
+            if (!_parking_lot)
+            {
+                _parking_lot = lv_obj_create(NULL);
+            }
+            lv_obj_set_parent(anim_ctx->from->view, _parking_lot);
         }
         anim_ctx->from->suspended = true;
         anim_ctx->from->suspend_on_exit = false;
@@ -463,11 +478,22 @@ static void _anim_clean_up_activity_deferred(void *user_data)
         _activity_run_destroy(anim_ctx->from);
         anim_ctx->from = NULL;
     }
-    else if (!eos_activity_is_app_header_visible(anim_ctx->to) && eos_activity_is_app_header_visible(anim_ctx->from))
+    else
     {
-        if (!eos_app_header_is_attached_to_view())
+        /* Forward navigation: neither destroying nor suspending the old
+         * activity.  Hide its view so LVGL skips the full widget tree
+         * during rendering — otherwise every forward navigation stacks
+         * another full-screen layer that LVGL must traverse each frame. */
+        if (anim_ctx->from && anim_ctx->from->view && lv_obj_is_valid(anim_ctx->from->view))
         {
-            eos_app_header_hide();
+            lv_obj_add_flag(anim_ctx->from->view, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (!eos_activity_is_app_header_visible(anim_ctx->to) && eos_activity_is_app_header_visible(anim_ctx->from))
+        {
+            if (!eos_app_header_is_attached_to_view())
+            {
+                eos_app_header_hide();
+            }
         }
     }
 
@@ -2059,6 +2085,11 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_bu
         a->suspended = false;
         if (a->view && lv_obj_is_valid(a->view))
         {
+            /* Move view back from parking lot into the active screen tree */
+            if (_parking_lot && lv_obj_get_parent(a->view) == _parking_lot)
+            {
+                lv_obj_set_parent(a->view, _activity_ctx.root_screen);
+            }
             lv_obj_clear_flag(a->view, LV_OBJ_FLAG_HIDDEN);
         }
     }
