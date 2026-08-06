@@ -229,12 +229,6 @@ uint32_t eos_main_loop(void)
 
     eos_developer_options_update();
 
-    /* Avoid usleep(0) in main.c — when lv_timer_handler() returns 0ms
-     * (e.g. SDL 5ms event timer just expired), usleep(0) is a busy-yield
-     * that burns CPU.  Enforce a minimum sleep of 5ms so the host process
-     * yields the CPU meaningfully between iterations. */
-    if (d < 5)
-        d = 5;
     return d;
 }
 
