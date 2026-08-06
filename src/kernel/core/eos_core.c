@@ -48,6 +48,7 @@
 #include "eos_service_storage.h"
 #include "eos_service_state.h"
 #include "eos_service_battery.h"
+#include "eos_developer_options.h"
 #include "eos_service_pm.h"
 #include "eos_dfw.h"
 #include "eos_app_header.h"
@@ -157,8 +158,6 @@ void eos_logo_play(bool anim)
     lv_timer_handler();
 }
 
-static void _objs_display_init(void);
-
 void eos_init(void)
 {
     /* Log system initialization ----------------------------------*/
@@ -208,68 +207,12 @@ void eos_init(void)
     if (eos_activity_controller_init(watchface_activity) != EOS_OK)
         _sys_init_err_handler("Failed to initialize activity controller");
 
-    _objs_display_init();
-
     _is_inited = true;
 }
 
 bool eos_is_initialized(void)
 {
     return _is_inited;
-}
-
-/* OBJS Display -----------------------------------------------*/
-
-static lv_obj_t *_objs_label = NULL;
-
-/* Count visible (non-hidden) LVGL objects in a subtree */
-static uint32_t _count_visible_children(lv_obj_t *obj)
-{
-    if (!obj)
-        return 0;
-    /* Skip hidden subtrees entirely — LVGL does the same during rendering */
-    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN))
-        return 0;
-    uint32_t count = 1;
-    uint32_t n = lv_obj_get_child_cnt(obj);
-    for (uint32_t i = 0; i < n; i++)
-    {
-        count += _count_visible_children(lv_obj_get_child(obj, i));
-    }
-    return count;
-}
-
-static void _objs_display_init(void)
-{
-    _objs_label = lv_label_create(lv_layer_sys());
-    lv_obj_set_style_text_color(_objs_label, lv_color_hex(0x00FF00), 0);
-    lv_obj_set_style_text_font(_objs_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(_objs_label, LV_ALIGN_BOTTOM_MID, 0, -4);
-    lv_label_set_text(_objs_label, "OBJS: 0");
-}
-
-static void _objs_display_update(void)
-{
-    if (!_objs_label)
-        return;
-
-    static uint32_t last_update = 0;
-    uint32_t now = lv_tick_get();
-    if (now - last_update < 1000)
-        return;
-    last_update = now;
-
-    uint32_t n = 0;
-    eos_activity_t *act = eos_activity_get_current();
-    if (act)
-    {
-        lv_obj_t *view = eos_activity_get_view(act);
-        if (view && lv_obj_is_valid(view))
-        {
-            n = _count_visible_children(view);
-        }
-    }
-    lv_label_set_text_fmt(_objs_label, "OBJS: %" PRIu32, n);
 }
 
 /* Main Loop --------------------------------------------------*/
@@ -284,7 +227,7 @@ uint32_t eos_main_loop(void)
     eos_dispatch_tick();
     uint32_t d = lv_timer_handler();
 
-    _objs_display_update();
+    eos_developer_options_update();
 
     /* Avoid usleep(0) in main.c — when lv_timer_handler() returns 0ms
      * (e.g. SDL 5ms event timer just expired), usleep(0) is a busy-yield

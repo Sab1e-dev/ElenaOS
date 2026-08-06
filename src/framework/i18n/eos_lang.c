@@ -156,6 +156,15 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_APP_RESTART] = "Restart App",
     [STR_ID_APP_EXIT] = "Exit App",
     [STR_ID_RESTART] = "Restart",
+    /* Developer Options */
+    [STR_ID_SETTINGS_DEVELOPER_OPTIONS] = "Developer Options",
+    [STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS] = "View Logs",
+    [STR_ID_SETTINGS_DEVELOPER_FPS] = "FPS Display",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY] = "Memory",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_USED] = "Used Memory",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "Free Memory",
+    [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS Display",
+    [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "Touch Coordinates",
     // Add new string IDs and English translations here as needed
 };
 
@@ -292,6 +301,15 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_APP_RESTART] = "重启应用",
     [STR_ID_APP_EXIT] = "退出应用",
     [STR_ID_RESTART] = "重启",
+    /* Developer Options */
+    [STR_ID_SETTINGS_DEVELOPER_OPTIONS] = "开发者选项",
+    [STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS] = "查看日志",
+    [STR_ID_SETTINGS_DEVELOPER_FPS] = "FPS显示",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY] = "内存",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_USED] = "已用内存",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "空闲内存",
+    [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS显示",
+    [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "触摸坐标",
     // Add new string IDs and Chinese translations here as needed
 };
 

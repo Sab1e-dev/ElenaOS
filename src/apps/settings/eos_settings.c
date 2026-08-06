@@ -50,6 +50,7 @@
 #include "eos_mem.h"
 #include "eos_numpad.h"
 #include "eos_panel.h"
+#include "eos_developer_options.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _BRIGHTNESS_SMOOTH_DURATION 200
@@ -1551,6 +1552,132 @@ static void _settings_view_password(lv_event_t *e)
     eos_activity_enter(a);
 }
 
+/* Developer Options ------------------------------------------*/
+
+/**
+ * @brief Format memory bytes into a human-readable string
+ */
+static void _format_memory_string(char *buf, size_t buf_size, size_t bytes)
+{
+    if (bytes >= 1024 * 1024)
+    {
+        snprintf(buf, buf_size, "%.2f MB", (double)bytes / (1024.0 * 1024.0));
+    }
+    else
+    {
+        snprintf(buf, buf_size, "%.2f KB", (double)bytes / 1024.0);
+    }
+}
+
+/**
+ * @brief View Logs page (placeholder)
+ */
+static void _settings_view_logs(lv_event_t *e)
+{
+    (void)e;
+    lv_obj_t *view = NULL;
+    eos_activity_t *a = _create_activity_with_header(STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS, &view);
+    EOS_CHECK_PTR_RETURN(a && view);
+    lv_obj_t *list = eos_list_create(view);
+    eos_list_add_placeholder(list, 20);
+    eos_list_add_comment(list, "Logs will be displayed here.");
+    eos_activity_enter(a);
+}
+
+/**
+ * @brief Memory information page
+ */
+static void _settings_view_memory(lv_event_t *e)
+{
+    (void)e;
+    lv_obj_t *view = NULL;
+    eos_activity_t *a = _create_activity_with_header(STR_ID_SETTINGS_DEVELOPER_MEMORY, &view);
+    EOS_CHECK_PTR_RETURN(a && view);
+    lv_obj_t *list = eos_list_create(view);
+
+    eos_list_add_placeholder(list, 20);
+
+    char buf[64];
+    _format_memory_string(buf, sizeof(buf), eos_mem_get_used_bytes());
+    eos_std_title_comment_create(list, eos_lang_get_text(STR_ID_SETTINGS_DEVELOPER_MEMORY_USED), buf);
+
+    eos_list_add_placeholder(list, 10);
+
+    _format_memory_string(buf, sizeof(buf), eos_mem_get_free_bytes());
+    eos_std_title_comment_create(list, eos_lang_get_text(STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE), buf);
+
+    eos_activity_enter(a);
+}
+
+/* Developer Options Switch Callbacks -------------------------*/
+
+static void _dev_fps_switch_cb(lv_event_t *e)
+{
+    lv_obj_t *sw = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(sw);
+    eos_developer_options_set_fps_enabled(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+static void _dev_objs_switch_cb(lv_event_t *e)
+{
+    lv_obj_t *sw = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(sw);
+    eos_developer_options_set_objs_enabled(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+static void _dev_touch_switch_cb(lv_event_t *e)
+{
+    lv_obj_t *sw = lv_event_get_target(e);
+    EOS_CHECK_PTR_RETURN(sw);
+    eos_developer_options_set_touch_enabled(lv_obj_has_state(sw, LV_STATE_CHECKED));
+}
+
+/**
+ * @brief Developer Options page
+ */
+static void _settings_view_developer_options(lv_event_t *e)
+{
+    (void)e;
+    lv_obj_t *view = NULL;
+    eos_activity_t *a = _create_activity_with_header(STR_ID_SETTINGS_DEVELOPER_OPTIONS, &view);
+    EOS_CHECK_PTR_RETURN(a && view);
+    lv_obj_t *list = eos_list_create(view);
+
+    /* View Logs entry button */
+    lv_obj_t *btn = eos_list_add_entry_button_str_id(list, STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS);
+    lv_obj_add_event_cb(btn, _settings_view_logs, LV_EVENT_CLICKED, NULL);
+
+    /* FPS Display switch */
+    lv_obj_t *sw = eos_list_add_switch(list, eos_lang_get_text(STR_ID_SETTINGS_DEVELOPER_FPS));
+    if (eos_developer_options_get_fps_enabled())
+    {
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_add_event_cb(sw, _dev_fps_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    /* Memory entry button */
+    btn = eos_list_add_entry_button_str_id(list, STR_ID_SETTINGS_DEVELOPER_MEMORY);
+    lv_obj_add_event_cb(btn, _settings_view_memory, LV_EVENT_CLICKED, NULL);
+
+    /* OBJS Display switch */
+    sw = eos_list_add_switch(list, eos_lang_get_text(STR_ID_SETTINGS_DEVELOPER_OBJS));
+    if (eos_developer_options_get_objs_enabled())
+    {
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_add_event_cb(sw, _dev_objs_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    /* Touch Coordinate Display switch */
+    sw = eos_list_add_switch(list, eos_lang_get_text(STR_ID_SETTINGS_DEVELOPER_TOUCH));
+    if (eos_developer_options_get_touch_enabled())
+    {
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
+    }
+    lv_obj_add_event_cb(sw, _dev_touch_switch_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    eos_activity_enter(a);
+}
+
 /* General Settings -------------------------------------------*/
 
 static void _language_roller_event_handler(lv_event_t *e)
@@ -1734,6 +1861,9 @@ static void _settings_view_general(lv_event_t *e)
     // Device info
     btn = eos_list_add_entry_button_str_id(list, STR_ID_SETTINGS_GENERAL_DEVICE_INFO);
     lv_obj_add_event_cb(btn, _settings_view_device_info, LV_EVENT_CLICKED, NULL);
+    // Developer options
+    btn = eos_list_add_entry_button_str_id(list, STR_ID_SETTINGS_DEVELOPER_OPTIONS);
+    lv_obj_add_event_cb(btn, _settings_view_developer_options, LV_EVENT_CLICKED, NULL);
     eos_activity_enter(a);
 }
 
