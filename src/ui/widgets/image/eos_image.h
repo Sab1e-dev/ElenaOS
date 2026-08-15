@@ -41,6 +41,21 @@ void eos_img_set_size(lv_obj_t *img_obj, const uint32_t w, const uint32_t h);
  * @return lv_obj_t* The circular container (not the inner image)
  */
 lv_obj_t *eos_circle_image_create(lv_obj_t *parent, const void *src, lv_coord_t size);
+/**
+ * @brief Create an image widget that renders a single font-glyph icon, centered.
+ *
+ * Renders the first Unicode code point of @p icon_src using the icon font
+ * (`EOS_FONT_ICON`) into an A8 alpha buffer, then wraps it in an `lv_image`
+ * with `LV_IMAGE_ALIGN_CENTER`. Unlike a text label — which lays glyphs out on
+ * a text baseline — this centers the glyph geometrically, so the icon is always
+ * optically centered within its @p size box.
+ *
+ * @param parent Parent object
+ * @param icon_src Icon glyph string (e.g. an `RI_*` macro)
+ * @param size Width and height of the image box in pixels
+ * @return lv_obj_t* The image widget, or NULL on failure
+ */
+lv_obj_t *eos_icon_glyph_image_create(lv_obj_t *parent, const void *icon_src, lv_coord_t size);
 #ifdef __cplusplus
 }
 #endif

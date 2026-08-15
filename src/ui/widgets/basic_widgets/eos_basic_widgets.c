@@ -929,13 +929,13 @@ lv_obj_t *eos_round_icon_create(lv_obj_t *parent, lv_color_t bg_color, const voi
     lv_obj_set_style_pad_all(round, 0, 0);
     lv_obj_set_style_radius(round, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(round, bg_color, 0);
-    // Draw image
-    lv_obj_t *icon = lv_label_create(round);
-    lv_label_set_text(icon, icon_src);
-    lv_obj_set_style_translate_y(icon, 2, 0);
-    lv_obj_center(icon);
+    // Draw icon as a centered image (glyph rendered to A8, centered in the circle)
+    lv_obj_t *icon = eos_icon_glyph_image_create(round, icon_src, 50);
+    if (icon)
+    {
+        lv_obj_center(icon);
+    }
 
-    lv_obj_add_flag(icon, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(round, LV_OBJ_FLAG_EVENT_BUBBLE);
     return round;
 }
