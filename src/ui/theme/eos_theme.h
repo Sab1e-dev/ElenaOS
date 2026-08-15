@@ -27,6 +27,7 @@ extern "C" {
 #define EOS_COLOR_PINK lv_color_hex(0xFA114F)
 #define EOS_COLOR_WHITE lv_color_hex(0xFFFFFF)
 #define EOS_COLOR_BLACK lv_color_hex(0x000000)
+#define EOS_COLOR_ICON_BG EOS_COLOR_BLACK
 #define EOS_COLOR_DARK_GREY_2 lv_color_hex(0x242424)
 #define EOS_COLOR_DARK_GREY_1 lv_color_hex(0x48494B)
 #define EOS_COLOR_GREY lv_color_hex(0x9BA0AA)

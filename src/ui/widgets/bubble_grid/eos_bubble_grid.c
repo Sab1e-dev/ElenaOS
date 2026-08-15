@@ -12,6 +12,7 @@
 #include "lvgl/src/misc/lv_ll.h"
 #include "eos_image.h"
 #include "eos_widget_data.h"
+#include "eos_theme.h"
 /* Macros and Definitions -------------------------------------*/
 
 #define FX_SHIFT 8 /* Fixed-point fractional bits. */
@@ -444,7 +445,7 @@ static icon_node_t *ensure_icon_node_by_index(eos_bubble_grid_t *wb, uint32_t in
         next_index = tail->index + 1U;
     }
 
-    lv_color_t default_color = lv_color_hex(0x888888);
+    lv_color_t default_color = EOS_COLOR_ICON_BG;
 
     for (uint32_t i = next_index; i <= index; i++)
     {

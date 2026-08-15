@@ -21,6 +21,7 @@
 #include "eos_image.h"
 #include "eos_service_storage.h"
 #include "eos_app.h"
+#include "eos_theme.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _RECENT_CARD_WIDTH 300
@@ -225,14 +226,15 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry)
         lv_timer_set_repeat_count(t, 1);
     }
 
-    /* App icon at the top-left, fully inside the card, opaque background */
+    /* App icon at the top-left on a dark opaque badge (EOS_COLOR_ICON_BG) so
+     * light icons don't get a white halo. */
     {
         char icon_path[EOS_FS_PATH_MAX];
         snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, entry->app_id);
         const void *icon_src = eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
         lv_obj_t *icon = eos_circle_image_create(card, icon_src, _RECENT_ICON_SIZE);
         lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
-        lv_obj_set_style_bg_color(icon, lv_color_white(), 0);
+        lv_obj_set_style_bg_color(icon, EOS_COLOR_ICON_BG, 0);
         lv_obj_align(icon, LV_ALIGN_TOP_LEFT, _RECENT_ICON_MARGIN, _RECENT_ICON_MARGIN);
     }
 
