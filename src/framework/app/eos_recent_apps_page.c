@@ -18,13 +18,20 @@
 #include "eos_activity.h"
 #include "eos_recent_apps.h"
 #include "eos_slide_widget.h"
+#include "eos_image.h"
+#include "eos_service_storage.h"
+#include "eos_app.h"
 
 /* Macros and Definitions -------------------------------------*/
-#define _RECENT_CARD_WIDTH 316
-#define _RECENT_CARD_HEIGHT 365 /* 316 * 450/390 — keeps the 390:450 screen aspect */
+#define _RECENT_CARD_WIDTH 300
+#define _RECENT_CARD_HEIGHT ((_RECENT_CARD_WIDTH * EOS_DISPLAY_HEIGHT) / EOS_DISPLAY_WIDTH) /* 300 → 346，保持 390:450 */
 #define _RECENT_CARD_GAP 16
 #define _RECENT_LIST_PAD 20
 #define _ITEM_CLICK_THRESHOLD 3
+#define _RECENT_BORDER_WIDTH 2
+#define _RECENT_BORDER_COLOR 0x48484A
+#define _RECENT_ICON_SIZE 44
+#define _RECENT_ICON_MARGIN 12
 
 /* Typedefs ---------------------------------------------------*/
 
@@ -45,6 +52,7 @@ static void _build_card_list(lv_obj_t *parent);
 static void _update_page_visibility(void);
 static void _register_anim_routes(void);
 static void _deferred_resume_timer_cb(lv_timer_t *t);
+static void _size_thumb_timer_cb(lv_timer_t *t);
 
 /* Variables --------------------------------------------------*/
 
@@ -154,15 +162,38 @@ static void _card_tap_resume_cb(lv_event_t *e)
     eos_activity_back();
 }
 
+/**
+ * @brief Deferred screenshot sizing — runs after the card list layout so the
+ *        card's final content size is known, then sizes the image to fill it.
+ */
+static void _size_thumb_timer_cb(lv_timer_t *t)
+{
+    lv_obj_t *img = (lv_obj_t *)lv_timer_get_user_data(t);
+    if (!img || !lv_obj_is_valid(img))
+    {
+        return;
+    }
+
+    lv_obj_t *card = lv_obj_get_parent(img);
+    lv_obj_update_layout(card);
+
+    int32_t cw = lv_obj_get_content_width(card);
+    int32_t ch = lv_obj_get_content_height(card);
+    eos_img_set_size(img, (uint32_t)cw, (uint32_t)ch);
+}
+
 static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry)
 {
-    /* Card container — portrait, screenshot fills the entire card */
+    /* Card container — exact 390:450 aspect, system radius, gray border.
+     * pad_all == border width keeps children (screenshot) inside the border;
+     * clip_corner clips the screenshot to the rounded corners. */
     lv_obj_t *card = lv_obj_create(parent);
     lv_obj_set_size(card, _RECENT_CARD_WIDTH, _RECENT_CARD_HEIGHT);
-    lv_obj_set_style_radius(card, 16, 0);
+    lv_obj_set_style_radius(card, EOS_DISPLAY_RADIUS, 0);
     lv_obj_set_style_bg_color(card, lv_color_hex(0x1C1C1E), 0);
-    lv_obj_set_style_border_width(card, 0, 0);
-    lv_obj_set_style_pad_all(card, 0, 0);
+    lv_obj_set_style_border_width(card, _RECENT_BORDER_WIDTH, 0);
+    lv_obj_set_style_border_color(card, lv_color_hex(_RECENT_BORDER_COLOR), 0);
+    lv_obj_set_style_pad_all(card, _RECENT_BORDER_WIDTH, 0);
     lv_obj_set_style_clip_corner(card, true, 0);
     lv_obj_set_style_margin_bottom(card, _RECENT_CARD_GAP, 0);
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
@@ -181,25 +212,28 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry)
     lv_obj_set_user_data(card, data);
     lv_obj_add_event_cb(card, _card_delete_cb, LV_EVENT_DELETE, NULL);
 
-    /* App screenshot filling the entire card (no icon/text overlay) */
+    /* Screenshot filling the card content area, clipped to rounded corners.
+     * Sized in a deferred timer so the card's final (post-list-layout) content
+     * size is read from LVGL — the list may resize the card. */
     if (entry->thumb_buf)
     {
         data->thumb_img = lv_image_create(card);
         lv_image_set_src(data->thumb_img, entry->thumb_buf);
-        lv_obj_set_size(data->thumb_img, _RECENT_CARD_WIDTH, _RECENT_CARD_HEIGHT);
-        lv_obj_set_style_radius(data->thumb_img, 16, 0);
         lv_obj_remove_flag(data->thumb_img, LV_OBJ_FLAG_CLICKABLE);
 
-        /* Scale the full-resolution screenshot down proportionally to fit the
-         * portrait card without cropping.  fit = min(width_scale, height_scale),
-         * centered via LV_IMAGE_ALIGN_CENTER so no edge is clipped. */
-        uint32_t src_w = entry->thumb_buf->header.w;
-        uint32_t src_h = entry->thumb_buf->header.h;
-        uint32_t scale_w = (_RECENT_CARD_WIDTH * 256) / src_w;
-        uint32_t scale_h = (_RECENT_CARD_HEIGHT * 256) / src_h;
-        uint32_t scale = (scale_w < scale_h) ? scale_w : scale_h;
-        lv_image_set_scale(data->thumb_img, scale);
-        lv_image_set_inner_align(data->thumb_img, LV_IMAGE_ALIGN_CENTER);
+        lv_timer_t *t = lv_timer_create(_size_thumb_timer_cb, 0, data->thumb_img);
+        lv_timer_set_repeat_count(t, 1);
+    }
+
+    /* App icon at the top-left, fully inside the card, opaque background */
+    {
+        char icon_path[EOS_FS_PATH_MAX];
+        snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, entry->app_id);
+        const void *icon_src = eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
+        lv_obj_t *icon = eos_circle_image_create(card, icon_src, _RECENT_ICON_SIZE);
+        lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(icon, lv_color_white(), 0);
+        lv_obj_align(icon, LV_ALIGN_TOP_LEFT, _RECENT_ICON_MARGIN, _RECENT_ICON_MARGIN);
     }
 
     /* Horizontal swipe-to-delete + tap-to-resume (msg_list pattern).
@@ -270,8 +304,8 @@ static void _build_card_list(lv_obj_t *parent)
     /* Vertical lv_list of portrait cards — lv_list_class lets eos_slide_widget
      * slide each card via translate_x (see eos_msg_list.c for the pattern). */
     s_card_list = lv_list_create(parent);
-    lv_obj_set_size(s_card_list, lv_pct(92), lv_pct(82));
-    lv_obj_align(s_card_list, LV_ALIGN_TOP_MID, 0, 50);
+    lv_obj_set_size(s_card_list, lv_pct(100), lv_pct(100));
+    lv_obj_center(s_card_list);
     lv_obj_set_style_bg_opa(s_card_list, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(s_card_list, 0, 0);
     lv_obj_set_style_pad_all(s_card_list, _RECENT_LIST_PAD, 0);
