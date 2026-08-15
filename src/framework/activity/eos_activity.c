@@ -133,6 +133,13 @@ static eos_activity_anim_cb_t _anim_callback_routes[EOS_ACTIVITY_TYPE_COUNT][EOS
  * so LVGL does not traverse them during rendering. */
 static lv_obj_t *_parking_lot = NULL;
 
+/* When true, the next _activity_switch_to() takes the direct no-transition
+ * path instead of playing a registered animation route.  Set by
+ * eos_activity_reattach_app_substack() so resuming from Recent Apps appears
+ * instantly (no APP_LIST→APP zoom).  Consumed synchronously within the same
+ * _activity_switch_to() call, so a plain set/clear around the call is safe. */
+static bool _suppress_next_transition_anim = false;
+
 /* Function Implementations -----------------------------------*/
 static const char *_activity_type_to_str(eos_activity_type_t type)
 {
@@ -631,7 +638,7 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
     }
 
     bool transition_started = false;
-    if (cur_activity && (anim_cb || list_anim_available))
+    if (cur_activity && !_suppress_next_transition_anim && (anim_cb || list_anim_available))
     {
         eos_activity_anim_ctx_t *anim_ctx = eos_malloc_zeroed(sizeof(eos_activity_anim_ctx_t));
         if (anim_ctx)
@@ -2126,64 +2133,23 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_bu
             break;
     }
 
-    /* If a pre-captured screenshot (snap_buf) was taken at click time,
-     * store it on the activity so the APP_LIST→APP animation callback
-     * can create the app_snapshot image directly from the draw buffer
-     * on the snapshot layer — bypassing eos_activity_take_snapshot(view).
-     *
-     * The callback is responsible for registering the image for animation
-     * cleanup via eos_activity_register_snapshot_for_cleanup().
-     *
-     * If no snapshot is available, fall back to a black placeholder. */
-    lv_obj_t *placeholder = NULL;
-
+    /* If a screenshot was pre-captured (app-list launch path), play the normal
+     * APP_LIST→APP zoom animation using it.  If none was captured (Recent Apps
+     * page tap), resume instantly with the transition animation suppressed. */
     if (snap_buf)
     {
-        EOS_LOG_I("[REATTACH_SNAP] Storing snapshot on activity=%p: buf=%p size=%dx%d",
+        EOS_LOG_I("[REATTACH_SNAP] Storing snapshot on activity=%p: buf=%p",
                   (void *)substack_top,
-                  (void *)snap_buf,
-                  (int)snap_buf->header.w,
-                  (int)snap_buf->header.h);
+                  (void *)snap_buf);
         eos_activity_set_snap_buf(substack_top, snap_buf);
+        _activity_switch_to(substack_top, false);
     }
     else
     {
-        EOS_LOG_I("[REATTACH_SNAP] No snapshot — using black placeholder");
-        placeholder = lv_obj_create(substack_top->view);
-        lv_obj_set_size(placeholder, lv_pct(100), lv_pct(100));
-        lv_obj_set_style_bg_color(placeholder, lv_color_black(), 0);
-        lv_obj_set_style_border_width(placeholder, 0, 0);
-        lv_obj_set_style_radius(placeholder, 0, 0);
-        lv_obj_remove_flag(placeholder, LV_OBJ_FLAG_SCROLLABLE);
-
-        {
-            const char *placeholder_app_id = eos_app_list_get_app_id(app_root);
-            if (placeholder_app_id)
-            {
-                char icon_path[EOS_FS_PATH_MAX];
-                snprintf(icon_path,
-                         sizeof(icon_path),
-                         EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME,
-                         placeholder_app_id);
-                const void *icon_src =
-                    eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
-                lv_obj_t *icon = eos_circle_image_create(placeholder, icon_src, 64);
-                lv_obj_center(icon);
-            }
-        }
+        _suppress_next_transition_anim = true;
+        _activity_switch_to(substack_top, false);
+        _suppress_next_transition_anim = false;
     }
-
-    /* Route through _activity_switch_to() to get the APP_LIST→APP
-     * zoom animation and proper AppHeader reconciliation. */
-    _activity_switch_to(substack_top, false);
-
-    if (placeholder)
-    {
-        lv_obj_del(placeholder);
-    }
-
-    /* snap_buf ownership was transferred to the activity. It is consumed
-     * and destroyed by the animation callback. Do NOT free it here. */
 
     EOS_LOG_I("Re-attached app sub-stack: root=%p[%s] top=%p[%s] depth=%u",
               (void *)app_root,

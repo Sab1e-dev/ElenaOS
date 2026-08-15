@@ -201,6 +201,25 @@ static eos_result_t _suspend_and_register(eos_activity_t *app_root,
     entry->last_used_tick = eos_tick_get();
     entry->est_mem_bytes = _estimate_entry_mem(entry);
 
+    /* Capture the app's screenshot for Recent Apps page display.
+     * Done BEFORE detach so the view is still visible and rendered.
+     * eos_activity_take_snapshot_standalone() returns an eos-allocated
+     * full-resolution (390x450) RGB565 draw buffer matching the screen
+     * aspect ratio, so the portrait card displays it without stretching and
+     * eos_draw_buf_destroy() can free it with the matching allocator. */
+    {
+        lv_draw_buf_t *thumb = eos_activity_take_snapshot_standalone(snapshot_target, false);
+        if (thumb)
+        {
+            entry->thumb_buf = thumb;
+            entry->est_mem_bytes += thumb->data_size;
+        }
+        else
+        {
+            EOS_LOG_W("Thumbnail snapshot failed for '%s'", app_id);
+        }
+    }
+
     if (detach)
     {
         /* Mark sub-stack for suspend park BEFORE detach */
@@ -346,6 +365,13 @@ eos_result_t eos_recent_apps_resume(eos_recent_app_entry_t *entry)
     entry->activity = NULL;
     entry->saved_stack_top = NULL;
 
+    /* Free the Recent Apps page thumbnail — no longer needed after resume */
+    if (entry->thumb_buf)
+    {
+        eos_draw_buf_destroy(entry->thumb_buf);
+        entry->thumb_buf = NULL;
+    }
+
     eos_free(entry);
 
     EOS_LOG_I("App resumed successfully");
@@ -411,6 +437,13 @@ eos_result_t eos_recent_apps_evict(eos_recent_app_entry_t *entry)
         entry->snap_buf = NULL;
     }
 
+    /* Free the Recent Apps page thumbnail */
+    if (entry->thumb_buf)
+    {
+        eos_draw_buf_destroy(entry->thumb_buf);
+        entry->thumb_buf = NULL;
+    }
+
     eos_free(entry);
     return EOS_OK;
 }
@@ -449,6 +482,12 @@ void eos_recent_apps_on_engine_reset(void)
         {
             eos_draw_buf_destroy(entry->snap_buf);
             entry->snap_buf = NULL;
+        }
+        /* Free the Recent Apps page thumbnail */
+        if (entry->thumb_buf)
+        {
+            eos_draw_buf_destroy(entry->thumb_buf);
+            entry->thumb_buf = NULL;
         }
         eos_free(entry);
         entry = next;

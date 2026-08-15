@@ -57,6 +57,7 @@ typedef struct eos_recent_app_entry
     uint32_t last_used_tick; /**< LRU timestamp (eos_tick_get) */
     uint32_t est_mem_bytes; /**< Estimated memory footprint */
     lv_draw_buf_t *snap_buf; /**< Screenshot of app view at suspend time, used for resume animation */
+    lv_draw_buf_t *thumb_buf; /**< Full-resolution screenshot for Recent Apps page display */
 } eos_recent_app_entry_t;
 
 /* Public function prototypes ---------------------------------*/
