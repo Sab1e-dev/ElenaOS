@@ -720,9 +720,12 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
     }
 #endif
 
-    /* Restore header visibility before JS runs.
-     * The app's JS may call setAppHeaderVisible(false) to hide it. */
+    /* Restore the header-visible flag to its default BEFORE the JS runs so the
+     * app observes the correct initial state and may still call
+     * setAppHeaderVisible(false) to hide it.  The header itself stays hidden —
+     * it must not appear until the app's interface has been built. */
     eos_activity_set_app_header_visible(a, true);
+    eos_app_header_hide();
 
     /* Mark phase 2 complete. */
     if (ctx->loading_spinner)
@@ -737,6 +740,15 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
     {
         _app_handle_script_run_result(a, ctx, ret);
         return;
+    }
+
+    /* The app's interface is now built and is rendered on top of the loading
+     * overlay from the very next frame.  Reveal the header in that same frame so
+     * the app UI and header appear together while the overlay dims out.  An app
+     * that called setAppHeaderVisible(false) during startup stays hidden. */
+    if (eos_activity_is_app_header_visible(a))
+    {
+        eos_app_header_show(a);
     }
 
     /* JS eval succeeded. Dim spinner and icon smoothly while keeping
