@@ -2138,9 +2138,7 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_bu
      * page tap), resume instantly with the transition animation suppressed. */
     if (snap_buf)
     {
-        EOS_LOG_I("[REATTACH_SNAP] Storing snapshot on activity=%p: buf=%p",
-                  (void *)substack_top,
-                  (void *)snap_buf);
+        EOS_LOG_I("[REATTACH_SNAP] Storing snapshot on activity=%p: buf=%p", (void *)substack_top, (void *)snap_buf);
         eos_activity_set_snap_buf(substack_top, snap_buf);
         _activity_switch_to(substack_top, false);
     }

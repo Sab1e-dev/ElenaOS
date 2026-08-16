@@ -114,7 +114,7 @@ static void _objs_label_destroy(void)
     _objs_label = NULL;
 }
 
-/* FPS Display -----------------------------------------------*/
+/* FPS Display ------------------------------------------------*/
 
 /**
  * @brief Create the FPS display label on the system layer
@@ -333,8 +333,8 @@ static void _touch_timer_cb(lv_timer_t *timer)
         else
         {
             /* Touch continues — extend polyline if moved enough */
-            if (LV_ABS(point.x - _touch_last_point.x) >= _TOUCH_SAMPLE_THRESHOLD ||
-                LV_ABS(point.y - _touch_last_point.y) >= _TOUCH_SAMPLE_THRESHOLD)
+            if (LV_ABS(point.x - _touch_last_point.x) >= _TOUCH_SAMPLE_THRESHOLD
+                || LV_ABS(point.y - _touch_last_point.y) >= _TOUCH_SAMPLE_THRESHOLD)
             {
                 _touch_trail_add_point(point.x, point.y);
                 _touch_last_point = point;
@@ -494,7 +494,7 @@ static void _touch_display_disable(void)
     EOS_LOG_I("Touch coordinate display disabled");
 }
 
-/* Public API ------------------------------------------------*/
+/* Public API -------------------------------------------------*/
 
 void eos_developer_options_init(void)
 {

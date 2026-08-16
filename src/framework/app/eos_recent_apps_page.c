@@ -25,7 +25,8 @@
 
 /* Macros and Definitions -------------------------------------*/
 #define _RECENT_CARD_WIDTH 300
-#define _RECENT_CARD_HEIGHT ((_RECENT_CARD_WIDTH * EOS_DISPLAY_HEIGHT) / EOS_DISPLAY_WIDTH) /* 300 → 346，保持 390:450 */
+#define _RECENT_CARD_HEIGHT \
+    ((_RECENT_CARD_WIDTH * EOS_DISPLAY_HEIGHT) / EOS_DISPLAY_WIDTH) /* 300 → 346，保持 390:450 */
 #define _RECENT_CARD_GAP 16
 #define _RECENT_LIST_PAD 20
 #define _ITEM_CLICK_THRESHOLD 3
@@ -241,11 +242,8 @@ static lv_obj_t *_create_card(lv_obj_t *parent, eos_recent_app_entry_t *entry)
     /* Horizontal swipe-to-delete + tap-to-resume (msg_list pattern).
      * The card is a child of an lv_list, so eos_slide_widget uses translate_x
      * and does not fight the flex layout. */
-    eos_slide_widget_t *sw = eos_slide_widget_create_with_touch(card,
-                                                                card,
-                                                                EOS_SLIDE_DIR_HOR,
-                                                                EOS_DISPLAY_WIDTH,
-                                                                EOS_THRESHOLD_40);
+    eos_slide_widget_t *sw =
+        eos_slide_widget_create_with_touch(card, card, EOS_SLIDE_DIR_HOR, EOS_DISPLAY_WIDTH, EOS_THRESHOLD_40);
     if (sw)
     {
         eos_slide_widget_set_bidirectional(sw, true);

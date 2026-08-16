@@ -36,7 +36,7 @@ extern "C" {
 #define EOS_CONFIG_KEY_PASSWORD_HASH_STR "password_hash"
 #define EOS_CONFIG_KEY_PASSWORD_ENABLED_BOOL "password_enabled"
 #define EOS_CONFIG_KEY_PASSWORD_SIMPLE_BOOL "password_simple"
-/* Developer options -------------------------------------------*/
+/* Developer options ------------------------------------------*/
 #define EOS_CONFIG_KEY_DEV_FPS_BOOL "dev_fps"
 #define EOS_CONFIG_KEY_DEV_OBJS_BOOL "dev_objs"
 #define EOS_CONFIG_KEY_DEV_TOUCH_BOOL "dev_touch"
