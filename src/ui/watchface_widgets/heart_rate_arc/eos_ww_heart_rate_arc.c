@@ -98,6 +98,7 @@ lv_obj_t *eos_ww_heart_rate_arc_create(lv_obj_t *parent, lv_coord_t size, uint32
     lv_obj_set_style_arc_color(arc, lv_color_hex(0x4CD964), LV_PART_INDICATOR);
 
     lv_obj_t *label = lv_label_create(container);
+    lv_label_set_text(label, "0");
     lv_obj_center(label);
     eos_label_set_font_size(label, EOS_FONT_SIZE_SMALL);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);

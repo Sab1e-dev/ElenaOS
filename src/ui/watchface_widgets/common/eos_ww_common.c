@@ -128,7 +128,7 @@ eos_ww_status_t *eos_ww_status_create(lv_obj_t *parent, const char *icon)
     }
 
     lv_obj_t *value = lv_label_create(container);
-    lv_label_set_text(value, "--");
+    lv_label_set_text(value, "0");
     lv_obj_set_style_text_color(value, lv_color_hex(0xFFFFFF), 0);
     eos_ww_make_static(value);
     s->value = value;
@@ -194,6 +194,7 @@ void eos_ww_status_start_timer(eos_ww_status_t *s, eos_ww_status_update_cb_t cb,
     {
         lv_timer_ready(s->timer);
     }
+    cb(s);
 }
 
 void eos_ww_status_start_sensor(eos_ww_status_t *s,
