@@ -27,6 +27,7 @@
 #include "eos_service_storage.h"
 #include "eos_app_header.h"
 #include "eos_ww_clock_hand.h"
+#include "sni_api_eos_ww.h"
 #include "sni_api_eos_permission.h"
 /* Macros and Definitions -------------------------------------*/
 #define EOS_API_NAME "eos"
@@ -1385,6 +1386,16 @@ const sni_class_desc_t eos_class_desc_clock_hand = {
     .constants = NULL,
 };
 
+const sni_class_desc_t eos_class_desc_ww = {
+    .name = "ww",
+    .constructor = NULL,
+    .base_class = NULL,
+    .methods = NULL,
+    .properties = NULL,
+    .static_methods = eos_ww_static_methods,
+    .constants = NULL,
+};
+
 const sni_class_desc_t eos_class_desc_activity = {
     .name = "activity",
     .constructor = NULL,
@@ -1418,6 +1429,7 @@ const sni_class_desc_t *const eos_api_classes[] = {
     &eos_class_desc_time,
     &eos_class_desc_app_header,
     &eos_class_desc_clock_hand,
+    &eos_class_desc_ww,
     &eos_class_desc_activity,
     &eos_class_desc_permission,
     NULL,
