@@ -7,6 +7,7 @@
 
 /* Includes ---------------------------------------------------*/
 #include <string.h>
+#define EOS_LOG_DISABLE
 #define EOS_LOG_TAG "FIFO"
 #include "eos_log.h"
 #include "eos_mem.h"
