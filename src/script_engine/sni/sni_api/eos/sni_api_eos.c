@@ -29,6 +29,7 @@
 #include "eos_ww_clock_hand.h"
 #include "sni_api_eos_ww.h"
 #include "sni_api_eos_permission.h"
+#include "eos_service_sensor.h"
 /* Macros and Definitions -------------------------------------*/
 #define EOS_API_NAME "eos"
 #define CONSOLE_LOG_TAG script_engine_get_current_script_id()
@@ -1259,6 +1260,140 @@ jerry_value_t sni_api_eos_console_debug(const jerry_call_info_t *call_info_p,
     return sni_api_eos_console_write(args_p, args_count, EOS_CONSOLE_LEVEL_DEBUG);
 }
 
+jerry_value_t sni_api_eos_sensor_read_latest(const jerry_call_info_t *call_info_p,
+                                             const jerry_value_t args_p[],
+                                             const jerry_length_t args_count)
+{
+    int32_t type;
+    eos_sensor_raw_data_t raw;
+    eos_result_t result;
+    jerry_value_t obj;
+
+    (void)call_info_p;
+
+    if (args_count != 1 || !jerry_value_is_number(args_p[0]))
+    {
+        return sni_api_throw_error("Usage: sensor.readLatest(type)");
+    }
+
+    type = (int32_t)jerry_value_as_number(args_p[0]);
+    if (type <= (int32_t)EOS_SENSOR_TYPE_UNKNOWN || type >= (int32_t)EOS_SENSOR_TYPE_MAX)
+    {
+        return sni_api_throw_error("Invalid sensor type");
+    }
+
+    result = eos_sensor_read_latest((eos_sensor_type_t)type, &raw);
+    if (result != EOS_OK)
+    {
+        return jerry_null();
+    }
+
+    obj = jerry_object();
+    script_engine_set_prop_number(obj, "timestamp", (double)raw.timestamp);
+
+    switch ((eos_sensor_type_t)type)
+    {
+        case EOS_SENSOR_TYPE_ACCE:
+            script_engine_set_prop_number(obj, "x", (double)raw.data.acce.x);
+            script_engine_set_prop_number(obj, "y", (double)raw.data.acce.y);
+            script_engine_set_prop_number(obj, "z", (double)raw.data.acce.z);
+            break;
+        case EOS_SENSOR_TYPE_GYRO:
+            script_engine_set_prop_number(obj, "x", (double)raw.data.gyro.x);
+            script_engine_set_prop_number(obj, "y", (double)raw.data.gyro.y);
+            script_engine_set_prop_number(obj, "z", (double)raw.data.gyro.z);
+            break;
+        case EOS_SENSOR_TYPE_MAG:
+            script_engine_set_prop_number(obj, "x", (double)raw.data.mag.x);
+            script_engine_set_prop_number(obj, "y", (double)raw.data.mag.y);
+            script_engine_set_prop_number(obj, "z", (double)raw.data.mag.z);
+            break;
+        case EOS_SENSOR_TYPE_HR:
+            script_engine_set_prop_number(obj, "heart_rate", (double)raw.data.hr.heart_rate);
+            break;
+        case EOS_SENSOR_TYPE_SPO2:
+            script_engine_set_prop_number(obj, "spo2", (double)raw.data.spo2.spo2);
+            break;
+        case EOS_SENSOR_TYPE_LIGHT:
+            script_engine_set_prop_number(obj, "lux", (double)raw.data.light.lux);
+            break;
+        case EOS_SENSOR_TYPE_TEMP:
+            script_engine_set_prop_number(obj, "temp", (double)raw.data.temp.temp);
+            break;
+        case EOS_SENSOR_TYPE_BARO:
+            script_engine_set_prop_number(obj, "pressure", (double)raw.data.baro.pressure);
+            break;
+        case EOS_SENSOR_TYPE_STEP:
+            script_engine_set_prop_number(obj, "steps", (double)raw.data.step.steps);
+            break;
+        case EOS_SENSOR_TYPE_PROXIMITY:
+            script_engine_set_prop_number(obj, "distance_mm", (double)raw.data.proximity.distance_mm);
+            break;
+        case EOS_SENSOR_TYPE_ECG:
+            script_engine_set_prop_number(obj, "ecg", (double)raw.data.ecg.ecg);
+            break;
+        case EOS_SENSOR_TYPE_CAP:
+            script_engine_set_prop_number(obj, "cap", (double)raw.data.cap.cap);
+            break;
+        default:
+            jerry_value_free(obj);
+            return jerry_null();
+    }
+
+    return obj;
+}
+
+jerry_value_t sni_api_eos_sensor_set_sample_period(const jerry_call_info_t *call_info_p,
+                                                   const jerry_value_t args_p[],
+                                                   const jerry_length_t args_count)
+{
+    int32_t type;
+    uint32_t period_ms;
+    eos_result_t result;
+
+    (void)call_info_p;
+
+    if (args_count != 2 || !jerry_value_is_number(args_p[0]) || !jerry_value_is_number(args_p[1]))
+    {
+        return sni_api_throw_error("Usage: sensor.setSamplePeriod(type, period_ms)");
+    }
+
+    type = (int32_t)jerry_value_as_number(args_p[0]);
+    if (type <= (int32_t)EOS_SENSOR_TYPE_UNKNOWN || type >= (int32_t)EOS_SENSOR_TYPE_MAX)
+    {
+        return sni_api_throw_error("Invalid sensor type");
+    }
+
+    period_ms = (uint32_t)jerry_value_as_number(args_p[1]);
+    result = eos_sensor_set_sample_period((eos_sensor_type_t)type, period_ms);
+
+    return jerry_boolean(result == EOS_OK);
+}
+
+jerry_value_t sni_api_eos_sensor_get_sample_period(const jerry_call_info_t *call_info_p,
+                                                   const jerry_value_t args_p[],
+                                                   const jerry_length_t args_count)
+{
+    int32_t type;
+    uint32_t period_ms;
+
+    (void)call_info_p;
+
+    if (args_count != 1 || !jerry_value_is_number(args_p[0]))
+    {
+        return sni_api_throw_error("Usage: sensor.getSamplePeriod(type)");
+    }
+
+    type = (int32_t)jerry_value_as_number(args_p[0]);
+    if (type <= (int32_t)EOS_SENSOR_TYPE_UNKNOWN || type >= (int32_t)EOS_SENSOR_TYPE_MAX)
+    {
+        return sni_api_throw_error("Invalid sensor type");
+    }
+
+    period_ms = eos_sensor_get_sample_period((eos_sensor_type_t)type);
+    return jerry_number((double)period_ms);
+}
+
 const sni_method_desc_t eos_class_static_methods_view[] = {
     {.name = "active", .handler = sni_api_eos_view_active},
     {.name = NULL, .handler = NULL},
@@ -1412,6 +1547,13 @@ const sni_method_desc_t eos_class_static_methods_permission[] = {
     {.name = NULL, .handler = NULL},
 };
 
+const sni_method_desc_t eos_class_static_methods_sensor[] = {
+    {.name = "readLatest", .handler = sni_api_eos_sensor_read_latest},
+    {.name = "setSamplePeriod", .handler = sni_api_eos_sensor_set_sample_period},
+    {.name = "getSamplePeriod", .handler = sni_api_eos_sensor_get_sample_period},
+    {.name = NULL, .handler = NULL},
+};
+
 const sni_class_desc_t eos_class_desc_permission = {
     .name = "permission",
     .constructor = NULL,
@@ -1419,6 +1561,16 @@ const sni_class_desc_t eos_class_desc_permission = {
     .methods = NULL,
     .properties = NULL,
     .static_methods = eos_class_static_methods_permission,
+    .constants = NULL,
+};
+
+const sni_class_desc_t eos_class_desc_sensor = {
+    .name = "sensor",
+    .constructor = NULL,
+    .base_class = NULL,
+    .methods = NULL,
+    .properties = NULL,
+    .static_methods = eos_class_static_methods_sensor,
     .constants = NULL,
 };
 
@@ -1432,6 +1584,7 @@ const sni_class_desc_t *const eos_api_classes[] = {
     &eos_class_desc_ww,
     &eos_class_desc_activity,
     &eos_class_desc_permission,
+    &eos_class_desc_sensor,
     NULL,
 };
 
@@ -1449,6 +1602,18 @@ const sni_constant_desc_t eos_root_constants[] = {
     {.name = "ACTIVITY_TYPE_APP_LIST", .type = SNI_CONST_INT, .value.i = EOS_ACTIVITY_TYPE_APP_LIST},
     {.name = "ACTIVITY_TYPE_WATCHFACE", .type = SNI_CONST_INT, .value.i = EOS_ACTIVITY_TYPE_WATCHFACE},
     {.name = "ACTIVITY_TYPE_WATCHFACE_LIST", .type = SNI_CONST_INT, .value.i = EOS_ACTIVITY_TYPE_WATCHFACE_LIST},
+    {.name = "SENSOR_ACCE", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_ACCE},
+    {.name = "SENSOR_GYRO", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_GYRO},
+    {.name = "SENSOR_MAG", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_MAG},
+    {.name = "SENSOR_HR", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_HR},
+    {.name = "SENSOR_SPO2", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_SPO2},
+    {.name = "SENSOR_LIGHT", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_LIGHT},
+    {.name = "SENSOR_TEMP", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_TEMP},
+    {.name = "SENSOR_BARO", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_BARO},
+    {.name = "SENSOR_STEP", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_STEP},
+    {.name = "SENSOR_PROXIMITY", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_PROXIMITY},
+    {.name = "SENSOR_ECG", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_ECG},
+    {.name = "SENSOR_CAP", .type = SNI_CONST_INT, .value.i = EOS_SENSOR_TYPE_CAP},
     {.name = NULL, .type = SNI_CONST_INT, .value.i = 0},
 };
 
