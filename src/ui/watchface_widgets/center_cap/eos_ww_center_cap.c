@@ -31,6 +31,9 @@ lv_obj_t *eos_ww_center_cap_create(lv_obj_t *parent,
     lv_obj_set_size(cap, outer_d, outer_d);
     lv_obj_set_style_bg_opa(cap, LV_OPA_TRANSP, 0);
     eos_ww_make_static(cap);
+    /* The cap represents the hand pivot — centre it within its parent
+     * (the face) rather than leaving it at the parent's top-left. */
+    lv_obj_center(cap);
 
     lv_obj_t *outer = lv_obj_create(cap);
     lv_obj_set_size(outer, outer_d, outer_d);
