@@ -48,7 +48,9 @@ lv_obj_t *eos_ww_numeral_ring_create(lv_obj_t *parent,
         lv_coord_t oy = (lv_coord_t)llround(sin(rad) * digit_radius);
 
         lv_obj_t *label = lv_label_create(ring);
-        lv_obj_set_size(label, digit_size, digit_size);
+        /* Height tracks the text so the numeral is vertically centred on its
+         * radial slot — a fixed square box left the glyph hugging the top. */
+        lv_obj_set_size(label, digit_size, LV_SIZE_CONTENT);
         lv_obj_align(label, LV_ALIGN_CENTER, ox, oy);
         lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_color(label, lv_color_hex(color), 0);
