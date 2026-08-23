@@ -28,8 +28,12 @@
  * Note:
  *   Applications should always use POSIX-style paths ("/xxx").
  */
+#if !defined(LV_FS_DEFAULT_DRIVE_LETTER) && defined(LV_FS_DEFAULT_DRIVER_LETTER)
+#define LV_FS_DEFAULT_DRIVE_LETTER LV_FS_DEFAULT_DRIVER_LETTER
+#endif
+
 #if LV_FS_DEFAULT_DRIVE_LETTER != EOS_LVGL_FS_LETTER
-#error "LV_FS_DEFAULT_DRIVE_LETTER must match EOS_LVGL_FS_LETTER"
+#error "LVGL default FS letter must match EOS_LVGL_FS_LETTER"
 #endif
 
 #define LVGL_FS_MAX_PATH EOS_FS_PATH_MAX
