@@ -27,8 +27,6 @@ typedef struct
 
 typedef struct
 {
-    uint8_t id[4];
-    uint32_t size;
     uint16_t audio_format;
     uint16_t num_channels;
     uint32_t sample_rate;
