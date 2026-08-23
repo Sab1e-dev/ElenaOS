@@ -222,19 +222,19 @@ const sni_val_prop_t lv_grad_color_props[] = {
     {
         .name = "blue",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, blue),
+        .offset = offsetof(lv_color_t, blue),
         .bit_width = 0,
     },
     {
         .name = "green",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, green),
+        .offset = offsetof(lv_color_t, green),
         .bit_width = 0,
     },
     {
         .name = "red",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, red),
+        .offset = offsetof(lv_color_t, red),
         .bit_width = 0,
     },
 };
