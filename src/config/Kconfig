@@ -239,6 +239,195 @@ config EOS_FONT_TTF_FILE_PATH
 	  via compiler flag (-D) — the Kconfig value is ignored when the
 	  variable is already defined by the build system.
 
+choice
+    prompt "Fallback font source when TTF load fails"
+    default EOSCFG_FONT_TTF_FALLBACK_LVGL
+    depends on EOSCFG_FONT_TTF
+
+config EOSCFG_FONT_TTF_FALLBACK_LVGL
+    bool "LVGL built-in font"
+
+config EOSCFG_FONT_TTF_FALLBACK_CUSTOM
+    bool "Custom font symbol"
+
+endchoice
+
+choice
+    prompt "LVGL fallback font"
+    default EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_30 if LV_FONT_MONTSERRAT_30
+    default EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_20 if LV_FONT_MONTSERRAT_20
+    default EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_12 if LV_FONT_MONTSERRAT_12
+    default EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_8 if LV_FONT_MONTSERRAT_8
+    depends on EOSCFG_FONT_TTF_FALLBACK_LVGL
+    help
+      Built-in LVGL font used when the configured TTF file/data cannot
+      be loaded. Only enabled LVGL fonts are selectable here.
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_8
+    bool "Montserrat 8"
+    depends on LV_FONT_MONTSERRAT_8
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_10
+    bool "Montserrat 10"
+    depends on LV_FONT_MONTSERRAT_10
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_12
+    bool "Montserrat 12"
+    depends on LV_FONT_MONTSERRAT_12
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_14
+    bool "Montserrat 14"
+    depends on LV_FONT_MONTSERRAT_14
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_16
+    bool "Montserrat 16"
+    depends on LV_FONT_MONTSERRAT_16
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_18
+    bool "Montserrat 18"
+    depends on LV_FONT_MONTSERRAT_18
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_20
+    bool "Montserrat 20"
+    depends on LV_FONT_MONTSERRAT_20
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_22
+    bool "Montserrat 22"
+    depends on LV_FONT_MONTSERRAT_22
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_24
+    bool "Montserrat 24"
+    depends on LV_FONT_MONTSERRAT_24
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_26
+    bool "Montserrat 26"
+    depends on LV_FONT_MONTSERRAT_26
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_28
+    bool "Montserrat 28"
+    depends on LV_FONT_MONTSERRAT_28
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_30
+    bool "Montserrat 30"
+    depends on LV_FONT_MONTSERRAT_30
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_32
+    bool "Montserrat 32"
+    depends on LV_FONT_MONTSERRAT_32
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_34
+    bool "Montserrat 34"
+    depends on LV_FONT_MONTSERRAT_34
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_36
+    bool "Montserrat 36"
+    depends on LV_FONT_MONTSERRAT_36
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_38
+    bool "Montserrat 38"
+    depends on LV_FONT_MONTSERRAT_38
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_40
+    bool "Montserrat 40"
+    depends on LV_FONT_MONTSERRAT_40
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_42
+    bool "Montserrat 42"
+    depends on LV_FONT_MONTSERRAT_42
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_44
+    bool "Montserrat 44"
+    depends on LV_FONT_MONTSERRAT_44
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_46
+    bool "Montserrat 46"
+    depends on LV_FONT_MONTSERRAT_46
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_48
+    bool "Montserrat 48"
+    depends on LV_FONT_MONTSERRAT_48
+
+config EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_28_COMPRESSED
+    bool "Montserrat 28 compressed"
+    depends on LV_FONT_MONTSERRAT_28_COMPRESSED
+
+config EOSCFG_FONT_TTF_FALLBACK_DEJAVU_16_PERSIAN_HEBREW
+    bool "DejaVu 16 Persian/Hebrew/Arabic"
+    depends on LV_FONT_DEJAVU_16_PERSIAN_HEBREW
+
+config EOSCFG_FONT_TTF_FALLBACK_SOURCE_HAN_SANS_SC_14_CJK
+    bool "Source Han Sans SC 14 CJK"
+    depends on LV_FONT_SOURCE_HAN_SANS_SC_14_CJK
+
+config EOSCFG_FONT_TTF_FALLBACK_SOURCE_HAN_SANS_SC_16_CJK
+    bool "Source Han Sans SC 16 CJK"
+    depends on LV_FONT_SOURCE_HAN_SANS_SC_16_CJK
+
+config EOSCFG_FONT_TTF_FALLBACK_UNSCII_8
+    bool "UNSCII 8"
+    depends on LV_FONT_UNSCII_8
+
+config EOSCFG_FONT_TTF_FALLBACK_UNSCII_16
+    bool "UNSCII 16"
+    depends on LV_FONT_UNSCII_16
+
+config EOSCFG_FONT_TTF_FALLBACK_SIMYOU_30_CH
+    bool "SimYou 30 Chinese"
+    depends on LV_FONT_SIMYOU_30_CH
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_12
+    bool "Ubuntu 12"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_14
+    bool "Ubuntu 14"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_16
+    bool "Ubuntu 16"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_18
+    bool "Ubuntu 18"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_20
+    bool "Ubuntu 20"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_24
+    bool "Ubuntu 24"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_28
+    bool "Ubuntu 28"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_36
+    bool "Ubuntu 36"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_56
+    bool "Ubuntu 56"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+config EOSCFG_FONT_TTF_FALLBACK_UBUNTU_72
+    bool "Ubuntu 72"
+    depends on LV_FONT_TINY_TTF_UBUNTU
+
+endchoice
+
+config EOS_FONT_TTF_FALLBACK_SYMBOL
+    string "Custom fallback font symbol"
+    default "lv_font_montserrat_30"
+    depends on EOSCFG_FONT_TTF_FALLBACK_CUSTOM
+    help
+      C symbol name of a compiled lv_font_t object, for example:
+        my_product_font_24
+        lv_font_montserrat_20
+
+      The symbol must be linked into the firmware. Do not add '&' or quotes.
+
 config EOS_FONT_TTF_ENABLE_EXTENDED
 	bool "Enable extended TTF features"
 	default n

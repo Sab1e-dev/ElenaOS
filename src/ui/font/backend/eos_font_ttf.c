@@ -23,10 +23,50 @@ static lv_font_t *font_large;
 static lv_font_t *font_medium;
 static lv_font_t *font_small;
 static bool _font_inited = false;
+static bool _using_builtin_fallback = false;
 #if EOS_FONT_TTF_TYPE == EOS_FONT_TTF_FILE
 static char _font_path[128] = EOS_SYS_RES_FONT_DIR EOS_FONT_TTF_FILE_PATH;
 #endif
 /* Function Implementations -----------------------------------*/
+
+static lv_font_t *_builtin_fallback_font(void)
+{
+    return (lv_font_t *)EOS_FONT_TTF_FALLBACK_PTR;
+}
+
+static void _destroy_loaded_ttf_fonts(void)
+{
+    if (font_large)
+    {
+        lv_tiny_ttf_destroy(font_large);
+        font_large = NULL;
+    }
+    if (font_medium)
+    {
+        lv_tiny_ttf_destroy(font_medium);
+        font_medium = NULL;
+    }
+    if (font_small)
+    {
+        lv_tiny_ttf_destroy(font_small);
+        font_small = NULL;
+    }
+}
+
+static lv_font_t *_use_builtin_fallback(void)
+{
+    lv_font_t *fallback = _builtin_fallback_font();
+
+    font_large = fallback;
+    font_medium = fallback;
+    font_small = fallback;
+
+    _using_builtin_fallback = true;
+    _font_inited = true;
+
+    EOS_LOG_W("Using built-in fallback font");
+    return font_medium;
+}
 
 lv_font_t *eos_font_init(void)
 {
@@ -82,7 +122,8 @@ lv_font_t *eos_font_init(void)
     if (!font_large || !font_medium || !font_small)
     {
         EOS_LOG_E("Some fonts failed to load!");
-        return NULL;
+        _destroy_loaded_ttf_fonts();
+        return _use_builtin_fallback();
     }
     else
     {
@@ -91,6 +132,7 @@ lv_font_t *eos_font_init(void)
         font_small->fallback = &EOS_FONT_ICON;
         EOS_LOG_D("All TTF fonts loaded successfully");
     }
+    _using_builtin_fallback = false;
     _font_inited = true;
     return font_medium;
 }
@@ -102,22 +144,15 @@ void eos_font_deinit(void)
 
     EOS_LOG_I("Font system deinit");
 
-    if (font_large)
+    if (!_using_builtin_fallback)
     {
-        lv_tiny_ttf_destroy(font_large);
-        font_large = NULL;
+        _destroy_loaded_ttf_fonts();
     }
-    if (font_medium)
-    {
-        lv_tiny_ttf_destroy(font_medium);
-        font_medium = NULL;
-    }
-    if (font_small)
-    {
-        lv_tiny_ttf_destroy(font_small);
-        font_small = NULL;
-    }
+    font_large = NULL;
+    font_medium = NULL;
+    font_small = NULL;
 
+    _using_builtin_fallback = false;
     _font_inited = false;
 }
 
@@ -144,21 +179,23 @@ lv_font_t *eos_font_reload(const char *path)
 
 lv_font_t *_select_font(eos_font_size_t size)
 {
+    lv_font_t *fallback = _builtin_fallback_font();
+
     switch (size)
     {
         case EOS_FONT_SIZE_LARGE:
-            return font_large;
+            return font_large ? font_large : fallback;
         case EOS_FONT_SIZE_MEDIUM:
-            return font_medium;
+            return font_medium ? font_medium : fallback;
         case EOS_FONT_SIZE_SMALL:
-            return font_small;
+            return font_small ? font_small : fallback;
         default:
             if (size >= EOS_FONT_SIZE_LARGE)
-                return font_large;
+                return font_large ? font_large : fallback;
             else if (size > EOS_FONT_SIZE_SMALL)
-                return font_medium;
+                return font_medium ? font_medium : fallback;
             else
-                return font_small;
+                return font_small ? font_small : fallback;
     }
 }
 
