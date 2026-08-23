@@ -95,31 +95,33 @@ static void _print_boot_info(void)
     char jerry_version[32];
     char cjson_version[32];
 
-    snprintf(lvgl_version, sizeof(lvgl_version),
-            "%d.%d.%d%s",
-            LVGL_VERSION_MAJOR,
-            LVGL_VERSION_MINOR,
-            LVGL_VERSION_PATCH,
-            LVGL_VERSION_INFO);
+    snprintf(lvgl_version,
+             sizeof(lvgl_version),
+             "%d.%d.%d%s",
+             LVGL_VERSION_MAJOR,
+             LVGL_VERSION_MINOR,
+             LVGL_VERSION_PATCH,
+             LVGL_VERSION_INFO);
 
-    snprintf(jerry_version, sizeof(jerry_version),
-            "%d.%d.%d",
-            JERRY_API_MAJOR_VERSION,
-            JERRY_API_MINOR_VERSION,
-            JERRY_API_PATCH_VERSION);
+    snprintf(jerry_version,
+             sizeof(jerry_version),
+             "%d.%d.%d",
+             JERRY_API_MAJOR_VERSION,
+             JERRY_API_MINOR_VERSION,
+             JERRY_API_PATCH_VERSION);
 
-    snprintf(cjson_version, sizeof(cjson_version),
-            "%d.%d.%d",
-            CJSON_VERSION_MAJOR,
-            CJSON_VERSION_MINOR,
-            CJSON_VERSION_PATCH);
+    snprintf(cjson_version,
+             sizeof(cjson_version),
+             "%d.%d.%d",
+             CJSON_VERSION_MAJOR,
+             CJSON_VERSION_MINOR,
+             CJSON_VERSION_PATCH);
 
     /* ElenixOS */
     EOS_LOG_I("ElenixOS v" ELENIX_OS_VERSION_FULL);
     EOS_LOG_I("  %-12s %s", "Git:", EOS_GIT_INFO);
     EOS_LOG_I("  %-12s %s %s", "Build:", build_date, __TIME__);
-    EOS_LOG_I("  %-12s %s", "Mode:",
-            EOS_COMPILE_MODE == EOS_DEBUG ? "DEBUG" : "RELEASE");
+    EOS_LOG_I("  %-12s %s", "Mode:", EOS_COMPILE_MODE == EOS_DEBUG ? "DEBUG" : "RELEASE");
 
     EOS_LOG_I("");
 
