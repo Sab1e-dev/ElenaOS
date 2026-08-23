@@ -2014,8 +2014,7 @@ static void _test_sensor(lv_event_t *e)
             lv_table_set_cell_value(tb, sensor_data.sensor_count, 1, "N/A");
 
             /* Enable the sensor type (100ms = 10Hz) */
-            if (dev->type > EOS_SENSOR_TYPE_UNKNOWN && dev->type < EOS_SENSOR_TYPE_MAX
-                && !type_enabled[dev->type])
+            if (dev->type > EOS_SENSOR_TYPE_UNKNOWN && dev->type < EOS_SENSOR_TYPE_MAX && !type_enabled[dev->type])
             {
                 eos_sensor_set_sample_period(dev->type, 100);
                 type_enabled[dev->type] = true;
