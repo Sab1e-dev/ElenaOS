@@ -164,8 +164,8 @@ bool sni_tb_js2c_parent(jerry_value_t val, void **out);
  *
  * @param e  LVGL event (code == LV_EVENT_DELETE)
  */
-struct lv_event_t;
-void sni_obj_deleted_cb(struct lv_event_t *e);
+typedef struct _lv_event_t lv_event_t;
+void sni_obj_deleted_cb(lv_event_t *e);
 
 #ifdef __cplusplus
 }

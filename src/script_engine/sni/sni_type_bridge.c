@@ -36,7 +36,7 @@
 
 static sni_val_obj_t sni_val_objs[__SNI_TYPE_MAX] = {0};
 static void sni_control_block_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
-void sni_obj_deleted_cb(struct lv_event_t *e);
+void sni_obj_deleted_cb(lv_event_t *e);
 static void sni_resource_node_free_cb(void *native_p, struct jerry_object_native_info_t *info_p);
 static const jerry_object_native_info_t sni_native_info = {
     .free_cb = sni_control_block_free_cb,
@@ -133,7 +133,7 @@ sni_control_block_t *sni_cb_from_obj(void *ptr)
     return (sni_control_block_t *)eos_wdata_get((lv_obj_t *)ptr, EOS_WDATA_SNI_CB);
 }
 
-void sni_obj_deleted_cb(struct lv_event_t *e);
+void sni_obj_deleted_cb(lv_event_t *e);
 
 static void *sni_node_from_native(void *ptr, sni_type_t type)
 {
@@ -192,7 +192,7 @@ static void sni_handle_embed(void *ptr, sni_type_t type, jerry_value_t js_obj)
     sni_context_add_resource(ctx, ptr, js_obj, type);
 }
 
-void sni_obj_deleted_cb(struct lv_event_t *e)
+void sni_obj_deleted_cb(lv_event_t *e)
 {
     lv_obj_t *obj = lv_event_get_target(e);
     sni_control_block_t *cb;
