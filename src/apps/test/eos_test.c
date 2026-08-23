@@ -1928,7 +1928,15 @@ static void _sensor_cleanup(_sensor_test_data_t *data)
             lv_timer_delete(data->timer);
             data->timer = NULL;
         }
+        /* Disable all sensors that were enabled by the tester */
+        for (uint8_t i = 0; i < data->sensor_count; i++)
+        {
+            eos_dev_sensor_t *dev = data->sensors[i];
+            if (dev)
+                eos_sensor_set_sample_period(dev->type, 0);
+        }
         data->table = NULL;
+        data->sensor_count = 0;
     }
 }
 
@@ -1972,6 +1980,10 @@ static void _test_sensor(lv_event_t *e)
         return;
     }
 
+    /* Initialize sensor service if not already done */
+    eos_result_t svc_result = eos_service_sensor_init();
+    (void)svc_result;
+
     lv_obj_t *list = eos_list_create(scr);
 
     lv_obj_t *tb = lv_table_create(list);
@@ -1988,6 +2000,9 @@ static void _test_sensor(lv_event_t *e)
     sensor_data.table = tb;
     sensor_data.sensor_count = 0;
 
+    /* Track which types have already been enabled to avoid duplicate calls */
+    bool type_enabled[EOS_SENSOR_TYPE_MAX] = {false};
+
     /* Iterate through all registered sensor devices */
     eos_dev_sensor_t *dev = eos_dev_sensor_get_list_head();
     while (dev && sensor_data.sensor_count < EOS_SENSOR_TYPE_MAX)
@@ -1997,6 +2012,14 @@ static void _test_sensor(lv_event_t *e)
             sensor_data.sensors[sensor_data.sensor_count++] = dev;
             lv_table_set_cell_value(tb, sensor_data.sensor_count, 0, dev->name);
             lv_table_set_cell_value(tb, sensor_data.sensor_count, 1, "N/A");
+
+            /* Enable the sensor type (100ms = 10Hz) */
+            if (dev->type > EOS_SENSOR_TYPE_UNKNOWN && dev->type < EOS_SENSOR_TYPE_MAX
+                && !type_enabled[dev->type])
+            {
+                eos_sensor_set_sample_period(dev->type, 100);
+                type_enabled[dev->type] = true;
+            }
         }
         dev = dev->_next;
     }
