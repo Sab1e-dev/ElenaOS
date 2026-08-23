@@ -1,6 +1,29 @@
 cmake_minimum_required(VERSION 3.12)
 project(ElenixOS C)
 
+find_package(Git QUIET)
+set(EOS_GIT_INFO_HEADER "${CMAKE_BINARY_DIR}/generated/eos_git_info.h")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated")
+
+# Third-party library paths for git info
+# Join with '|' separator to pass as a single string
+set(EOS_THIRD_PARTY_LIBS_STR
+    "lvgl=${CMAKE_SOURCE_DIR}/lvgl|cjson=${CMAKE_CURRENT_SOURCE_DIR}/third_party/cJSON|jerryscript=${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript|remixicon=${CMAKE_CURRENT_SOURCE_DIR}/third_party/RemixIcon"
+)
+
+add_custom_target(eos_git_info
+    ALL
+    COMMAND ${CMAKE_COMMAND}
+            -DGIT_EXECUTABLE=${GIT_EXECUTABLE}
+            -DREPO_DIR=${CMAKE_SOURCE_DIR}
+            -DLIB_LIST_STR=${EOS_THIRD_PARTY_LIBS_STR}
+            -DOUT_FILE=${EOS_GIT_INFO_HEADER}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_git_info.cmake
+    BYPRODUCTS ${EOS_GIT_INFO_HEADER}
+    COMMENT "Generating ElenixOS Git version header"
+    VERBATIM
+)
+
 # Define a compile-time constant for the ElenixOS system root directory
 if(EOS_IS_WASM)
     add_compile_definitions(EOS_SYS_ROOT_DIR="/")
@@ -53,10 +76,12 @@ list(REMOVE_DUPLICATES ELENIXOS_INC_DIRS)
 
 # Define library target
 add_library(elenixos_lib STATIC ${ELENIXOS_SRC})
+add_dependencies(elenixos_lib eos_git_info)
 
 target_include_directories(elenixos_lib
     PUBLIC
     ${ELENIXOS_INC_DIRS}
+    ${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript/jerry-core/include
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript/jerry-ext/include
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cJSON

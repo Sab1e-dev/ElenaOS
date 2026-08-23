@@ -19,6 +19,7 @@
 #include "eos_lang.h"
 #include "eos_basic_widgets.h"
 #include "eos_event.h"
+#include "eos_git_info.h"
 #include "eos_test.h"
 #include "eos_version.h"
 #include "eos_port.h"
@@ -90,9 +91,44 @@ static void _print_boot_info(void)
     char build_date[16];
     _format_build_date(build_date, sizeof(build_date));
     EOS_LOG_I("System initializing...");
+    char lvgl_version[32];
+    char jerry_version[32];
+    char cjson_version[32];
+
+    snprintf(lvgl_version, sizeof(lvgl_version),
+            "%d.%d.%d%s",
+            LVGL_VERSION_MAJOR,
+            LVGL_VERSION_MINOR,
+            LVGL_VERSION_PATCH,
+            LVGL_VERSION_INFO);
+
+    snprintf(jerry_version, sizeof(jerry_version),
+            "%d.%d.%d",
+            JERRY_API_MAJOR_VERSION,
+            JERRY_API_MINOR_VERSION,
+            JERRY_API_PATCH_VERSION);
+
+    snprintf(cjson_version, sizeof(cjson_version),
+            "%d.%d.%d",
+            CJSON_VERSION_MAJOR,
+            CJSON_VERSION_MINOR,
+            CJSON_VERSION_PATCH);
+
+    /* ElenixOS */
     EOS_LOG_I("ElenixOS v" ELENIX_OS_VERSION_FULL);
-    EOS_LOG_I("build: %s %s", build_date, __TIME__);
-    EOS_LOG_I("build mode: %s", EOS_COMPILE_MODE == EOS_DEBUG ? "DEBUG" : "RELEASE");
+    EOS_LOG_I("  %-12s %s", "Git:", EOS_GIT_INFO);
+    EOS_LOG_I("  %-12s %s %s", "Build:", build_date, __TIME__);
+    EOS_LOG_I("  %-12s %s", "Mode:",
+            EOS_COMPILE_MODE == EOS_DEBUG ? "DEBUG" : "RELEASE");
+
+    EOS_LOG_I("");
+
+    /* Third-party components */
+    EOS_LOG_I("Components:");
+    EOS_LOG_I("  %-12s %-16s (%s)", "LVGL:", lvgl_version, EOS_GIT_LVGL);
+    EOS_LOG_I("  %-12s %-16s (%s)", "JerryScript:", jerry_version, EOS_GIT_JERRYSCRIPT);
+    EOS_LOG_I("  %-12s %-16s (%s)", "cJSON:", cjson_version, EOS_GIT_CJSON);
+    EOS_LOG_I("  %-12s %-16s (%s)", "RemixIcon:", "-", EOS_GIT_REMIXICON);
 }
 
 static lv_indev_t *_get_key_indev()
