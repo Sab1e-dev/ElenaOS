@@ -16,8 +16,8 @@ extern "C" {
 
 /* Public macros ----------------------------------------------*/
 
-#define DEBUG 0
-#define RELEASE 1
+#define EOS_DEBUG 0
+#define EOS_RELEASE 1
 
 #define NORMAL_MODE 0
 #define TEST_MODE 1

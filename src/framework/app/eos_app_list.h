@@ -67,7 +67,7 @@ const char *eos_app_list_get_app_id(eos_activity_t *activity);
  */
 eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity);
 
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
 /**
  * @brief Set an artificial delay to simulate slow app loading (debug only).
  *
@@ -88,7 +88,7 @@ void eos_app_list_set_debug_loading_delay(uint32_t io_delay_ms, uint32_t eval_de
  * @param eval_delay_ms [out] Current eval delay in ms, may be NULL
  */
 void eos_app_list_get_debug_loading_delay(uint32_t *io_delay_ms, uint32_t *eval_delay_ms);
-#endif /* EOS_COMPILE_MODE == DEBUG */
+#endif /* EOS_COMPILE_MODE == EOS_DEBUG */
 
 #ifdef __cplusplus
 }

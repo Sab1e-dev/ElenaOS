@@ -355,7 +355,7 @@ static void _app_on_enter(eos_activity_t *a)
 
 #define _APP_LIST_CHUNK_SIZE 4096 /* Bytes per tick during chunked I/O */
 
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
 /* Debug: artificial delays to simulate slow Flash / slow JS parsing.
  * Set via eos_app_list_set_debug_loading_delay(). Zero = no delay. */
 static uint32_t _debug_io_delay_ms = 0;
@@ -375,7 +375,7 @@ void eos_app_list_get_debug_loading_delay(uint32_t *io_delay_ms, uint32_t *eval_
     if (eval_delay_ms)
         *eval_delay_ms = _debug_eval_delay_ms;
 }
-#endif /* EOS_COMPILE_MODE == DEBUG */
+#endif /* EOS_COMPILE_MODE == EOS_DEBUG */
 
 /**
  * @brief Update the status label text on the loading screen.
@@ -591,7 +591,7 @@ static void _app_list_read_chunk_tick(lv_timer_t *t)
         return;
     }
 
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
     /* Debug: inject artificial per-chunk delay to simulate slow Flash */
     if (_debug_io_delay_ms > 0)
     {
@@ -702,7 +702,7 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
         return;
     }
 
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
     /* Debug: simulate slow JS parse/eval */
     if (_debug_eval_delay_ms > 0)
     {

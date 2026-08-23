@@ -33,7 +33,7 @@
 /* Build / compilation mode -----------------------------------*/
 
 #ifndef EOS_COMPILE_MODE
-#define EOS_COMPILE_MODE DEBUG
+#define EOS_COMPILE_MODE EOS_DEBUG
 #endif
 
 /* Feature switches -------------------------------------------*/
