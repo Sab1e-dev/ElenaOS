@@ -885,6 +885,7 @@ lv_obj_t *_list_btn_container_create(lv_obj_t *list)
     lv_obj_set_style_transform_pivot_y(btn, lv_obj_get_height(btn) / 2, 0);
     lv_obj_set_style_transform_scale(btn, 230, LV_STATE_PRESSED);
     lv_obj_set_style_bg_color(btn, EOS_COLOR_DARK_GREY_1, LV_STATE_PRESSED);
+    lv_obj_set_style_recolor_opa(btn, 0, LV_STATE_PRESSED);
     return btn;
 }
 
