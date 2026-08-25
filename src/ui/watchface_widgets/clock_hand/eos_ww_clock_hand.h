@@ -23,7 +23,7 @@ typedef enum
     EOS_CLOCK_HAND_MINUTE,
     EOS_CLOCK_HAND_SECOND,
 } eos_clock_hand_type_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Place pointer at specified position (control anchor point as rotation center)

@@ -73,7 +73,7 @@ typedef struct eos_audio_decoder_t
     void *user_data;
 } eos_audio_decoder_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize audio decoder subsystem and built-in decoders

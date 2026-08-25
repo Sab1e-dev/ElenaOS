@@ -11,6 +11,8 @@
 #include "lvgl.h"
 #include "lvgl/src/misc/lv_ll.h"
 #include "eos_image.h"
+#include "eos_widget_data.h"
+#include "eos_theme.h"
 /* Macros and Definitions -------------------------------------*/
 
 #define FX_SHIFT 8 /* Fixed-point fractional bits. */
@@ -383,7 +385,7 @@ static eos_bubble_grid_t *get_instance(lv_obj_t *obj)
 {
     if (obj == NULL)
         return NULL;
-    return (eos_bubble_grid_t *)lv_obj_get_user_data(obj);
+    return (eos_bubble_grid_t *)eos_wdata_get(obj, EOS_WDATA_BUBBLE_GRID);
 }
 
 static bool is_component_obj(lv_obj_t *obj)
@@ -443,7 +445,7 @@ static icon_node_t *ensure_icon_node_by_index(eos_bubble_grid_t *wb, uint32_t in
         next_index = tail->index + 1U;
     }
 
-    lv_color_t default_color = lv_color_hex(0x888888);
+    lv_color_t default_color = EOS_COLOR_ICON_BG;
 
     for (uint32_t i = next_index; i <= index; i++)
     {
@@ -1428,21 +1430,15 @@ static void bubble_tick_timer(lv_timer_t *t)
     refresh_if_needed(wb);
 }
 
-static void delete_event(lv_event_t *e)
+static void _bubble_grid_dtor(void *data)
 {
-    lv_obj_t *obj = lv_event_get_current_target(e);
-    eos_bubble_grid_t *wb = get_instance(obj);
-    if (wb == NULL)
-        return;
-
+    eos_bubble_grid_t *wb = (eos_bubble_grid_t *)data;
     if (wb->bubble_tick_timer != NULL)
     {
         lv_timer_delete(wb->bubble_tick_timer);
         wb->bubble_tick_timer = NULL;
     }
-
     clear_icon_list(wb);
-    lv_obj_set_user_data(obj, NULL);
     lv_free(wb);
 }
 
@@ -1478,7 +1474,7 @@ lv_obj_t *eos_bubble_create(lv_obj_t *parent)
     sanitize_config(&wb->config);
     wb->needs_refresh = true;
 
-    lv_obj_set_user_data(container, wb);
+    eos_wdata_set(container, EOS_WDATA_BUBBLE_GRID, wb, _bubble_grid_dtor);
 
     lv_obj_set_size(container, 400, 400);
     lv_obj_center(container);
@@ -1500,7 +1496,6 @@ lv_obj_t *eos_bubble_create(lv_obj_t *parent)
     lv_obj_add_event_cb(container, released_event, LV_EVENT_RELEASED, NULL);
     lv_obj_add_event_cb(container, clicked_event, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(container, size_changed_event, LV_EVENT_SIZE_CHANGED, NULL);
-    lv_obj_add_event_cb(container, delete_event, LV_EVENT_DELETE, NULL);
 
     wb->bubble_tick_timer = lv_timer_create(bubble_tick_timer, 16, wb);
 

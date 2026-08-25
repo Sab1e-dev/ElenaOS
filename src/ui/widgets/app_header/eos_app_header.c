@@ -24,6 +24,7 @@
 #include "eos_event.h"
 #include "eos_overlay_layer.h"
 #include "eos_service_cache.h"
+#include "eos_anim.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _HEADER_HEIGHT 120
@@ -65,27 +66,9 @@ static eos_app_header_t *app_header = NULL;
 /* Function Implementations -----------------------------------*/
 static void _clock_update_cb(lv_timer_t *timer);
 
-static void _app_header_set_opa_anim_cb(void *var, int32_t value)
+static void _app_header_fade_out_ready_cb(eos_anim_t *a)
 {
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (!obj || !lv_obj_is_valid(obj))
-        return;
-
-    lv_obj_set_style_opa(obj, (lv_opa_t)value, 0);
-}
-
-static void _app_header_set_translate_y_anim_cb(void *var, int32_t value)
-{
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (!obj || !lv_obj_is_valid(obj))
-        return;
-
-    lv_obj_set_style_translate_y(obj, value, 0);
-}
-
-static void _app_header_fade_out_ready_cb(lv_anim_t *a)
-{
-    lv_obj_t *obj = (lv_obj_t *)a->var;
+    lv_obj_t *obj = a->tar_obj;
     if (!obj || !lv_obj_is_valid(obj))
         return;
 
@@ -181,21 +164,11 @@ static void _set_back_btn_style(lv_obj_t *btn)
     lv_obj_align(btn, LV_ALIGN_LEFT_MID, _BACK_BTN_MARGIN_LEFT, 0);
 }
 
-static void _ah_set_translate_x_cb(void *var, int32_t v)
-{
-    lv_obj_set_style_translate_x((lv_obj_t *)var, v, 0);
-}
-
-static void _ah_set_opa_layered_cb(void *var, int32_t v)
-{
-    lv_obj_set_style_opa_layered((lv_obj_t *)var, (lv_opa_t)v, 0);
-}
-
 void _play_title_changed_anim(eos_activity_t *from,
                               eos_activity_t *to,
                               bool need_anim,
                               bool reverse_anim,
-                              lv_anim_timeline_t *at)
+                              eos_anim_group_t *group)
 {
     EOS_CHECK_PTR_RETURN(app_header);
     if (!(lv_obj_is_valid(app_header->title_label) && lv_obj_has_class(app_header->title_label, &lv_label_class)))
@@ -209,7 +182,7 @@ void _play_title_changed_anim(eos_activity_t *from,
         need_anim = false;
     }
 
-    if (!need_anim || !at)
+    if (!need_anim || !group)
     {
         const char *new_title = eos_activity_get_title(to);
         EOS_LOG_D("New title: %s", new_title);
@@ -261,39 +234,39 @@ void _play_title_changed_anim(eos_activity_t *from,
         back_btn_end_x = back_btn_start_x + _ANIM_BACK_BTN_MOVE_DISTANCE;
     }
 
-    lv_anim_t a;
+    // Old title slide out + fade out
+    eos_anim_t *anim = eos_anim_move_create(l, title_start_x, 0, title_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, l);
-    lv_anim_set_values(&a, title_start_x, title_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(l, LV_OPA_COVER, LV_OPA_TRANSP, _ANIM_DURATION + 1, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, l);
-    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION + 1);
-    lv_anim_timeline_add(at, 0, &a);
+    // Old back btn slide out + fade out
+    anim = eos_anim_move_create(back_btn, back_btn_start_x, 0, back_btn_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, back_btn);
-    lv_anim_set_values(&a, back_btn_start_x, back_btn_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
-
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, back_btn);
-    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION + 1);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(back_btn, LV_OPA_COVER, LV_OPA_TRANSP, _ANIM_DURATION + 1, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     app_header->old_fading_title = l;
     app_header->old_fading_back_btn = back_btn;
@@ -330,37 +303,39 @@ void _play_title_changed_anim(eos_activity_t *from,
     lv_obj_set_style_translate_x(new_back_btn, new_back_btn_start_x, 0);
     lv_obj_set_style_opa_layered(new_back_btn, LV_OPA_TRANSP, 0);
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_l);
-    lv_anim_set_values(&a, new_title_start_x, new_title_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    // New title slide in + fade in
+    anim = eos_anim_move_create(new_l, new_title_start_x, 0, new_title_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_l);
-    lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(new_l, LV_OPA_TRANSP, LV_OPA_COVER, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_back_btn);
-    lv_anim_set_values(&a, new_back_btn_start_x, new_back_btn_end_x);
-    lv_anim_set_exec_cb(&a, _ah_set_translate_x_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    // New back btn slide in + fade in
+    anim = eos_anim_move_create(new_back_btn, new_back_btn_start_x, 0, new_back_btn_end_x, 0, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_set_path(anim, lv_anim_path_ease_in_out);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, new_back_btn);
-    lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
-    lv_anim_set_exec_cb(&a, _ah_set_opa_layered_cb);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&a, _ANIM_DURATION);
-    lv_anim_timeline_add(at, 0, &a);
+    anim = eos_anim_fade_create(new_back_btn, LV_OPA_TRANSP, LV_OPA_COVER, _ANIM_DURATION, false);
+    if (anim)
+    {
+        eos_anim_fade_set_layered(anim, true);
+        eos_anim_group_attach(anim, group);
+        eos_anim_start(anim);
+    }
 
     app_header->title_label = new_l;
     app_header->back_btn = new_back_btn;
@@ -498,36 +473,38 @@ void eos_app_header_set_visible_animated(eos_activity_t *a, bool visible, uint32
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_delete(container, _app_header_set_opa_anim_cb);
+    eos_anim_t *anim = eos_anim_fade_create(container,
+                                            visible ? LV_OPA_TRANSP : LV_OPA_COVER,
+                                            visible ? LV_OPA_COVER : LV_OPA_TRANSP,
+                                            duration_ms,
+                                            false);
+    if (!anim)
+        return;
 
-    lv_anim_t anim;
-    lv_anim_init(&anim);
-    lv_anim_set_var(&anim, container);
-    lv_anim_set_exec_cb(&anim, _app_header_set_opa_anim_cb);
-    lv_anim_set_duration(&anim, duration_ms);
+    eos_anim_fade_set_main_opa(anim, true);
 
     if (visible)
     {
         eos_app_header_show(a);
         lv_obj_set_style_opa(container, LV_OPA_TRANSP, 0);
-        lv_anim_set_values(&anim, LV_OPA_TRANSP, LV_OPA_COVER);
-        lv_anim_start(&anim);
+        eos_anim_start(anim);
     }
     else
     {
         if (lv_obj_has_flag(container, LV_OBJ_FLAG_HIDDEN))
+        {
+            eos_anim_del(anim);
             return;
-
+        }
         lv_obj_set_style_opa(container, LV_OPA_COVER, 0);
-        lv_anim_set_values(&anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_completed_cb(&anim, _app_header_fade_out_ready_cb);
-        lv_anim_start(&anim);
+        eos_anim_add_cb(anim, _app_header_fade_out_ready_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 
-static void _app_header_slide_hide_ready_cb(lv_anim_t *a)
+static void _app_header_slide_hide_ready_cb(eos_anim_t *a)
 {
-    lv_obj_t *container = (lv_obj_t *)a->var;
+    lv_obj_t *container = a->tar_obj;
     if (!container || !lv_obj_is_valid(container))
     {
         return;
@@ -560,8 +537,6 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
     }
 
     lv_obj_t *container = app_header->container;
-    lv_anim_delete(container, _app_header_set_translate_y_anim_cb);
-    lv_anim_delete(container, _app_header_set_opa_anim_cb);
 
     int32_t header_height = lv_obj_get_height(container);
     if (header_height <= 0)
@@ -569,32 +544,34 @@ void eos_app_header_slide_visible_animated(eos_activity_t *a, bool visible, uint
         header_height = _HEADER_HEIGHT;
     }
 
-    lv_anim_t anim;
-    lv_anim_init(&anim);
-    lv_anim_set_var(&anim, container);
-    lv_anim_set_exec_cb(&anim, _app_header_set_translate_y_anim_cb);
-    lv_anim_set_path_cb(&anim, lv_anim_path_ease_in_out);
-    lv_anim_set_duration(&anim, duration_ms);
+    int32_t container_x = lv_obj_get_x(container);
+    eos_anim_t *anim = eos_anim_move_create(container,
+                                            container_x,
+                                            visible ? -header_height : 0,
+                                            container_x,
+                                            visible ? 0 : -header_height,
+                                            duration_ms,
+                                            false);
+    if (!anim)
+        return;
 
     if (visible)
     {
         eos_app_header_show(a);
         lv_obj_remove_flag(container, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_translate_y(container, -header_height, 0);
-        lv_anim_set_values(&anim, -header_height, 0);
-        lv_anim_start(&anim);
+        eos_anim_start(anim);
     }
     else
     {
         if (lv_obj_has_flag(container, LV_OBJ_FLAG_HIDDEN))
         {
+            eos_anim_del(anim);
             return;
         }
-
         lv_obj_set_style_translate_y(container, 0, 0);
-        lv_anim_set_values(&anim, 0, -header_height);
-        lv_anim_set_completed_cb(&anim, _app_header_slide_hide_ready_cb);
-        lv_anim_start(&anim);
+        eos_anim_add_cb(anim, _app_header_slide_hide_ready_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 /**

@@ -229,7 +229,7 @@ void eos_service_config_init()
         }
     }
 
-    /************************** Load system settings **************************/
+    /* Load system settings ---------------------------------------*/
     if (eos_config_get_bool(EOS_CONFIG_KEY_BLUETOOTH_BOOL, false))
     {
         eos_bluetooth_enable();

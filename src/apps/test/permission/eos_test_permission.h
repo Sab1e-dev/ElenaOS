@@ -18,7 +18,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void eos_test_permission_start(void);
 void eos_test_permission_register_tests(void);
 

@@ -19,6 +19,7 @@
 #include "eos_lang.h"
 #include "eos_basic_widgets.h"
 #include "eos_event.h"
+#include "eos_git_info.h"
 #include "eos_test.h"
 #include "eos_version.h"
 #include "eos_port.h"
@@ -42,11 +43,13 @@
 #include "eos_dispatcher.h"
 #include "eos_anim.h"
 #include "eos_control_center.h"
+#include "eos_recent_apps.h"
 #include "eos_chrome_manager.h"
 #include "eos_service_audio.h"
 #include "eos_service_storage.h"
 #include "eos_service_state.h"
 #include "eos_service_battery.h"
+#include "eos_developer_options.h"
 #include "eos_service_pm.h"
 #include "eos_dfw.h"
 #include "eos_app_header.h"
@@ -88,9 +91,46 @@ static void _print_boot_info(void)
     char build_date[16];
     _format_build_date(build_date, sizeof(build_date));
     EOS_LOG_I("System initializing...");
+    char lvgl_version[32];
+    char jerry_version[32];
+    char cjson_version[32];
+
+    snprintf(lvgl_version,
+             sizeof(lvgl_version),
+             "%d.%d.%d%s",
+             LVGL_VERSION_MAJOR,
+             LVGL_VERSION_MINOR,
+             LVGL_VERSION_PATCH,
+             LVGL_VERSION_INFO);
+
+    snprintf(jerry_version,
+             sizeof(jerry_version),
+             "%d.%d.%d",
+             JERRY_API_MAJOR_VERSION,
+             JERRY_API_MINOR_VERSION,
+             JERRY_API_PATCH_VERSION);
+
+    snprintf(cjson_version,
+             sizeof(cjson_version),
+             "%d.%d.%d",
+             CJSON_VERSION_MAJOR,
+             CJSON_VERSION_MINOR,
+             CJSON_VERSION_PATCH);
+
+    /* ElenixOS */
     EOS_LOG_I("ElenixOS v" ELENIX_OS_VERSION_FULL);
-    EOS_LOG_I("build: %s %s", build_date, __TIME__);
-    EOS_LOG_I("build mode: %s", EOS_COMPILE_MODE == DEBUG ? "DEBUG" : "RELEASE");
+    EOS_LOG_I("  %-12s %s", "Git:", EOS_GIT_INFO);
+    EOS_LOG_I("  %-12s %s %s", "Build:", build_date, __TIME__);
+    EOS_LOG_I("  %-12s %s", "Mode:", EOS_COMPILE_MODE == EOS_DEBUG ? "DEBUG" : "RELEASE");
+
+    EOS_LOG_I("");
+
+    /* Third-party components */
+    EOS_LOG_I("Components:");
+    EOS_LOG_I("  %-12s %-16s (%s)", "LVGL:", lvgl_version, EOS_GIT_LVGL);
+    EOS_LOG_I("  %-12s %-16s (%s)", "JerryScript:", jerry_version, EOS_GIT_JERRYSCRIPT);
+    EOS_LOG_I("  %-12s %-16s (%s)", "cJSON:", cjson_version, EOS_GIT_CJSON);
+    EOS_LOG_I("  %-12s %-16s (%s)", "RemixIcon:", "-", EOS_GIT_REMIXICON);
 }
 
 static lv_indev_t *_get_key_indev()
@@ -158,14 +198,14 @@ void eos_logo_play(bool anim)
 
 void eos_init(void)
 {
-    /************************** Log system initialization **************************/
+    /* Log system initialization ----------------------------------*/
     eos_service_log_init();
 
-    /************************** Image cache initialization **************************/
+    /* Image cache initialization ---------------------------------*/
     eos_service_cache_init();
 
     _print_boot_info();
-    /************************** System components initialization **************************/
+    /* System components initialization ---------------------------*/
     eos_service_storage_init();
     eos_logo_play(true);
     eos_lang_init();
@@ -190,6 +230,9 @@ void eos_init(void)
     eos_msg_list_init();
     eos_control_center_init();
     eos_chrome_manager_init();
+#if EOS_RECENT_APPS_ENABLE
+    eos_recent_apps_init();
+#endif
     eos_service_pm_init();
     eos_service_audio_init();
     eos_service_lock_init();
@@ -201,6 +244,7 @@ void eos_init(void)
     // Activity controller will automatically delete Logo Screen
     if (eos_activity_controller_init(watchface_activity) != EOS_OK)
         _sys_init_err_handler("Failed to initialize activity controller");
+
     _is_inited = true;
 }
 
@@ -208,6 +252,8 @@ bool eos_is_initialized(void)
 {
     return _is_inited;
 }
+
+/* Main Loop --------------------------------------------------*/
 
 uint32_t eos_main_loop(void)
 {
@@ -217,7 +263,11 @@ uint32_t eos_main_loop(void)
         return 0;
     }
     eos_dispatch_tick();
-    return lv_timer_handler();
+    uint32_t d = lv_timer_handler();
+
+    eos_developer_options_update();
+
+    return d;
 }
 
 uint32_t eos_tick_get(void)

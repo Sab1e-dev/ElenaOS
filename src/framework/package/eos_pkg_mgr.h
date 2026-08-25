@@ -65,7 +65,7 @@ typedef struct
     } eos_pkg_entry_t;
  ************************************/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Release and clear data inside script package

@@ -20,7 +20,7 @@ extern "C" {
 #include "eos_lang.h"
 /* Public macros ----------------------------------------------*/
 /* Configuration Keys */
-/************************** Keys for system configuration information **************************/
+/* Keys for system configuration information ------------------*/
 #define EOS_CONFIG_KEY_DEVICE_NAME_STR "device_name"
 #define EOS_CONFIG_KEY_LANGUAGE_STR "language"
 #define EOS_CONFIG_KEY_WATCHFACE_ID_STR "wf_id"
@@ -36,14 +36,18 @@ extern "C" {
 #define EOS_CONFIG_KEY_PASSWORD_HASH_STR "password_hash"
 #define EOS_CONFIG_KEY_PASSWORD_ENABLED_BOOL "password_enabled"
 #define EOS_CONFIG_KEY_PASSWORD_SIMPLE_BOOL "password_simple"
-/************************** Default values **************************/
+/* Developer options ------------------------------------------*/
+#define EOS_CONFIG_KEY_DEV_FPS_BOOL "dev_fps"
+#define EOS_CONFIG_KEY_DEV_OBJS_BOOL "dev_objs"
+#define EOS_CONFIG_KEY_DEV_TOUCH_BOOL "dev_touch"
+/* Default values ---------------------------------------------*/
 #define EOS_CONFIG_DEFAULT_DEVICE_NAME "Elenix Watch"
 /* Default language string is determined by EOS_CONFIG_DEFAULT_LANGUAGE in eos_config.h */
 #define EOS_CONFIG_DEFAULT_LANG_STR (EOS_CONFIG_DEFAULT_LANGUAGE == 1 ? "简体中文" : "English")
 #define EOS_CONFIG_DEFAULT_WATCHFACE_ID_STR "cn.sab1e.clock"
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize on first system run

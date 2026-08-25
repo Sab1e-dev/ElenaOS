@@ -26,7 +26,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a per-realm cleanup context
@@ -94,6 +94,20 @@ void sni_context_remove_resource(sni_context_t *ctx, void *ptr, sni_type_t type)
 sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void *ptr, sni_type_t type);
 
 /**
+ * @brief Invalidate a resource without freeing its node.
+ *
+ * Sets node->ptr = NULL so the sweep (Phase 4b) does not double-free a
+ * Hybrid Resource already destroyed by another subsystem (e.g. Activity
+ * Controller).  The node memory itself is NOT freed — the sweep will
+ * free it during Phase 4b.
+ *
+ * @param ctx Target context (NULL-safe)
+ * @param ptr Native resource pointer (NULL-safe)
+ * @param type Resource type
+ */
+void sni_context_invalidate_resource(sni_context_t *ctx, void *ptr, sni_type_t type);
+
+/**
  * @brief Iterate over all resources in a specific type
  * @param ctx Target context
  * @param type Resource type
@@ -140,8 +154,44 @@ void sni_context_sweep_js_refs(sni_context_t *ctx);
 
 void sni_context_clear_native_ptrs_all(sni_context_t *ctx);
 
+/**
+ * @brief Neutralize all LVGL timers in this context without deleting them.
+ *
+ * Sets cb and user_data to NULL on each timer so they become harmless
+ * zombies.  Does NOT call lv_timer_delete (unsafe during callback) and
+ * does NOT touch any JerryScript values (unsafe after fatal assertion).
+ * Safe to call during spm_handle_engine_reset.
+ */
+void sni_context_neutralize_timers(sni_context_t *ctx);
+
+/**
+ * @brief Neutralize all animation contexts without freeing them.
+ *
+ * Marks each anim_ctx as DELETED and clears owner_ctx so callbacks
+ * will be rejected by sni_cb_detect_recovery.  Does NOT free anim_ctx
+ * memory (may still be on the stack) and does NOT touch JerryScript.
+ * Safe to call during spm_handle_engine_reset.
+ */
+void sni_context_neutralize_anims(sni_context_t *ctx);
+
 void sni_context_dump_counters(sni_context_t *ctx);
 const char *sni_type_name(sni_type_t type);
+
+/**
+ * @brief Pause all managed timers and animations in this context
+ * @param ctx Target context
+ * @note Calls lv_timer_pause() on each timer and sni_cb_anim_pause() on each anim.
+ *       The sni_context_set_paused() gate is a separate layer that blocks new callbacks.
+ */
+void sni_context_pause_resources(sni_context_t *ctx);
+
+/**
+ * @brief Resume all managed timers and animations with the given strategies
+ * @param ctx Target context
+ * @param timer_strategy How to handle missed timer callbacks
+ * @param anim_strategy How to handle paused animations
+ */
+void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int anim_strategy);
 
 #ifdef __cplusplus
 }

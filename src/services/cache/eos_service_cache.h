@@ -24,7 +24,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialise LVGL image decode cache with sizes from

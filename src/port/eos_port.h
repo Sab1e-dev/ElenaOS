@@ -26,11 +26,12 @@ extern "C" {
 #define EOS_WEAK __weak
 #elif defined(__IAR_SYSTEMS_ICC__) /* for IAR Compiler */
 #define EOS_WEAK __weak
-#elif defined(__GNUC__) && !defined(__MINGW32__) /* GNU GCC Compiler */
+#elif defined(__GNUC__) /* GNU GCC Compiler (including MinGW-w64, which has
+                           supported weak symbols since binutils 2.30 / GCC 8) */
 #define EOS_WEAK __attribute__((weak))
 #elif defined(__ADSPBLACKFIN__) /* for VisualDSP++ Compiler */
 #define EOS_WEAK __attribute__((weak))
-#elif defined(_MSC_VER) || defined(__MINGW32__)
+#elif defined(_MSC_VER)
 #define EOS_WEAK
 #elif defined(__TI_COMPILER_VERSION__)
 #define EOS_WEAK
@@ -44,7 +45,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Delay for specified time (non-blocking)
@@ -71,6 +72,14 @@ void eos_bluetooth_disable(void);
  * Make phone ring via Bluetooth or other methods to locate phone.
  */
 void eos_locate_phone(void);
+
+/**
+ * @brief Get platform-reported free memory (SRAM/PSRAM headroom)
+ * @return size_t Free bytes available (default 0 if not overridden)
+ * @note Port implementations should override this with a strong definition.
+ *       The OS uses this value for LRU eviction decisions.
+ */
+EOS_WEAK size_t eos_port_get_free_mem(void);
 
 #ifdef __cplusplus
 }

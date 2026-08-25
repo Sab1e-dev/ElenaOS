@@ -22,7 +22,25 @@
 
 /* Macros and Definitions -------------------------------------*/
 
-static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
+/*
+ * Guards to prevent sni_context_sweep_all() from deleting the native
+ * LVGL timer / animation that is currently executing its JS callback.
+ * Deletion would corrupt LVGL's internal iteration and cause EXC_BAD_ACCESS.
+ */
+static lv_timer_t *s_dispatching_timer = NULL;
+static sni_anim_callback_ctx_t *s_dispatching_anim_ctx = NULL;
+
+bool sni_cb_is_dispatching_timer(lv_timer_t *t)
+{
+    return s_dispatching_timer != NULL && s_dispatching_timer == t;
+}
+
+bool sni_cb_is_dispatching_anim(sni_anim_callback_ctx_t *ctx)
+{
+    return s_dispatching_anim_ctx != NULL && s_dispatching_anim_ctx == ctx;
+}
+
+static inline void sni_cb_safe_jerry_value_free(sni_context_t *owner_ctx, jerry_value_t *value)
 {
     if (!value)
         return;
@@ -32,15 +50,61 @@ static inline void sni_cb_safe_jerry_value_free(jerry_value_t *value)
         return;
     }
 
-    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_UNINITIALIZED)
+    /* Key off teardown_phase when we have context, not global engine state.
+     * During teardown Phases 0-2 the engine is IDLE but the JS heap is
+     * still alive — jerry_value_free MUST be called.  Only skip when the
+     * engine has actually been stopped (Phase >= ENGINE_STOPPED). */
+    if (owner_ctx)
     {
-        EOS_LOG_W("Skip jerry_value_free: engine not initialized");
+        if (owner_ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
+        {
+            *value = jerry_undefined();
+            return;
+        }
+        jerry_value_free(*value);
+        *value = jerry_undefined();
+        return;
+    }
+
+    /* No context (runtime path) — only free if engine is RUNNING. */
+    script_engine_state_t state = script_engine_get_state();
+    if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
+    {
         *value = jerry_undefined();
         return;
     }
 
     jerry_value_free(*value);
     *value = jerry_undefined();
+}
+
+/**
+ * @brief Detect whether a fatal engine recovery happened during spm_call
+ *
+ * After spm_call() returns, callers MUST invoke this before accessing any
+ * local jerry_value_t variables or native pointers (t, ctx, owner_ctx).
+ * If the engine generation changed, jerry_init() already wiped the heap
+ * and all jerry_value_t handles acquired before the call are invalid.
+ *
+ * @param saved_gen  script_engine_get_gen() value captured before spm_call
+ * @param owner_ctx  SNI context pointer (may be dangling after recovery)
+ * @return true if recovery destroyed the context — caller must return immediately
+ */
+static bool sni_cb_detect_recovery(uint32_t saved_gen, sni_context_t *owner_ctx)
+{
+    /* Engine generation changed → jerry_init() wiped the heap */
+    if (saved_gen != script_engine_get_gen())
+        return true;
+
+    /* Context / program destroyed */
+    if (!owner_ctx || !owner_ctx->owner)
+        return true;
+
+    /* Program is no longer active */
+    if (owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+        return true;
+
+    return false;
 }
 
 typedef struct sni_event_callback_ctx
@@ -51,6 +115,7 @@ typedef struct sni_event_callback_ctx
     jerry_value_t js_user_data;
     sni_context_t *owner_ctx;
     bool alive;
+    uint32_t engine_gen; /**< Engine generation at creation time, used to detect stale contexts after recovery */
     struct sni_event_callback_ctx *next;
 } sni_event_callback_ctx_t;
 
@@ -126,8 +191,8 @@ static void sni_cb_event_free_ctx(sni_event_callback_ctx_t *ctx)
         }
     }
 
-    sni_cb_safe_jerry_value_free(&ctx->js_cb);
-    sni_cb_safe_jerry_value_free(&ctx->js_user_data);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->js_user_data);
 
     eos_free(ctx);
 }
@@ -151,12 +216,33 @@ static void sni_cb_event_dispatch(lv_event_t *e)
         return;
     }
 
+    if (!ctx->owner_ctx || !ctx->owner_ctx->owner)
+    {
+        return;
+    }
+
+    if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+    {
+        return;
+    }
+
+    /* Capture engine generation BEFORE spm_call so we can detect
+     * fatal recovery / re-entrant destruction after the call returns. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     lv_event_t *event_ptr = e;
     jerry_value_t event_obj = sni_tb_c2js(&event_ptr, SNI_H_LV_EVENT);
     sni_cb_event_prepare_js_event(event_obj, e, ctx->js_user_data);
 
     jerry_value_t args[1] = {event_obj};
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+
+    /* If a fatal recovery happened inside spm_call, return immediately
+     * — all local jerry_value_t variables belong to the old heap. */
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -234,10 +320,28 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call so we can detect
+     * fatal recovery / re-entrant destruction after the call returns. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     lv_timer_t *timer_ptr = t;
     jerry_value_t js_timer = sni_tb_c2js(&timer_ptr, SNI_H_LV_TIMER);
     jerry_value_t args[1] = {js_timer};
+
+    /* Guard: prevent sni_context_sweep_all from deleting this timer
+     * while we are inside its callback (would corrupt LVGL internals). */
+    s_dispatching_timer = t;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+    s_dispatching_timer = NULL;
+
+    /* If a fatal recovery happened inside spm_call, the engine was
+     * reset (jerry_init), SNI context and callback ctx were freed,
+     * and all local jerry_value_t variables belong to the old heap.
+     * Return immediately — do NOT touch t, ctx, js_timer, or ret. */
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -247,13 +351,23 @@ static void sni_cb_timer_dispatch(lv_timer_t *t)
     jerry_value_free(ret);
     jerry_value_free(js_timer);
 
+    /* If the JS callback called timer.delete() on itself, sni_context_
+     * delete_timer_sync() marked the context PENDING_DELETE and deferred
+     * the actual free.  Now that spm_call has returned and s_dispatching_
+     * timer is NULL, it's safe to finish the deletion. */
+    if (ctx->state == SNI_TIMER_STATE_PENDING_DELETE)
+    {
+        sni_context_delete_timer_sync(ctx->owner_ctx, t);
+        return;
+    }
+
     if (t->repeat_count <= 0 && ctx->auto_delete && ctx->state == SNI_TIMER_STATE_ACTIVE)
     {
         sni_context_request_async_delete_timer(ctx->owner_ctx, t);
     }
 }
 
-/* Event Callback Implementation -----------------------------*/
+/* Event Callback Implementation ------------------------------*/
 
 bool sni_cb_event_add(lv_obj_t *obj,
                       jerry_value_t js_cb,
@@ -277,6 +391,7 @@ bool sni_cb_event_add(lv_obj_t *obj,
     ctx->js_user_data = jerry_value_copy(js_user_data);
     ctx->owner_ctx = sni_cb_get_context();
     ctx->alive = true;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_event_dsc_t *dsc = lv_obj_add_event_cb(obj, sni_cb_event_dispatch, filter, ctx);
     if (!dsc)
@@ -405,11 +520,12 @@ bool sni_cb_timer_create(jerry_value_t js_cb, uint32_t period, lv_timer_t **out_
     ctx->owner_ctx = sni_cb_get_context();
     ctx->state = SNI_TIMER_STATE_ACTIVE;
     ctx->auto_delete = true;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_timer_t *timer = lv_timer_create(sni_cb_timer_dispatch, period, ctx);
     if (!timer)
     {
-        sni_cb_safe_jerry_value_free(&ctx->js_cb);
+        sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
         eos_free(ctx);
         return false;
     }
@@ -437,7 +553,7 @@ bool sni_cb_timer_set_cb(lv_timer_t *timer, jerry_value_t js_cb)
 
     if (!jerry_value_is_undefined(ctx->js_cb) && !jerry_value_is_null(ctx->js_cb))
     {
-        sni_cb_safe_jerry_value_free(&ctx->js_cb);
+        sni_cb_safe_jerry_value_free(NULL, &ctx->js_cb);
     }
 
     ctx->js_cb = jerry_value_copy(js_cb);
@@ -468,7 +584,7 @@ bool sni_cb_timer_set_auto_delete(lv_timer_t *timer, bool auto_delete)
     return true;
 }
 
-/* Anim Callback Implementation ------------------------------*/
+/* Anim Callback Implementation -------------------------------*/
 
 static lv_anim_path_cb_t s_anim_path_table[SNI_ANIM_PATH_ENUM_MAX] = {
     NULL,
@@ -500,7 +616,7 @@ static void sni_cb_anim_clear_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb_slo
         return;
     }
 
-    sni_cb_safe_jerry_value_free(&ctx->cb_slots[slot]);
+    sni_cb_safe_jerry_value_free(NULL, &ctx->cb_slots[slot]);
 }
 
 static bool sni_cb_anim_store_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb_slot_t slot, jerry_value_t js_cb)
@@ -544,9 +660,22 @@ static void sni_cb_anim_call_void_slot(sni_anim_callback_ctx_t *ctx, sni_anim_cb
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
+
+    /* Guard: prevent sni_context_sweep_all from deleting this anim ctx
+     * while we are inside its callback (would cause use-after-free). */
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+    s_dispatching_anim_ctx = NULL;
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -581,11 +710,22 @@ static void sni_cb_anim_custom_exec_dispatch(lv_anim_t *var, int32_t value)
         return;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t js_value = sni_tb_c2js(&value, SNI_T_INT32);
     jerry_value_t args[2] = {js_anim, js_value};
+
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret =
         spm_call(ctx->owner_ctx->owner, ctx->cb_slots[SNI_ANIM_CB_SLOT_CUSTOM_EXEC], jerry_undefined(), args, 2);
+    s_dispatching_anim_ctx = NULL;
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return;
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -656,10 +796,21 @@ static int32_t sni_cb_anim_call_int_slot(sni_anim_callback_ctx_t *ctx, sni_anim_
         return fallback;
     }
 
+    /* Capture engine generation BEFORE spm_call to detect re-entrant recovery. */
+    uint32_t saved_gen = script_engine_get_gen();
+
     int32_t result = fallback;
     jerry_value_t js_anim = sni_cb_anim_make_js_anim(ctx);
     jerry_value_t args[1] = {js_anim};
+
+    s_dispatching_anim_ctx = ctx;
     jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->cb_slots[slot], jerry_undefined(), args, 1);
+    s_dispatching_anim_ctx = NULL;
+
+    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    {
+        return fallback; /* context destroyed — return safe default */
+    }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
     {
@@ -713,6 +864,18 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
     if (!ctx)
         return;
 
+    /* Phase guard: this function removes event descriptors from LIVE LVGL
+     * objects and frees JS values.  Both require the JS heap and LVGL tree
+     * to be intact.  If called after ENGINE_STOPPED, jerry_value_free on
+     * stale handles is UB.  If called after LVGL tree deletion, the owner
+     * object is a dangling pointer. */
+    if (ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
+    {
+        EOS_LOG_E("cleanup_events called at phase %d — JS heap may be stale! "
+                  "Must run before script_engine_stop (Phase 3).",
+                  ctx->teardown_phase);
+    }
+
     sni_event_callback_ctx_t *event_ctx = *(sni_event_callback_ctx_t **)&ctx->event_ctx_list;
     *(sni_event_callback_ctx_t **)&ctx->event_ctx_list = NULL;
     while (event_ctx)
@@ -723,12 +886,20 @@ void sni_cb_context_cleanup_events(sni_context_t *ctx)
 
         if (event_ctx->dsc && event_ctx->owner)
         {
-            lv_obj_remove_event_dsc(event_ctx->owner, event_ctx->dsc);
+            /* Only remove the event descriptor if the owner object is still
+             * in LVGL's widget tree.  If the object has already been freed
+             * (e.g. by a deferred cleanup timer or off-stack activity
+             * destruction), its spec_attr→event_list is garbage and calling
+             * lv_obj_remove_event_dsc would EXC_BAD_ACCESS. */
+            if (lv_obj_is_valid(event_ctx->owner))
+            {
+                lv_obj_remove_event_dsc(event_ctx->owner, event_ctx->dsc);
+            }
             event_ctx->dsc = NULL;
         }
 
-        sni_cb_safe_jerry_value_free(&event_ctx->js_cb);
-        sni_cb_safe_jerry_value_free(&event_ctx->js_user_data);
+        sni_cb_safe_jerry_value_free(ctx, &event_ctx->js_cb);
+        sni_cb_safe_jerry_value_free(ctx, &event_ctx->js_user_data);
 
         eos_free(event_ctx);
         event_ctx = next;
@@ -754,6 +925,7 @@ bool sni_cb_anim_create(sni_anim_callback_ctx_t **out_ctx)
     }
     ctx->owner_ctx = sni_cb_get_context();
     ctx->state = SNI_ANIM_STATE_ACTIVE;
+    ctx->engine_gen = script_engine_get_gen();
 
     lv_anim_init(&ctx->pre_anim);
     lv_anim_set_user_data(&ctx->pre_anim, ctx);
@@ -914,4 +1086,146 @@ bool sni_cb_anim_start(sni_anim_callback_ctx_t *ctx)
     lv_anim_set_user_data(active_anim, ctx);
 
     return true;
+}
+
+/* Timer Suspend/Resume ---------------------------------------*/
+
+void sni_cb_timer_pause(lv_timer_t *timer)
+{
+    if (!timer)
+        return;
+    lv_timer_pause(timer);
+}
+
+void sni_cb_timer_resume_with_strategy(lv_timer_t *timer, sni_timer_resume_strategy_t strategy)
+{
+    if (!timer)
+        return;
+
+    sni_timer_callback_ctx_t *ctx = (sni_timer_callback_ctx_t *)lv_timer_get_user_data(timer);
+    if (!ctx || ctx->state != SNI_TIMER_STATE_ACTIVE)
+    {
+        /* Timer was deleted while suspended; just resume so LVGL can clean up */
+        lv_timer_resume(timer);
+        return;
+    }
+
+    uint32_t period = timer->period;
+    if (period == 0)
+    {
+        lv_timer_resume(timer);
+        return;
+    }
+
+    uint32_t elapsed = lv_tick_elaps(timer->last_run);
+    uint32_t missed = elapsed / period;
+
+    switch (strategy)
+    {
+        case SNI_TIMER_RESUME_RUN_ONCE:
+        default:
+            if (missed >= 1)
+            {
+                /* Fire exactly one callback on the next lv_timer_handler() */
+                lv_timer_ready(timer);
+            }
+            lv_timer_resume(timer);
+            break;
+
+        case SNI_TIMER_RESUME_RUN_ALL:
+            if (missed > 0)
+            {
+                /* Cap to avoid MCU stall from hundreds of accumulated callbacks */
+                uint32_t fire_count = missed > 10 ? 10 : missed;
+                /* Use lv_timer_ready to schedule one immediate fire;
+             * the remaining (fire_count - 1) will fire naturally as
+             * the timer repeats.  For simplicity we set repeat_count
+             * temporarily.  Actually lv_timer_set_repeat_count with
+             * fire_count and rely on lv_timer_ready(). */
+                lv_timer_ready(timer);
+                /* LVGL fires one callback per lv_timer_handler() invocation.
+             * To fire N times, we rely on the timer being repeating with
+             * period=0 temporarily: set repeat to fire_count + 1 to
+             * account for the ready() trigger. */
+                lv_timer_set_repeat_count(timer, (int32_t)fire_count);
+            }
+            lv_timer_resume(timer);
+            break;
+
+        case SNI_TIMER_RESUME_SKIP:
+            lv_timer_resume(timer);
+            lv_timer_reset(timer);
+            break;
+    }
+}
+
+/* Animation Suspend/Resume -----------------------------------*/
+
+void sni_cb_anim_pause(sni_anim_callback_ctx_t *ctx)
+{
+    if (!ctx || ctx->state != SNI_ANIM_STATE_ACTIVE || ctx->suspended)
+        return;
+
+    lv_anim_t *anim = ctx->active_anim;
+    if (anim)
+    {
+        ctx->saved_act_time = anim->act_time;
+        /* Detach from LVGL: zero out callbacks so LVGL won't
+         * interact with this anim when it naturally expires */
+        anim->deleted_cb = NULL;
+        lv_anim_set_user_data(anim, NULL);
+    }
+
+    ctx->suspended = true;
+}
+
+void sni_cb_anim_resume_with_strategy(sni_anim_callback_ctx_t *ctx, sni_anim_resume_strategy_t strategy)
+{
+    if (!ctx || ctx->state != SNI_ANIM_STATE_ACTIVE || !ctx->suspended)
+        return;
+
+    ctx->suspended = false;
+
+    switch (strategy)
+    {
+        case SNI_ANIM_RESUME_JUMP_TO_END:
+        {
+            /* Fire completed callback if present, then mark deleted */
+            if (!jerry_value_is_undefined(ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED]) && ctx->owner_ctx
+                && ctx->owner_ctx->owner && ctx->owner_ctx->owner->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+            {
+                uint32_t saved_gen = script_engine_get_gen();
+                jerry_value_t js_anim = sni_tb_c2js((void **)&ctx, SNI_H_LV_ANIM);
+                s_dispatching_anim_ctx = ctx;
+                spm_call(ctx->owner_ctx->owner,
+                         ctx->cb_slots[SNI_ANIM_CB_SLOT_COMPLETED],
+                         jerry_undefined(),
+                         &js_anim,
+                         1);
+                s_dispatching_anim_ctx = NULL;
+                if (!sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+                {
+                    jerry_value_free(js_anim);
+                }
+            }
+            ctx->state = SNI_ANIM_STATE_DELETED;
+            break;
+        }
+
+        case SNI_ANIM_RESUME_CONTINUE:
+        default:
+        {
+            /* Re-attach to LVGL by re-starting the animation from saved act_time */
+            lv_anim_t *anim = ctx->active_anim;
+            if (anim)
+            {
+                /* Restore user_data for LVGL callback chain */
+                lv_anim_set_user_data(anim, ctx);
+                /* Set act_time to saved position; LVGL will continue from there.
+             * Note: lv_anim_t.act_time is writable in LVGL 9.x */
+                anim->act_time = ctx->saved_act_time;
+            }
+            break;
+        }
+    }
 }

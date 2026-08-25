@@ -19,7 +19,7 @@
 #define _FILE_NAME_MAX_LENGTH 256
 /* Variables --------------------------------------------------*/
 
-/* Path handling utilities -------------------------------------*/
+/* Path handling utilities ------------------------------------*/
 
 bool eos_storage_is_valid_filename(const char *name)
 {
@@ -49,7 +49,7 @@ bool eos_storage_is_valid_filename(const char *name)
 
 /* Function Implementations -----------------------------------*/
 
-/************************** JSON Storage API **************************/
+/* JSON Storage API -------------------------------------------*/
 
 cJSON *eos_storage_json_load(const char *path)
 {
@@ -594,7 +594,7 @@ eos_result_t eos_storage_rm_recursive(const char *path)
     }
 }
 
-/************************** File Handle API Implementations **************************/
+/* File Handle API Implementations ----------------------------*/
 
 eos_file_t eos_storage_file_open_read(const char *path)
 {

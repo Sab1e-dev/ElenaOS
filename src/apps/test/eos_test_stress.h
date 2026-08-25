@@ -21,7 +21,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 void eos_test_stress_register_tests(void);
 
 #ifdef __cplusplus

@@ -38,7 +38,7 @@ typedef struct
     eos_dev_state_t _state;
 } eos_dev_power_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get power device instance

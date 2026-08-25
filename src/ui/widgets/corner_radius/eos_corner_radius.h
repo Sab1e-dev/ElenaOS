@@ -30,7 +30,7 @@ typedef enum
     EOS_ROUND_BOTTOM_LEFT = 0x1 << 3, /**< Bottom left corner rounded */
 } eos_corner_round_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Set background with specified corner radius for object

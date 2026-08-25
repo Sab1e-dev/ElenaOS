@@ -15,7 +15,7 @@
 #include "sni_type_bridge.h"
 #include "lvgl.h"
 
-/************************** Property tables **************************/
+/* Property tables --------------------------------------------*/
 
 const sni_val_prop_t lv_anim_bezier3_para_props[] = {
     {
@@ -222,19 +222,19 @@ const sni_val_prop_t lv_grad_color_props[] = {
     {
         .name = "blue",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, blue),
+        .offset = offsetof(lv_color_t, blue),
         .bit_width = 0,
     },
     {
         .name = "green",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, green),
+        .offset = offsetof(lv_color_t, green),
         .bit_width = 0,
     },
     {
         .name = "red",
         .type = SNI_T_UINT8,
-        .offset = offsetof(lv_grad_color_t, red),
+        .offset = offsetof(lv_color_t, red),
         .bit_width = 0,
     },
 };
@@ -335,7 +335,7 @@ const sni_val_obj_t lv_sqrt_res_prop = {
     .props = lv_sqrt_res_props,
 };
 
-/************************** Registry **************************/
+/* Registry ---------------------------------------------------*/
 
 const sni_val_obj_t *sni_lv_types[] = {
     &lv_anim_bezier3_para_prop,
@@ -354,7 +354,7 @@ const sni_val_obj_t *sni_lv_types[] = {
 
 const size_t sni_lv_types_count = sizeof(sni_lv_types) / sizeof(sni_lv_types[0]);
 
-/************************** Initialization **************************/
+/* Initialization ---------------------------------------------*/
 void sni_lv_types_init(void)
 {
     for (size_t i = 0; i < sni_lv_types_count; i++)

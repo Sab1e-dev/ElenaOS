@@ -31,6 +31,7 @@ extern "C" {
 #define SPM_ERROR_INFO_MAX 256
 #define SPM_BACKTRACE_MAX_FRAMES 16
 #define SPM_BACKTRACE_SOURCE_SIZE 128
+#define SPM_CRASH_ID_MAX 64
 
 /* Public typedefs --------------------------------------------*/
 
@@ -58,6 +59,21 @@ typedef struct
 } spm_error_t;
 
 /**
+ * @brief Crash context that survives engine reset
+ *
+ * When the JS engine fatally crashes during a callback, spm_handle_engine_reset
+ * destroys all programs and clears s_last_error. This struct is saved BEFORE
+ * that cleanup so the crash can be reported to the user after recovery.
+ */
+typedef struct
+{
+    char script_id[SPM_CRASH_ID_MAX];
+    script_pkg_type_t script_type;
+    char error_info[SPM_ERROR_INFO_MAX];
+    bool has_crash;
+} spm_crash_state_t;
+
+/**
  * @brief Script program - the central managed entity
  *
  * Each running or suspended script program is represented by one
@@ -81,7 +97,7 @@ typedef struct script_program
     void *cleanup_user_data;
 } script_program_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /** @name SPM Lifecycle */
 /**@{*/
@@ -230,6 +246,33 @@ const script_error_location_t *spm_get_program_error_location(script_program_t *
  * @return Latest error snapshot, or NULL if no failure has been recorded
  */
 const spm_error_t *spm_get_last_error(void);
+
+/**
+ * @brief Save crash context that survives spm_handle_engine_reset
+ * @param id Script ID that crashed (app_id or watchface_id, or NULL)
+ * @param type Script type (SCRIPT_TYPE_APPLICATION, SCRIPT_TYPE_WATCHFACE)
+ * @param error_info Error description string
+ */
+void spm_save_crash_context(const char *id, script_pkg_type_t type, const char *error_info);
+
+/**
+ * @brief Get the saved crash context (survives engine reset)
+ * @return const spm_crash_state_t*, or NULL if no crash context
+ */
+const spm_crash_state_t *spm_get_crash_state(void);
+
+/**
+ * @brief Clear the saved crash context
+ */
+void spm_clear_crash_state(void);
+
+/**
+ * @brief Schedule deferred crash notification via eos_dispatcher_call
+ *
+ * Posts EOS_EVENT_SCRIPT_FATAL on the next main-loop tick.
+ * Safe to call after lv_timer_enable(true) following engine recovery.
+ */
+void spm_schedule_crash_notification(void);
 /**@}*/
 
 /** @name Simplified WatchFace APIs */
@@ -246,6 +289,38 @@ bool spm_watchface_has_context(void);
 /**@{*/
 eos_result_t spm_app_run(const script_pkg_t *pkg);
 eos_result_t spm_app_stop(void);
+
+/**
+ * @brief Suspend the currently active APPLICATION program
+ * @return EOS_OK on success
+ * @note Sets state to SUSPENDED and pauses SNI context.
+ *       Realm is preserved; script_engine_stop() is NOT called.
+ */
+eos_result_t spm_app_suspend(void);
+
+/**
+ * @brief Resume a suspended APPLICATION program by id
+ * @param app_id Application package ID
+ * @return EOS_OK on success
+ * @note Restores program to ACTIVE state and unpauses SNI context.
+ */
+eos_result_t spm_app_resume(const char *app_id);
+
+/**
+ * @brief Fully terminate an APPLICATION program by id (for eviction)
+ * @param app_id Application package ID
+ * @return EOS_OK on success (including if program not found)
+ * @note Performs full 6-phase teardown including realm destruction.
+ */
+eos_result_t spm_app_stop_by_id(const char *app_id);
+
+/**
+ * @brief Find a program by script ID in any non-terminated state
+ * @param id Script package ID to search for
+ * @return Program pointer, or NULL if not found or terminated
+ * @note Unlike spm_get_program_by_id(), this matches SUSPENDED programs too.
+ */
+script_program_t *spm_get_program_by_id_any_state(const char *id);
 /**@}*/
 
 #ifdef __cplusplus

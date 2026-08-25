@@ -12,6 +12,7 @@
 #include "lvgl.h"
 #include "sni_callback_runtime.h"
 #include "sni_type_bridge.h"
+#include "eos_activity.h"
 #include "script_engine_core.h"
 #include "jerryscript.h"
 #define EOS_LOG_TAG "SNI-Context"
@@ -30,35 +31,42 @@
         }                                                                                                   \
     } while (0)
 
-static const char *_sni_type_names[] = {"LV_TIMER",
-                                        "LV_STYLE",
-                                        "LV_ANIM",
-                                        "LV_CHART_CURSOR",
-                                        "LV_CHART_SERIES",
-                                        "INT32",
-                                        "LV_COLOR_FILTER_DSC",
-                                        "LV_DISPLAY",
-                                        "EOS_ACTIVITY",
-                                        "LV_DRAW_BUF",
-                                        "LV_DRAW_ARC_DSC",
-                                        "LV_DRAW_IMAGE_DSC",
-                                        "LV_DRAW_LABEL_DSC",
-                                        "LV_DRAW_LINE_DSC",
-                                        "LV_DRAW_RECT_DSC",
-                                        "LV_EVENT",
-                                        "LV_EVENT_CB",
-                                        "LV_EVENT_DSC",
-                                        "LV_FONT",
-                                        "LV_GRAD_DSC",
-                                        "LV_GROUP",
-                                        "LV_IMAGE_DSC",
-                                        "LV_LAYER",
-                                        "LV_OBJ_CLASS",
-                                        "LV_OBJ_TREE_WALK_CB",
-                                        "LV_OBSERVER",
-                                        "LV_STYLE_TRANSITION_DSC",
-                                        "LV_STYLE_VALUE",
-                                        "LV_SUBJECT"};
+static const char *_sni_type_names[] = {
+    /* Tree-Dependent */
+    "LV_CHART_CURSOR",
+    "LV_CHART_SERIES",
+    "LV_EVENT_CB",
+    "LV_EVENT_DSC",
+    /* Hybrid */
+    "EOS_ACTIVITY",
+    "EOS_VIEW",
+    /* Pure Managed */
+    "LV_TIMER",
+    "LV_STYLE",
+    "LV_ANIM",
+    "LV_FONT",
+    "LV_GROUP",
+    "LV_LAYER",
+    "LV_OBSERVER",
+    "LV_DRAW_BUF",
+    "LV_SUBJECT",
+    "LV_COLOR_FILTER_DSC",
+    /* Value-like Handles (TODO: migrate to __SNI_VALUE) */
+    "INT32",
+    "LV_DISPLAY",
+    "LV_DRAW_ARC_DSC",
+    "LV_DRAW_IMAGE_DSC",
+    "LV_DRAW_LABEL_DSC",
+    "LV_DRAW_LINE_DSC",
+    "LV_DRAW_RECT_DSC",
+    "LV_EVENT",
+    "LV_GRAD_DSC",
+    "LV_IMAGE_DSC",
+    "LV_OBJ_CLASS",
+    "LV_OBJ_TREE_WALK_CB",
+    "LV_STYLE_TRANSITION_DSC",
+    "LV_STYLE_VALUE",
+};
 
 const char *sni_type_name(sni_type_t type)
 {
@@ -73,7 +81,7 @@ void sni_context_dump_counters(sni_context_t *ctx)
     if (!ctx)
         return;
     int total = 0;
-    EOS_LOG_I("[COUNTER] ctx=%p resource counts:", (void *)ctx);
+    EOS_LOG_I("[COUNTER] ctx=%p phase=%d resource counts:", (void *)ctx, ctx->teardown_phase);
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
         if (ctx->resource_counts[i] > 0)
@@ -177,7 +185,8 @@ void sni_context_destroy(sni_context_t *ctx)
         return;
     }
 
-    EOS_LOG_D("DESTROY context=%p", (void *)ctx);
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_COMPLETE;
+    EOS_LOG_D("DESTROY context=%p phase=%d", (void *)ctx, ctx->teardown_phase);
     sni_context_dump_counters(ctx);
 
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
@@ -286,6 +295,30 @@ void sni_context_remove_resource(sni_context_t *ctx, void *ptr, sni_type_t type)
     }
 }
 
+void sni_context_invalidate_resource(sni_context_t *ctx, void *ptr, sni_type_t type)
+{
+    if (!ctx || !ptr)
+        return;
+
+    int idx = sni_context_get_type_index(type);
+    if (idx < 0)
+        return;
+
+    sni_managed_resource_node_t *node = ctx->resource_heads[idx];
+    while (node)
+    {
+        if (node->ptr == ptr)
+        {
+            /* Null out the native pointer so the sweep (Phase 4b) does not
+             * double-free an Activity already destroyed by the controller. */
+            node->ptr = NULL;
+            EOS_LOG_D("INVALIDATE_RESOURCE: ctx=%p ptr=%p type=%s(%d)", ctx, ptr, sni_type_name(type), type);
+            return;
+        }
+        node = node->next;
+    }
+}
+
 sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void *ptr, sni_type_t type)
 {
     if (!ctx || !ptr)
@@ -307,7 +340,7 @@ sni_managed_resource_node_t *sni_context_find_resource(sni_context_t *ctx, void 
     return NULL;
 }
 
-/* Convenience wrappers --------------------------------------------------*/
+/* Convenience wrappers ---------------------------------------*/
 
 void sni_context_add_timer(sni_context_t *ctx, void *ptr, jerry_value_t js_obj)
 {
@@ -333,20 +366,39 @@ void sni_context_remove_anim(sni_context_t *ctx, void *ptr)
     sni_context_remove_resource(ctx, ptr, SNI_H_LV_ANIM);
 }
 
-/* Unified resource lifecycle management ---------------------------*/
+/* Unified resource lifecycle management ----------------------*/
 
-static inline void _sni_ctx_safe_js_free(jerry_value_t *value)
+static inline void _sni_ctx_safe_js_free(sni_context_t *ctx, jerry_value_t *value)
 {
     if (!value)
         return;
     if (jerry_value_is_undefined(*value) || jerry_value_is_null(*value))
         return;
-    if (script_engine_get_state() == SCRIPT_ENGINE_STATE_UNINITIALIZED)
+
+    /* Key off teardown_phase, not global engine state.
+     * During teardown Phases 0-2 the engine is IDLE but the JS heap
+     * is still alive — jerry_value_free MUST be called to release
+     * references.  Only skip when the engine has actually been stopped
+     * (Phase >= ENGINE_STOPPED). */
+    if (ctx && ctx->teardown_phase >= SNI_TEARDOWN_PHASE_ENGINE_STOPPED)
     {
-        EOS_LOG_W("Skip jerry_value_free: engine not running");
         *value = jerry_undefined();
         return;
     }
+
+    /* No context (runtime path) — only free if engine is RUNNING.
+     * An IDLE engine outside of teardown means the heap may be in a
+     * transitional state; overwriting the handle is the safe choice. */
+    if (!ctx)
+    {
+        script_engine_state_t state = script_engine_get_state();
+        if (state == SCRIPT_ENGINE_STATE_UNINITIALIZED || state == SCRIPT_ENGINE_STATE_IDLE)
+        {
+            *value = jerry_undefined();
+            return;
+        }
+    }
+
     jerry_value_free(*value);
     *value = jerry_undefined();
 }
@@ -360,7 +412,24 @@ void sni_context_delete_timer_sync(sni_context_t *ctx, lv_timer_t *timer)
 
     if (cb_ctx)
     {
-        _sni_ctx_safe_js_free(&cb_ctx->js_cb);
+        /* If this timer is currently executing its JS callback (i.e. the
+         * script called timer.delete() on itself), we must NOT free the
+         * callback context or the JerryScript function — both are still
+         * on the C/JS call stack.  Instead mark the timer pending-delete
+         * and null out the LVGL callback.  sni_cb_timer_dispatch() will
+         * perform the actual deletion after spm_call() returns. */
+        if (sni_cb_is_dispatching_timer(timer))
+        {
+            cb_ctx->state = SNI_TIMER_STATE_PENDING_DELETE;
+            /* Null out the LVGL callback so the timer won't fire again,
+             * but keep user_data intact so the deferred cleanup in
+             * sni_cb_timer_dispatch() can find cb_ctx after spm_call
+             * returns. */
+            lv_timer_set_cb(timer, NULL);
+            return;
+        }
+
+        _sni_ctx_safe_js_free(ctx, &cb_ctx->js_cb);
         cb_ctx->state = SNI_TIMER_STATE_DELETED;
         eos_free(cb_ctx);
     }
@@ -458,7 +527,7 @@ void sni_context_sweep_js_refs(sni_context_t *ctx)
                 sni_timer_callback_ctx_t *cb_ctx =
                     (sni_timer_callback_ctx_t *)lv_timer_get_user_data((lv_timer_t *)node->ptr);
                 if (cb_ctx)
-                    _sni_ctx_safe_js_free(&cb_ctx->js_cb);
+                    _sni_ctx_safe_js_free(ctx, &cb_ctx->js_cb);
             }
             else if (node->type == SNI_H_LV_ANIM && node->ptr)
             {
@@ -466,7 +535,7 @@ void sni_context_sweep_js_refs(sni_context_t *ctx)
                 if (anim_ctx)
                 {
                     for (int j = 0; j < SNI_ANIM_CB_SLOT_COUNT; j++)
-                        _sni_ctx_safe_js_free(&anim_ctx->cb_slots[j]);
+                        _sni_ctx_safe_js_free(ctx, &anim_ctx->cb_slots[j]);
                 }
             }
 
@@ -493,7 +562,7 @@ void sni_context_sweep_all(sni_context_t *ctx)
     if (!ctx)
         return;
 
-    EOS_LOG_I("SWEEP: ctx=%p", (void *)ctx);
+    EOS_LOG_I("SWEEP: ctx=%p entry_phase=%d", (void *)ctx, ctx->teardown_phase);
     sni_context_dump_counters(ctx);
 
     _SWEEP_HEAP_LOG("sweep start");
@@ -520,9 +589,72 @@ void sni_context_sweep_all(sni_context_t *ctx)
      * _sni_ctx_safe_js_free skips undefined/empty values. */
     sni_context_sweep_js_refs(ctx);
 
-    /* Phase 2: Release all native resources and free node memory. */
+    /* Phase 2: Release all native resources and free node memory.
+     *
+     * SUB-PHASE ORDER IS CRITICAL — matches sni.mdx "Realm 销毁顺序" Phase 4.
+     * 4a (Tree-Dependent) MUST run before 4b (Hybrid) because 4b's
+     *   eos_activity_destroy → lv_obj_delete fires LV_EVENT_DELETE on child
+     *   widgets whose sub_resource_head was freed in 4a.
+     * 4b (Hybrid) MUST run before 4c (Pure) because Hybrid Activities may
+     *   internally reference Pure resources (styles, fonts, etc.). */
+
+    /* Phase 4a: Tree-Dependent Resources -------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_TREE_DEP;
     for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
     {
+        sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
+        if (!SNI_TYPE_IS_TREE_DEPENDENT(list_type))
+            continue;
+
+        sni_managed_resource_node_t *node = ctx->resource_heads[i];
+        int freed_count = 0;
+        while (node)
+        {
+            sni_managed_resource_node_t *next = node->next;
+
+            /* Unlink from parent control block's sub_resource_head BEFORE
+             * freeing the node.  If left linked, the parent's LV_EVENT_DELETE
+             * handler (sni_obj_deleted_cb) would walk freed node memory. */
+            if (node->parent_cb)
+            {
+                sni_managed_resource_node_t **pp = &node->parent_cb->sub_resource_head;
+                while (*pp)
+                {
+                    if (*pp == node)
+                    {
+                        *pp = node->next;
+                        break;
+                    }
+                    pp = &(*pp)->next;
+                }
+                node->parent_cb = NULL;
+            }
+
+            /* Tree-Dependent: never destroy the native object — LVGL
+             * reclaims it automatically when the parent tree node is
+             * deleted in Phase 6 (lv_obj_delete(activity->view)). */
+            node->ptr = NULL;
+
+            eos_free(node);
+            freed_count++;
+            node = next;
+        }
+        ctx->resource_heads[i] = NULL;
+        ctx->resource_counts[i] = 0;
+        if (freed_count > 0)
+        {
+            EOS_LOG_I("SWEEP-4a: freed %d Tree-Dependent nodes [%d] %s", freed_count, i, _sni_type_names[i]);
+        }
+    }
+
+    /* Phase 4b: Hybrid Resources ---------------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_HYBRID;
+    for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
+    {
+        sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
+        if (!SNI_TYPE_IS_HYBRID(list_type))
+            continue;
+
         sni_managed_resource_node_t *node = ctx->resource_heads[i];
         int freed_count = 0;
         while (node)
@@ -531,38 +663,184 @@ void sni_context_sweep_all(sni_context_t *ctx)
 
             if (node->ptr)
             {
-                if (node->type == SNI_H_LV_TIMER)
+                if (node->type == SNI_H_EOS_ACTIVITY)
                 {
-                    lv_timer_t *timer = (lv_timer_t *)node->ptr;
-                    sni_timer_callback_ctx_t *cb_ctx = (sni_timer_callback_ctx_t *)lv_timer_get_user_data(timer);
-                    if (cb_ctx)
-                        eos_free(cb_ctx);
-                    lv_timer_set_user_data(timer, NULL);
-                    lv_timer_delete(timer);
-                }
-                else if (node->type == SNI_H_LV_ANIM)
-                {
-                    sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
-                    if (anim_ctx)
+                    eos_activity_t *act = (eos_activity_t *)node->ptr;
+
+                    /* Only destroy off-stack Activities that were never entered
+                     * (has_started == false).  These are JS-created Activities
+                     * with NULL lifecycle that exist purely as managed resources.
+                     *
+                     * Native Activities (created by the app launcher) have
+                     * on_destroy callbacks that tear down the script engine;
+                     * destroying them from inside the sweep triggers a
+                     * re-entrant cascade (on_destroy → spm_app_stop →
+                     * _program_destroy → sni_context_sweep_all) and double-free.
+                     *
+                     * JS-created Activities that WERE entered (has_started==true)
+                     * are managed by the activity controller and destroyed via
+                     * the animation-callback path.  Their node->ptr may have
+                     * been set to NULL by sni_context_invalidate_resource()
+                     * to prevent double-free. */
+                    if (!eos_activity_has_started(act))
                     {
-                        if (anim_ctx->active_anim)
-                        {
-                            /* Verify the pointer is still valid: if the
-                               animation already completed (freed by LVGL's
-                               anim_timer → anim_completed_handler), writing
-                               to it would be use-after-free.  The user_data
-                               check confirms this anim_ctx still owns the
-                               active lv_anim_t. */
-                            if (lv_anim_get_user_data(anim_ctx->active_anim) == anim_ctx)
-                            {
-                                anim_ctx->active_anim->deleted_cb = NULL;
-                                anim_ctx->active_anim->custom_exec_cb = NULL;
-                                lv_anim_set_user_data(anim_ctx->active_anim, NULL);
-                            }
-                            anim_ctx->active_anim = NULL;
-                        }
-                        eos_free(anim_ctx);
+                        eos_activity_destroy(act);
+                        node->ptr = NULL;
                     }
+                }
+                /* EOS_VIEW: no native destruction — views are cleaned up
+                 * when their owning Activity is destroyed. */
+            }
+
+            eos_free(node);
+            freed_count++;
+            node = next;
+        }
+        ctx->resource_heads[i] = NULL;
+        ctx->resource_counts[i] = 0;
+        if (freed_count > 0)
+        {
+            EOS_LOG_I("SWEEP-4b: freed %d Hybrid nodes [%d] %s", freed_count, i, _sni_type_names[i]);
+        }
+    }
+
+    /* Phase 4c: Pure Managed Resources ---------------------------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_PURE;
+    for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
+    {
+        sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
+        if (!SNI_TYPE_IS_PURE_MANAGED(list_type))
+            continue;
+
+        sni_managed_resource_node_t *node = ctx->resource_heads[i];
+        int freed_count = 0;
+        while (node)
+        {
+            sni_managed_resource_node_t *next = node->next;
+
+            if (node->ptr)
+            {
+                switch (node->type)
+                {
+                    case SNI_H_LV_TIMER:
+                    {
+                        lv_timer_t *timer = (lv_timer_t *)node->ptr;
+                        if (sni_cb_is_dispatching_timer(timer))
+                        {
+                            EOS_LOG_W("SWEEP: skipping currently dispatching timer %p", (void *)timer);
+                            lv_timer_set_user_data(timer, NULL);
+                            lv_timer_set_cb(timer, NULL);
+                            node = next;
+                            continue;
+                        }
+                        sni_timer_callback_ctx_t *cb_ctx = (sni_timer_callback_ctx_t *)lv_timer_get_user_data(timer);
+                        lv_timer_set_user_data(timer, NULL);
+                        lv_timer_set_cb(timer, NULL);
+                        if (cb_ctx)
+                        {
+                            cb_ctx->state = SNI_TIMER_STATE_DELETED;
+                            cb_ctx->owner_ctx = NULL;
+                            eos_free(cb_ctx);
+                        }
+                        lv_timer_delete(timer);
+                        break;
+                    }
+
+                    case SNI_H_LV_ANIM:
+                    {
+                        sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
+                        if (sni_cb_is_dispatching_anim(anim_ctx))
+                        {
+                            EOS_LOG_W("SWEEP: skipping currently dispatching anim ctx %p", (void *)anim_ctx);
+                            anim_ctx->state = SNI_ANIM_STATE_DELETED;
+                            anim_ctx->owner_ctx = NULL;
+                            node = next;
+                            continue;
+                        }
+                        if (anim_ctx)
+                        {
+                            anim_ctx->state = SNI_ANIM_STATE_DELETED;
+                            anim_ctx->owner_ctx = NULL;
+                            if (anim_ctx->active_anim)
+                            {
+                                if (lv_anim_get_user_data(anim_ctx->active_anim) == anim_ctx)
+                                {
+                                    anim_ctx->active_anim->deleted_cb = NULL;
+                                    anim_ctx->active_anim->custom_exec_cb = NULL;
+                                    lv_anim_set_user_data(anim_ctx->active_anim, NULL);
+                                }
+                                anim_ctx->active_anim = NULL;
+                            }
+                            eos_free(anim_ctx);
+                        }
+                        break;
+                    }
+
+                    case SNI_H_LV_STYLE:
+                    {
+                        lv_style_t *style = (lv_style_t *)node->ptr;
+                        lv_style_reset(style);
+                        eos_free(style);
+                        break;
+                    }
+
+                    case SNI_H_LV_FONT:
+                    {
+                        /* Only dynamically-loaded binary fonts need explicit
+                         * cleanup.  System / built-in fonts are static. */
+                        lv_font_t *font = (lv_font_t *)node->ptr;
+                        lv_binfont_destroy(font);
+                        break;
+                    }
+
+                    case SNI_H_LV_GROUP:
+                    {
+                        lv_group_t *group = (lv_group_t *)node->ptr;
+                        lv_group_delete(group);
+                        break;
+                    }
+
+                    case SNI_H_LV_LAYER:
+                    {
+                        /* LVGL layers are managed internally by the display
+                         * system.  No explicit destroy API exists — the layer
+                         * is cleaned up when its display is deleted. */
+                        break;
+                    }
+
+                    case SNI_H_LV_OBSERVER:
+                    {
+                        lv_observer_t *observer = (lv_observer_t *)node->ptr;
+                        lv_observer_remove(observer);
+                        break;
+                    }
+
+                    case SNI_H_LV_DRAW_BUF:
+                    {
+                        lv_draw_buf_t *draw_buf = (lv_draw_buf_t *)node->ptr;
+                        lv_draw_buf_destroy(draw_buf);
+                        break;
+                    }
+
+                    case SNI_H_LV_SUBJECT:
+                    {
+                        lv_subject_t *subject = (lv_subject_t *)node->ptr;
+                        lv_subject_deinit(subject);
+                        eos_free(subject);
+                        break;
+                    }
+
+                    case SNI_H_LV_COLOR_FILTER_DSC:
+                    {
+                        /* No public deinit API — color filter descriptors are
+                         * typically stack-scoped.  Just free the heap copy. */
+                        lv_color_filter_dsc_t *dsc = (lv_color_filter_dsc_t *)node->ptr;
+                        eos_free(dsc);
+                        break;
+                    }
+
+                    default:
+                        break;
                 }
             }
 
@@ -574,14 +852,108 @@ void sni_context_sweep_all(sni_context_t *ctx)
         ctx->resource_counts[i] = 0;
         if (freed_count > 0)
         {
-            EOS_LOG_I("SWEEP: freed %d nodes of type [%d] %s", freed_count, i, _sni_type_names[i]);
+            EOS_LOG_I("SWEEP-4c: freed %d Pure-Managed nodes [%d] %s", freed_count, i, _sni_type_names[i]);
         }
     }
+
+    /* Value-like & unhandled types: free node memory only --------*/
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_SWEEP_VALUE_LIKE;
+    for (int i = 0; i < SNI_MANAGED_RESOURCE_COUNT; i++)
+    {
+        if (ctx->resource_heads[i] == NULL)
+            continue;
+
+        sni_type_t list_type = (sni_type_t)(i + __SNI_HANDLE_RESOURCE_START + 1);
+        /* Skip types already handled in 4a/4b/4c */
+        if (SNI_TYPE_IS_TREE_DEPENDENT(list_type) || SNI_TYPE_IS_HYBRID(list_type)
+            || SNI_TYPE_IS_PURE_MANAGED(list_type))
+            continue;
+
+        sni_managed_resource_node_t *node = ctx->resource_heads[i];
+        int freed_count = 0;
+        while (node)
+        {
+            sni_managed_resource_node_t *next = node->next;
+            /* Value-like handles and unclassified types: no native resource
+             * to destroy — just free the JS wrapper node. */
+            node->ptr = NULL;
+            eos_free(node);
+            freed_count++;
+            node = next;
+        }
+        ctx->resource_heads[i] = NULL;
+        ctx->resource_counts[i] = 0;
+        if (freed_count > 0)
+        {
+            EOS_LOG_I("SWEEP-4d: freed %d value-like/unclassified nodes [%d] %s", freed_count, i, _sni_type_names[i]);
+        }
+    }
+
+    ctx->teardown_phase = SNI_TEARDOWN_PHASE_CTX_DESTROY;
 
     _SWEEP_HEAP_LOG("sweep end");
     sni_context_dump_counters(ctx);
 
-    EOS_LOG_I("SWEEP: complete for ctx=%p", (void *)ctx);
+    EOS_LOG_I("SWEEP: complete for ctx=%p phase=%d", (void *)ctx, ctx->teardown_phase);
+}
+
+/*
+ * Engine-reset helpers — neutralize native LVGL resources WITHOUT touching
+ * JerryScript values or deleting native objects.  Called from
+ * spm_handle_engine_reset() after a fatal assertion, when the engine heap
+ * may be internally inconsistent and any jerry_* API call can crash.
+ */
+
+void sni_context_neutralize_timers(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    int idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (idx < 0)
+        return;
+
+    sni_managed_resource_node_t *node = ctx->resource_heads[idx];
+    int count = 0;
+    while (node)
+    {
+        if (node->ptr)
+        {
+            lv_timer_t *timer = (lv_timer_t *)node->ptr;
+            lv_timer_set_user_data(timer, NULL);
+            lv_timer_set_cb(timer, NULL);
+            count++;
+        }
+        node = node->next;
+    }
+    if (count > 0)
+        EOS_LOG_I("NEUTRALIZE: nulled %d timer(s) — LVGL objects kept alive as zombies", count);
+}
+
+void sni_context_neutralize_anims(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    int idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (idx < 0)
+        return;
+
+    sni_managed_resource_node_t *node = ctx->resource_heads[idx];
+    int count = 0;
+    while (node)
+    {
+        if (node->ptr)
+        {
+            sni_anim_callback_ctx_t *anim_ctx = (sni_anim_callback_ctx_t *)node->ptr;
+            anim_ctx->state = SNI_ANIM_STATE_DELETED;
+            anim_ctx->owner_ctx = NULL;
+            count++;
+        }
+        node = node->next;
+    }
+    if (count > 0)
+        EOS_LOG_I("NEUTRALIZE: nulled %d anim(s) — ctx blocks kept alive", count);
 }
 
 void sni_context_set_paused(sni_context_t *ctx, bool paused)
@@ -594,4 +966,77 @@ void sni_context_set_paused(sni_context_t *ctx, bool paused)
 bool sni_context_is_paused(sni_context_t *ctx)
 {
     return ctx ? ctx->paused : false;
+}
+
+void sni_context_pause_resources(sni_context_t *ctx)
+{
+    if (!ctx)
+        return;
+
+    /* Pause all timers */
+    int timer_idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (timer_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[timer_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_timer_pause((lv_timer_t *)node->ptr);
+            }
+            node = node->next;
+        }
+    }
+
+    /* Pause all animations */
+    int anim_idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (anim_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[anim_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_anim_pause((sni_anim_callback_ctx_t *)node->ptr);
+            }
+            node = node->next;
+        }
+    }
+}
+
+void sni_context_resume_resources(sni_context_t *ctx, int timer_strategy, int anim_strategy)
+{
+    if (!ctx)
+        return;
+
+    /* Resume all timers */
+    int timer_idx = sni_context_get_type_index(SNI_H_LV_TIMER);
+    if (timer_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[timer_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_timer_resume_with_strategy((lv_timer_t *)node->ptr, (sni_timer_resume_strategy_t)timer_strategy);
+            }
+            node = node->next;
+        }
+    }
+
+    /* Resume all animations */
+    int anim_idx = sni_context_get_type_index(SNI_H_LV_ANIM);
+    if (anim_idx >= 0)
+    {
+        sni_managed_resource_node_t *node = ctx->resource_heads[anim_idx];
+        while (node)
+        {
+            if (node->ptr && node->is_alive)
+            {
+                sni_cb_anim_resume_with_strategy((sni_anim_callback_ctx_t *)node->ptr,
+                                                 (sni_anim_resume_strategy_t)anim_strategy);
+            }
+            node = node->next;
+        }
+    }
 }

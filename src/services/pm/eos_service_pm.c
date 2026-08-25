@@ -28,7 +28,7 @@ static bool aod_mode = true;
 /* Function Implementations -----------------------------------*/
 void eos_pm_reset_timer(void);
 
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
 static char *_print_state(eos_pm_state_t state)
 {
     switch (state)
@@ -46,7 +46,7 @@ static char *_print_state(eos_pm_state_t state)
 #endif /* EOS_COMPILE_MODE */
 static void _pm_set_state(eos_pm_state_t state)
 {
-#if EOS_COMPILE_MODE == DEBUG
+#if EOS_COMPILE_MODE == EOS_DEBUG
     EOS_LOG_I("State: %s -> %s", _print_state(pm_state), _print_state(state));
 #else
     EOS_LOG_I("State: %d -> %d", pm_state, state);

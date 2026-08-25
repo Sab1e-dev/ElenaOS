@@ -26,7 +26,7 @@ typedef enum
     DEV_STATE_ERROR, // Error state, needs attention
 } eos_dev_state_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 #ifdef __cplusplus
 }

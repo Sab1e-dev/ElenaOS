@@ -30,6 +30,7 @@
 #include "eos_chrome_manager.h"
 #include "eos_overlay_layer.h"
 #include "eos_activity.h"
+#include "eos_widget_data.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _BTN_DEFAULT_COLOR EOS_THEME_SECONDARY_COLOR
@@ -57,7 +58,7 @@ static const eos_chrome_overlay_t _control_center_overlay = {
 /* Function Implementations -----------------------------------*/
 void eos_control_panel_slide_change(void);
 
-/************************** List callback **************************/
+/* List callback ----------------------------------------------*/
 
 static void _list_scroll_cb(lv_event_t *e)
 {
@@ -124,7 +125,7 @@ static void _slide_widget_reached_threshold_cb(lv_event_t *e)
         eos_crown_encoder_set_target_obj(container);
 }
 
-/************************** Basic components **************************/
+/* Basic components -------------------------------------------*/
 
 static lv_obj_t *_control_center_create_switch_btn(lv_obj_t *parent, const char *symbol, lv_color_t color)
 {
@@ -193,7 +194,7 @@ static lv_obj_t *_control_center_slider_create(const char *symbol)
 
     lv_obj_t *label = lv_label_create(slider_page);
     lv_label_set_text(label, symbol);
-    lv_obj_set_user_data(slider, (void *)label);
+    eos_wdata_set(slider, EOS_WDATA_SLIDER_LABEL, (void *)label, NULL);
     lv_obj_set_style_text_color(label, EOS_COLOR_BLACK, 0);
     lv_obj_move_foreground(label);
     lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -100);
@@ -221,7 +222,7 @@ static lv_obj_t *_control_center_create_btn(lv_obj_t *parent, const char *symbol
     return btn;
 }
 
-/************************** Functional components **************************/
+/* Functional components --------------------------------------*/
 
 static void _control_center_bluetooth_switch_btn_cb(lv_event_t *e)
 {
@@ -244,7 +245,7 @@ static void _control_center_bluetooth_switch_btn_cb(lv_event_t *e)
 static void _control_center_brightness_value_changed_cb(lv_event_t *e)
 {
     lv_obj_t *slider = lv_event_get_target(e);
-    lv_obj_t *label = (lv_obj_t *)lv_obj_get_user_data(slider);
+    lv_obj_t *label = (lv_obj_t *)eos_wdata_get(slider, EOS_WDATA_SLIDER_LABEL);
     EOS_CHECK_PTR_RETURN(label);
 
     // Get current Slider value
@@ -352,7 +353,7 @@ static void _control_center_volume_value_changed_cb(lv_event_t *e)
 {
     eos_control_center_t *cc = (eos_control_center_t *)lv_event_get_user_data(e);
     lv_obj_t *slider = lv_event_get_target(e);
-    lv_obj_t *label = (lv_obj_t *)lv_obj_get_user_data(slider);
+    lv_obj_t *label = (lv_obj_t *)eos_wdata_get(slider, EOS_WDATA_SLIDER_LABEL);
     EOS_CHECK_PTR_RETURN(label);
     // Get current Slider value
     int16_t value = lv_slider_get_value(slider);
@@ -478,7 +479,7 @@ static lv_obj_t *_control_center_overlay_get_foreground_obj(void)
     return NULL;
 }
 
-/************************** Control center **************************/
+/* Control center ---------------------------------------------*/
 
 eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
 {
@@ -518,7 +519,7 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
     eos_slide_widget_add_event_cb_reached_threshold(swipe_panel->sw, _slide_widget_reached_threshold_cb, container);
     cc->container = container;
     lv_obj_t *btn;
-    /************************** Bluetooth switch **************************/
+    /* Bluetooth switch -------------------------------------------*/
     btn = _control_center_create_switch_btn(container, RI_BLUETOOTH_FILL, EOS_COLOR_BLUE);
     lv_obj_add_event_cb(btn, _control_center_bluetooth_switch_btn_cb, LV_EVENT_VALUE_CHANGED, NULL);
     if (eos_config_get_bool(EOS_CONFIG_KEY_BLUETOOTH_BOOL, false))
@@ -530,18 +531,18 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
         lv_obj_remove_state(btn, LV_STATE_CHECKED);
     }
     cc->bl_btn = btn;
-    /************************** Brightness adjustment scrollbar **************************/
+    /* Brightness adjustment scrollbar ----------------------------*/
     btn = _control_center_create_btn(container, RI_SUN_FILL);
     lv_obj_add_event_cb(btn, _control_center_brightness_btn_clicked_cb, LV_EVENT_CLICKED, 0);
     cc->brightness_btn = btn;
-    /************************** Battery display **************************/
+    /* Battery display --------------------------------------------*/
     btn = _control_center_create_battery(container);
     cc->bat_btn = btn;
-    /************************** Find phone **************************/
+    /* Find phone -------------------------------------------------*/
     btn = _control_center_create_btn(container, RI_PHONE_FIND_FILL);
     lv_obj_add_event_cb(btn, _control_center_phone_find_cb, LV_EVENT_CLICKED, 0);
     cc->locate_phone_btn = btn;
-    /************************** Mute **************************/
+    /* Mute -------------------------------------------------------*/
     btn = _control_center_create_switch_btn(container, RI_NOTIFICATION_4_FILL, EOS_COLOR_ORANGE);
     lv_obj_add_event_cb(btn, _control_center_mute_switch_btn_cb, LV_EVENT_CLICKED, 0);
     if (eos_config_get_bool(EOS_CONFIG_KEY_MUTE_BOOL, false))
@@ -553,15 +554,15 @@ eos_control_center_t *eos_control_center_create(lv_obj_t *parent)
         lv_obj_remove_state(btn, LV_STATE_CHECKED);
     }
     cc->mute_btn = btn;
-    /************************** Volume adjustment scrollbar **************************/
+    /* Volume adjustment scrollbar --------------------------------*/
     btn = _control_center_create_btn(container, RI_VOLUME_UP_FILL);
     lv_obj_add_event_cb(btn, _control_center_volume_btn_clicked_cb, LV_EVENT_CLICKED, cc);
     cc->volume_btn = btn;
-    /************************** Flashlight **************************/
+    /* Flashlight -------------------------------------------------*/
     btn = _control_center_create_btn(container, RI_FLASH_LIGHT);
     lv_obj_add_event_cb(btn, _control_center_flash_light_btn_clicked_cb, LV_EVENT_CLICKED, 0);
     cc->flash_light_btn = btn;
-    /************************** Settings entry **************************/
+    /* Settings entry ---------------------------------------------*/
     btn = _control_center_create_btn(container, RI_SETTINGS_4_FILL);
     lv_obj_add_event_cb(btn, _control_center_settings_entry_cb, LV_EVENT_CLICKED, 0);
     cc->settings_btn = btn;

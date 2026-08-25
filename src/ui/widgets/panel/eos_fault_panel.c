@@ -20,7 +20,7 @@
 
 #define EOS_FAULT_PANEL_COLOR EOS_COLOR_RED
 
-/* Function Implementations ----------------------------------*/
+/* Function Implementations -----------------------------------*/
 
 static const char *_fault_icon_get_symbol(eos_fault_icon_t icon_type, const char *custom_icon)
 {

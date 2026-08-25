@@ -10,7 +10,7 @@
 #ifndef EOS_LVGL_REQUIREMENTS_H
 #define EOS_LVGL_REQUIREMENTS_H
 
-/* Widgets (32 total) — required by SNI JavaScript bindings ---------*/
+/* Widgets (32 total) — required by SNI JavaScript bindings ---*/
 
 #if defined(LV_USE_ANIMIMG) && !LV_USE_ANIMIMG
 #error "LV_USE_ANIMIMG must be enabled (required by ElenixOS)"
@@ -106,13 +106,13 @@
 #error "LV_USE_WIN must be enabled (required by ElenixOS)"
 #endif
 
-/* Core rendering --------------------------------------------------*/
+/* Core rendering ---------------------------------------------*/
 
 #if defined(LV_USE_DRAW_SW) && !LV_USE_DRAW_SW
 #error "LV_USE_DRAW_SW must be enabled (required by ElenixOS)"
 #endif
 
-/* Layouts ---------------------------------------------------------*/
+/* Layouts ----------------------------------------------------*/
 
 #if defined(LV_USE_FLEX) && !LV_USE_FLEX
 #error "LV_USE_FLEX must be enabled (required by ElenixOS)"
@@ -121,31 +121,31 @@
 #error "LV_USE_GRID must be enabled (required by ElenixOS)"
 #endif
 
-/* Theme -----------------------------------------------------------*/
+/* Theme ------------------------------------------------------*/
 
 #if defined(LV_USE_THEME_DEFAULT) && !LV_USE_THEME_DEFAULT
 #error "LV_USE_THEME_DEFAULT must be enabled (required by ElenixOS)"
 #endif
 
-/* Observer --------------------------------------------------------*/
+/* Observer ---------------------------------------------------*/
 
 #if defined(LV_USE_OBSERVER) && !LV_USE_OBSERVER
 #error "LV_USE_OBSERVER must be enabled (required by ElenixOS)"
 #endif
 
-/* Snapshot --------------------------------------------------------*/
+/* Snapshot ---------------------------------------------------*/
 
 #if defined(LV_USE_SNAPSHOT) && !LV_USE_SNAPSHOT
 #error "LV_USE_SNAPSHOT must be enabled (required by ElenixOS)"
 #endif
 
-/* QR Code ---------------------------------------------------------*/
+/* QR Code ----------------------------------------------------*/
 
 #if defined(LV_USE_QRCODE) && !LV_USE_QRCODE
 #error "LV_USE_QRCODE must be enabled (required by ElenixOS)"
 #endif
 
-/* Tiny TTF (CJK font) ---------------------------------------------*/
+/* Tiny TTF (CJK font) ----------------------------------------*/
 
 #if defined(LV_USE_TINY_TTF) && !LV_USE_TINY_TTF
 #error "LV_USE_TINY_TTF must be enabled (required by ElenixOS)"
@@ -154,13 +154,13 @@
 #error "LV_TINY_TTF_FILE_SUPPORT must be enabled (required by ElenixOS)"
 #endif
 
-/* PNG decoder (LodePNG) -------------------------------------------*/
+/* PNG decoder (LodePNG) --------------------------------------*/
 
 #if defined(LV_USE_LODEPNG) && !LV_USE_LODEPNG
 #error "LV_USE_LODEPNG must be enabled (required by ElenixOS)"
 #endif
 
-/* Default font ----------------------------------------------------*/
+/* Default font -----------------------------------------------*/
 
 #if defined(LV_FONT_MONTSERRAT_14) && !LV_FONT_MONTSERRAT_14
 #error "LV_FONT_MONTSERRAT_14 must be enabled (required by ElenixOS)"

@@ -25,7 +25,7 @@ typedef enum
     EOS_STACK_CAPACITY_FIXED = 0,
     EOS_STACK_CAPACITY_DYNAMIC,
 } eos_stack_capacity_mode_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a stack

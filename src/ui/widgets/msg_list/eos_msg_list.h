@@ -39,7 +39,7 @@ typedef struct
     lv_obj_t *title_label;
     lv_obj_t *msg_label;
     lv_obj_t *time_label;
-    const char *msg_str; /**< Message string */
+    char *msg_str; /**< Message string */
     bool is_deleted;
 } eos_msg_list_item_t;
 
@@ -65,7 +65,7 @@ struct eos_msg_list_t
     uint16_t animating_count; /**< Number of animating messages after clear-all press */
 };
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Create message item
  * @param list Parent message list of the message item

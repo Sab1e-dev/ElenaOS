@@ -20,6 +20,8 @@
 #include "eos_service_pm.h"
 #include "eos_service_lock.h"
 #include "eos_stack.h"
+#include "eos_recent_apps.h"
+#include "eos_recent_apps_page.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -29,7 +31,6 @@
 static const eos_chrome_overlay_t *_overlays[_MAX_OVERLAYS];
 static uint32_t _overlay_count = 0;
 static eos_stack_t *_overlay_stack = NULL;
-
 /* Function Implementations -----------------------------------*/
 
 static void _ensure_overlay_on_top(const eos_chrome_overlay_t *overlay)
@@ -264,6 +265,48 @@ void eos_chrome_manager_handle_crown_click(void)
     }
 }
 
+void eos_chrome_manager_handle_crown_double_click(void)
+{
+    /* Wake up first if sleeping */
+    if (eos_pm_get_state() == EOS_PM_SLEEP)
+    {
+        eos_pm_wake_up();
+        return;
+    }
+
+    /* Don't allow crown double-click to bypass lock screen */
+    if (eos_lock_screen_is_active())
+    {
+        return;
+    }
+
+    eos_pm_reset_timer();
+
+    /* If any overlay is open, pull back topmost */
+    if (eos_chrome_manager_any_overlay_open())
+    {
+        eos_chrome_manager_pull_back_top();
+        return;
+    }
+
+    eos_activity_t *current = eos_activity_get_current();
+
+    /* Toggle: if already on recents page, close it; otherwise open */
+    if (current && eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_RECENT_APPS)
+    {
+        eos_activity_back();
+        return;
+    }
+
+    /* If currently inside a suspendable script app, suspend it first
+     * so it appears in the recents list when the page opens. */
+    if (current && eos_recent_apps_is_suspendable(current))
+    {
+        eos_recent_apps_suspend_current();
+    }
+    eos_recent_apps_page_enter();
+}
+
 void eos_chrome_manager_handle_activity_switch(void)
 {
     eos_chrome_manager_pull_back_all();
@@ -285,6 +328,7 @@ void eos_chrome_manager_init(void)
     eos_chrome_manager_register_overlay(eos_control_center_get_overlay_descriptor());
     eos_chrome_manager_register_overlay(eos_msg_list_get_overlay_descriptor());
     eos_chrome_manager_register_overlay(eos_flash_light_get_overlay_descriptor());
+
     EOS_LOG_I("Chrome manager initialized");
 }
 

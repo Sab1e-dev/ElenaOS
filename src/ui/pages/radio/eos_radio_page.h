@@ -22,7 +22,7 @@ extern "C" {
 
 typedef struct eos_radio_page_t eos_radio_page_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Add new option to radio list

@@ -71,7 +71,7 @@ typedef struct
 
 typedef struct eos_slide_widget_t eos_slide_widget_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize slide widget component (register event IDs)
@@ -79,7 +79,7 @@ typedef struct eos_slide_widget_t eos_slide_widget_t;
  */
 void eos_slide_widget_init(void);
 
-/*============================ Creation & Deletion ============================*/
+/* Creation & Deletion ----------------------------------------*/
 
 /**
  * @brief Create slide widget
@@ -116,7 +116,7 @@ eos_slide_widget_t *eos_slide_widget_create_with_touch(lv_obj_t *touch_obj,
  */
 void eos_slide_widget_delete(eos_slide_widget_t *sw);
 
-/*============================ Configuration ============================*/
+/* Configuration ----------------------------------------------*/
 
 /**
  * @brief Configure slide widget with a configuration structure
@@ -187,7 +187,7 @@ void eos_slide_widget_set_anim_transition(eos_slide_widget_t *sw,
                                           eos_slide_widget_state_t transit_state,
                                           eos_slide_widget_state_t settle_state);
 
-/*============================ State Query ============================*/
+/* State Query ------------------------------------------------*/
 
 /**
  * @brief Get current state of slide widget
@@ -252,7 +252,7 @@ lv_obj_t *eos_slide_widget_get_target_obj(eos_slide_widget_t *sw);
  */
 eos_slide_widget_dir_t eos_slide_widget_get_dir(eos_slide_widget_t *sw);
 
-/*============================ Actions ============================*/
+/* Actions ----------------------------------------------------*/
 
 /**
  * @brief Move from start position to end position
@@ -276,7 +276,7 @@ void eos_slide_widget_reverse(eos_slide_widget_t *sw);
  */
 void eos_slide_widget_sync_touch_obj(eos_slide_widget_t *sw);
 
-/*============================ Event Callbacks ============================*/
+/* Event Callbacks --------------------------------------------*/
 
 /**
  * @brief Register callback for slide widget events

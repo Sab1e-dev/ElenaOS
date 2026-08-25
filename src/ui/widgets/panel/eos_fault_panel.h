@@ -62,7 +62,7 @@ typedef struct
     lv_obj_t *extra_slot; /**< Extra content slot for backtrace */
 } eos_fault_panel_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a fault panel on current activity

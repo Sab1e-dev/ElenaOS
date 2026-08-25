@@ -87,18 +87,9 @@ static const eos_activity_lifecycle_t _flash_light_lifecycle = {
     .on_destroy = _flash_light_on_destroy,
 };
 
-static void _flash_light_obj_opa_anim_cb(void *var, int32_t value)
+static void _flash_light_indicator_fade_out_ready_cb(eos_anim_t *a)
 {
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (!obj || !lv_obj_is_valid(obj))
-        return;
-
-    lv_obj_set_style_opa(obj, (lv_opa_t)value, 0);
-}
-
-static void _flash_light_indicator_fade_out_ready_cb(lv_anim_t *a)
-{
-    lv_obj_t *obj = (lv_obj_t *)a->var;
+    lv_obj_t *obj = a->tar_obj;
     if (!obj || !lv_obj_is_valid(obj))
         return;
 
@@ -108,8 +99,7 @@ static void _flash_light_indicator_fade_out_ready_cb(lv_anim_t *a)
 
 static void _flash_light_on_destroy(eos_activity_t *a)
 {
-    lv_obj_t *view = eos_activity_get_view(a);
-    _flash_light_card_pager_ctx_t *ctx = view ? (_flash_light_card_pager_ctx_t *)lv_obj_get_user_data(view) : NULL;
+    _flash_light_card_pager_ctx_t *ctx = (_flash_light_card_pager_ctx_t *)eos_activity_get_user_data(a);
     if (ctx)
     {
         if (ctx->flash_timer)
@@ -118,10 +108,7 @@ static void _flash_light_on_destroy(eos_activity_t *a)
             ctx->flash_timer = NULL;
         }
 
-        if (view && lv_obj_is_valid(view))
-        {
-            lv_obj_set_user_data(view, NULL);
-        }
+        eos_activity_set_user_data(a, NULL);
 
         eos_free(ctx);
     }
@@ -309,30 +296,32 @@ static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_
         return;
     }
 
-    lv_anim_delete(indicator, _flash_light_obj_opa_anim_cb);
+    eos_anim_t *anim = eos_anim_fade_create(indicator,
+                                            visible ? LV_OPA_TRANSP : LV_OPA_COVER,
+                                            visible ? LV_OPA_COVER : LV_OPA_TRANSP,
+                                            duration_ms,
+                                            false);
+    if (!anim)
+        return;
 
-    lv_anim_t anim;
-    lv_anim_init(&anim);
-    lv_anim_set_var(&anim, indicator);
-    lv_anim_set_exec_cb(&anim, _flash_light_obj_opa_anim_cb);
-    lv_anim_set_duration(&anim, duration_ms);
+    eos_anim_fade_set_main_opa(anim, true);
 
     if (visible)
     {
         lv_obj_remove_flag(indicator, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_opa(indicator, LV_OPA_TRANSP, 0);
-        lv_anim_set_values(&anim, LV_OPA_TRANSP, LV_OPA_COVER);
-        lv_anim_start(&anim);
+        eos_anim_start(anim);
     }
     else
     {
         if (lv_obj_has_flag(indicator, LV_OBJ_FLAG_HIDDEN))
+        {
+            eos_anim_del(anim);
             return;
-
+        }
         lv_obj_set_style_opa(indicator, LV_OPA_COVER, 0);
-        lv_anim_set_values(&anim, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_completed_cb(&anim, _flash_light_indicator_fade_out_ready_cb);
-        lv_anim_start(&anim);
+        eos_anim_add_cb(anim, _flash_light_indicator_fade_out_ready_cb, NULL);
+        eos_anim_start(anim);
     }
 }
 
@@ -527,7 +516,7 @@ void eos_flash_light_enter(void)
 
     ctx->activity = a;
     ctx->immersive_mode = false;
-    lv_obj_set_user_data(view, ctx);
+    eos_activity_set_user_data(a, ctx);
 
     lv_obj_remove_style_all(view);
     lv_obj_set_size(view, lv_pct(100), lv_pct(100));

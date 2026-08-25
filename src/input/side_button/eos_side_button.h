@@ -19,7 +19,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Report side button state
  * @param state State value

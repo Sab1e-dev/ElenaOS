@@ -29,7 +29,7 @@ typedef struct eos_dlist_t eos_dlist_t;
  */
 typedef bool (*eos_dlist_iter_cb_t)(void *data, void *user_data);
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a doubly linked list

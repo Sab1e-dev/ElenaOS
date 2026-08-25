@@ -21,7 +21,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Check if it's a valid filename for storage operations
@@ -30,7 +30,7 @@ extern "C" {
  */
 bool eos_storage_is_valid_filename(const char *name);
 
-/************************** JSON Storage API **************************/
+/* JSON Storage API -------------------------------------------*/
 
 /**
  * @brief Load JSON file from storage
@@ -207,7 +207,7 @@ eos_result_t eos_storage_mkdir_recursive(const char *path);
  */
 eos_result_t eos_storage_rm_recursive(const char *path);
 
-/************************** File Handle API **************************/
+/* File Handle API --------------------------------------------*/
 
 /**
  * @brief Open file for reading with path validation

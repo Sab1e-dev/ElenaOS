@@ -30,7 +30,7 @@ typedef enum
     EOS_BUTTON_STATE_DOUBLE_CLICKED
 } eos_button_state_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 #ifdef __cplusplus
 }

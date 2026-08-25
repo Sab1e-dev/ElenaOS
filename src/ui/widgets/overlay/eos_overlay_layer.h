@@ -27,7 +27,7 @@ extern "C" {
 /* Includes ---------------------------------------------------*/
 #include "lvgl.h"
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize the four overlay layers on lv_layer_top()

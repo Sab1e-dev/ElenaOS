@@ -12,7 +12,7 @@ extern "C" {
 
 /* Includes ---------------------------------------------------*/
 #include "eos_watchface.h"
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a built-in watchface instance with its own Activity

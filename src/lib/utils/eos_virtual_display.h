@@ -20,7 +20,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef struct eos_virtual_display_t eos_virtual_display_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a virtual display that can be placed inside LVGL object.

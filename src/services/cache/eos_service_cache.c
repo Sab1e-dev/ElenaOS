@@ -8,10 +8,11 @@
 /* Includes ---------------------------------------------------*/
 #include "eos_port.h"
 #include "lvgl.h"
-#include "src/misc/cache/lv_image_cache.h"
-#include "src/misc/cache/lv_image_header_cache.h"
-#include "src/draw/lv_draw_buf.h"
-#include "src/core/lv_global.h"
+#include "lvgl_private.h"
+#include "core/lv_global.h"
+#include "draw/lv_draw_buf.h"
+#include "misc/cache/instance/lv_image_cache.h"
+#include "misc/cache/instance/lv_image_header_cache.h"
 
 /* Macros and Definitions -------------------------------------*/
 
@@ -76,6 +77,7 @@ void eos_service_cache_init(void)
         lv_draw_buf_handlers_init(handlers,
                                   dedicated_buf_malloc,
                                   dedicated_buf_free,
+                                  NULL, /* buf_copy */
                                   eos_buf_align,
                                   NULL, /* invalidate_cache */
                                   NULL, /* flush_cache */

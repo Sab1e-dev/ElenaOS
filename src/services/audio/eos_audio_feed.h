@@ -25,7 +25,7 @@ typedef void (*eos_audio_feed_cb_t)(void *user_data);
 
 typedef struct eos_audio_feed eos_audio_feed_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a periodic feed clock

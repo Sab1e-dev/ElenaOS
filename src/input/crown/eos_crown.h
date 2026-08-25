@@ -20,7 +20,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef int16_t eos_crown_encoder_diff_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Set encoder reverse
  * @param reverse true = reverse, false = forward

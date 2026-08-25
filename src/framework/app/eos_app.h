@@ -33,12 +33,17 @@ typedef struct
 {
     const char *title_text; /**< Error title text (NULL for default) */
     lang_string_id_t title_id; /**< Error title string ID (0 for default) */
-    const char *button_text; /**< Button text (NULL for default) */
-    lang_string_id_t button_id; /**< Button string ID (0 for default) */
-    lv_event_cb_t button_callback; /**< Button click callback (NULL for default back) */
+    /* Confirm button (e.g., "Restart App", "Restart") */
+    const char *confirm_btn_text; /**< Confirm button text (NULL for default) */
+    lang_string_id_t confirm_btn_id; /**< Confirm button string ID (0 for hidden) */
+    lv_event_cb_t confirm_cb; /**< Confirm button click callback */
+    /* Cancel button (e.g., "Exit App", "Switch Watch Face") */
+    const char *cancel_btn_text; /**< Cancel button text (NULL for default) */
+    lang_string_id_t cancel_btn_id; /**< Cancel button string ID (0 for default) */
+    lv_event_cb_t cancel_cb; /**< Cancel button click callback (NULL for default back) */
 } eos_script_error_handler_cfg_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Handle script execution error
@@ -105,6 +110,12 @@ void eos_app_obj_auto_delete(lv_obj_t *obj, const char *app_id);
  * @return eos_result_t Initialization result
  */
 eos_result_t eos_app_init(void);
+
+/**
+ * @brief Initialize crash recovery event handler
+ * Must be called during system init to subscribe to EOS_EVENT_SCRIPT_FATAL
+ */
+void eos_app_crash_handler_init(void);
 #ifdef __cplusplus
 }
 #endif

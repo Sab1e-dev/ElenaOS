@@ -30,7 +30,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Convert JerryScript string to C string
@@ -121,6 +121,51 @@ void sni_tb_link_sub_resource(void *parent_ptr, void *sub_ptr, sni_type_t sub_ty
 void sni_tb_unlink_sub_resource(void *sub_ptr, sni_type_t sub_type);
 
 void sni_tb_init(void);
+
+/**
+ * @brief Retrieve the sni_control_block_t from an LVGL object via the
+ *        unified eos_wdata registry (EOS_WDATA_SNI_CB).
+ *
+ * Replaces the previous raw lv_obj_get_user_data() cast, which could
+ * collide with eos_wdata containers stored on the same object.
+ *
+ * @param ptr Raw pointer to an LVGL object (tree node)
+ * @return sni_control_block_t* or NULL if none is registered
+ */
+sni_control_block_t *sni_cb_from_obj(void *ptr);
+
+/**
+ * @brief Get the current SNI context for the active script realm
+ * @return sni_context_t* or NULL if no script is running
+ */
+struct sni_context *sni_get_current_context(void);
+
+/**
+ * @brief Convert JS value to a parent LVGL object pointer
+ *
+ * Tries SNI_H_LV_OBJ first (regular lv_obj_t*), then falls back to
+ * SNI_H_EOS_VIEW (Activity View wrapper). Use this for constructor
+ * parent arguments, setParent, alignTo, and swap so that both
+ * regular LVGL objects and Activity Views are accepted.
+ *
+ * @param val JerryScript value (parent argument)
+ * @param out Output lv_obj_t* pointer
+ * @return bool Whether conversion was successful
+ */
+bool sni_tb_js2c_parent(jerry_value_t val, void **out);
+
+/**
+ * @brief LV_EVENT_DELETE callback registered on every SNI_H_LV_OBJ tree node.
+ *
+ * Marks the SNI control block dead, cascade-invalidates sub-resources,
+ * and releases the JerryScript reference.  Exported so that
+ * sni_api_lv_obj_delete can remove this callback before calling
+ * lv_obj_delete() when performing a JS-initiated deletion.
+ *
+ * @param e  LVGL event (code == LV_EVENT_DELETE)
+ */
+typedef struct _lv_event_t lv_event_t;
+void sni_obj_deleted_cb(lv_event_t *e);
 
 #ifdef __cplusplus
 }

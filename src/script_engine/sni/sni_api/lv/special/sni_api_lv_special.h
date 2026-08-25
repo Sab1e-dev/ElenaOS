@@ -34,6 +34,18 @@ jerry_value_t sni_api_lv_obj_remove_event_cb_with_user_data(const jerry_call_inf
                                                             const jerry_value_t args_p[],
                                                             const jerry_length_t args_count);
 
+jerry_value_t sni_api_lv_obj_delete(const jerry_call_info_t *call_info_p,
+                                    const jerry_value_t args_p[],
+                                    const jerry_length_t args_count);
+
+jerry_value_t sni_api_lv_obj_set_parent(const jerry_call_info_t *call_info_p,
+                                        const jerry_value_t args_p[],
+                                        const jerry_length_t args_count);
+
+jerry_value_t sni_api_lv_obj_remove_event(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count);
+
 jerry_value_t sni_api_lv_obj_send_event(const jerry_call_info_t *call_info_p,
                                         const jerry_value_t args_p[],
                                         const jerry_length_t args_count);
@@ -73,6 +85,10 @@ jerry_value_t sni_api_prop_get_obj_user_data(const jerry_call_info_t *call_info_
 jerry_value_t sni_api_prop_set_obj_user_data(const jerry_call_info_t *call_info_p,
                                              const jerry_value_t args_p[],
                                              const jerry_length_t args_count);
+
+jerry_value_t sni_api_prop_set_obj_parent(const jerry_call_info_t *call_info_p,
+                                          const jerry_value_t args_p[],
+                                          const jerry_length_t args_count);
 
 jerry_value_t sni_api_eos_label_set_font_size(const jerry_call_info_t *call_info_p,
                                               const jerry_value_t args_p[],
@@ -173,7 +189,7 @@ jerry_value_t sni_api_lv_buttonmatrix_set_ctrl_map(const jerry_call_info_t *call
                                                    const jerry_value_t args_p[],
                                                    const jerry_length_t args_count);
 
-/* calendar -----------------------------------------------*/
+/* calendar ---------------------------------------------------*/
 jerry_value_t sni_api_lv_calendar_set_day_names(const jerry_call_info_t *call_info_p,
                                                 const jerry_value_t args_p[],
                                                 const jerry_length_t args_count);

@@ -1,6 +1,29 @@
 cmake_minimum_required(VERSION 3.12)
 project(ElenixOS C)
 
+find_package(Git QUIET)
+set(EOS_GIT_INFO_HEADER "${CMAKE_BINARY_DIR}/generated/eos_git_info.h")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated")
+
+# Third-party library paths for git info
+# Join with '|' separator to pass as a single string
+set(EOS_THIRD_PARTY_LIBS_STR
+    "lvgl=${CMAKE_SOURCE_DIR}/lvgl|cjson=${CMAKE_CURRENT_SOURCE_DIR}/third_party/cJSON|jerryscript=${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript|remixicon=${CMAKE_CURRENT_SOURCE_DIR}/third_party/RemixIcon"
+)
+
+add_custom_target(eos_git_info
+    ALL
+    COMMAND ${CMAKE_COMMAND}
+            -DGIT_EXECUTABLE=${GIT_EXECUTABLE}
+            -DREPO_DIR=${CMAKE_SOURCE_DIR}
+            -DLIB_LIST_STR=${EOS_THIRD_PARTY_LIBS_STR}
+            -DOUT_FILE=${EOS_GIT_INFO_HEADER}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_git_info.cmake
+    BYPRODUCTS ${EOS_GIT_INFO_HEADER}
+    COMMENT "Generating ElenixOS Git version header"
+    VERBATIM
+)
+
 # Define a compile-time constant for the ElenixOS system root directory
 if(EOS_IS_WASM)
     add_compile_definitions(EOS_SYS_ROOT_DIR="/")
@@ -12,12 +35,32 @@ endif()
 file(GLOB_RECURSE ELENIXOS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.c
 )
-# Only include RemixIcon.c (icon font used as fallback in TTF mode)
-# Chinese bitmap fonts (source_han_sans_*.c) excluded since using TTF
-file(GLOB ELENIXOS_RES_FONT_SRC
+# Include RemixIcon.c (icon font used as fallback in all modes)
+file(GLOB ELENIXOS_RES_FONT_ICON_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/RemixIcon.c
 )
-list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_SRC})
+list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_ICON_SRC})
+
+# Conditionally include Chinese bitmap fonts when EOS_FONT_TYPE == EOS_FONT_C_MULTI
+# Read the generated Kconfig header to determine the font type
+set(_eos_font_type_gen_h "${CMAKE_BINARY_DIR}/generated/eos_config_gen.h")
+if(EXISTS "${_eos_font_type_gen_h}")
+    file(READ "${_eos_font_type_gen_h}" _eos_gen_config_content)
+    string(REGEX MATCH "#define EOS_FONT_TYPE ([0-9]+)" _eos_font_type_match "${_eos_gen_config_content}")
+    if(CMAKE_MATCH_1 EQUAL 0)
+        message(STATUS "ElenixOS: EOS_FONT_TYPE=C_MULTI — including bitmap font sources")
+        file(GLOB ELENIXOS_RES_FONT_BITMAP_SRC
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_22.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_26.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/font/source_han_sans_30.c
+        )
+        list(APPEND ELENIXOS_SRC ${ELENIXOS_RES_FONT_BITMAP_SRC})
+    else()
+        message(STATUS "ElenixOS: EOS_FONT_TYPE=TTF — skipping bitmap font sources")
+    endif()
+else()
+    message(WARNING "ElenixOS: generated config header not found — skipping bitmap font sources")
+endif()
 
 # Automatically collect all directories that contain header files
 file(GLOB_RECURSE HEADER_FILES
@@ -33,10 +76,12 @@ list(REMOVE_DUPLICATES ELENIXOS_INC_DIRS)
 
 # Define library target
 add_library(elenixos_lib STATIC ${ELENIXOS_SRC})
+add_dependencies(elenixos_lib eos_git_info)
 
 target_include_directories(elenixos_lib
     PUBLIC
     ${ELENIXOS_INC_DIRS}
+    ${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript/jerry-core/include
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/jerryscript/jerry-ext/include
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cJSON

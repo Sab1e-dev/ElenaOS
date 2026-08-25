@@ -43,6 +43,22 @@
 #define SCRIPT_DEFAULT_TIMEOUT_MS 3000
 #define TRACKED_MODULES_INIT_CAPACITY 4
 
+/* Module cache for ES module singleton semantics.
+ * _module_resolve_cb is called once per import site even for the same
+ * file. Without caching each call creates a new module instance with
+ * independent variable scopes — breaking ES module guarantees.
+ * The cache is keyed by canonical file path and cleared at engine stop. */
+#define MODULE_CACHE_MAX 64
+
+typedef struct
+{
+    char path[512]; /* canonical file path (key) */
+    jerry_value_t module; /* parsed module value (one ref held) */
+} _module_cache_entry_t;
+
+static _module_cache_entry_t _module_cache[MODULE_CACHE_MAX];
+static int _module_cache_count = 0;
+
 typedef struct
 {
     jerry_value_t specifier;
@@ -293,7 +309,7 @@ static void _engine_cleanup(void);
 static eos_result_t _script_engine_stop_and_cleanup(void);
 static jerry_value_t _script_engine_create_info(const script_pkg_t *script_package);
 
-/* ---- Realm Management (Encapsulated) ---- */
+/* Realm Management (Encapsulated) ----------------------------*/
 
 static jerry_value_t _realm_create(void)
 {
@@ -424,7 +440,7 @@ static void _collect_script_garbage(void)
     jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 }
 
-/* ---- Error handling ---- */
+/* Error handling ---------------------------------------------*/
 
 static void _set_error_info(const char *msg)
 {
@@ -645,7 +661,7 @@ static void _script_engine_exception_handler(const char *tag, jerry_value_t resu
     }
 }
 
-/* ---- Query ---- */
+/* Query ------------------------------------------------------*/
 
 const char *script_engine_get_error_info(void)
 {
@@ -701,7 +717,7 @@ bool script_engine_has_permission(const char *perm_name)
     return false;
 }
 
-/* ---- Throwing / Registering / Helpers ---- */
+/* Throwing / Registering / Helpers ---------------------------*/
 
 jerry_value_t script_engine_throw_error(const char *message)
 {
@@ -739,7 +755,7 @@ void script_engine_register_functions(jerry_value_t parent,
     }
 }
 
-/* ---- JS Call (raw — SPM gates) ---- */
+/* JS Call (raw — SPM gates) ----------------------------------*/
 
 jerry_value_t script_engine_call_raw(jerry_value_t func,
                                      jerry_value_t this_val,
@@ -760,31 +776,108 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
             engine_rt.script_start_time = eos_tick_get();
     }
 
-    jerry_value_t result = jerry_call(func, this_val, args_p, args_count);
-
-    if (jerry_value_is_exception(result))
+    /*
+     * If script_engine_run() has already set up a fatal scope, let its
+     * setjmp/longjmp handle any assertion failure.  Otherwise, this
+     * callback is running "detached" (after script_engine_run returned)
+     * and we must guard jerry_call ourselves so that a JS engine crash
+     * does not abort() the whole process.
+     */
+    bool owns_fatal_scope = false;
+    int fatal_code = 0;
+    if (!engine_rt.fatal_scope_active)
     {
-        if (engine_rt.pending_stop)
+        fatal_code = setjmp(engine_rt.fatal_jmp_buf);
+        if (fatal_code == 0)
         {
-            if (engine_rt.stop_is_timeout)
-                EOS_LOG_W("Script call timeout");
-            else
-                EOS_LOG_D("Script call stopped by request");
-        }
-        else
-        {
-            _script_engine_exception_handler("Jerry Call", result);
-            _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
+            owns_fatal_scope = true;
+            engine_rt.fatal_scope_active = true;
         }
     }
 
-    if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+    jerry_value_t result;
+
+    if (fatal_code != 0)
+    {
+        /*
+         * A JerryScript assertion / fatal error occurred inside
+         * jerry_call().  The engine heap is structurally consistent
+         * but may contain stale handles.  Perform the same full
+         * recovery as script_engine_run does on fatal errors.
+         */
+        EOS_LOG_E("Callback fatal error (code=%d) — resetting engine", fatal_code);
+
+        /* Build a local error message (matching script_engine_run's pattern)
+         * before spm_handle_engine_reset destroys programs.
+         * engine_rt.error_info may be NULL here — use the local string. */
+        char fatal_msg[64];
+        snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d)", fatal_code);
+        _set_error_info(fatal_msg);
+
+        {
+            script_program_t *prog = engine_rt.current_program;
+            spm_save_crash_context(prog ? prog->script.id : NULL, prog ? prog->type : SCRIPT_TYPE_UNKNOWN, fatal_msg);
+        }
+
+        _cleanup_module_queue();
+        _release_all_tracked_modules();
+        _engine_cleanup();
+        spm_handle_engine_reset();
+        script_engine_set_current_program(NULL);
+
+        jerry_init(SCRIPT_INIT_FLAGS);
+        sni_init();
+        engine_rt.engine_gen++;
+        engine_rt.initialized = true;
+        engine_rt.fatal_recovering = false;
+        engine_rt.fatal_scope_active = false;
+
+        /* Re-enable LVGL timers that were paused by spm_handle_engine_reset. */
+        lv_timer_enable(true);
+
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        engine_rt.stop_is_timeout = false;
+        engine_rt.pending_stop = false;
+
+        /* Schedule deferred crash notification (after timers re-enabled) */
+        spm_schedule_crash_notification();
+
+        result = jerry_undefined();
+    }
+    else
+    {
+        result = jerry_call(func, this_val, args_p, args_count);
+
+        if (owns_fatal_scope)
+        {
+            engine_rt.fatal_scope_active = false;
+        }
+
+        if (jerry_value_is_exception(result))
+        {
+            if (engine_rt.pending_stop)
+            {
+                if (engine_rt.stop_is_timeout)
+                    EOS_LOG_W("Script call timeout");
+                else
+                    EOS_LOG_D("Script call stopped by request");
+            }
+            else
+            {
+                _script_engine_exception_handler("Jerry Call", result);
+                _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
+            }
+        }
+
+        if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
+    }
 
     return result;
 }
 
-/* ---- Timeout ---- */
+/* Timeout ----------------------------------------------------*/
 
 void script_engine_set_timeout(uint32_t timeout_ms)
 {
@@ -795,7 +888,7 @@ uint32_t script_engine_get_timeout(void)
     return engine_rt.script_timeout_ms;
 }
 
-/* ---- VM halt callback ---- */
+/* VM halt callback -------------------------------------------*/
 
 static jerry_value_t _vm_exec_stop_callback(void *user_p)
 {
@@ -825,7 +918,7 @@ static jerry_value_t _vm_exec_stop_callback(void *user_p)
     return jerry_undefined();
 }
 
-/* ---- Init ---- */
+/* Init -------------------------------------------------------*/
 
 eos_result_t script_engine_init(void)
 {
@@ -849,7 +942,50 @@ eos_result_t script_engine_init(void)
     return EOS_OK;
 }
 
-/* ---- Module system ---- */
+/* Module cache helpers ---------------------------------------*/
+
+/* Return a jerry_value_copy of the cached module, or jerry_undefined(). */
+static jerry_value_t _module_cache_lookup(const char *canonical_path)
+{
+    for (int i = 0; i < _module_cache_count; i++)
+    {
+        if (strcmp(_module_cache[i].path, canonical_path) == 0)
+        {
+            EOS_LOG_D("MODULE CACHE HIT: %s (slot %d)", canonical_path, i);
+            return jerry_value_copy(_module_cache[i].module);
+        }
+    }
+    return jerry_undefined();
+}
+
+/* Insert a parsed module into the cache. */
+static void _module_cache_insert(const char *canonical_path, jerry_value_t module)
+{
+    if (_module_cache_count >= MODULE_CACHE_MAX)
+    {
+        EOS_LOG_W("MODULE CACHE FULL: cannot cache %s", canonical_path);
+        return;
+    }
+    int idx = _module_cache_count++;
+    snprintf(_module_cache[idx].path, sizeof(_module_cache[idx].path), "%s", canonical_path);
+    _module_cache[idx].module = jerry_value_copy(module);
+    EOS_LOG_D("MODULE CACHE INSERT: %s (slot %d)", canonical_path, idx);
+}
+
+/* Release all cached module references. */
+static void _module_cache_clear(void)
+{
+    EOS_LOG_D("MODULE CACHE CLEAR: freeing %d entries", _module_cache_count);
+    for (int i = 0; i < _module_cache_count; i++)
+    {
+        jerry_value_free(_module_cache[i].module);
+        _module_cache[i].module = jerry_undefined();
+        _module_cache[i].path[0] = '\0';
+    }
+    _module_cache_count = 0;
+}
+
+/* Module system ----------------------------------------------*/
 
 static jerry_value_t _module_import_cb(const jerry_value_t specifier, const jerry_value_t user_value, void *user_p)
 {
@@ -892,6 +1028,16 @@ static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jer
         snprintf(full_path, sizeof(full_path), "%s%s", _get_base_path(), (const char *)specifier_buffer + 2);
     else
         snprintf(full_path, sizeof(full_path), "%s", (const char *)specifier_buffer);
+
+    /* Check module cache first — ensures ES module singleton semantics.
+     * Without this, every import site gets a fresh module instance with
+     * independent variable scope, breaking shared state. */
+    jerry_value_t cached = _module_cache_lookup(full_path);
+    if (!jerry_value_is_undefined(cached))
+    {
+        return cached; /* already a jerry_value_copy from the cache */
+    }
+
     char *source_str = eos_storage_read_file(full_path);
     if (!source_str)
     {
@@ -911,6 +1057,12 @@ static jerry_value_t _module_resolve_cb(const jerry_value_t specifier, const jer
     if (jerry_value_is_exception(result))
     {
         EOS_LOG_E("DEP PARSE FAILED: %s", specifier_buffer);
+    }
+    else
+    {
+        /* Cache the successfully parsed module so subsequent imports
+         * of the same file return the same module instance. */
+        _module_cache_insert(full_path, result);
     }
     /* Dependency modules are NOT tracked here. Their lifetime is managed by
      * JerryScript's module system. When the main module is freed via
@@ -1015,9 +1167,13 @@ static void _cleanup_module_queue(void)
     }
     eos_cqueue_destroy(_module_queue);
     _module_queue = NULL;
+
+    /* Clear the module resolve cache so the next program / engine
+     * restart starts with a clean slate. */
+    _module_cache_clear();
 }
 
-/* ---- Manifest ---- */
+/* Manifest ---------------------------------------------------*/
 
 eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t *pkg)
 {
@@ -1136,7 +1292,7 @@ eos_result_t script_engine_get_manifest(const char *manifest_path, script_pkg_t 
     return EOS_OK;
 }
 
-/* ---- Run ---- */
+/* Run --------------------------------------------------------*/
 
 static jerry_value_t _script_engine_create_info(const script_pkg_t *pkg)
 {
@@ -1181,7 +1337,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     _pkg_clone_into(&engine_rt.owned_script, script_package);
     script_program_t *prog = _get_prog();
 
-    /* ---- Fatal error recovery point (setjmp for jerry_port_fatal longjmp) ---- */
+    /* Fatal error recovery point (setjmp for jerry_port_fatal longjmp) -*/
     int fatal_code = setjmp(engine_rt.fatal_jmp_buf);
     engine_rt.fatal_scope_active = true;
     EOS_LOG_D("ENGINE_RUN: entered fatal_code=%d", fatal_code);
@@ -1214,6 +1370,16 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
         snprintf(fatal_msg, sizeof(fatal_msg), "Engine crash (code=%d, %s)", fatal_code, fatal_desc);
         _set_error_info(fatal_msg);
 
+        /* Save crash context BEFORE spm_handle_engine_reset destroys programs.
+         * Use engine_rt.current_program (global) instead of local prog because
+         * longjmp may leave local variables indeterminate. */
+        {
+            script_program_t *crash_prog = engine_rt.current_program;
+            spm_save_crash_context(crash_prog ? crash_prog->script.id : NULL,
+                                   crash_prog ? crash_prog->type : SCRIPT_TYPE_UNKNOWN,
+                                   fatal_msg);
+        }
+
         /*
          * CRITICAL ORDERING: Clean up ALL stale JS handles and C resources
          * BEFORE jerry_init() wipes the heap.
@@ -1238,7 +1404,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
          *    on the old heap. After this, no stale JS handles remain. */
         spm_handle_engine_reset();
 
-        /* Clear current_program pointer (the program was destroyed in step 4) */
+        /* Clear current_program pointer (the program was already destroyed) */
         script_engine_set_current_program(NULL);
 
         /* Now safe to reinitialize — heap gets memset'd + reinit */
@@ -1248,8 +1414,17 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
         engine_rt.initialized = true;
         engine_rt.fatal_recovering = false;
 
+        /* Re-enable LVGL timers that were paused by spm_handle_engine_reset. */
+        lv_timer_enable(true);
+
+        /* NOTE: Do NOT schedule crash notification here — script_engine_run()
+         * returns EOS_ERR_SCRIPT_EXCEPTION, and the caller (_app_on_enter /
+         * _js_on_enter) already handles error display. Only script_engine_call_raw
+         * needs deferred notification because its error is silently swallowed. */
+
         /* Reset runtime state */
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
         return EOS_ERR_SCRIPT_EXCEPTION;
@@ -1376,17 +1551,19 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     jerry_heap_gc(JERRY_GC_PRESSURE_HIGH);
 
     /*
-     * Always clean up realm, program reference, and module queue,
-     * regardless of success or failure. This prevents resource leaks
-     * and stale references between script runs.
+     * Restore the boot realm and clean up the local realm reference.
+     * The program's own realm reference (assigned via _realm_assign_to_program
+     * above) is intentionally kept alive — callbacks (timers, event handlers,
+     * etc.) registered by the script may still reference objects in this realm.
+     * It will be freed in _program_destroy() when the program terminates.
      */
     _realm_restore_and_cleanup();
-    _realm_release_program(prog);
     _cleanup_module_queue();
 
     if (result != EOS_OK || engine_rt.pending_stop)
     {
-        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+        if (engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+            _change_state(SCRIPT_ENGINE_STATE_IDLE);
         engine_rt.stop_is_timeout = false;
         engine_rt.pending_stop = false;
     }
@@ -1396,7 +1573,7 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
     return result;
 }
 
-/* ---- Stop / Cleanup ---- */
+/* Stop / Cleanup ---------------------------------------------*/
 
 static void _engine_cleanup(void)
 {
@@ -1489,7 +1666,7 @@ eos_result_t script_engine_clean_up(void)
     return EOS_OK;
 }
 
-/* ---- Reload ---- */
+/* Reload -----------------------------------------------------*/
 
 eos_result_t script_engine_reload_current_script(void)
 {

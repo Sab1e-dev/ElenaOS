@@ -26,7 +26,7 @@ typedef enum
     EOS_HAPTIC_STRENGTH_INTENSE = 255,
 } eos_haptic_strength_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Short and light tick vibration

@@ -23,7 +23,7 @@
 #include "eos_mem.h"
 #include "eos_log.h"
 
-/* ---- Active request (panel currently shown) ---- */
+/* Active request (panel currently shown) ---------------------*/
 typedef struct
 {
     bool active;
@@ -33,7 +33,7 @@ typedef struct
     char *app_name; /* Copy of app name for panel display */
 } perm_request_ctx_t;
 
-/* ---- Queue node for pending requests ---- */
+/* Queue node for pending requests ----------------------------*/
 typedef struct perm_queue_node
 {
     struct perm_queue_node *next;
@@ -43,7 +43,7 @@ typedef struct perm_queue_node
     char *app_name;
 } perm_queue_node_t;
 
-/* ---- Dispatcher context for async already-granted callback ---- */
+/* Dispatcher context for async already-granted callback ------*/
 typedef struct
 {
     jerry_value_t cb;
@@ -55,7 +55,7 @@ static perm_request_ctx_t _perm_req = {0};
 static perm_queue_node_t *_perm_queue_head = NULL;
 static perm_queue_node_t *_perm_queue_tail = NULL;
 
-/* ---- Forward declarations ---- */
+/* Forward declarations ---------------------------------------*/
 static void _invoke_callback(jerry_value_t cb, const char *result, const char *app_id);
 static void _cleanup_request(void);
 static void _dequeue_and_show(void);
@@ -67,7 +67,7 @@ static void _perm_deny_cb(lv_event_t *e);
 static void _async_granted_cb(void *user_data);
 static void _schedule_async_granted(jerry_value_t callback, const char *app_id, const char *result_str);
 
-/* ---- Helper: convert string to category ---- */
+/* Helper: convert string to category -------------------------*/
 
 static eos_perm_category_t _resolve_category(const char *name)
 {
@@ -79,7 +79,7 @@ static eos_perm_category_t _resolve_category(const char *name)
     return cat;
 }
 
-/* ---- Helper: convert grant state to JS string ---- */
+/* Helper: convert grant state to JS string -------------------*/
 
 static const char *_state_to_string(eos_perm_state_t state)
 {
@@ -97,7 +97,7 @@ static const char *_state_to_string(eos_perm_state_t state)
     }
 }
 
-/* ---- Queue helpers ---- */
+/* Queue helpers ----------------------------------------------*/
 
 static bool _queue_has_category(eos_perm_category_t cat)
 {
@@ -172,7 +172,7 @@ static perm_queue_node_t *_dequeue(void)
     return node;
 }
 
-/* ---- Panel lifecycle ---- */
+/* Panel lifecycle --------------------------------------------*/
 
 static void _show_panel(void)
 {
@@ -219,7 +219,7 @@ static void _dequeue_and_show(void)
     _show_panel();
 }
 
-/* ---- Internal: JS callback invocation ---- */
+/* Internal: JS callback invocation ---------------------------*/
 
 static void _async_granted_cb(void *user_data)
 {
@@ -288,7 +288,7 @@ static void _cleanup_request(void)
     memset(&_perm_req, 0, sizeof(_perm_req));
 }
 
-/* ---- Public API handlers ---- */
+/* Public API handlers ----------------------------------------*/
 
 jerry_value_t sni_api_eos_permission_request(const jerry_call_info_t *call_info_p,
                                              const jerry_value_t args_p[],
@@ -423,7 +423,7 @@ jerry_value_t sni_api_eos_permission_check(const jerry_call_info_t *call_info_p,
     return jerry_string_sz(_state_to_string(state));
 }
 
-/* ---- LVGL button callbacks ---- */
+/* LVGL button callbacks --------------------------------------*/
 
 /**
  * @brief Common handler for all three panel buttons.

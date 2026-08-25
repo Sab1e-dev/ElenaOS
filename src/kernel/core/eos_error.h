@@ -75,7 +75,7 @@ typedef enum
     EOS_ERR_UNKNOWN = -999,
 } eos_result_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 #ifdef __cplusplus
 }

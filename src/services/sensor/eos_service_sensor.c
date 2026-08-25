@@ -563,8 +563,6 @@ void eos_sensor_notify(eos_sensor_type_t type, const eos_sensor_data_t *data, ui
     memcpy(&inst->latest_data, &raw_data, sizeof(eos_sensor_raw_data_t));
     eos_critical_leave(ctx);
 
-    EOS_LOG_I("eos_sensor_notify: type=%d, timestamp=%d", type, timestamp);
-
     /*
      * Broadcast directly to sensor subscribers.
      * Done outside the critical section — callbacks may be long-running

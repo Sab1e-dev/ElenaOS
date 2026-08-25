@@ -27,13 +27,50 @@ extern "C" {
 #define SNI_TYPE_IS_TREE_NODE(type) ((type) == SNI_H_LV_OBJ)
 #define SNI_TYPE_IS_MANAGED_RESOURCE(type) ((type) > __SNI_HANDLE_RESOURCE_START && (type) < __SNI_HANDLE_RESOURCE_END)
 
+/**
+ * @brief Managed Resource sub-category classification macros
+ *
+ * Managed Resources are grouped into contiguous enum ranges with sentinel
+ * markers.  The sweep (sni_context_sweep_all) MUST process them in this
+ * order: Tree-Dependent -> Hybrid -> Pure Managed.  See sni.mdx "Realm 销毁顺序".
+ *
+ * Value-like handles are the remainder of the managed-resource range that
+ * does NOT fall into any of the three defined sub-categories.  They hold
+ * no independently-allocated native resource and only need node cleanup.
+ */
+
+/** Tree-Dependent Resource — native object created internally by LVGL inside
+ *  a parent tree node.  Sweep only frees the JS wrapper node. */
+#define SNI_TYPE_IS_TREE_DEPENDENT(type) \
+    ((type) > __SNI_TREE_DEPENDENT_RESOURCE_START && (type) < __SNI_TREE_DEPENDENT_RESOURCE_END)
+
+/** Hybrid Resource — has both tree-node and managed-resource characteristics.
+ *  Can be destroyed by multiple subsystems; must coordinate via ptr-NULL sentinel. */
+#define SNI_TYPE_IS_HYBRID(type) ((type) > __SNI_HYBRID_RESOURCE_START && (type) < __SNI_HYBRID_RESOURCE_END)
+
+/** Pure Managed Resource — lifecycle fully independent of the object tree.
+ *  SNI explicitly destroys the native object via the corresponding LVGL API. */
+#define SNI_TYPE_IS_PURE_MANAGED(type) \
+    ((type) > __SNI_PURE_MANAGED_RESOURCE_START && (type) < __SNI_PURE_MANAGED_RESOURCE_END)
+
+/**
+ * @brief Value-like Handle — stack-scoped types currently misclassified as
+ *        Handle Objects (technical debt).  Computed as the remainder of the
+ *        managed-resource range that is NOT Tree-Dependent, Hybrid, or Pure.
+ *
+ *  TODO: Migrate these into __SNI_VALUE_START..__SNI_VALUE_END (breaks ABI).
+ */
+#define SNI_TYPE_IS_VALUE_LIKE_HANDLE(type)                                                               \
+    (SNI_TYPE_IS_MANAGED_RESOURCE(type) && !SNI_TYPE_IS_TREE_DEPENDENT(type) && !SNI_TYPE_IS_HYBRID(type) \
+     && !SNI_TYPE_IS_PURE_MANAGED(type))
+
 #define SNI_HANDLE_COUNT (__SNI_HANDLE_END - __SNI_HANDLE_START - 1)
 
 #define SNI_MANAGED_RESOURCE_COUNT (__SNI_HANDLE_RESOURCE_END - __SNI_HANDLE_RESOURCE_START - 1)
 
 /* Public typedefs --------------------------------------------*/
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief SNI type enumeration
@@ -64,35 +101,65 @@ typedef enum
 
     __SNI_HANDLE_RESOURCE_START,
 
+    /* ---- Tree-Dependent Resources ----------------------------------
+     * Native object is created internally by LVGL inside a parent tree
+     * node.  Sweep (Phase 4a) unlinks from parent sub_resource_head and
+     * frees the JS wrapper node only — the native object is reclaimed
+     * by LVGL when the parent tree node is deleted. */
+    __SNI_TREE_DEPENDENT_RESOURCE_START,
+    SNI_H_LV_CHART_CURSOR,
+    SNI_H_LV_CHART_SERIES,
+    SNI_H_LV_EVENT_CB,
+    SNI_H_LV_EVENT_DSC,
+    __SNI_TREE_DEPENDENT_RESOURCE_END,
+
+    /* ---- Hybrid Resources ------------------------------------------
+     * Have both tree-node and managed-resource characteristics.  Can be
+     * destroyed by multiple subsystems (SNI sweep, Activity Controller,
+     * animation path).  Coordinates via ptr-NULL sentinel. */
+    __SNI_HYBRID_RESOURCE_START,
+    SNI_H_EOS_ACTIVITY,
+    SNI_H_EOS_VIEW, /**< Activity View wrapper — immutable container, parent-only access */
+    __SNI_HYBRID_RESOURCE_END,
+
+    /* ---- Pure Managed Resources ------------------------------------
+     * Lifecycle fully independent of the LVGL object tree.  Sweep
+     * (Phase 4c) calls the corresponding LVGL destroy API for each type
+     * before freeing the JS wrapper node. */
+    __SNI_PURE_MANAGED_RESOURCE_START,
     SNI_H_LV_TIMER,
     SNI_H_LV_STYLE,
     SNI_H_LV_ANIM,
-    SNI_H_LV_CHART_CURSOR,
-    SNI_H_LV_CHART_SERIES,
-    SNI_H_INT32,
-    SNI_H_LV_COLOR_FILTER_DSC,
-    SNI_H_LV_DISPLAY,
-    SNI_H_EOS_ACTIVITY,
+    SNI_H_LV_FONT,
+    SNI_H_LV_GROUP,
+    SNI_H_LV_LAYER,
+    SNI_H_LV_OBSERVER,
     SNI_H_LV_DRAW_BUF,
+    SNI_H_LV_SUBJECT,
+    SNI_H_LV_COLOR_FILTER_DSC,
+    __SNI_PURE_MANAGED_RESOURCE_END,
+
+    /* ---- Value-like Handles (Technical Debt) -----------------------
+     * Stack-scoped types currently misclassified as Handle Objects.
+     * They hold no independently-allocated native resource and should
+     * be migrated to the __SNI_VALUE range.  Sweep only frees the JS
+     * wrapper node — no native destruction needed.
+     *
+     * TODO: Re-number into __SNI_VALUE_START..__SNI_VALUE_END. */
+    SNI_H_INT32,
+    SNI_H_LV_DISPLAY,
     SNI_H_LV_DRAW_ARC_DSC,
     SNI_H_LV_DRAW_IMAGE_DSC,
     SNI_H_LV_DRAW_LABEL_DSC,
     SNI_H_LV_DRAW_LINE_DSC,
     SNI_H_LV_DRAW_RECT_DSC,
     SNI_H_LV_EVENT,
-    SNI_H_LV_EVENT_CB,
-    SNI_H_LV_EVENT_DSC,
-    SNI_H_LV_FONT,
     SNI_H_LV_GRAD_DSC,
-    SNI_H_LV_GROUP,
     SNI_H_LV_IMAGE_DSC,
-    SNI_H_LV_LAYER,
     SNI_H_LV_OBJ_CLASS,
     SNI_H_LV_OBJ_TREE_WALK_CB,
-    SNI_H_LV_OBSERVER,
     SNI_H_LV_STYLE_TRANSITION_DSC,
     SNI_H_LV_STYLE_VALUE,
-    SNI_H_LV_SUBJECT,
 
     __SNI_HANDLE_RESOURCE_END,
 
@@ -203,6 +270,28 @@ typedef struct sni_managed_resource_node
 } sni_managed_resource_node_t;
 
 /**
+ * @brief Teardown phase state machine
+ *
+ * Tracks the current phase during Realm destruction.  Each phase restricts
+ * which APIs are safe to call.  See sni.mdx "Realm 销毁顺序" for the full
+ * specification.  The sweep (sni_context_sweep_all) advances through 4a→4d.
+ */
+typedef enum
+{
+    SNI_TEARDOWN_PHASE_NONE = 0, /**< Normal runtime — all APIs allowed */
+    SNI_TEARDOWN_PHASE_JS_DECOUPLE, /**< Phase 0: sni_context_clear_native_ptrs_all */
+    SNI_TEARDOWN_PHASE_JS_REFS, /**< Phase 1: sni_context_sweep_js_refs */
+    SNI_TEARDOWN_PHASE_LVGL_EVENTS, /**< Phase 2: sni_cb_context_cleanup_events */
+    SNI_TEARDOWN_PHASE_ENGINE_STOPPED, /**< Phase 3: script_engine_stop — no jerry_value_free */
+    SNI_TEARDOWN_PHASE_SWEEP_TREE_DEP, /**< Phase 4a: Tree-Dependent unlinking */
+    SNI_TEARDOWN_PHASE_SWEEP_HYBRID, /**< Phase 4b: Hybrid (Activity) destruction */
+    SNI_TEARDOWN_PHASE_SWEEP_PURE, /**< Phase 4c: Pure Managed native destruction */
+    SNI_TEARDOWN_PHASE_SWEEP_VALUE_LIKE, /**< Phase 4d: Value-like node cleanup */
+    SNI_TEARDOWN_PHASE_CTX_DESTROY, /**< Phase 5: sni_context_destroy */
+    SNI_TEARDOWN_PHASE_COMPLETE, /**< Phase 6+: LVGL tree deletion — no SNI access */
+} sni_teardown_phase_t;
+
+/**
  * @brief Per-Realm SNI context
  *
  * Maintains type-indexed linked lists of managed resources for lifecycle management.
@@ -217,6 +306,7 @@ typedef struct sni_context
     void *event_ctx_list;
     struct script_program *owner;
     bool paused;
+    sni_teardown_phase_t teardown_phase; /**< Current phase during Realm destruction */
 } sni_context_t;
 
 #ifdef __cplusplus

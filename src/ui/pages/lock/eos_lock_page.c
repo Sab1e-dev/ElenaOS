@@ -24,6 +24,7 @@
 #include "eos_service_haptic.h"
 #include "eos_overlay_layer.h"
 #include "eos_numpad.h"
+#include "eos_anim.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define LOCK_PAGE_MAGIC 0x4C4F434BU
@@ -43,8 +44,7 @@ static _lock_page_ctx_t *_ctx = NULL;
 
 /* Forward declarations ---------------------------------------*/
 static void _verify_password(_lock_page_ctx_t *ctx);
-static void _shake_anim_exec_cb(void *var, int32_t value);
-static void _shake_anim_complete_cb(lv_anim_t *anim);
+static void _shake_anim_complete_cb(eos_anim_t *anim);
 static void _restore_title_async_cb(void *user_data);
 
 /* Function Implementations -----------------------------------*/
@@ -98,16 +98,15 @@ static void _verify_password(_lock_page_ctx_t *ctx)
     /* Shake animation on dot container */
     if (numpad->dot_container && lv_obj_is_valid(numpad->dot_container))
     {
-        lv_anim_t anim;
-        lv_anim_init(&anim);
-        lv_anim_set_var(&anim, numpad->dot_container);
-        lv_anim_set_values(&anim, -12, 12);
-        lv_anim_set_duration(&anim, 60);
-        lv_anim_set_repeat_count(&anim, 3);
-        lv_anim_set_playback_time(&anim, 60);
-        lv_anim_set_exec_cb(&anim, _shake_anim_exec_cb);
-        lv_anim_set_completed_cb(&anim, _shake_anim_complete_cb);
-        lv_anim_start(&anim);
+        int32_t dot_y = lv_obj_get_y(numpad->dot_container);
+        eos_anim_t *anim = eos_anim_move_create(numpad->dot_container, -12, dot_y, 12, dot_y, 60, false);
+        if (anim)
+        {
+            eos_anim_set_repeat_count(anim, 3);
+            eos_anim_set_playback_time(anim, 60);
+            eos_anim_add_cb(anim, _shake_anim_complete_cb, NULL);
+            eos_anim_start(anim);
+        }
     }
 
     eos_numpad_clear(numpad);
@@ -116,18 +115,9 @@ static void _verify_password(_lock_page_ctx_t *ctx)
     lv_async_call(_restore_title_async_cb, ctx->title_label);
 }
 
-static void _shake_anim_exec_cb(void *var, int32_t value)
+static void _shake_anim_complete_cb(eos_anim_t *anim)
 {
-    lv_obj_t *obj = (lv_obj_t *)var;
-    if (obj && lv_obj_is_valid(obj))
-    {
-        lv_obj_set_style_translate_x(obj, value, 0);
-    }
-}
-
-static void _shake_anim_complete_cb(lv_anim_t *anim)
-{
-    lv_obj_t *obj = (lv_obj_t *)anim->var;
+    lv_obj_t *obj = anim->tar_obj;
     if (obj && lv_obj_is_valid(obj))
     {
         lv_obj_set_style_translate_x(obj, 0, 0);
@@ -213,7 +203,7 @@ static void _destroy_lock_ui(_lock_page_ctx_t *ctx)
     eos_free(ctx);
 }
 
-/* ---- Public API ---- */
+/* Public API -------------------------------------------------*/
 
 void eos_lock_page_show(void)
 {

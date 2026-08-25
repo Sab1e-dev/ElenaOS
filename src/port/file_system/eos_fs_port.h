@@ -66,7 +66,7 @@ typedef struct
     void *data;
     size_t size;
 } eos_async_write_task_t;
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Set the virtual filesystem root directory.

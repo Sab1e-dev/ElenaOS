@@ -84,7 +84,7 @@ void eos_service_permission_init(void)
     EOS_LOG_I("Permission service initialized");
 }
 
-/* ---- Public API ---- */
+/* Public API -------------------------------------------------*/
 
 const char *eos_permission_category_key(eos_perm_category_t cat)
 {

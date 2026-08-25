@@ -153,6 +153,18 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_PERM_NO_PERMISSIONS] = "No special permissions required",
     [STR_ID_PERM_MANAGEMENT] = "Permission Management",
     [STR_ID_PERM_TITLE] = "Permission",
+    [STR_ID_APP_RESTART] = "Restart App",
+    [STR_ID_APP_EXIT] = "Exit App",
+    [STR_ID_RESTART] = "Restart",
+    /* Developer Options */
+    [STR_ID_SETTINGS_DEVELOPER_OPTIONS] = "Developer Options",
+    [STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS] = "View Logs",
+    [STR_ID_SETTINGS_DEVELOPER_FPS] = "FPS Display",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY] = "Memory",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_USED] = "Used Memory",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "Free Memory",
+    [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS Display",
+    [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "Touch Coordinates",
     // Add new string IDs and English translations here as needed
 };
 
@@ -286,6 +298,18 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_PERM_NO_PERMISSIONS] = "此应用无需特殊权限",
     [STR_ID_PERM_MANAGEMENT] = "权限管理",
     [STR_ID_PERM_TITLE] = "权限",
+    [STR_ID_APP_RESTART] = "重启应用",
+    [STR_ID_APP_EXIT] = "退出应用",
+    [STR_ID_RESTART] = "重启",
+    /* Developer Options */
+    [STR_ID_SETTINGS_DEVELOPER_OPTIONS] = "开发者选项",
+    [STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS] = "查看日志",
+    [STR_ID_SETTINGS_DEVELOPER_FPS] = "FPS显示",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY] = "内存",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_USED] = "已用内存",
+    [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "空闲内存",
+    [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS显示",
+    [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "触摸坐标",
     // Add new string IDs and Chinese translations here as needed
 };
 
@@ -310,7 +334,7 @@ void eos_lang_init(void)
          * otherwise, the default language is applied.
          */
         const char *default_lang = EOS_CONFIG_DEFAULT_LANGUAGE == 1 ? "简体中文" : "English";
-        const char *lang_str = eos_config_get_string(EOS_CONFIG_KEY_LANGUAGE_STR, default_lang);
+        char *lang_str = eos_config_get_string(EOS_CONFIG_KEY_LANGUAGE_STR, default_lang);
         eos_lang_set_current_id(eos_lang_parse_name(lang_str));
         lang_initialized = true;
         EOS_LOG_I("Language initialized: %s (default: %s)", lang_str, default_lang);

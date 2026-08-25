@@ -33,7 +33,7 @@ typedef struct
     eos_dev_state_t _state;
 } eos_dev_display_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Get display device instance

@@ -33,13 +33,17 @@
 /* Build / compilation mode -----------------------------------*/
 
 #ifndef EOS_COMPILE_MODE
-#define EOS_COMPILE_MODE DEBUG
+#define EOS_COMPILE_MODE EOS_DEBUG
 #endif
 
 /* Feature switches -------------------------------------------*/
 
 #ifndef EOS_ICON_STR_BUILD_IN
 #define EOS_ICON_STR_BUILD_IN 0
+#endif
+
+#ifndef EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
+#define EOS_CONFIG_ANIM_SNAPSHOT_ENABLED 1
 #endif
 
 #ifndef EOS_USE_VIRTUAL_DISPLAY
@@ -80,7 +84,11 @@
 #define EOS_MEM_TRACK_ENABLE 1
 #endif
 
-/* Image cache -------------------------------------------------*/
+#ifndef EOS_MEM_TRACK_TABLE_SIZE
+#define EOS_MEM_TRACK_TABLE_SIZE 4096
+#endif
+
+/* Image cache ------------------------------------------------*/
 
 #ifndef EOS_CACHE_ENABLE
 #define EOS_CACHE_ENABLE 1
@@ -92,7 +100,7 @@
 #elif defined(IMAGE_CACHE_IN_SRAM_SIZE) && (IMAGE_CACHE_IN_SRAM_SIZE > 0)
 #define EOS_CACHE_SIZE ((uint32_t)(IMAGE_CACHE_IN_SRAM_SIZE))
 #else
-#define EOS_CACHE_SIZE (128U * 1024U)
+#define EOS_CACHE_SIZE (384U * 1024U)
 #endif
 #endif
 
@@ -108,13 +116,13 @@
 #endif
 #endif
 
-/* RTOS --------------------------------------------------------*/
+/* RTOS -------------------------------------------------------*/
 
 #ifndef EOS_RTOS_TYPE
 #define EOS_RTOS_TYPE EOS_RTOS_BARE_METAL
 #endif
 
-/* Font --------------------------------------------------------*/
+/* Font -------------------------------------------------------*/
 
 #ifndef EOS_FONT_TYPE
 #define EOS_FONT_TYPE EOS_FONT_TTF
@@ -167,6 +175,90 @@
 #define EOS_FONT_TTF_ENABLE_EXTENDED 0
 #endif
 
+#ifndef EOS_FONT_TTF_FALLBACK_PTR
+#ifdef EOS_FONT_TTF_FALLBACK_NAME
+#define EOS_FONT_TTF_FALLBACK_PTR (&EOS_FONT_TTF_FALLBACK_NAME)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_8)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_8)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_10)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_10)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_12)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_12)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_14)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_14)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_16)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_16)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_18)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_18)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_20)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_20)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_22)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_22)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_24)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_24)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_26)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_26)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_28)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_28)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_30)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_30)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_32)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_32)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_34)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_34)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_36)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_36)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_38)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_38)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_40)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_40)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_42)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_42)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_44)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_44)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_46)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_46)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_48)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_48)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_MONTSERRAT_28_COMPRESSED)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_28_compressed)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_DEJAVU_16_PERSIAN_HEBREW)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_dejavu_16_persian_hebrew)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_SOURCE_HAN_SANS_SC_14_CJK)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_source_han_sans_sc_14_cjk)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_SOURCE_HAN_SANS_SC_16_CJK)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_source_han_sans_sc_16_cjk)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UNSCII_8)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_unscii_8)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UNSCII_16)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_unscii_16)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_SIMYOU_30_CH)
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_simyou_30_ch)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_12)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_12)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_14)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_14)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_16)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_16)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_18)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_18)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_20)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_20)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_24)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_24)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_28)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_28)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_36)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_36)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_56)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_56)
+#elif defined(EOSCFG_FONT_TTF_FALLBACK_UBUNTU_72)
+#define EOS_FONT_TTF_FALLBACK_PTR (lv_font_ubuntu_72)
+#else
+#define EOS_FONT_TTF_FALLBACK_PTR (&lv_font_montserrat_30)
+#endif
+#endif
+
 #if EOS_FONT_TTF_ENABLE_EXTENDED
 #ifndef EOS_FONT_TTF_KERNING
 #define EOS_FONT_TTF_KERNING 0
@@ -178,7 +270,7 @@
 
 #endif /* EOS_FONT_TYPE */
 
-/* Display -----------------------------------------------------*/
+/* Display ----------------------------------------------------*/
 
 #ifndef EOS_DISPLAY_WIDTH
 #define EOS_DISPLAY_WIDTH 390
@@ -200,7 +292,7 @@
 #define EOS_DISPLAY_BRIGHTNESS_MAX 100
 #endif
 
-/* File system -------------------------------------------------*/
+/* File system ------------------------------------------------*/
 
 #ifndef EOS_SYS_ROOT_DIR
 #define EOS_SYS_ROOT_DIR "/"
@@ -229,19 +321,19 @@
 #define EOS_DFW_ENABLE 0
 #endif
 
-/* Language ----------------------------------------------------*/
+/* Language ---------------------------------------------------*/
 
 #ifndef EOS_CONFIG_DEFAULT_LANGUAGE
 #define EOS_CONFIG_DEFAULT_LANGUAGE 0
 #endif
 
-/* Miscellaneous -----------------------------------------------*/
+/* Miscellaneous ----------------------------------------------*/
 
 #ifndef EOS_ENABLE_TEST_APP
 #define EOS_ENABLE_TEST_APP 1
 #endif
 
-/* Logging -----------------------------------------------------*/
+/* Logging ----------------------------------------------------*/
 
 #ifndef EOS_USE_ASSERT
 #define EOS_USE_ASSERT 1

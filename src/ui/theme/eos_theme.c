@@ -16,15 +16,15 @@
 #include "eos_crown.h"
 /* Macros and Definitions -------------------------------------*/
 #define _DEBOUNCE_PERIOD 200
-/************************** Text **************************/
+/* Text -------------------------------------------------------*/
 #define TEXT_COLOR EOS_COLOR_WHITE
-/************************** View **************************/
+/* View -------------------------------------------------------*/
 #define VIEW_BG_COLOR EOS_COLOR_BLACK
-/************************** List **************************/
+/* List -------------------------------------------------------*/
 #define LIST_BG_COLOR EOS_COLOR_BLACK
-/************************** Switch **************************/
+/* Switch -----------------------------------------------------*/
 #define SWITCH_BG_COLOR EOS_COLOR_GREEN
-/************************** Slider **************************/
+/* Slider -----------------------------------------------------*/
 #define SLIDER_MAIN_COLOR lv_color_hex(0x34C759)
 #define SLIDER_BG_COLOR lv_color_hex(0x262737)
 
@@ -48,7 +48,7 @@ static lv_style_t style_slider_pressed_color;
 static lv_font_t *global_font = NULL;
 /* Function Implementations -----------------------------------*/
 
-/************************** Debounce **************************/
+/* Debounce ---------------------------------------------------*/
 static void _debounce_timer_cb(lv_timer_t *t)
 {
     lv_obj_t *btn = lv_timer_get_user_data(t);
@@ -63,7 +63,7 @@ static void _object_clicked_cb(lv_event_t *e)
     lv_timer_t *t = lv_timer_create(_debounce_timer_cb, _DEBOUNCE_PERIOD, btn);
     lv_timer_set_repeat_count(t, 1);
 }
-/************************** Initialize styles **************************/
+/* Initialize styles ------------------------------------------*/
 
 void _init_style_button(void)
 {
@@ -97,6 +97,7 @@ void _init_style_switch(void)
 
     lv_style_init(&style_switch_indicator);
     lv_style_set_bg_color(&style_switch_indicator, SWITCH_BG_COLOR);
+    lv_style_set_bg_opa(&style_switch_indicator, LV_OPA_COVER);
 }
 
 void _init_style_list(void)
@@ -149,38 +150,83 @@ void _init_style_roller(void)
     lv_style_set_bg_opa(&style_roller_selected, LV_OPA_TRANSP);
 }
 
+/*
+ * Compatibility workaround for LVGL versions before the fix that skips
+ * state transitions for widgets that have not been rendered yet.
+ *
+ * In affected versions, changing the state of an unrendered widget may
+ * create a transition style before the first render. The transition style
+ * can then take precedence over the target state's local style during
+ * snapshot rendering, causing the snapshot to observe the transition's
+ * initial or intermediate value instead of the intended state style.
+ *
+ * The style is therefore resolved and synchronized to a local style before
+ * snapshot rendering.
+ *
+ * This workaround can be removed after upgrading to a LVGL version that
+ * contains the unrendered-widget transition fix.
+ */
+static void _switch_sync_indicator_style(lv_obj_t *sw)
+{
+    bool checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    if (checked)
+    {
+        lv_color_t c = lv_obj_get_style_bg_color(sw, LV_PART_INDICATOR);
+        lv_opa_t opa = lv_obj_get_style_bg_opa(sw, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_color(sw, c, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_opa(sw, opa, LV_PART_INDICATOR);
+    }
+    else
+    {
+        lv_obj_set_style_bg_opa(sw, LV_OPA_TRANSP, LV_PART_INDICATOR);
+    }
+}
+
+static void _switch_indicator_sync_cb(lv_event_t *e)
+{
+    _switch_sync_indicator_style(lv_event_get_target(e));
+}
+
 static void _theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
 {
     LV_UNUSED(th);
 
-    /* Disable SCROLL_ON_FOCUS for all objects */
+    /* Disable scrolling & scrollbar for all objects by default */
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
 
-    /************************** LIST **************************/
+    /* LIST -------------------------------------------------------*/
     if (lv_obj_check_type(obj, &lv_label_class))
     {
         lv_obj_add_style(obj, &style_label, 0);
     }
-    /************************** BUTTON **************************/
+    /* BUTTON -----------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_button_class))
     {
         lv_obj_add_event_cb(obj, _object_clicked_cb, LV_EVENT_CLICKED, NULL);
         lv_obj_add_style(obj, &style_button, 0);
     }
-    /************************** LABEL **************************/
+    /* LABEL ------------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_list_class))
     {
         lv_obj_add_style(obj, &style_list, 0);
         eos_crown_encoder_set_target_obj(obj);
     }
-    /************************** SWITCH **************************/
+    /* SWITCH -----------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_switch_class))
     {
         lv_obj_add_event_cb(obj, _object_clicked_cb, LV_EVENT_CLICKED, NULL);
         lv_obj_add_style(obj, &style_switch_main, LV_PART_MAIN);
         lv_obj_add_style(obj, &style_switch_indicator, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+        /* Keep a non-state-dependent local copy of the indicator
+         * style in sync with the current CHECKED state so the
+         * snapshot path (lv_obj_redraw) renders the correct color. */
+        _switch_sync_indicator_style(obj);
+        lv_obj_add_event_cb(obj, _switch_indicator_sync_cb, LV_EVENT_STYLE_CHANGED, NULL);
     }
-    /************************** SLIDER **************************/
+    /* SLIDER -----------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_slider_class))
     {
         lv_obj_remove_style_all(obj);
@@ -189,7 +235,7 @@ static void _theme_apply_cb(lv_theme_t *th, lv_obj_t *obj)
         lv_obj_add_style(obj, &style_slider_pressed_color, LV_PART_INDICATOR | LV_STATE_PRESSED);
         lv_obj_add_style(obj, &style_slider_knob, LV_PART_KNOB);
     }
-    /************************** ROLLER **************************/
+    /* ROLLER -----------------------------------------------------*/
     else if (lv_obj_check_type(obj, &lv_roller_class))
     {
         lv_obj_add_style(obj, &style_roller_main, LV_PART_MAIN);

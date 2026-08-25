@@ -40,7 +40,7 @@ static void _corner_radius_buffer_free(void *user_data)
     EOS_CHECK_PTR_RETURN(dsc);
     if (dsc->data)
     {
-        eos_cache_buf_free(dsc->data);
+        eos_cache_buf_free((void *)dsc->data);
         dsc->data = NULL;
     }
     eos_free(dsc);
@@ -97,6 +97,7 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners, lv_
         EOS_LOG_E("Failed to allocate canvas buffer: %u bytes", canvas_buf_size);
         return;
     }
+    memset(canvas_buf, 0, canvas_buf_size);
 
     lv_obj_t *canvas = lv_canvas_create(lv_screen_active());
     EOS_CHECK_PTR_RETURN_FREE(canvas, canvas_buf);
@@ -144,7 +145,7 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners, lv_
     }
 
     lv_canvas_finish_layer(canvas, &layer);
-    lv_obj_delete_async(canvas);
+    lv_obj_delete(canvas);
 
     lv_image_dsc_t *dsc = eos_malloc_zeroed(sizeof(lv_image_dsc_t));
     EOS_CHECK_PTR_RETURN_FREE(dsc, canvas_buf);
@@ -162,8 +163,9 @@ void eos_obj_set_corner_radius_bg(lv_obj_t *obj, eos_corner_round_t corners, lv_
     lv_obj_set_style_shadow_width(obj, 0, 0);
     lv_obj_set_style_radius(obj, 0, 0);
 
+    /* First remove the old bg_image_src, then free the old dsc, to prevent accessing freed memory during redraw */
+    lv_obj_set_style_bg_image_src(obj, NULL, 0);
     lv_obj_send_event(obj, _corner_radius_event_id, NULL);
-
     lv_obj_remove_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb);
 
     if (lv_obj_add_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb, LV_EVENT_DELETE, dsc) == NULL)
@@ -187,10 +189,12 @@ void eos_obj_remove_corner_radius_bg(lv_obj_t *obj)
 {
     EOS_CHECK_PTR_RETURN(obj);
     _corner_radius_event_init();
-    lv_obj_send_event(obj, _corner_radius_event_id, NULL);
-    lv_obj_remove_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb);
-    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
+
     lv_obj_set_style_bg_image_src(obj, NULL, 0);
+    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(obj, 0, 0);
     lv_obj_set_style_shadow_width(obj, 0, 0);
+
+    lv_obj_send_event(obj, _corner_radius_event_id, NULL);
+    lv_obj_remove_event_cb(obj, _obj_corner_radius_canvas_buffer_delete_cb);
 }

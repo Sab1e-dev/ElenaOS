@@ -71,7 +71,7 @@ const char *eos_fs_realpath(const char *path, char *buf, size_t bufsz)
 
 /* Function Implementations -----------------------------------*/
 
-/* ---------------- POSIX FS implementation ------------------ */
+/* POSIX FS implementation ------------------------------------*/
 
 /* Open file read-only */
 eos_file_t eos_fs_open_read(const char *path)

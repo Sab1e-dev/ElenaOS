@@ -49,7 +49,7 @@ static eos_event_code_t _next_event_id = EOS_EVENT_LAST;
 
 /* Function Implementations -----------------------------------*/
 
-#if EOS_COMPIPILE_MODE == DEBUG
+#if EOS_COMPIPILE_MODE == EOS_DEBUG
 void _event_list_show(void)
 {
     event_node_t *curr = _event_list_head;

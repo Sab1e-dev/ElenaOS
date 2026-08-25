@@ -204,7 +204,7 @@ typedef void (*eos_sensor_data_ready_cb_t)(eos_sensor_type_t type, uint32_t coun
  */
 typedef struct
 {
-    /* ---- Required ops ---- */
+    /* Required ops -----------------------------------------------*/
     void (*init)(eos_dev_sensor_t *dev);
     void (*deinit)(eos_dev_sensor_t *dev);
     void (*enable)(eos_dev_sensor_t *dev);
@@ -212,7 +212,7 @@ typedef struct
     void (*set_sample_rate)(eos_dev_sensor_t *dev, uint32_t hz);
     void (*get_sample_rate)(eos_dev_sensor_t *dev, uint32_t *hz);
 
-    /* ---- Optional hardware-FIFO ops (NULL = unsupported) ---- */
+    /* Optional hardware-FIFO ops (NULL = unsupported) ------------*/
     /**
      * @brief Set the hardware FIFO watermark threshold.
      *        When the sensor's internal FIFO reaches this many samples,
@@ -252,7 +252,7 @@ struct eos_dev_sensor_t
     struct eos_dev_sensor_t *_next;
 };
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Register a sensor device

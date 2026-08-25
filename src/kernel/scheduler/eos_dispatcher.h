@@ -18,7 +18,7 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 typedef void (*eos_dispatcher_cb_t)(void *); /**< Callback definition */
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 /**
  * @brief Initialize task dispatcher (must be called before GUI thread starts or during initialization phase)
  */

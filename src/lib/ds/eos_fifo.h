@@ -29,7 +29,7 @@ typedef struct
 
 typedef struct eos_fifo_t eos_fifo_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create a FIFO ring buffer

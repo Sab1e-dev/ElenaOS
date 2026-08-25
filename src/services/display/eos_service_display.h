@@ -29,7 +29,7 @@ typedef enum
     EOS_DISPLAY_DURATION_SLOW = 500,
 } eos_display_duration_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Set brightness

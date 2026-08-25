@@ -40,7 +40,7 @@ typedef struct
     lv_coord_t content_height; /**< Cached content height */
 } eos_accordion_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Create an accordion widget

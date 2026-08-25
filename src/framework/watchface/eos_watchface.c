@@ -415,5 +415,9 @@ eos_result_t eos_watchface_init(void)
     }
 
     EOS_LOG_I("Watchface initialized successfully: %s", wf_id);
+
+    /* Register crash recovery handler for JS watchface callback crashes */
+    eos_watchface_js_crash_handler_init();
+
     return EOS_OK;
 }

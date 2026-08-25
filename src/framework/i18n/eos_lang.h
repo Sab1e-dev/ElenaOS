@@ -156,11 +156,23 @@ typedef enum
     STR_ID_PERM_NO_PERMISSIONS,
     STR_ID_PERM_MANAGEMENT,
     STR_ID_PERM_TITLE,
+    STR_ID_APP_RESTART,
+    STR_ID_APP_EXIT,
+    STR_ID_RESTART,
+    /* Developer Options */
+    STR_ID_SETTINGS_DEVELOPER_OPTIONS,
+    STR_ID_SETTINGS_DEVELOPER_VIEW_LOGS,
+    STR_ID_SETTINGS_DEVELOPER_FPS,
+    STR_ID_SETTINGS_DEVELOPER_MEMORY,
+    STR_ID_SETTINGS_DEVELOPER_MEMORY_USED,
+    STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE,
+    STR_ID_SETTINGS_DEVELOPER_OBJS,
+    STR_ID_SETTINGS_DEVELOPER_TOUCH,
     /* New string IDs can be added here */
     STR_ID_MAX_NUMBER /**< Maximum string ID */
 } lang_string_id_t;
 
-/* Public function prototypes --------------------------------*/
+/* Public function prototypes ---------------------------------*/
 
 /**
  * @brief Initialize language system

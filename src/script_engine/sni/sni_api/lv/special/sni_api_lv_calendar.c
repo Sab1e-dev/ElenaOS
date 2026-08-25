@@ -49,7 +49,7 @@ static void sni_calendar_free_day_names(char **day_names, uint32_t day_count)
 
 static void sni_calendar_release_ctx(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return;
@@ -72,7 +72,7 @@ static void sni_calendar_release_ctx(lv_obj_t *obj)
 
 static sni_calendar_ctx_t *sni_calendar_find_or_create_ctx(lv_obj_t *obj)
 {
-    sni_control_block_t *cb = (sni_control_block_t *)lv_obj_get_user_data(obj);
+    sni_control_block_t *cb = sni_cb_from_obj(obj);
     if (!cb)
     {
         return NULL;
