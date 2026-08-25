@@ -647,32 +647,13 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         return;
     }
 
-    if (back)
-    {
-        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
-    }
-
+    /* Update layout first (works even if objects are hidden) so we can
+     * compute the button's off-screen position before unhiding anything. */
     lv_obj_update_layout(list_view);
     lv_obj_update_layout(list);
     lv_coord_t btn_w = lv_obj_get_width(button);
     lv_area_t btn_area;
     lv_obj_get_coords(button, &btn_area);
-
-    lv_obj_t *visible_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
-    uint32_t visible_item_cnt =
-        _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
-    lv_obj_t *all_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
-    uint32_t all_item_cnt = 0U;
-    if (back && visible_item_cnt == 0U)
-    {
-        visible_item_cnt =
-            _list_transition_collect_all_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
-    }
-    if (back)
-    {
-        all_item_cnt = _list_transition_collect_all_children(list, all_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
-    }
 
     uint32_t total_duration = EOS_VIEW_SWITCH_DURATION;
     if (total_duration == 0U)
@@ -702,27 +683,38 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
 
     int32_t button_start_x;
     int32_t button_end_x;
+    int32_t page_start_x;
+    int32_t page_end_x;
+    lv_obj_t *visible_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
+    uint32_t visible_item_cnt = 0U;
+    lv_obj_t *all_items[_LIST_TRANSITION_MAX_VISIBLE_ITEMS] = {0};
+    uint32_t all_item_cnt = 0U;
+
     if (back)
     {
         button_start_x = (style_translate_x < 0) ? style_translate_x : button_hidden_x;
         button_end_x = 0;
-        /* Ensure the real button is at the hidden position before snapshot capture,
-         * in case its translate_x was reset to 0 between forward and reverse transitions.
-         * Without this, the button would be visible at its normal position when the list
-         * is unhidden, appearing to "pop in" instead of smoothly sliding back. */
-        lv_obj_set_style_translate_x(button, button_start_x, 0);
-    }
-    else
-    {
-        button_start_x = 0;
-        button_end_x = button_hidden_x;
-        state->button_hidden_x = button_hidden_x;
-    }
-    int32_t page_start_x = back ? 0 : EOS_DISPLAY_WIDTH;
-    int32_t page_end_x = back ? EOS_DISPLAY_WIDTH : 0;
+        page_start_x = 0;
+        page_end_x = EOS_DISPLAY_WIDTH;
 
-    if (back)
-    {
+        /* Collect list items BEFORE unhiding the list.  The list is still
+         * hidden so _list_transition_collect_visible_children returns 0;
+         * we fall back to collecting all children, which is fine for back. */
+        visible_item_cnt =
+            _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+        if (visible_item_cnt == 0U)
+        {
+            visible_item_cnt =
+                _list_transition_collect_all_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+        }
+        all_item_cnt = _list_transition_collect_all_children(list, all_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+
+        /* Pre-position the button at its off-screen starting point BEFORE
+         * unhiding the list, so it is never visible at its normal rest
+         * position before the slide-in animation begins. */
+        lv_obj_set_style_translate_x(button, button_start_x, 0);
+
+        /* Set initial scale for non-visible items before unhiding */
         for (uint32_t i = 0U; i < all_item_cnt; i++)
         {
             lv_obj_t *obj = all_items[i];
@@ -742,11 +734,11 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
         }
 
-        /* Ensure the real button starts at the hidden off-screen position before
-         * the list becomes visible, so it does not "pop in" at its normal spot.
-         * The button animation runs directly (no snapshot backend) so the real
-         * widget slides back into view instead of a hidden snapshot image. */
-        lv_obj_set_style_translate_x(button, button_start_x, 0);
+        /* Now that the button is safely off-screen, unhide the list so the
+         * animation can run.  Order matters: button position first, then
+         * unhide — otherwise the button pops in at full opacity. */
+        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
 
         /* Snapshot-batch other list items (scale grow animation) */
         eos_anim_snapshot_batch_begin();
@@ -805,6 +797,15 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
     }
     else
     {
+        button_start_x = 0;
+        button_end_x = button_hidden_x;
+        state->button_hidden_x = button_hidden_x;
+        page_start_x = EOS_DISPLAY_WIDTH;
+        page_end_x = 0;
+
+        visible_item_cnt =
+            _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
+
         eos_anim_snapshot_batch_begin();
 
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
