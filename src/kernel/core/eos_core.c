@@ -56,6 +56,7 @@
 #include "eos_toast.h"
 #include "eos_service_haptic.h"
 #include "eos_crown.h"
+#include "eos_touch.h"
 #include "eos_service_permission.h"
 #include "eos_overlay_layer.h"
 #include "eos_icon.h"
@@ -213,6 +214,7 @@ void eos_init(void)
     eos_toast_init();
     eos_service_haptic_init();
     eos_crown_init();
+    eos_touch_init();
     script_engine_init();
     spm_init();
     eos_service_config_init();

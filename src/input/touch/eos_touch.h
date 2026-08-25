@@ -20,6 +20,14 @@ extern "C" {
 
 /* Public function prototypes ---------------------------------*/
 /**
+ * @brief Initialize touch input device configuration
+ *
+ * Sets scroll_limit and other gesture-related parameters
+ * to appropriate values for the target device.
+ */
+void eos_touch_init(void);
+
+/**
  * @brief Get the first touch device
  * @return lv_indev_t* Returns touch device pointer if successful, otherwise returns NULL
  */
