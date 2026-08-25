@@ -220,51 +220,17 @@ static void _scrollbar_hide_set_anim(void)
     _scrollbar_schedule_hide();
 }
 
-static lv_timer_t *_double_click_timer = NULL;
-static bool _double_click_pending = false;
-
-/**
- * @brief Timeout callback: no second click arrived within the double-click window.
- *        The single-click action fires now — after the window expired without a
- *        second click, confirming the user intended a single click.
- */
-static void _single_click_deferred_cb(lv_timer_t *t)
-{
-    LV_UNUSED(t);
-    _double_click_timer = NULL;
-    _double_click_pending = false;
-    eos_chrome_manager_handle_crown_click();
-}
-
 static void _crown_button_async_cb(void *user_data)
 {
     eos_button_state_t state = (eos_button_state_t)(intptr_t)user_data;
     switch (state)
     {
         case EOS_BUTTON_STATE_CLICKED:
-#if EOS_RECENT_APPS_ENABLE
-            if (_double_click_pending && _double_click_timer)
-            {
-                /* Second click within window → double-click (recents toggle).
-                 * Cancel the deferred single-click timer and open recents. */
-                lv_timer_del(_double_click_timer);
-                _double_click_timer = NULL;
-                _double_click_pending = false;
-                eos_chrome_manager_handle_crown_double_click();
-            }
-            else
-            {
-                /* First click → arm the double-click detection window.
-                 * The single-click action is deferred until the timer
-                 * expires, avoiding the need to "undo" a premature back(). */
-                _double_click_pending = true;
-                _double_click_timer =
-                    lv_timer_create(_single_click_deferred_cb, (uint32_t)EOS_RECENT_APPS_CROWN_DOUBLE_CLICK_MS, NULL);
-                lv_timer_set_repeat_count(_double_click_timer, 1);
-            }
-#else
-            /* Recents disabled: single-click fires immediately */
             eos_chrome_manager_handle_crown_click();
+            break;
+        case EOS_BUTTON_STATE_LONG_PRESSED:
+#if EOS_RECENT_APPS_ENABLE
+            eos_chrome_manager_handle_crown_long_press();
 #endif
             break;
         default:

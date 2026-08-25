@@ -265,7 +265,7 @@ void eos_chrome_manager_handle_crown_click(void)
     }
 }
 
-void eos_chrome_manager_handle_crown_double_click(void)
+void eos_chrome_manager_handle_crown_long_press(void)
 {
     /* Wake up first if sleeping */
     if (eos_pm_get_state() == EOS_PM_SLEEP)
@@ -274,7 +274,7 @@ void eos_chrome_manager_handle_crown_double_click(void)
         return;
     }
 
-    /* Don't allow crown double-click to bypass lock screen */
+    /* Don't allow crown long-press to bypass lock screen */
     if (eos_lock_screen_is_active())
     {
         return;
