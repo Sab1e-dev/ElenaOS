@@ -165,6 +165,7 @@ const char *lang_en[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "Free Memory",
     [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS Display",
     [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "Touch Coordinates",
+    [STR_ID_RECENT_APPS_EMPTY] = "No recent apps",
     // Add new string IDs and English translations here as needed
 };
 
@@ -310,6 +311,7 @@ const char *lang_zh[STR_ID_MAX_NUMBER] = {
     [STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE] = "空闲内存",
     [STR_ID_SETTINGS_DEVELOPER_OBJS] = "OBJS显示",
     [STR_ID_SETTINGS_DEVELOPER_TOUCH] = "触摸坐标",
+    [STR_ID_RECENT_APPS_EMPTY] = "暂无最近应用",
     // Add new string IDs and Chinese translations here as needed
 };
 

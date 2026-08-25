@@ -22,6 +22,7 @@
 #include "eos_service_storage.h"
 #include "eos_app.h"
 #include "eos_theme.h"
+#include "eos_lang.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define _RECENT_CARD_WIDTH 300
@@ -268,7 +269,7 @@ static void _create_empty_state(lv_obj_t *parent)
     lv_obj_align(empty_icon, LV_ALIGN_CENTER, 0, -24);
 
     lv_obj_t *empty_label = lv_label_create(s_empty_state);
-    lv_label_set_text(empty_label, "No recent apps");
+    eos_label_set_text_id(empty_label, STR_ID_RECENT_APPS_EMPTY);
     lv_obj_set_style_text_color(empty_label, lv_color_hex(0x8E8E93), 0);
     lv_obj_align(empty_label, LV_ALIGN_CENTER, 0, 12);
 }
@@ -408,7 +409,6 @@ void eos_recent_apps_page_enter(void)
     lv_obj_set_size(view, EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT);
     lv_obj_set_style_bg_color(view, lv_color_black(), 0);
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_RECENT_APPS);
-    eos_activity_set_title(a, "Recent Apps");
     eos_activity_set_app_header_visible(a, false);
 
     eos_activity_enter(a);

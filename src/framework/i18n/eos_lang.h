@@ -168,6 +168,7 @@ typedef enum
     STR_ID_SETTINGS_DEVELOPER_MEMORY_FREE,
     STR_ID_SETTINGS_DEVELOPER_OBJS,
     STR_ID_SETTINGS_DEVELOPER_TOUCH,
+    STR_ID_RECENT_APPS_EMPTY,
     /* New string IDs can be added here */
     STR_ID_MAX_NUMBER /**< Maximum string ID */
 } lang_string_id_t;
