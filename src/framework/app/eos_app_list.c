@@ -48,6 +48,12 @@
 #define _APP_LIST_ANIM_DURATION 350
 #define _APP_LIST_ANIM_FOCUS_SCALE 2048
 #define _APP_LIST_ANIM_MIN_SACLE 64
+/* A transformed full-screen LVGL object at 64 (25%) needs an inverse
+ * source layer that is almost the whole screen.  On U5 this can consume a
+ * second full-screen draw buffer while the page is also being faded.  Keep
+ * the direct path at 128 (50%) so the animation remains a real zoom while
+ * bounding the temporary layer allocation. */
+#define _APP_LIST_DIRECT_ANIM_MIN_SCALE 128
 
 /* Loading screen: poll interval and minimum display time.
  * MIN_MS must be >= ANIM_DURATION so fast apps don't flash. */
@@ -138,6 +144,9 @@ static void _app_installed_cb(eos_event_t *e);
 static void _app_uninstalled_cb(eos_event_t *e);
 static void _container_delete_cb(lv_event_t *e);
 static void _app_list_refresh(lv_obj_t *bubble_grid);
+static void _app_list_release_icon_paths(void);
+static void _app_list_set_system_icon(lv_obj_t *bubble_grid, uint32_t index, const char *app_id, const char *icon_path);
+static void _app_list_set_app_icon(lv_obj_t *bubble_grid, uint32_t index, const char *app_id, const char *icon_path);
 static void _app_list_open_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
 static void _app_list_close_app_anim_cb(eos_anim_group_t *group, eos_activity_t *from, eos_activity_t *to);
 static void _register_anim_routes_once(void);
@@ -151,6 +160,10 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *from,
                                            eos_activity_t *to,
                                            bool opening);
+static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
+                                                   eos_activity_t *from,
+                                                   eos_activity_t *to,
+                                                   bool opening);
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
 
 /* Forward-declare the unified-animation context so the start-function
@@ -215,6 +228,7 @@ struct _transition_anim_ctx_t
     int32_t app_ty_start, app_ty_end; /* translate_y          */
 
     bool opening;
+    bool direct_draw;
     lv_anim_t lv_anim;
     eos_anim_group_t *group;
     lv_obj_t *focus_icon; /* restored when closing anim completes  */
@@ -1347,6 +1361,17 @@ static inline int32_t _elerp(int32_t a, int32_t b, int32_t t)
     return a + ((b - a) * t + 127) / 255;
 }
 
+static void _transition_set_scale(lv_obj_t *obj, int32_t scale, bool direct_draw)
+{
+    if (!obj || !lv_obj_is_valid(obj))
+        return;
+
+    if (direct_draw)
+        lv_obj_set_style_transform_scale(obj, scale, 0);
+    else
+        lv_image_set_scale(obj, scale);
+}
+
 static void _transition_anim_exec_cb(void *var, int32_t v)
 {
     _transition_anim_ctx_t *ctx = (_transition_anim_ctx_t *)var;
@@ -1355,7 +1380,9 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
     /* list_snapshot scale + translate ----------------------------*/
     if (ctx->list_snapshot && lv_obj_is_valid(ctx->list_snapshot))
     {
-        lv_image_set_scale(ctx->list_snapshot, _elerp(ctx->list_scale_start, ctx->list_scale_end, t));
+        _transition_set_scale(ctx->list_snapshot,
+                              _elerp(ctx->list_scale_start, ctx->list_scale_end, t),
+                              ctx->direct_draw);
         lv_obj_set_style_translate_x(ctx->list_snapshot, _elerp(ctx->list_tx_start, ctx->list_tx_end, t), 0);
         lv_obj_set_style_translate_y(ctx->list_snapshot, _elerp(ctx->list_ty_start, ctx->list_ty_end, t), 0);
     }
@@ -1371,7 +1398,9 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
     /* app_snapshot image scale + translate + opacity -------------*/
     if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
     {
-        lv_image_set_scale(ctx->app_snapshot, _elerp(ctx->app_scale_start, ctx->app_scale_end, t));
+        _transition_set_scale(ctx->app_snapshot,
+                              _elerp(ctx->app_scale_start, ctx->app_scale_end, t),
+                              ctx->direct_draw);
         lv_obj_set_style_translate_x(ctx->app_snapshot, _elerp(ctx->app_tx_start, ctx->app_tx_end, t), 0);
         lv_obj_set_style_translate_y(ctx->app_snapshot, _elerp(ctx->app_ty_start, ctx->app_ty_end, t), 0);
     }
@@ -1410,6 +1439,12 @@ static void _transition_anim_ready_cb(lv_anim_t *a)
 {
     _transition_anim_ctx_t *ctx = (_transition_anim_ctx_t *)lv_anim_get_user_data(a);
 
+    if (ctx->direct_draw && ctx->icon_clone && lv_obj_is_valid(ctx->icon_clone))
+    {
+        lv_obj_delete(ctx->icon_clone);
+        ctx->icon_clone = NULL;
+    }
+
     /* Restore focus icon when closing animation finishes */
     if (ctx->focus_icon && lv_obj_is_valid(ctx->focus_icon))
     {
@@ -1439,7 +1474,7 @@ static void _transition_anim_start(_transition_anim_ctx_t *ctx, uint32_t duratio
     /* Apply initial values for all properties */
     if (ctx->list_snapshot && lv_obj_is_valid(ctx->list_snapshot))
     {
-        lv_image_set_scale(ctx->list_snapshot, ctx->list_scale_start);
+        _transition_set_scale(ctx->list_snapshot, ctx->list_scale_start, ctx->direct_draw);
         lv_obj_set_style_translate_x(ctx->list_snapshot, ctx->list_tx_start, 0);
         lv_obj_set_style_translate_y(ctx->list_snapshot, ctx->list_ty_start, 0);
     }
@@ -1451,7 +1486,7 @@ static void _transition_anim_start(_transition_anim_ctx_t *ctx, uint32_t duratio
     }
     if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
     {
-        lv_image_set_scale(ctx->app_snapshot, ctx->app_scale_start);
+        _transition_set_scale(ctx->app_snapshot, ctx->app_scale_start, ctx->direct_draw);
         lv_obj_set_style_translate_x(ctx->app_snapshot, ctx->app_tx_start, 0);
         lv_obj_set_style_translate_y(ctx->app_snapshot, ctx->app_ty_start, 0);
     }
@@ -1550,6 +1585,145 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
     return icon_clone;
 }
 
+/* Direct-draw transition used on platforms where animation snapshots are
+ * disabled.  It keeps the same zoom/translate/cross-fade choreography as the
+ * snapshot transition, but transforms the real activity views instead of
+ * raster images. */
+static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
+                                                   eos_activity_t *from,
+                                                   eos_activity_t *to,
+                                                   bool opening)
+{
+    if (!(group && from && to))
+        return;
+
+    eos_activity_t *list_activity = opening ? from : to;
+    eos_activity_t *page_activity = opening ? to : from;
+    lv_obj_t *list_view = eos_activity_get_view(list_activity);
+    lv_obj_t *page_view = eos_activity_get_view(page_activity);
+    lv_obj_t *bubble_grid = _app_list_get_bubble_grid(list_activity);
+    /* The bubble grid is the visual app-list surface.  Transforming the
+     * whole activity view also includes headers, scroll/layout helpers and
+     * every attached widget; on U5 that makes the first transformed frame
+     * unnecessarily expensive. */
+    lv_obj_t *list_anim_obj = (bubble_grid && lv_obj_is_valid(bubble_grid)) ? bubble_grid : list_view;
+    lv_obj_t *focus_icon = NULL;
+
+    if (bubble_grid && _app_list_last_click_index >= 0)
+    {
+        focus_icon = eos_bubble_get_icon_obj(bubble_grid, (uint32_t)_app_list_last_click_index);
+    }
+
+    if (!(list_view && page_view && list_anim_obj && lv_obj_is_valid(list_view) &&
+          lv_obj_is_valid(page_view) && lv_obj_is_valid(list_anim_obj)))
+    {
+        EOS_LOG_W("direct app-list transition skipped: invalid list/page views");
+        return;
+    }
+
+    lv_obj_update_layout(list_view);
+    lv_obj_update_layout(list_anim_obj);
+    lv_obj_update_layout(page_view);
+
+    bool focus_icon_was_hidden = focus_icon && lv_obj_has_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
+    if (focus_icon)
+    {
+        lv_area_t icon_area;
+        lv_obj_get_coords(focus_icon, &icon_area);
+        _app_list_record_icon_center_point(icon_area.x1 + lv_area_get_width(&icon_area) / 2,
+                                           icon_area.y1 + lv_area_get_height(&icon_area) / 2);
+    }
+
+    lv_obj_t *icon_clone = _app_list_create_icon_clone(focus_icon);
+    if (focus_icon && icon_clone)
+        lv_obj_add_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
+
+    /* Scale the list around the selected bubble and the page around its own
+     * center.  The existing transition uses the same global center point. */
+    int32_t list_pivot_x = lv_obj_get_width(list_anim_obj) / 2;
+    int32_t list_pivot_y = lv_obj_get_height(list_anim_obj) / 2;
+    if (_app_list_last_icon_center_valid)
+    {
+        lv_area_t list_area;
+        lv_obj_get_coords(list_anim_obj, &list_area);
+        list_pivot_x = _app_list_last_icon_center_x - list_area.x1;
+        list_pivot_y = _app_list_last_icon_center_y - list_area.y1;
+    }
+    lv_obj_set_style_transform_pivot_x(list_anim_obj, list_pivot_x, 0);
+    lv_obj_set_style_transform_pivot_y(list_anim_obj, list_pivot_y, 0);
+    lv_obj_set_style_transform_pivot_x(page_view, lv_obj_get_width(page_view) / 2, 0);
+    lv_obj_set_style_transform_pivot_y(page_view, lv_obj_get_height(page_view) / 2, 0);
+
+    if (opening)
+    {
+        lv_obj_remove_flag(page_view, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(page_view);
+    }
+    else
+    {
+        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(list_view);
+        lv_obj_move_foreground(page_view);
+    }
+
+    int32_t focus_translate_x = 0;
+    int32_t focus_translate_y = 0;
+    if (_app_list_last_icon_center_valid)
+    {
+        focus_translate_x = (EOS_DISPLAY_WIDTH / 2) - _app_list_last_icon_center_x;
+        focus_translate_y = (EOS_DISPLAY_HEIGHT / 2) - _app_list_last_icon_center_y;
+    }
+
+    _transition_anim_ctx_t *ctx = eos_malloc_zeroed(sizeof(_transition_anim_ctx_t));
+    if (!ctx)
+    {
+        if (icon_clone)
+            lv_obj_delete(icon_clone);
+        if (focus_icon && !focus_icon_was_hidden)
+            lv_obj_remove_flag(focus_icon, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    ctx->list_snapshot = list_anim_obj;
+    ctx->icon_clone = icon_clone;
+    ctx->app_snapshot = page_view;
+    ctx->obj_a = opening ? icon_clone : page_view;
+    ctx->obj_b = opening ? page_view : icon_clone;
+    ctx->opening = opening;
+    ctx->direct_draw = true;
+    ctx->group = group;
+    ctx->focus_icon = focus_icon;
+
+    ctx->list_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
+    ctx->list_scale_end = opening ? _APP_LIST_ANIM_FOCUS_SCALE : 256;
+    ctx->list_tx_start = opening ? 0 : focus_translate_x;
+    ctx->list_tx_end = opening ? focus_translate_x : 0;
+    ctx->list_ty_start = opening ? 0 : focus_translate_y;
+    ctx->list_ty_end = opening ? focus_translate_y : 0;
+
+    ctx->icon_scale_start = opening ? 256 : _APP_LIST_ANIM_FOCUS_SCALE;
+    ctx->icon_scale_end = opening ? _APP_LIST_ANIM_FOCUS_SCALE : 256;
+    ctx->icon_tx_start = opening ? 0 : focus_translate_x;
+    ctx->icon_tx_end = opening ? focus_translate_x : 0;
+    ctx->icon_ty_start = opening ? 0 : focus_translate_y;
+    ctx->icon_ty_end = opening ? focus_translate_y : 0;
+
+    ctx->app_scale_start = opening ? _APP_LIST_DIRECT_ANIM_MIN_SCALE : 256;
+    ctx->app_scale_end = opening ? 256 : _APP_LIST_DIRECT_ANIM_MIN_SCALE;
+    ctx->app_tx_start = opening ? -focus_translate_x : 0;
+    ctx->app_tx_end = opening ? 0 : -focus_translate_x;
+    ctx->app_ty_start = opening ? -focus_translate_y : 0;
+    ctx->app_ty_end = opening ? 0 : -focus_translate_y;
+
+    _transition_anim_start(ctx, _APP_LIST_ANIM_DURATION, 0);
+    EOS_LOG_I("Direct app-list transition started: opening=%d list=%p grid=%p page=%p icon=%p",
+              opening,
+              (void *)list_view,
+              (void *)list_anim_obj,
+              (void *)page_view,
+              (void *)icon_clone);
+}
+
 static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *from,
                                            eos_activity_t *to,
@@ -1559,6 +1733,11 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
     {
         return;
     }
+
+#if !EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
+    _app_list_play_direct_transition_anim(group, from, to, opening);
+    return;
+#endif
 
     lv_obj_t *list_view = opening ? eos_activity_get_view(from) : eos_activity_get_view(to);
     lv_obj_t *bubble_grid = _app_list_get_bubble_grid(opening ? from : to);
@@ -1861,6 +2040,133 @@ static void _register_anim_routes_once(void)
     _anim_routes_registered = true;
 }
 
+static lv_color_t _app_list_get_fallback_icon_color(uint32_t index)
+{
+    switch (index % 9U)
+    {
+        case 0:
+            return EOS_COLOR_RED;
+        case 1:
+            return EOS_COLOR_ORANGE;
+        case 2:
+            return EOS_COLOR_YELLOW;
+        case 3:
+            return EOS_COLOR_GREEN;
+        case 4:
+            return EOS_COLOR_MINT;
+        case 5:
+            return EOS_COLOR_TEAL_BLUE;
+        case 6:
+            return EOS_COLOR_BLUE;
+        case 7:
+            return EOS_COLOR_PURPLE;
+        default:
+            return EOS_COLOR_PINK;
+    }
+}
+
+
+static bool _app_list_icon_source_available(const char *icon_path)
+{
+    if (!icon_path || !eos_storage_is_file(icon_path))
+    {
+        return false;
+    }
+
+    lv_image_header_t header;
+    if (lv_image_decoder_get_info(icon_path, &header) != LV_RESULT_OK)
+    {
+        return false;
+    }
+
+    return header.w > 0 && header.h > 0;
+}
+
+static void _app_list_release_icon_paths(void)
+{
+    for (uint32_t i = 0; i < _app_list_icon_paths_count; ++i)
+    {
+        eos_free(_app_list_icon_paths[i]);
+    }
+
+    eos_free(_app_list_icon_paths);
+    _app_list_icon_paths = NULL;
+    _app_list_icon_paths_count = 0;
+}
+
+static bool _app_list_store_icon_path(uint32_t index, const char *icon_path)
+{
+    if (!icon_path)
+    {
+        return false;
+    }
+
+    char *path_copy = eos_strdup(icon_path);
+    if (!path_copy)
+    {
+        EOS_LOG_W("Unable to keep icon path for slot %" PRIu32, index);
+        return false;
+    }
+
+    if (index >= _app_list_icon_paths_count)
+    {
+        uint32_t old_count = _app_list_icon_paths_count;
+        uint32_t new_count = index + 1U;
+        char **paths = eos_realloc(_app_list_icon_paths, new_count * sizeof(*paths));
+        if (!paths)
+        {
+            eos_free(path_copy);
+            EOS_LOG_W("Unable to grow icon path table for slot %" PRIu32, index);
+            return false;
+        }
+
+        _app_list_icon_paths = paths;
+        for (uint32_t i = old_count; i < new_count; ++i)
+        {
+            _app_list_icon_paths[i] = NULL;
+        }
+        _app_list_icon_paths_count = new_count;
+    }
+
+    eos_free(_app_list_icon_paths[index]);
+    _app_list_icon_paths[index] = path_copy;
+    return true;
+}
+
+static void _app_list_set_system_icon(lv_obj_t *bubble_grid, uint32_t index, const char *app_id, const char *icon_path)
+{
+    if (_app_list_icon_source_available(icon_path))
+    {
+        eos_bubble_set_icon_src(bubble_grid, index, icon_path);
+        eos_bubble_set_icon_color(bubble_grid, index, EOS_COLOR_ICON_BG);
+    }
+    else
+    {
+        eos_bubble_set_icon_src(bubble_grid, index, NULL);
+        eos_bubble_set_icon_color(bubble_grid, index, _app_list_get_fallback_icon_color(index));
+    }
+
+    eos_bubble_set_icon_user_data(bubble_grid, index, (void *)app_id);
+}
+
+static void _app_list_set_app_icon(lv_obj_t *bubble_grid, uint32_t index, const char *app_id, const char *icon_path)
+{
+    bool has_icon = _app_list_icon_source_available(icon_path) && _app_list_store_icon_path(index, icon_path);
+    if (has_icon)
+    {
+        eos_bubble_set_icon_src(bubble_grid, index, _app_list_icon_paths[index]);
+        eos_bubble_set_icon_color(bubble_grid, index, EOS_COLOR_ICON_BG);
+    }
+    else
+    {
+        /* A NULL source is a valid color-only bubble, not an empty slot. */
+        eos_bubble_set_icon_src(bubble_grid, index, NULL);
+        eos_bubble_set_icon_color(bubble_grid, index, _app_list_get_fallback_icon_color(index));
+    }
+
+    eos_bubble_set_icon_user_data(bubble_grid, index, (void *)app_id);
+}
+
 /* Refresh App List -------------------------------------------*/
 /**
  * @brief Refresh app list - using bubble_grid
@@ -1879,6 +2185,7 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
         eos_bubble_set_icon_src(bubble_grid, i, NULL);
         eos_bubble_set_icon_user_data(bubble_grid, i, NULL);
     }
+    _app_list_release_icon_paths();
 
     uint32_t icon_index = 0;
 
@@ -1901,8 +2208,10 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
                 {
                     if (strcmp(order_id, eos_sys_app_id_list[si]) == 0)
                     {
-                        eos_bubble_set_icon_src(bubble_grid, icon_index, eos_sys_app_icon_list[si]);
-                        eos_bubble_set_icon_user_data(bubble_grid, icon_index, (void *)eos_sys_app_id_list[si]);
+                        _app_list_set_system_icon(bubble_grid,
+                                                  icon_index,
+                                                  eos_sys_app_id_list[si],
+                                                  eos_sys_app_icon_list[si]);
                         icon_index++;
                         is_sys = true;
                         break;
@@ -1920,12 +2229,7 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
 
                 char icon_path[EOS_FS_PATH_MAX];
                 snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
-                if (!eos_storage_is_file(icon_path))
-                {
-                    snprintf(icon_path, sizeof(icon_path), "%s", EOS_IMG_APP);
-                }
-                eos_bubble_set_icon_src(bubble_grid, icon_index, icon_path);
-                eos_bubble_set_icon_user_data(bubble_grid, icon_index, (void *)app_id);
+                _app_list_set_app_icon(bubble_grid, icon_index, app_id, icon_path);
                 icon_index++;
             }
         }
@@ -1947,8 +2251,10 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
             {
                 if (strcmp(app_id, eos_sys_app_id_list[si]) == 0)
                 {
-                    eos_bubble_set_icon_src(bubble_grid, icon_index, eos_sys_app_icon_list[si]);
-                    eos_bubble_set_icon_user_data(bubble_grid, icon_index, (void *)eos_sys_app_id_list[si]);
+                    _app_list_set_system_icon(bubble_grid,
+                                              icon_index,
+                                              eos_sys_app_id_list[si],
+                                              eos_sys_app_icon_list[si]);
                     icon_index++;
                     is_sys = true;
                     break;
@@ -1960,15 +2266,11 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
             // Non-system app
             char icon_path[EOS_FS_PATH_MAX];
             snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
-            if (!eos_storage_is_file(icon_path))
-            {
-                snprintf(icon_path, sizeof(icon_path), "%s", EOS_IMG_APP);
-            }
-            eos_bubble_set_icon_src(bubble_grid, icon_index, icon_path);
-            eos_bubble_set_icon_user_data(bubble_grid, icon_index, (void *)app_id);
+            _app_list_set_app_icon(bubble_grid, icon_index, app_id, icon_path);
             icon_index++;
         }
     }
+
 
     _app_list_icon_count = icon_index;
 }
@@ -2010,11 +2312,19 @@ static void _container_delete_cb(lv_event_t *e)
     EOS_CHECK_PTR_RETURN(bubble_grid);
     eos_event_unsubscribe_with_obj(EOS_EVENT_APP_INSTALLED, _app_installed_cb, bubble_grid);
     eos_event_unsubscribe_with_obj(EOS_EVENT_APP_UNINSTALLED, _app_uninstalled_cb, bubble_grid);
+
+    /* The grid stores image source pointers until its child images are deleted. */
+    for (uint32_t i = 0; i < _app_list_icon_count; ++i)
+    {
+        eos_bubble_set_icon_src(bubble_grid, i, NULL);
+    }
+    _app_list_release_icon_paths();
 }
 
 void eos_app_list_enter(void)
 {
     _register_anim_routes_once();
+    _app_list_release_icon_paths();
     _app_list_icon_count = 0;
 
     eos_activity_t *a = eos_activity_create(&app_list_lifecycle);

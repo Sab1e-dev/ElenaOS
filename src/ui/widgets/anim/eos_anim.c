@@ -17,6 +17,7 @@
 #include "eos_overlay_layer.h"
 #include "eos_basic_widgets.h"
 #include "eos_activity.h"
+#include "core/lv_obj_draw_private.h"
 
 /* Macros and Definitions -------------------------------------*/
 #define DEBUG_BLOCKER_VISIBLE 0
@@ -541,8 +542,15 @@ static void _snapshot_present_once(lv_obj_t *image, const char *tag)
 
     LV_UNUSED(tag);
 
+    lv_display_t *display = lv_display_get_default();
+    if (!display)
+    {
+        EOS_LOG_W("snapshot present skipped: no default display (%s)", tag ? tag : "unknown");
+        return;
+    }
+
     lv_obj_invalidate(image);
-    lv_refr_now(lv_display_get_default());
+    lv_refr_now(display);
 }
 
 static void _init_opa_anim(lv_anim_t *a, lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration, eos_anim_t *ctx)
@@ -712,15 +720,27 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
     if (!target || !lv_obj_is_valid(target))
         return false;
 
+    lv_obj_update_layout(target);
+
     int32_t w = lv_obj_get_width(target);
     int32_t h = lv_obj_get_height(target);
     if (w <= 0 || h <= 0)
         return false;
 
-    lv_draw_buf_t *buf = eos_draw_buf_create((uint32_t)w, (uint32_t)h, SNAP_COLOR_FORMAT, 0);
+    /* LVGL snapshots include the object's extended draw area (for example,
+     * shadows) in the raster buffer.  Allocate that area up front; otherwise
+     * lv_snapshot_take_to_draw_buf() rejects the buffer and silently falls
+     * back to direct animation. */
+    uint32_t ext_size = (uint32_t)lv_obj_get_ext_draw_size(target);
+    uint32_t snap_w = (uint32_t)w + ext_size * 2U;
+    uint32_t snap_h = (uint32_t)h + ext_size * 2U;
+    uint32_t snap_stride = lv_draw_buf_width_to_stride(snap_w, SNAP_COLOR_FORMAT);
+    lv_draw_buf_t *buf = eos_draw_buf_create(snap_w, snap_h, SNAP_COLOR_FORMAT, snap_stride);
     if (!buf)
     {
-        EOS_LOG_W("snapshot backend: eos_draw_buf_create(%d,%d) failed, fallback to direct", w, h);
+        EOS_LOG_W("snapshot backend: eos_draw_buf_create(%u,%u) failed, fallback to direct",
+                  (unsigned int)snap_w,
+                  (unsigned int)snap_h);
         return false;
     }
 
@@ -737,14 +757,22 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
     lv_obj_t *parent = snap_ctr ? snap_ctr : eos_overlay_get_snapshot_layer();
     lv_obj_t *image = lv_image_create(parent);
     lv_image_set_src(image, buf);
-    lv_obj_set_size(image, w, h);
+    lv_obj_set_size(image, (lv_coord_t)buf->header.w, (lv_coord_t)buf->header.h);
 
     lv_area_t area;
     lv_obj_get_coords(target, &area);
-    lv_obj_set_pos(image, area.x1, area.y1);
+    lv_area_t parent_area;
+    lv_obj_get_coords(parent, &parent_area);
+    lv_obj_set_pos(image,
+                   area.x1 - (lv_coord_t)ext_size - parent_area.x1,
+                   area.y1 - (lv_coord_t)ext_size - parent_area.y1);
 
-    lv_obj_set_style_transform_pivot_x(image, lv_obj_get_style_transform_pivot_x(target, 0), 0);
-    lv_obj_set_style_transform_pivot_y(image, lv_obj_get_style_transform_pivot_y(target, 0), 0);
+    lv_obj_set_style_transform_pivot_x(image,
+                                       lv_obj_get_style_transform_pivot_x(target, 0) + (lv_coord_t)ext_size,
+                                       0);
+    lv_obj_set_style_transform_pivot_y(image,
+                                       lv_obj_get_style_transform_pivot_y(target, 0) + (lv_coord_t)ext_size,
+                                       0);
 
     _snapshot_apply_start_values(anim, image);
 
@@ -1219,12 +1247,29 @@ bool eos_anim_start(eos_anim_t *anim)
 
     if (anim->backend_type == EOS_ANIM_BACKEND_SNAPSHOT)
     {
+#if EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
         if (!_snapshot_backend_prepare(anim))
         {
             EOS_LOG_W("Snapshot backend prepare failed, falling back to direct for anim[%p] obj[%p]",
                       anim,
                       anim->tar_obj);
+            anim->backend_type = EOS_ANIM_BACKEND_DIRECT;
         }
+#else
+        EOS_LOG_I("Snapshot backend disabled, using direct animation for anim[%p] obj[%p]",
+                  anim,
+                  anim->tar_obj);
+        /* preserve_layout is meaningful to the snapshot path because the
+         * original object is temporarily made transparent.  The direct path
+         * never hides the object, but it still runs the common completion
+         * callback; capture the real opacity so completion cannot overwrite
+         * it with the constructor default. */
+        if (anim->preserve_layout && anim->tar_obj && lv_obj_is_valid(anim->tar_obj))
+        {
+            anim->saved_orig_opa = lv_obj_get_style_opa(anim->tar_obj, 0);
+        }
+        anim->backend_type = EOS_ANIM_BACKEND_DIRECT;
+#endif
     }
 
     if (!anim->no_blocker)

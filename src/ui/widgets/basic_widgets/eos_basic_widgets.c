@@ -155,15 +155,10 @@ lv_draw_buf_t *eos_draw_buf_create(uint32_t w, uint32_t h, lv_color_format_t cf,
         return NULL;
     }
 
-    uint32_t data_size;
     if (stride == 0)
-    {
-        data_size = w * h * lv_color_format_get_size(cf);
-    }
-    else
-    {
-        data_size = h * stride;
-    }
+        stride = lv_draw_buf_width_to_stride(w, cf);
+
+    uint32_t data_size = h * stride;
     if (data_size == 0)
         return NULL;
     void *data_buf = eos_cache_buf_alloc(data_size);
@@ -641,11 +636,22 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         lv_obj_remove_state(button, LV_STATE_PRESSED);
     }
 
+#if EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
     lv_obj_t *page_obj = eos_activity_take_snapshot(page_activity, false);
     if (!page_obj)
     {
         return;
     }
+#else
+    lv_obj_t *page_obj = eos_activity_get_view(page_activity);
+    if (!(page_obj && lv_obj_is_valid(page_obj)))
+    {
+        EOS_LOG_W("list_transition_play: direct page view is invalid");
+        return;
+    }
+    lv_obj_remove_flag(page_obj, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(page_obj);
+#endif
 
     /* Update layout first (works even if objects are hidden) so we can
      * compute the button's off-screen position before unhiding anything. */
@@ -739,6 +745,10 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
          * unhide — otherwise the button pops in at full opacity. */
         lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
+#if !EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
+        /* The direct page view is the animated layer in this mode. */
+        lv_obj_move_foreground(page_obj);
+#endif
 
         /* Snapshot-batch other list items (scale grow animation) */
         eos_anim_snapshot_batch_begin();
@@ -853,8 +863,9 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         }
     }
 
-    /* page_obj is in its own activity's snap_container which was moved
-       to foreground by _activity_show — no manual z-order needed. */
+    /* In snapshot mode page_obj is an image in the snapshot layer; in direct
+     * mode it is the real activity view and is cleaned up by the activity
+     * transition lifecycle. */
 }
 
 static void _list_container_common_style(lv_obj_t *container)

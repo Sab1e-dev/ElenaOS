@@ -212,6 +212,7 @@ lv_obj_t *eos_icon_glyph_image_create(lv_obj_t *parent, const void *icon_src, lv
     lv_image_set_inner_align(img, LV_IMAGE_ALIGN_CENTER);
     /* A8 is alpha-only: fill the RGB channels with white so the glyph renders white */
     lv_obj_set_style_image_recolor(img, lv_color_white(), 0);
+    lv_obj_set_style_image_recolor_opa(img, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_opa(img, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(img, 0, 0);
     lv_obj_remove_flag(img, LV_OBJ_FLAG_SCROLLABLE);

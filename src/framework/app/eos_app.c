@@ -387,10 +387,13 @@ eos_result_t _eos_app_list_refresh()
 {
     memset(&app_list, 0, sizeof(app_list));
     _eos_app_list_init(&app_list, EOS_APP_LIST_DEFAULT_CAPACITY);
-    if (_eos_app_list_get_installed() != EOS_OK)
+    eos_result_t installed_ret = _eos_app_list_get_installed();
+    if (installed_ret != EOS_OK)
     {
-        EOS_LOG_E("Get installed app failed");
-        return EOS_FAILED;
+        /* A platform may not have a mounted app filesystem during early
+         * bring-up. Keep built-in apps available in that case so the app
+         * list is still usable. */
+        EOS_LOG_W("Get installed app failed; keeping built-in apps");
     }
 
     // Add system built-in apps to app_list
@@ -403,7 +406,7 @@ eos_result_t _eos_app_list_refresh()
         }
     }
 
-    return EOS_OK;
+    return installed_ret;
 }
 
 eos_result_t eos_app_install(const char *eapk_path)

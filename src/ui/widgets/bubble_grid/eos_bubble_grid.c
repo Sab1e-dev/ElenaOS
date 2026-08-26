@@ -48,9 +48,15 @@ typedef struct
     const void *src;
     int32_t src_w;
     int32_t src_h;
+    bool active;
     void *user_data;
     lv_obj_t *bubble_obj;
     lv_obj_t *image_obj;
+    bool visual_valid;
+    bool visual_pressed;
+    int32_t visual_x;
+    int32_t visual_y;
+    int32_t visual_diameter;
 } icon_node_t;
 
 typedef struct
@@ -95,6 +101,7 @@ typedef struct
 static void refresh_icon_objects(eos_bubble_grid_t *wb);
 static void update_demo_overlays(eos_bubble_grid_t *wb);
 static void apply_image_cover_scale(icon_node_t *node, lv_obj_t *image_obj, int32_t target_w, int32_t target_h);
+static void create_icon_object(eos_bubble_grid_t *wb, icon_node_t *node);
 
 #if WATCH_BUBBLE_DEMO_SHOW_CORE_MASK || WATCH_BUBBLE_DEMO_SHOW_FRINGE_MASK || WATCH_BUBBLE_DEMO_SHOW_RADIUS_MASK
 static lv_obj_t *create_demo_mask(lv_obj_t *parent, lv_color_t color, lv_opa_t opa)
@@ -192,15 +199,29 @@ static int32_t fx_sqrt_u64(uint64_t value)
     if (value == 0)
         return 0;
 
-    uint64_t x = value;
-    uint64_t y = (x + 1) >> 1;
-    while (y < x)
+    /* Integer Newton iteration used 64-bit divisions for every corner and
+     * press-neighbor distance. The restoring form below uses only shifts,
+     * compares and subtracts, which is considerably cheaper on Cortex-M33. */
+    uint64_t bit = 1ULL << 62;
+    while (bit > value)
+        bit >>= 2;
+
+    uint64_t result = 0;
+    while (bit != 0)
     {
-        x = y;
-        y = (x + value / x) >> 1;
+        if (value >= result + bit)
+        {
+            value -= result + bit;
+            result = (result >> 1) + bit;
+        }
+        else
+        {
+            result >>= 1;
+        }
+        bit >>= 2;
     }
 
-    return (int32_t)x;
+    return (int32_t)result;
 }
 
 static int32_t get_view_w_fx(const eos_bubble_grid_t *wb)
@@ -464,9 +485,15 @@ static icon_node_t *ensure_icon_node_by_index(eos_bubble_grid_t *wb, uint32_t in
         node->r = col;
         node->bubble_color = default_color;
         node->src = NULL;
+        node->active = false;
         node->user_data = NULL;
         node->bubble_obj = NULL;
         node->image_obj = NULL;
+        node->visual_valid = false;
+        node->visual_pressed = false;
+        node->visual_x = 0;
+        node->visual_y = 0;
+        node->visual_diameter = 0;
     }
 
     if (index > 0)
@@ -511,7 +538,7 @@ static void update_active_row_center(eos_bubble_grid_t *wb)
     icon_node_t *node;
     LV_LL_READ(&wb->icon_ll, node)
     {
-        if (node->src == NULL)
+        if (!node->active)
             continue;
 
         int32_t row = node->q;
@@ -859,7 +886,7 @@ static int hit_test_icon_index(eos_bubble_grid_t *wb, int32_t px, int32_t py)
     icon_node_t *node;
     LV_LL_READ(&wb->icon_ll, node)
     {
-        if (node->src == NULL)
+        if (!node->active)
             continue;
 
         int32_t x, y, scale;
@@ -898,7 +925,7 @@ static bool get_offset_y_settle_limits(eos_bubble_grid_t *wb, int32_t *out_min_a
     icon_node_t *node;
     LV_LL_READ(&wb->icon_ll, node)
     {
-        if (node->src == NULL)
+        if (!node->active)
             continue;
 
         int32_t base_x, base_y;
@@ -1016,7 +1043,7 @@ static void refresh_icon_objects(eos_bubble_grid_t *wb)
         pressed_node = get_icon_node_by_index(wb, (uint32_t)wb->pressed_icon_index);
     }
 
-    if (pressed_node != NULL && pressed_node->src != NULL)
+    if (pressed_node != NULL && pressed_node->active)
     {
         int32_t pressed_scale;
         has_pressed_center = calc_icon_visual(wb, pressed_node, &pressed_x, &pressed_y, &pressed_scale);
@@ -1028,13 +1055,27 @@ static void refresh_icon_objects(eos_bubble_grid_t *wb)
     {
         lv_obj_t *bubble = node->bubble_obj;
         lv_obj_t *image = node->image_obj;
-        if (bubble == NULL || image == NULL)
+        if (bubble == NULL)
             continue;
+
+        if (!node->active)
+        {
+            if (node->visual_valid)
+            {
+                lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+                node->visual_valid = false;
+            }
+            continue;
+        }
 
         int32_t x, y, scale;
         if (!calc_icon_visual(wb, node, &x, &y, &scale))
         {
-            lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+            if (node->visual_valid)
+            {
+                lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+                node->visual_valid = false;
+            }
             continue;
         }
 
@@ -1068,34 +1109,69 @@ static void refresh_icon_objects(eos_bubble_grid_t *wb)
         int32_t y_center_dist = fx_abs(y - (get_view_h_fx(wb) / 2));
         if (bubble_r < 2 || (bubble_r <= 2 && y_center_dist > cfg_y_radius_fx(wb)))
         {
-            lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+            if (node->visual_valid)
+            {
+                lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+                node->visual_valid = false;
+            }
             continue;
         }
 
         int32_t diameter = bubble_r * 2;
+        int32_t pos_x = fx_to_int_round(x) - bubble_r;
+        int32_t pos_y = fx_to_int_round(y) - bubble_r;
+        bool geometry_changed = !node->visual_valid || node->visual_x != pos_x || node->visual_y != pos_y
+                                || node->visual_diameter != diameter;
+        bool pressed_changed = !node->visual_valid || node->visual_pressed != is_pressed;
 
-        lv_obj_remove_flag(bubble, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_size(bubble, diameter, diameter);
-        lv_obj_set_pos(bubble, fx_to_int_round(x) - bubble_r, fx_to_int_round(y) - bubble_r);
-        lv_obj_set_style_bg_color(bubble, bubble_color, 0);
+        if (!node->visual_valid)
+            lv_obj_remove_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+        if (geometry_changed)
+        {
+            lv_obj_set_size(bubble, diameter, diameter);
+            lv_obj_set_pos(bubble, pos_x, pos_y);
+        }
+
+        /* The normal color is assigned by eos_bubble_set_icon_color(). Only
+         * update the style here while the press animation is changing it. */
+        if (is_pressed || (pressed_changed && !is_pressed))
+            lv_obj_set_style_bg_color(bubble, bubble_color, 0);
 
         if (node->src != NULL)
         {
-            lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_size(image, diameter, diameter);
-            apply_image_cover_scale(node, image, diameter, diameter);
-            lv_obj_center(image);
-            lv_obj_set_style_image_recolor(image, lv_color_black(), 0);
-            lv_opa_t image_darken_opa =
-                is_pressed ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress + FX_HALF)
-                                        / FX_ONE)
-                           : LV_OPA_TRANSP;
-            lv_obj_set_style_image_recolor_opa(image, image_darken_opa, 0);
+            if (node->image_obj == NULL)
+                create_icon_object(wb, node);
+
+            image = node->image_obj;
+            if (image != NULL)
+            {
+                lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
+                if (geometry_changed)
+                {
+                    lv_obj_set_size(image, diameter, diameter);
+                    apply_image_cover_scale(node, image, diameter, diameter);
+                    lv_obj_center(image);
+                }
+                lv_obj_set_style_image_recolor(image, lv_color_black(), 0);
+                lv_opa_t image_darken_opa =
+                    is_pressed ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress
+                                              + FX_HALF)
+                                             / FX_ONE)
+                               : LV_OPA_TRANSP;
+                if (geometry_changed || is_pressed || pressed_changed)
+                    lv_obj_set_style_image_recolor_opa(image, image_darken_opa, 0);
+            }
         }
-        else
+        else if (image != NULL)
         {
             lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
         }
+
+        node->visual_valid = true;
+        node->visual_pressed = is_pressed;
+        node->visual_x = pos_x;
+        node->visual_y = pos_y;
+        node->visual_diameter = diameter;
     }
 
     wb->needs_refresh = false;
@@ -1123,24 +1199,31 @@ static void create_icon_object(eos_bubble_grid_t *wb, icon_node_t *node)
         return;
     if (wb->container == NULL)
         return;
-    if (node->bubble_obj != NULL || node->image_obj != NULL)
+    if (node->bubble_obj == NULL)
+    {
+        lv_obj_t *bubble = lv_obj_create(wb->container);
+        node->bubble_obj = bubble;
+
+        lv_obj_set_size(bubble, wb->config.bubble_size_px * 2, wb->config.bubble_size_px * 2);
+        lv_obj_set_style_radius(bubble, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_opa(bubble, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(bubble, node->bubble_color, 0);
+        lv_obj_set_style_border_width(bubble, 0, 0);
+        lv_obj_set_style_pad_all(bubble, 0, 0);
+        lv_obj_set_style_clip_corner(bubble, true, 0);
+        lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(bubble, LV_OBJ_FLAG_SCROLLABLE);
+        /* Let the visible bubble be the input target and bubble pointer events
+         * to the grid, whose handlers perform drag and custom hit-test logic. */
+        lv_obj_add_flag(bubble, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    }
+
+    /* Color-only bubbles do not need a child image. Create it lazily when an
+     * actual image source is assigned later. */
+    if (node->src == NULL || node->image_obj != NULL)
         return;
 
-    lv_obj_t *bubble = lv_obj_create(wb->container);
-    node->bubble_obj = bubble;
-
-    lv_obj_set_size(bubble, wb->config.bubble_size_px * 2, wb->config.bubble_size_px * 2);
-    lv_obj_set_style_radius(bubble, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_opa(bubble, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(bubble, node->bubble_color, 0);
-    lv_obj_set_style_border_width(bubble, 0, 0);
-    lv_obj_set_style_pad_all(bubble, 0, 0);
-    lv_obj_set_style_clip_corner(bubble, true, 0);
-    lv_obj_add_flag(bubble, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(bubble, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(bubble, LV_OBJ_FLAG_CLICKABLE);
-
-    lv_obj_t *img = lv_image_create(bubble);
+    lv_obj_t *img = lv_image_create(node->bubble_obj);
     node->image_obj = img;
 
     lv_obj_set_size(img, wb->config.bubble_size_px * 2, wb->config.bubble_size_px * 2);
@@ -1518,6 +1601,8 @@ void eos_bubble_set_icon_src(lv_obj_t *obj, uint32_t index, const void *src)
         return;
 
     node->src = src;
+    node->active = src != NULL;
+    node->visual_valid = false;
     node->src_w = 0;
     node->src_h = 0;
 
@@ -1542,6 +1627,7 @@ void eos_bubble_set_icon_src(lv_obj_t *obj, uint32_t index, const void *src)
     }
     else if (node->bubble_obj != NULL && node->image_obj != NULL)
     {
+        lv_image_set_src(node->image_obj, NULL);
         lv_obj_add_flag(node->bubble_obj, LV_OBJ_FLAG_HIDDEN);
     }
 
@@ -1623,6 +1709,10 @@ void eos_bubble_set_icon_color(lv_obj_t *obj, uint32_t index, lv_color_t color)
     create_icon_object(wb, node);
 
     node->bubble_color = color;
+    node->active = true;
+    node->visual_valid = false;
+    if (node->bubble_obj != NULL)
+        lv_obj_set_style_bg_color(node->bubble_obj, color, 0);
 
     mark_refresh(wb);
     refresh_if_needed(wb);
