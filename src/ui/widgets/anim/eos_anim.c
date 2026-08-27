@@ -767,12 +767,8 @@ static bool _snapshot_backend_prepare(eos_anim_t *anim)
                    area.x1 - (lv_coord_t)ext_size - parent_area.x1,
                    area.y1 - (lv_coord_t)ext_size - parent_area.y1);
 
-    lv_obj_set_style_transform_pivot_x(image,
-                                       lv_obj_get_style_transform_pivot_x(target, 0) + (lv_coord_t)ext_size,
-                                       0);
-    lv_obj_set_style_transform_pivot_y(image,
-                                       lv_obj_get_style_transform_pivot_y(target, 0) + (lv_coord_t)ext_size,
-                                       0);
+    lv_obj_set_style_transform_pivot_x(image, lv_obj_get_style_transform_pivot_x(target, 0) + (lv_coord_t)ext_size, 0);
+    lv_obj_set_style_transform_pivot_y(image, lv_obj_get_style_transform_pivot_y(target, 0) + (lv_coord_t)ext_size, 0);
 
     _snapshot_apply_start_values(anim, image);
 
@@ -1256,9 +1252,7 @@ bool eos_anim_start(eos_anim_t *anim)
             anim->backend_type = EOS_ANIM_BACKEND_DIRECT;
         }
 #else
-        EOS_LOG_I("Snapshot backend disabled, using direct animation for anim[%p] obj[%p]",
-                  anim,
-                  anim->tar_obj);
+        EOS_LOG_I("Snapshot backend disabled, using direct animation for anim[%p] obj[%p]", anim, anim->tar_obj);
         /* preserve_layout is meaningful to the snapshot path because the
          * original object is temporarily made transparent.  The direct path
          * never hides the object, but it still runs the common completion

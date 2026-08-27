@@ -1154,10 +1154,10 @@ static void refresh_icon_objects(eos_bubble_grid_t *wb)
                 }
                 lv_obj_set_style_image_recolor(image, lv_color_black(), 0);
                 lv_opa_t image_darken_opa =
-                    is_pressed ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress
-                                              + FX_HALF)
-                                             / FX_ONE)
-                               : LV_OPA_TRANSP;
+                    is_pressed
+                        ? (lv_opa_t)(((int64_t)wb->config.press_image_darken_lvl * wb->press_anim_progress + FX_HALF)
+                                     / FX_ONE)
+                        : LV_OPA_TRANSP;
                 if (geometry_changed || is_pressed || pressed_changed)
                     lv_obj_set_style_image_recolor_opa(image, image_darken_opa, 0);
             }

@@ -161,9 +161,9 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
                                            eos_activity_t *to,
                                            bool opening);
 static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
-                                                   eos_activity_t *from,
-                                                   eos_activity_t *to,
-                                                   bool opening);
+                                                  eos_activity_t *from,
+                                                  eos_activity_t *to,
+                                                  bool opening);
 static void _app_list_cleanup_extra_cb(lv_event_t *e);
 
 /* Forward-declare the unified-animation context so the start-function
@@ -1398,9 +1398,7 @@ static void _transition_anim_exec_cb(void *var, int32_t v)
     /* app_snapshot image scale + translate + opacity -------------*/
     if (ctx->app_snapshot && lv_obj_is_valid(ctx->app_snapshot))
     {
-        _transition_set_scale(ctx->app_snapshot,
-                              _elerp(ctx->app_scale_start, ctx->app_scale_end, t),
-                              ctx->direct_draw);
+        _transition_set_scale(ctx->app_snapshot, _elerp(ctx->app_scale_start, ctx->app_scale_end, t), ctx->direct_draw);
         lv_obj_set_style_translate_x(ctx->app_snapshot, _elerp(ctx->app_tx_start, ctx->app_tx_end, t), 0);
         lv_obj_set_style_translate_y(ctx->app_snapshot, _elerp(ctx->app_ty_start, ctx->app_ty_end, t), 0);
     }
@@ -1590,9 +1588,9 @@ static lv_obj_t *_app_list_create_icon_clone(lv_obj_t *focus_icon)
  * snapshot transition, but transforms the real activity views instead of
  * raster images. */
 static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
-                                                   eos_activity_t *from,
-                                                   eos_activity_t *to,
-                                                   bool opening)
+                                                  eos_activity_t *from,
+                                                  eos_activity_t *to,
+                                                  bool opening)
 {
     if (!(group && from && to))
         return;
@@ -1614,8 +1612,8 @@ static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
         focus_icon = eos_bubble_get_icon_obj(bubble_grid, (uint32_t)_app_list_last_click_index);
     }
 
-    if (!(list_view && page_view && list_anim_obj && lv_obj_is_valid(list_view) &&
-          lv_obj_is_valid(page_view) && lv_obj_is_valid(list_anim_obj)))
+    if (!(list_view && page_view && list_anim_obj && lv_obj_is_valid(list_view) && lv_obj_is_valid(page_view)
+          && lv_obj_is_valid(list_anim_obj)))
     {
         EOS_LOG_W("direct app-list transition skipped: invalid list/page views");
         return;
@@ -2065,7 +2063,6 @@ static lv_color_t _app_list_get_fallback_icon_color(uint32_t index)
     }
 }
 
-
 static bool _app_list_icon_source_available(const char *icon_path)
 {
     if (!icon_path || !eos_storage_is_file(icon_path))
@@ -2270,7 +2267,6 @@ static void _app_list_refresh(lv_obj_t *bubble_grid)
             icon_index++;
         }
     }
-
 
     _app_list_icon_count = icon_index;
 }
