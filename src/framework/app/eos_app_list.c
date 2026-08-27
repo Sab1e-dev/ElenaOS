@@ -193,6 +193,8 @@ static int32_t _app_list_last_icon_center_y = 0;
 static int32_t _app_list_last_click_index = -1;
 static char _app_list_last_launch_app_id[64] = {0};
 static uint32_t _app_list_icon_count = 0;
+static char **_app_list_icon_paths = NULL;
+static uint32_t _app_list_icon_paths_count = 0;
 
 /* Unified transition-animation context.
  * ONE lv_anim drives ALL properties (scale + translate + opacity) for every
