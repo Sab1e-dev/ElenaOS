@@ -703,9 +703,20 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         page_start_x = 0;
         page_end_x = EOS_DISPLAY_WIDTH;
 
-        /* Collect list items BEFORE unhiding the list.  The list is still
-         * hidden so _list_transition_collect_visible_children returns 0;
-         * we fall back to collecting all children, which is fine for back. */
+        /* Pre-position the button at its off-screen starting point BEFORE
+         * unhiding the list, so it is never visible at its normal rest
+         * position before the slide-in animation begins. */
+        lv_obj_set_style_translate_x(button, button_start_x, 0);
+
+        /* Make the list visible before collecting and capturing its children.
+         * The visibility helper checks the item's geometry, not hidden flags
+         * on every ancestor, so collecting while the list is hidden can select
+         * the wrong set of items. */
+        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_update_layout(list_view);
+        lv_obj_update_layout(list);
+
         visible_item_cnt =
             _list_transition_collect_visible_children(list, visible_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
         if (visible_item_cnt == 0U)
@@ -715,12 +726,7 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
         }
         all_item_cnt = _list_transition_collect_all_children(list, all_items, _LIST_TRANSITION_MAX_VISIBLE_ITEMS);
 
-        /* Pre-position the button at its off-screen starting point BEFORE
-         * unhiding the list, so it is never visible at its normal rest
-         * position before the slide-in animation begins. */
-        lv_obj_set_style_translate_x(button, button_start_x, 0);
-
-        /* Set initial scale for non-visible items before unhiding */
+        /* Set the initial scale for items outside the current viewport. */
         for (uint32_t i = 0U; i < all_item_cnt; i++)
         {
             lv_obj_t *obj = all_items[i];
@@ -740,17 +746,14 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
         }
 
-        /* Now that the button is safely off-screen, unhide the list so the
-         * animation can run.  Order matters: button position first, then
-         * unhide — otherwise the button pops in at full opacity. */
-        lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(list, LV_OBJ_FLAG_HIDDEN);
 #if !EOS_CONFIG_ANIM_SNAPSHOT_ENABLED
         /* The direct page view is the animated layer in this mode. */
         lv_obj_move_foreground(page_obj);
 #endif
 
-        /* Snapshot-batch other list items (scale grow animation) */
+        /* Snapshot-batch all list item animations.  The clicked button is
+         * excluded from the scale animations above, but its move animation
+         * joins this same batch below. */
         eos_anim_snapshot_batch_begin();
 
         for (uint32_t i = 0U; i < visible_item_cnt; i++)
@@ -776,15 +779,15 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
             }
         }
 
-        lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
-
-        eos_anim_snapshot_batch_flush();
-
-        /* Button slides back in directly (no snapshot backend) so it is
-         * visible above the snapshot layer while the page slides out. */
+        /* Capture the button at its normal visual position.  The snapshot
+         * image receives button_start_x as its animation start value, while
+         * the real button is hidden by the batch flush below. */
+        lv_obj_set_style_translate_x(button, button_end_x, 0);
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, page_duration, false);
         if (btn_anim)
         {
+            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
+            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_set_delay(btn_anim, page_delay);
             eos_anim_group_attach(btn_anim, group);
@@ -796,6 +799,12 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
              * at its final position so it doesn't stay off-screen. */
             lv_obj_set_style_translate_x(button, button_end_x, 0);
         }
+
+        lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
+
+        /* Publish all list snapshots together, before the page snapshot starts
+         * moving, so no real list child is rendered during the transition. */
+        eos_anim_snapshot_batch_flush();
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, total_duration, false);
         if (page_anim)
@@ -843,15 +852,17 @@ void eos_list_transition_play(eos_anim_group_t *group, eos_activity_t *from, eos
 
         lv_obj_set_style_translate_x(page_obj, page_start_x, 0);
 
-        eos_anim_snapshot_batch_flush();
-
         eos_anim_t *btn_anim = eos_anim_move_create(button, button_start_x, 0, button_end_x, 0, total_duration, false);
         if (btn_anim)
         {
+            eos_anim_set_backend(btn_anim, EOS_ANIM_BACKEND_SNAPSHOT);
+            eos_anim_set_preserve_layout(btn_anim, true);
             eos_anim_set_path(btn_anim, lv_anim_path_ease_in_out);
             eos_anim_group_attach(btn_anim, group);
             eos_anim_start(btn_anim);
         }
+
+        eos_anim_snapshot_batch_flush();
 
         eos_anim_t *page_anim = eos_anim_move_create(page_obj, page_start_x, 0, page_end_x, 0, page_duration, false);
         if (page_anim)
