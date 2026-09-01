@@ -15,6 +15,9 @@
 #include "eos_dfw.h"
 #include "cJSON.h"
 #include "eos_lvgl_fs.h"
+#if EOS_FS_TYPE == EOS_FS_POSIX
+#include <sys/statvfs.h>
+#endif
 /* Macros and Definitions -------------------------------------*/
 #define _FILE_NAME_MAX_LENGTH 256
 /* Variables --------------------------------------------------*/
@@ -669,6 +672,43 @@ eos_result_t eos_storage_file_tell(eos_file_t fp, uint32_t *pos)
 eos_result_t eos_storage_file_remove(const char *path)
 {
     return eos_fs_remove(path);
+}
+
+eos_result_t eos_storage_file_move(const char *old_path, const char *new_path)
+{
+    if (!old_path || !new_path)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    return eos_fs_mv(old_path, new_path);
+}
+
+eos_result_t eos_storage_get_space(const char *path, eos_storage_space_t *space)
+{
+    if (!path || !space)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+#if EOS_FS_TYPE == EOS_FS_POSIX
+    {
+        char resolved[EOS_FS_PATH_MAX];
+        struct statvfs info;
+
+        if (!eos_fs_realpath(path, resolved, sizeof(resolved)) || statvfs(resolved, &info) != 0)
+        {
+            return EOS_ERR_FILE_ERROR;
+        }
+
+        space->total_bytes = (uint64_t)info.f_blocks * (uint64_t)info.f_frsize;
+        space->free_bytes = (uint64_t)info.f_bavail * (uint64_t)info.f_frsize;
+        return EOS_OK;
+    }
+#else
+    (void)space;
+    return EOS_ERR_DEV_OPS_NOT_SUPPORTED;
+#endif
 }
 
 eos_dir_t eos_storage_dir_open(const char *path)

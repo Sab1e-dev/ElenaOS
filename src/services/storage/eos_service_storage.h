@@ -21,6 +21,15 @@ extern "C" {
 
 /* Public typedefs --------------------------------------------*/
 
+/**
+ * @brief File system capacity information
+ */
+typedef struct
+{
+    uint64_t total_bytes;
+    uint64_t free_bytes;
+} eos_storage_space_t;
+
 /* Public function prototypes ---------------------------------*/
 
 /**
@@ -277,6 +286,22 @@ eos_result_t eos_storage_file_tell(eos_file_t fp, uint32_t *pos);
  * @return EOS_OK on success, error code on failure
  */
 eos_result_t eos_storage_file_remove(const char *path);
+
+/**
+ * @brief Move or rename a file
+ * @param old_path Existing file path
+ * @param new_path Destination file path
+ * @return Operation result
+ */
+eos_result_t eos_storage_file_move(const char *old_path, const char *new_path);
+
+/**
+ * @brief Query file system capacity
+ * @param path Existing path on the target file system
+ * @param space Output capacity information
+ * @return EOS_OK or EOS_ERR_DEV_OPS_NOT_SUPPORTED
+ */
+eos_result_t eos_storage_get_space(const char *path, eos_storage_space_t *space);
 
 /**
  * @brief Open directory with path validation

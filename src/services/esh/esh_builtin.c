@@ -6,7 +6,11 @@
 #include "esh.h"
 
 /* Includes ---------------------------------------------------*/
+#include <inttypes.h>
+#include <stdio.h>
 #include <string.h>
+#include "eos_core.h"
+#include "eos_mem.h"
 #include "eos_service_storage.h"
 #include "eos_version.h"
 #include "esh_ymodem.h"
@@ -18,6 +22,7 @@
 
 /* Function Prototypes ----------------------------------------*/
 static bool _esh_resolve_path(const esh_t *esh, const char *path, char *resolved, size_t resolved_size);
+static bool _esh_format_bytes(uint64_t bytes, char *buffer, size_t buffer_size);
 static bool _esh_append_path_component(char *path,
                                        size_t path_size,
                                        size_t *path_length,
@@ -25,6 +30,51 @@ static bool _esh_append_path_component(char *path,
                                        size_t component_length);
 
 /* Function Implementations -----------------------------------*/
+
+static bool _esh_format_bytes(uint64_t bytes, char *buffer, size_t buffer_size)
+{
+    static const char *const units[] = {"bytes", "KB", "MB", "GB", "TB", "PB", "EB"};
+    static const uint64_t unit_sizes[] = {1ULL,
+                                          1024ULL,
+                                          1024ULL * 1024ULL,
+                                          1024ULL * 1024ULL * 1024ULL,
+                                          1024ULL * 1024ULL * 1024ULL * 1024ULL,
+                                          1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL,
+                                          1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL};
+    size_t unit_index = 0U;
+    uint64_t whole;
+    uint64_t fraction;
+    int written;
+
+    if (!buffer || buffer_size == 0U)
+    {
+        return false;
+    }
+
+    while (unit_index + 1U < sizeof(unit_sizes) / sizeof(unit_sizes[0]) && bytes >= unit_sizes[unit_index + 1U])
+    {
+        unit_index++;
+    }
+
+    if (unit_index == 0U)
+    {
+        written = snprintf(buffer, buffer_size, "%" PRIu64 " bytes", bytes);
+    }
+    else
+    {
+        whole = bytes / unit_sizes[unit_index];
+        fraction = (uint64_t)(((double)(bytes % unit_sizes[unit_index]) * 100.0) / (double)unit_sizes[unit_index]);
+        written = snprintf(buffer,
+                           buffer_size,
+                           "%" PRIu64 ".%02" PRIu64 " %s (%" PRIu64 " bytes)",
+                           whole,
+                           fraction,
+                           units[unit_index],
+                           bytes);
+    }
+
+    return written >= 0 && (size_t)written < buffer_size;
+}
 
 static bool _esh_append_path_component(char *path,
                                        size_t path_size,
@@ -351,6 +401,442 @@ static int _esh_cmd_cat(esh_cmd_ctx_t *ctx, int argc, char *argv[])
     return EOS_OK;
 }
 
+static int _esh_cmd_clear(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    static const char sequence[] = "\033[2J\033[H";
+
+    (void)argv;
+
+    if (!ctx || argc != 1)
+    {
+        return (int)esh_printf(ctx, "clear: usage: clear\r\n");
+    }
+
+    return (int)esh_write(ctx, sequence, sizeof(sequence) - 1U);
+}
+
+static int _esh_cmd_stat(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    int index;
+    char resolved[EOS_FS_PATH_MAX];
+    char size_text[64];
+    eos_file_t file;
+    uint32_t size;
+    eos_result_t result;
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc < 2)
+    {
+        return (int)esh_printf(ctx, "stat: usage: stat <file>...\r\n");
+    }
+
+    for (index = 1; index < argc; index++)
+    {
+        if (!_esh_resolve_path(ctx->esh, argv[index], resolved, sizeof(resolved)))
+        {
+            return (int)esh_printf(ctx, "stat: path too long: %s\r\n", argv[index]);
+        }
+
+        if (eos_storage_is_dir(resolved))
+        {
+            result = esh_printf(ctx, "%s: directory\r\n", argv[index]);
+        }
+        else if (eos_storage_is_file(resolved))
+        {
+            file = eos_storage_file_open_read(resolved);
+            if (file == EOS_FILE_INVALID)
+            {
+                return (int)esh_printf(ctx, "stat: cannot open: %s\r\n", argv[index]);
+            }
+
+            result = eos_storage_file_size(file, &size);
+            eos_storage_file_close(file);
+            if (result != EOS_OK)
+            {
+                return (int)esh_printf(ctx, "stat: cannot read metadata: %s\r\n", argv[index]);
+            }
+
+            if (!_esh_format_bytes(size, size_text, sizeof(size_text)))
+            {
+                return EOS_ERR_IO;
+            }
+            result = esh_printf(ctx, "%s: regular file, %s\r\n", argv[index], size_text);
+        }
+        else
+        {
+            return (int)esh_printf(ctx, "stat: no such file or directory: %s\r\n", argv[index]);
+        }
+
+        if (result != EOS_OK)
+        {
+            return (int)result;
+        }
+    }
+
+    return EOS_OK;
+}
+
+static int _esh_copy_file(esh_cmd_ctx_t *ctx, const char *source, const char *destination)
+{
+    uint8_t buffer[256];
+    eos_file_t source_file;
+    eos_file_t destination_file;
+    ssize_t read_length;
+    ssize_t written;
+
+    source_file = eos_storage_file_open_read(source);
+    if (source_file == EOS_FILE_INVALID)
+    {
+        return (int)esh_printf(ctx, "cp: cannot open source: %s\r\n", source);
+    }
+
+    destination_file = eos_storage_file_open_write(destination);
+    if (destination_file == EOS_FILE_INVALID)
+    {
+        eos_storage_file_close(source_file);
+        return (int)esh_printf(ctx, "cp: cannot open destination: %s\r\n", destination);
+    }
+
+    while ((read_length = eos_storage_file_read(source_file, buffer, sizeof(buffer))) > 0)
+    {
+        written = eos_storage_file_write(destination_file, buffer, (size_t)read_length);
+        if (written != read_length)
+        {
+            eos_storage_file_close(destination_file);
+            eos_storage_file_close(source_file);
+            return (int)esh_printf(ctx, "cp: write failed: %s\r\n", destination);
+        }
+    }
+
+    eos_storage_file_close(destination_file);
+    eos_storage_file_close(source_file);
+    if (read_length < 0)
+    {
+        return (int)esh_printf(ctx, "cp: read failed: %s\r\n", source);
+    }
+
+    return EOS_OK;
+}
+
+static int _esh_cmd_cp(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char source[EOS_FS_PATH_MAX];
+    char destination[EOS_FS_PATH_MAX];
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc != 3)
+    {
+        return (int)esh_printf(ctx, "cp: usage: cp <source> <destination>\r\n");
+    }
+
+    if (!_esh_resolve_path(ctx->esh, argv[1], source, sizeof(source))
+        || !_esh_resolve_path(ctx->esh, argv[2], destination, sizeof(destination)))
+    {
+        return (int)esh_printf(ctx, "cp: path too long\r\n");
+    }
+
+    if (strcmp(source, destination) == 0)
+    {
+        return (int)esh_printf(ctx, "cp: source and destination are the same\r\n");
+    }
+
+    if (!eos_storage_is_file(source))
+    {
+        return (int)esh_printf(ctx, "cp: source is not a file: %s\r\n", argv[1]);
+    }
+
+    if (eos_storage_is_dir(destination))
+    {
+        return (int)esh_printf(ctx, "cp: destination is a directory: %s\r\n", argv[2]);
+    }
+
+    return _esh_copy_file(ctx, source, destination);
+}
+
+static int _esh_cmd_mv(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char source[EOS_FS_PATH_MAX];
+    char destination[EOS_FS_PATH_MAX];
+    eos_result_t result;
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc != 3)
+    {
+        return (int)esh_printf(ctx, "mv: usage: mv <source> <destination>\r\n");
+    }
+
+    if (!_esh_resolve_path(ctx->esh, argv[1], source, sizeof(source))
+        || !_esh_resolve_path(ctx->esh, argv[2], destination, sizeof(destination)))
+    {
+        return (int)esh_printf(ctx, "mv: path too long\r\n");
+    }
+
+    if (strcmp(source, destination) == 0)
+    {
+        return (int)esh_printf(ctx, "mv: source and destination are the same\r\n");
+    }
+
+    if (!eos_storage_is_file(source) && !eos_storage_is_dir(source))
+    {
+        return (int)esh_printf(ctx, "mv: no such file or directory: %s\r\n", argv[1]);
+    }
+
+    result = eos_storage_file_move(source, destination);
+    if (result != EOS_OK)
+    {
+        return (int)esh_printf(ctx, "mv: cannot move: %s\r\n", argv[1]);
+    }
+
+    return EOS_OK;
+}
+
+static int _esh_cmd_touch(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    int index;
+    char resolved[EOS_FS_PATH_MAX];
+    eos_result_t result;
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc < 2)
+    {
+        return (int)esh_printf(ctx, "touch: usage: touch <file>...\r\n");
+    }
+
+    for (index = 1; index < argc; index++)
+    {
+        if (!_esh_resolve_path(ctx->esh, argv[index], resolved, sizeof(resolved)))
+        {
+            return (int)esh_printf(ctx, "touch: path too long: %s\r\n", argv[index]);
+        }
+
+        result = eos_storage_create_file_if_not_exist(resolved, NULL);
+        if (result != EOS_OK)
+        {
+            return (int)esh_printf(ctx, "touch: cannot create file: %s\r\n", argv[index]);
+        }
+    }
+
+    return EOS_OK;
+}
+
+static int _esh_cmd_df(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char resolved[EOS_FS_PATH_MAX];
+    const char *target;
+    eos_storage_space_t space;
+    uint64_t used_bytes;
+    char total_text[64];
+    char used_text[64];
+    char free_text[64];
+    eos_result_t result;
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc > 2)
+    {
+        return (int)esh_printf(ctx, "df: usage: df [path]\r\n");
+    }
+
+    target = argc == 1 ? ctx->esh->cwd : argv[1];
+    if (!_esh_resolve_path(ctx->esh, target, resolved, sizeof(resolved)))
+    {
+        return (int)esh_printf(ctx, "df: path too long: %s\r\n", target);
+    }
+
+    result = eos_storage_get_space(resolved, &space);
+    if (result == EOS_ERR_DEV_OPS_NOT_SUPPORTED)
+    {
+        return (int)esh_printf(ctx, "df: file system capacity is not supported\r\n");
+    }
+    if (result != EOS_OK)
+    {
+        return (int)esh_printf(ctx, "df: cannot query: %s\r\n", target);
+    }
+
+    used_bytes = space.total_bytes >= space.free_bytes ? space.total_bytes - space.free_bytes : 0U;
+    if (!_esh_format_bytes(space.total_bytes, total_text, sizeof(total_text))
+        || !_esh_format_bytes(used_bytes, used_text, sizeof(used_text))
+        || !_esh_format_bytes(space.free_bytes, free_text, sizeof(free_text)))
+    {
+        return EOS_ERR_IO;
+    }
+    result = esh_printf(ctx, "Filesystem %s\r\n", target);
+    if (result != EOS_OK)
+    {
+        return (int)result;
+    }
+
+    result = esh_printf(ctx, "  total: %s\r\n", total_text);
+    if (result != EOS_OK)
+    {
+        return (int)result;
+    }
+
+    result = esh_printf(ctx, "  used:  %s\r\n", used_text);
+    if (result != EOS_OK)
+    {
+        return (int)result;
+    }
+
+    return (int)esh_printf(ctx, "  free:  %s\r\n", free_text);
+}
+
+static int _esh_cmd_free(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char used_text[64];
+    char free_text[64];
+
+    (void)argv;
+
+    if (!ctx || argc != 1)
+    {
+        return (int)esh_printf(ctx, "free: usage: free\r\n");
+    }
+
+    if (!_esh_format_bytes((uint64_t)eos_mem_get_used_bytes(), used_text, sizeof(used_text))
+        || !_esh_format_bytes((uint64_t)eos_mem_get_free_bytes(), free_text, sizeof(free_text)))
+    {
+        return EOS_ERR_IO;
+    }
+
+    return (int)esh_printf(ctx, "Memory\r\n  used: %s\r\n  free: %s\r\n", used_text, free_text);
+}
+
+static int _esh_cmd_uptime(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    uint32_t uptime_ms;
+    uint32_t total_seconds;
+    uint32_t days;
+    uint32_t hours;
+    uint32_t minutes;
+    uint32_t seconds;
+
+    (void)argv;
+
+    if (!ctx || argc != 1)
+    {
+        return (int)esh_printf(ctx, "uptime: usage: uptime\r\n");
+    }
+
+    uptime_ms = eos_tick_get();
+    total_seconds = uptime_ms / 1000U;
+    days = total_seconds / 86400U;
+    hours = (total_seconds % 86400U) / 3600U;
+    minutes = (total_seconds % 3600U) / 60U;
+    seconds = total_seconds % 60U;
+    return (int)
+        esh_printf(ctx, "up %" PRIu32 "d %" PRIu32 "h %" PRIu32 "m %" PRIu32 "s\r\n", days, hours, minutes, seconds);
+}
+
+static int _esh_cmd_hexdump(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char resolved[EOS_FS_PATH_MAX];
+    char line[96];
+    uint8_t buffer[16];
+    eos_file_t file;
+    uint32_t offset = 0U;
+    ssize_t read_length;
+    size_t index;
+    size_t line_length;
+    int written;
+
+    if (!ctx || !ctx->esh || !argv)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    if (argc != 2)
+    {
+        return (int)esh_printf(ctx, "hexdump: usage: hexdump <file>\r\n");
+    }
+
+    if (!_esh_resolve_path(ctx->esh, argv[1], resolved, sizeof(resolved)))
+    {
+        return (int)esh_printf(ctx, "hexdump: path too long: %s\r\n", argv[1]);
+    }
+
+    file = eos_storage_file_open_read(resolved);
+    if (file == EOS_FILE_INVALID)
+    {
+        return (int)esh_printf(ctx, "hexdump: no such file: %s\r\n", argv[1]);
+    }
+
+    while ((read_length = eos_storage_file_read(file, buffer, sizeof(buffer))) > 0)
+    {
+        written = snprintf(line, sizeof(line), "%08" PRIx32 "  ", offset);
+        if (written < 0 || (size_t)written >= sizeof(line))
+        {
+            eos_storage_file_close(file);
+            return EOS_ERR_IO;
+        }
+        line_length = (size_t)written;
+
+        for (index = 0U; index < sizeof(buffer); index++)
+        {
+            written = snprintf(&line[line_length],
+                               sizeof(line) - line_length,
+                               index < (size_t)read_length ? "%02x " : "   ",
+                               index < (size_t)read_length ? buffer[index] : 0U);
+            if (written < 0 || (size_t)written >= sizeof(line) - line_length)
+            {
+                eos_storage_file_close(file);
+                return EOS_ERR_IO;
+            }
+            line_length += (size_t)written;
+        }
+
+        written = snprintf(&line[line_length], sizeof(line) - line_length, " | ");
+        if (written < 0 || (size_t)written >= sizeof(line) - line_length)
+        {
+            eos_storage_file_close(file);
+            return EOS_ERR_IO;
+        }
+        line_length += (size_t)written;
+        for (index = 0U; index < (size_t)read_length; index++)
+        {
+            uint8_t byte = buffer[index];
+            line[line_length++] = byte >= 0x20U && byte <= 0x7EU ? (char)byte : '.';
+        }
+        line[line_length++] = ' ';
+        line[line_length++] = '|';
+        line[line_length++] = '\r';
+        line[line_length++] = '\n';
+        if (esh_write(ctx, line, line_length) != EOS_OK)
+        {
+            eos_storage_file_close(file);
+            return EOS_ERR_IO;
+        }
+        offset += (uint32_t)read_length;
+    }
+
+    eos_storage_file_close(file);
+    if (read_length < 0)
+    {
+        return (int)esh_printf(ctx, "hexdump: read failed: %s\r\n", argv[1]);
+    }
+
+    return EOS_OK;
+}
+
 static int _esh_cmd_mkdir(esh_cmd_ctx_t *ctx, int argc, char *argv[])
 {
     int index;
@@ -519,6 +1005,15 @@ static int _esh_cmd_help(esh_cmd_ctx_t *ctx, int argc, char *argv[])
     _(ls, _esh_cmd_ls, "list files and directories")             \
     _(echo, _esh_cmd_echo, "write arguments to the terminal")    \
     _(cat, _esh_cmd_cat, "print file contents")                  \
+    _(clear, _esh_cmd_clear, "clear the terminal")               \
+    _(stat, _esh_cmd_stat, "show file information")              \
+    _(cp, _esh_cmd_cp, "copy files")                             \
+    _(mv, _esh_cmd_mv, "move or rename files")                   \
+    _(touch, _esh_cmd_touch, "create empty files")               \
+    _(df, _esh_cmd_df, "show file system space")                 \
+    _(free, _esh_cmd_free, "show memory usage")                  \
+    _(uptime, _esh_cmd_uptime, "show system uptime")             \
+    _(hexdump, _esh_cmd_hexdump, "display file contents in hex") \
     _(mkdir, _esh_cmd_mkdir, "create directories")               \
     _(rm, _esh_cmd_rm, "remove files or directories")            \
     _(ymodem, _esh_cmd_ymodem, "send or receive a file with YMODEM")
