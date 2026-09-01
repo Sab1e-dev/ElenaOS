@@ -13,25 +13,150 @@
 /* Macros and Definitions -------------------------------------*/
 #define _ESH_BACKSPACE 0x08U
 #define _ESH_DELETE 0x7FU
+#define _ESH_ESCAPE 0x1BU
 #define _ESH_ENTER_CR 0x0DU
 #define _ESH_ENTER_LF 0x0AU
+#define _ESH_CSI_INTRODUCER '['
+#define _ESH_ARROW_UP 'A'
+#define _ESH_ARROW_DOWN 'B'
+#define _ESH_ARROW_RIGHT 'C'
+#define _ESH_ARROW_LEFT 'D'
 #define _ESH_BELL "\a"
 #define _ESH_CRLF "\r\n"
 #define _ESH_CLEAR_SPACES "                                                                "
+
+#if ESH_HISTORY_MAX == 0U
+#error "ESH_HISTORY_MAX must be greater than zero"
+#endif
+
+typedef enum
+{
+    _ESH_ESCAPE_NONE = 0,
+    _ESH_ESCAPE_SEEN,
+    _ESH_ESCAPE_CSI_STATE
+} _esh_escape_state_t;
 
 /* Variables --------------------------------------------------*/
 
 /* Function Prototypes ----------------------------------------*/
 static eos_result_t _esh_release_internal(esh_t *esh, esh_owner_token_t token, esh_close_reason_t reason);
+static eos_result_t _esh_write_string(esh_t *esh, const char *text);
+static eos_result_t _esh_write_prompt(esh_t *esh);
+static eos_result_t _esh_replace_line(esh_t *esh, const char *line);
+static eos_result_t _esh_redraw_line(esh_t *esh, size_t previous_line_length);
+static eos_result_t _esh_process_byte(esh_t *esh, uint8_t byte);
 
 /* Function Implementations -----------------------------------*/
 
 static void _esh_reset_line(esh_t *esh)
 {
     esh->line_length = 0U;
+    esh->cursor_position = 0U;
     esh->line_overflow = false;
     esh->ignore_lf = false;
+    esh->history_browsing = false;
+    esh->escape_state = _ESH_ESCAPE_NONE;
     esh->line[0] = '\0';
+}
+
+static void _esh_history_add(esh_t *esh)
+{
+    size_t i;
+    size_t previous;
+
+    if (esh->line_length == 0U || esh->line_overflow || ESH_HISTORY_MAX == 0U)
+    {
+        return;
+    }
+
+    for (i = 0U; i < esh->line_length; i++)
+    {
+        if (esh->line[i] != ' ' && esh->line[i] != '\t')
+        {
+            break;
+        }
+    }
+
+    if (i == esh->line_length)
+    {
+        return;
+    }
+
+    previous = (esh->history_next + ESH_HISTORY_MAX - 1U) % ESH_HISTORY_MAX;
+    if (esh->history_count > 0U && strcmp(esh->history[previous], esh->line) == 0)
+    {
+        return;
+    }
+
+    memcpy(esh->history[esh->history_next], esh->line, esh->line_length + 1U);
+    esh->history_next = (esh->history_next + 1U) % ESH_HISTORY_MAX;
+    if (esh->history_count < ESH_HISTORY_MAX)
+    {
+        esh->history_count++;
+    }
+    else
+    {
+        esh->history_start = (esh->history_start + 1U) % ESH_HISTORY_MAX;
+    }
+}
+
+static void _esh_history_begin(esh_t *esh)
+{
+    if (esh->history_count == 0U)
+    {
+        (void)_esh_write_string(esh, _ESH_BELL);
+        return;
+    }
+
+    memcpy(esh->history_saved_line, esh->line, esh->line_length + 1U);
+    esh->history_cursor = (esh->history_next + ESH_HISTORY_MAX - 1U) % ESH_HISTORY_MAX;
+    esh->history_browsing = true;
+}
+
+static void _esh_history_up(esh_t *esh)
+{
+    size_t previous;
+
+    if (!esh->history_browsing)
+    {
+        _esh_history_begin(esh);
+    }
+    else if (esh->history_cursor != esh->history_start)
+    {
+        previous = (esh->history_cursor + ESH_HISTORY_MAX - 1U) % ESH_HISTORY_MAX;
+        esh->history_cursor = previous;
+    }
+    else
+    {
+        (void)_esh_write_string(esh, _ESH_BELL);
+        return;
+    }
+
+    if (esh->history_browsing)
+    {
+        (void)_esh_replace_line(esh, esh->history[esh->history_cursor]);
+    }
+}
+
+static void _esh_history_down(esh_t *esh)
+{
+    size_t newest;
+
+    if (!esh->history_browsing)
+    {
+        return;
+    }
+
+    newest = (esh->history_next + ESH_HISTORY_MAX - 1U) % ESH_HISTORY_MAX;
+    if (esh->history_cursor == newest)
+    {
+        esh->history_browsing = false;
+        (void)_esh_replace_line(esh, esh->history_saved_line);
+        return;
+    }
+
+    esh->history_cursor = (esh->history_cursor + 1U) % ESH_HISTORY_MAX;
+    (void)_esh_replace_line(esh, esh->history[esh->history_cursor]);
 }
 
 static eos_result_t _esh_write_bytes(esh_t *esh, const uint8_t *data, size_t length)
@@ -89,6 +214,82 @@ static eos_result_t _esh_clear_visible_line(esh_t *esh)
     }
 
     return _esh_write_string(esh, "\r");
+}
+
+static eos_result_t _esh_replace_line(esh_t *esh, const char *line)
+{
+    size_t length;
+    size_t previous_line_length;
+
+    if (!esh || !line)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    length = strlen(line);
+    if (length >= ESH_LINE_MAX)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    previous_line_length = esh->line_length;
+    memcpy(esh->line, line, length + 1U);
+    esh->line_length = length;
+    esh->cursor_position = length;
+    esh->line_overflow = false;
+    return _esh_redraw_line(esh, previous_line_length);
+}
+
+static eos_result_t _esh_redraw_line(esh_t *esh, size_t previous_line_length)
+{
+    size_t remaining;
+    size_t chunk;
+
+    if (esh->prompt_visible)
+    {
+        if (_esh_write_string(esh, "\r") != EOS_OK)
+        {
+            return EOS_ERR_IO;
+        }
+
+        remaining = strlen(ESH_PROMPT) + previous_line_length;
+        while (remaining > 0U)
+        {
+            chunk = remaining < (sizeof(_ESH_CLEAR_SPACES) - 1U) ? remaining : (sizeof(_ESH_CLEAR_SPACES) - 1U);
+            if (_esh_write_bytes(esh, (const uint8_t *)_ESH_CLEAR_SPACES, chunk) != EOS_OK)
+            {
+                return EOS_ERR_IO;
+            }
+            remaining -= chunk;
+        }
+
+        if (_esh_write_string(esh, "\r") != EOS_OK)
+        {
+            return EOS_ERR_IO;
+        }
+    }
+
+    if (_esh_write_prompt(esh) != EOS_OK)
+    {
+        return EOS_ERR_IO;
+    }
+
+    if (_esh_write_bytes(esh, (const uint8_t *)esh->line, esh->line_length) != EOS_OK)
+    {
+        return EOS_ERR_IO;
+    }
+
+    remaining = esh->line_length - esh->cursor_position;
+    while (remaining > 0U)
+    {
+        if (_esh_write_bytes(esh, (const uint8_t *)"\b", 1U) != EOS_OK)
+        {
+            return EOS_ERR_IO;
+        }
+        remaining--;
+    }
+
+    return EOS_OK;
 }
 
 static eos_result_t _esh_write_prompt(esh_t *esh)
@@ -183,6 +384,7 @@ static eos_result_t _esh_execute_line(esh_t *esh)
         return ESH_ERR_LINE_TOO_LONG;
     }
 
+    _esh_history_add(esh);
     result = _esh_tokenize(esh, &argc);
     if (result != EOS_OK)
     {
@@ -228,8 +430,72 @@ static eos_result_t _esh_execute_line(esh_t *esh)
     return result;
 }
 
+static eos_result_t _esh_process_escape_byte(esh_t *esh, uint8_t byte)
+{
+    if (esh->escape_state == _ESH_ESCAPE_SEEN)
+    {
+        if (byte == _ESH_CSI_INTRODUCER)
+        {
+            esh->escape_state = _ESH_ESCAPE_CSI_STATE;
+            return EOS_OK;
+        }
+
+        esh->escape_state = _ESH_ESCAPE_NONE;
+        return _esh_process_byte(esh, byte);
+    }
+
+    if (byte >= _ESH_ARROW_UP && byte <= _ESH_ARROW_LEFT)
+    {
+        esh->escape_state = _ESH_ESCAPE_NONE;
+        if (byte == _ESH_ARROW_UP)
+        {
+            _esh_history_up(esh);
+        }
+        else if (byte == _ESH_ARROW_DOWN)
+        {
+            _esh_history_down(esh);
+        }
+        else if (byte == _ESH_ARROW_LEFT)
+        {
+            if (esh->cursor_position > 0U)
+            {
+                esh->cursor_position--;
+                return _esh_write_bytes(esh, (const uint8_t *)"\b", 1U);
+            }
+        }
+        else if (esh->cursor_position < esh->line_length)
+        {
+            if (_esh_write_bytes(esh, (const uint8_t *)&esh->line[esh->cursor_position], 1U) != EOS_OK)
+            {
+                return EOS_ERR_IO;
+            }
+            esh->cursor_position++;
+        }
+        return EOS_OK;
+    }
+
+    /* Ignore CSI parameters and unsupported final characters. */
+    if (byte >= 0x40U && byte <= 0x7EU)
+    {
+        esh->escape_state = _ESH_ESCAPE_NONE;
+    }
+
+    return EOS_OK;
+}
+
 static eos_result_t _esh_process_byte(esh_t *esh, uint8_t byte)
 {
+    if (esh->escape_state != _ESH_ESCAPE_NONE)
+    {
+        return _esh_process_escape_byte(esh, byte);
+    }
+
+    if (byte == _ESH_ESCAPE)
+    {
+        esh->escape_state = _ESH_ESCAPE_SEEN;
+        return EOS_OK;
+    }
+
     if (byte == _ESH_ENTER_LF && esh->ignore_lf)
     {
         esh->ignore_lf = false;
@@ -252,12 +518,18 @@ static eos_result_t _esh_process_byte(esh_t *esh, uint8_t byte)
 
     if (byte == _ESH_BACKSPACE || byte == _ESH_DELETE)
     {
-        if (esh->line_length > 0U)
+        esh->history_browsing = false;
+        if (esh->cursor_position > 0U)
         {
+            size_t previous_line_length = esh->line_length;
+
+            memmove(&esh->line[esh->cursor_position - 1U],
+                    &esh->line[esh->cursor_position],
+                    esh->line_length - esh->cursor_position + 1U);
             esh->line_length--;
-            esh->line[esh->line_length] = '\0';
+            esh->cursor_position--;
             esh->line_overflow = false;
-            return _esh_write_bytes(esh, (const uint8_t *)"\b \b", 3U);
+            return _esh_redraw_line(esh, previous_line_length);
         }
 
         return EOS_OK;
@@ -279,8 +551,23 @@ static eos_result_t _esh_process_byte(esh_t *esh, uint8_t byte)
         return _esh_write_string(esh, _ESH_BELL);
     }
 
+    esh->history_browsing = false;
+    if (esh->cursor_position < esh->line_length)
+    {
+        size_t previous_line_length = esh->line_length;
+
+        memmove(&esh->line[esh->cursor_position + 1U],
+                &esh->line[esh->cursor_position],
+                esh->line_length - esh->cursor_position + 1U);
+        esh->line[esh->cursor_position] = (char)byte;
+        esh->line_length++;
+        esh->cursor_position++;
+        return _esh_redraw_line(esh, previous_line_length);
+    }
+
     esh->line[esh->line_length++] = (char)byte;
     esh->line[esh->line_length] = '\0';
+    esh->cursor_position++;
     return _esh_write_bytes(esh, &byte, 1U);
 }
 

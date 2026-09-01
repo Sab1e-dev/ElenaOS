@@ -32,6 +32,11 @@ extern "C" {
 #define ESH_MAX_ARGS 16U
 #endif
 
+/** @brief Maximum number of command lines kept in the interactive history */
+#ifndef ESH_HISTORY_MAX
+#define ESH_HISTORY_MAX 16U
+#endif
+
 /** @brief Size of the optional formatted output buffer */
 #ifndef ESH_PRINTF_BUFFER_SIZE
 #define ESH_PRINTF_BUFFER_SIZE 128U
@@ -145,10 +150,19 @@ struct esh
     char line[ESH_LINE_MAX];
     char *argv[ESH_MAX_ARGS];
     char cwd[EOS_FS_PATH_MAX];
+    char history[ESH_HISTORY_MAX][ESH_LINE_MAX];
     esh_ymodem_t ymodem;
 
     size_t line_length;
+    size_t cursor_position;
+    size_t history_count;
+    size_t history_start;
+    size_t history_next;
+    size_t history_cursor;
+    char history_saved_line[ESH_LINE_MAX];
     bool line_overflow;
+    bool history_browsing;
+    uint8_t escape_state;
     bool ignore_lf;
     bool input_busy;
     bool interleaved_output;
