@@ -171,6 +171,7 @@ typedef struct
     eos_log_listener_cb_t cb; /**< Callback function */
     void *user_data; /**< User data */
     uint8_t used; /**< Whether this slot is used */
+    uint8_t enabled; /**< Whether dispatch invokes this listener */
     uint8_t flags; /**< Listener flags */
 } eos_log_listener_t;
 
@@ -201,6 +202,14 @@ eos_log_listener_id_t eos_log_register_listener(const char *name,
  * @return EOS_OK on success
  */
 eos_result_t eos_log_unregister_listener(eos_log_listener_id_t id);
+
+/**
+ * @brief Enable or disable a log listener without unregistering it
+ * @param id Listener ID
+ * @param enabled Whether dispatch should invoke the listener
+ * @return EOS_OK on success
+ */
+eos_result_t eos_log_set_listener_enabled(eos_log_listener_id_t id, bool enabled);
 
 /**
  * @brief Find a log listener by name
