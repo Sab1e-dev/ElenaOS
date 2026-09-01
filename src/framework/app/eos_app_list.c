@@ -192,6 +192,7 @@ static int32_t _app_list_last_icon_center_x = 0;
 static int32_t _app_list_last_icon_center_y = 0;
 static int32_t _app_list_last_click_index = -1;
 static char _app_list_last_launch_app_id[64] = {0};
+static char _app_list_running_system_id[64] = {0};
 static uint32_t _app_list_icon_count = 0;
 static char **_app_list_icon_paths = NULL;
 static uint32_t _app_list_icon_paths_count = 0;
@@ -1008,6 +1009,33 @@ const char *eos_app_list_get_app_id(eos_activity_t *activity)
     return ctx->app_id;
 }
 
+const char *eos_app_list_get_running_system_id(void)
+{
+    eos_activity_t *current = eos_activity_get_current();
+    eos_activity_t *bottom = eos_activity_get_bottom();
+
+    if (_app_list_running_system_id[0] == '\0' || !current)
+    {
+        return NULL;
+    }
+
+    /* A built-in app has no script launch context. This also handles a
+     * system app launched on top of a script app. */
+    if (eos_activity_get_type(current) == EOS_ACTIVITY_TYPE_APP && eos_app_list_get_app_id(current) == NULL)
+    {
+        return _app_list_running_system_id;
+    }
+
+    /* System-app subpages may not be APP activities; inspect the bottom
+     * activity of the current app stack in that case. */
+    if (bottom && eos_activity_get_type(bottom) == EOS_ACTIVITY_TYPE_APP && eos_app_list_get_app_id(bottom) == NULL)
+    {
+        return _app_list_running_system_id;
+    }
+
+    return NULL;
+}
+
 eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity)
 {
     LV_UNUSED(app_id);
@@ -1097,6 +1125,7 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
     int32_t sys_app_index = _app_list_find_sys_app(app_id);
     if (sys_app_index >= 0)
     {
+        snprintf(_app_list_running_system_id, sizeof(_app_list_running_system_id), "%s", app_id);
         if (eos_sys_app_entry_list[sys_app_index])
         {
             eos_sys_app_entry_list[sys_app_index]();
@@ -1110,6 +1139,8 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
         EOS_LOG_E("App not found: %s", app_id);
         return EOS_FAILED;
     }
+
+    _app_list_running_system_id[0] = '\0';
 
     /* Check if the app is already in the recents list — resume instead of fresh launch */
     eos_recent_app_entry_t *recent_entry = eos_recent_apps_find(app_id);

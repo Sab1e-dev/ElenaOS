@@ -18,6 +18,7 @@
 /* Variables --------------------------------------------------*/
 static eos_log_listener_t s_listeners[EOS_LOG_MAX_LISTENERS] = {0};
 static bool _initialized = false;
+static eos_log_level_t s_min_level = EOS_LOG_LEVEL_DEBUG;
 
 /* Function Implementations -----------------------------------*/
 
@@ -29,10 +30,27 @@ void eos_service_log_init(void)
     }
 
     memset(s_listeners, 0, sizeof(s_listeners));
+    s_min_level = EOS_LOG_LEVEL_DEBUG;
     _initialized = true;
 #if EOS_LOG_ENABLE_STD
     eos_service_log_std_register();
 #endif
+}
+
+eos_log_level_t eos_log_get_level(void)
+{
+    return s_min_level;
+}
+
+eos_result_t eos_log_set_level(eos_log_level_t level)
+{
+    if (level < EOS_LOG_LEVEL_DEBUG || level > EOS_LOG_LEVEL_ERROR)
+    {
+        return EOS_ERR_INVALID_ARG;
+    }
+
+    s_min_level = level;
+    return EOS_OK;
 }
 
 eos_log_listener_id_t eos_log_register_listener(const char *name,
@@ -135,7 +153,7 @@ eos_result_t eos_log_get_listener(eos_log_listener_id_t id, eos_log_listener_t *
 
 void eos_log_dispatch(eos_log_level_t level, const char *buf, size_t len)
 {
-    if (!_initialized || !buf || len == 0)
+    if (!_initialized || level < s_min_level || !buf || len == 0)
     {
         return;
     }

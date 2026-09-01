@@ -58,6 +58,12 @@ void eos_app_list_enter(void);
 const char *eos_app_list_get_app_id(eos_activity_t *activity);
 
 /**
+ * @brief Get the currently active built-in system application ID
+ * @return System app ID, or NULL when the current activity is not a system app
+ */
+const char *eos_app_list_get_running_system_id(void);
+
+/**
  * @brief Restart an app in-place on its existing activity (no navigation, no animation)
  * @param app_id The app ID (for logging/validation)
  * @param activity The current app activity to restart

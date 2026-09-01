@@ -483,11 +483,17 @@ char *eos_storage_read_file_immediate(const char *path)
     uint32_t file_size = 0;
     eos_fs_size(fp, &file_size);
 
-    if (file_size <= 0)
+    if (file_size == 0)
     {
-        EOS_LOG_E("Invalid file size");
         eos_fs_close(fp);
-        return NULL;
+        char *empty = eos_malloc(1);
+        if (!empty)
+        {
+            EOS_LOG_E("Failed to allocate memory for empty file");
+            return NULL;
+        }
+        empty[0] = '\0';
+        return empty;
     }
 
     char *buf = eos_malloc(file_size + 1);

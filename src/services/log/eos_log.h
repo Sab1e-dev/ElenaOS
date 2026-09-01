@@ -184,6 +184,19 @@ typedef struct
 void eos_service_log_init(void);
 
 /**
+ * @brief Get the minimum level dispatched by the log service
+ * @return Current minimum level
+ */
+eos_log_level_t eos_log_get_level(void);
+
+/**
+ * @brief Set the minimum level dispatched by the log service
+ * @param level Minimum level to dispatch
+ * @return EOS_OK on success, error code otherwise
+ */
+eos_result_t eos_log_set_level(eos_log_level_t level);
+
+/**
  * @brief Register a log listener
  * @param name Listener name (must be static string)
  * @param cb Callback function
