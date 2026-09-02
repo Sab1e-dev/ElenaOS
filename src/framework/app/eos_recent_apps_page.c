@@ -10,6 +10,7 @@
 /* Includes ---------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "lvgl.h"
 #define EOS_LOG_TAG "RecentPage"
 #include "eos_log.h"
@@ -17,6 +18,7 @@
 #include "eos_activity.h"
 #include "eos_crown.h"
 #include "eos_recent_apps.h"
+#include "eos_app_list.h"
 #include "eos_slide_widget.h"
 #include "eos_card_stack.h"
 #include "eos_image.h"
@@ -78,6 +80,21 @@ static void _update_page_visibility(void);
 static void _register_anim_routes(void);
 static void _deferred_resume_timer_cb(lv_timer_t *t);
 static void _size_thumb_timer_cb(lv_timer_t *t);
+
+static const void *_recent_get_icon_src(const char *app_id, char *icon_path, size_t icon_path_size)
+{
+    if (!app_id || !icon_path || icon_path_size == 0U)
+        return EOS_IMG_APP;
+
+    for (uint32_t i = 0; i < EOS_SYS_APP_LAST; i++)
+    {
+        if (strcmp(app_id, eos_sys_app_id_list[i]) == 0)
+            return eos_sys_app_icon_list[i];
+    }
+
+    snprintf(icon_path, icon_path_size, EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, app_id);
+    return eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
+}
 
 /* Variables --------------------------------------------------*/
 
@@ -375,8 +392,7 @@ static _recent_card_data_t *_create_card(eos_card_stack_t *stack, eos_recent_app
 
     {
         char icon_path[EOS_FS_PATH_MAX];
-        snprintf(icon_path, sizeof(icon_path), EOS_APP_INSTALLED_DIR "%s/" EOS_APP_ICON_FILE_NAME, entry->app_id);
-        const void *icon_src = eos_storage_is_file(icon_path) ? (const void *)icon_path : (const void *)EOS_IMG_APP;
+        const void *icon_src = _recent_get_icon_src(entry->app_id, icon_path, sizeof(icon_path));
         lv_obj_t *icon = eos_circle_image_create(card, icon_src, _RECENT_ICON_SIZE);
         if (icon)
         {

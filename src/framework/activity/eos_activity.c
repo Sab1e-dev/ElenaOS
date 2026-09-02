@@ -614,7 +614,7 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
 
     eos_chrome_manager_handle_activity_switch();
 
-    if (!is_returning && cur_activity && cur_activity->lifecycle.on_pause)
+    if (cur_activity && cur_activity->lifecycle.on_pause && (!is_returning || cur_activity->suspend_on_exit))
     {
         cur_activity->lifecycle.on_pause(cur_activity);
     }
@@ -752,6 +752,26 @@ static void _activity_switch_to(eos_activity_t *next_activity, bool is_returning
                 eos_app_header_hide();
             }
             _activity_run_destroy(cur_activity);
+        }
+        else if (cur_activity && cur_activity->suspend_on_exit)
+        {
+            if (cur_activity->view && lv_obj_is_valid(cur_activity->view))
+            {
+                lv_obj_add_flag(cur_activity->view, LV_OBJ_FLAG_HIDDEN);
+                if (!_parking_lot)
+                {
+                    _parking_lot = lv_obj_create(NULL);
+                }
+                if (_parking_lot)
+                {
+                    lv_obj_set_parent(cur_activity->view, _parking_lot);
+                }
+            }
+            cur_activity->suspended = true;
+            cur_activity->suspend_on_exit = false;
+            EOS_LOG_I("Activity parked without transition: %p[%s]",
+                      (void *)cur_activity,
+                      _activity_type_to_str(cur_activity->type));
         }
         else if (!eos_activity_is_app_header_visible(next_activity) && cur_activity
                  && eos_activity_is_app_header_visible(cur_activity))
@@ -1685,20 +1705,46 @@ eos_result_t eos_activity_back(void)
     }
 
     /* Leaving an application's root is an application switch, not a single
-     * page pop.  Park the complete app-owned Activity chain so a later
-     * Recent Apps resume restores the same page.  Child pages continue
-     * through the normal one-page back path below. */
+     * page pop.  When the app list is directly below it, keep the complete
+     * app-owned Activity chain on the stack until the APP->APP_LIST closing
+     * animation has finished.  This lets the animation use the live app view
+     * while still preserving the complete navigation state for Recent Apps. */
     eos_activity_t *active = _activity_ctx.current_activity;
     if (active && eos_activity_get_app_id(active) && eos_activity_get_app_substack_next(active) == NULL)
     {
-        if (eos_recent_apps_suspend_current() == EOS_OK)
+        bool app_list_below = false;
+        size_t stack_size = eos_stack_get_size(_activity_ctx.activity_stack);
+        if (stack_size >= 2)
         {
-            eos_activity_t *previous = _activity_ctx.current_activity;
-            if (previous)
-                _activity_switch_to(previous, false);
-            return EOS_OK;
+            eos_activity_t *below = eos_stack_get_at(_activity_ctx.activity_stack, stack_size - 2);
+            app_list_below = below && eos_activity_get_type(below) == EOS_ACTIVITY_TYPE_APP_LIST;
         }
-        EOS_LOG_W("Application root suspension failed; falling back to page destroy");
+
+        if (app_list_below)
+        {
+            /* Registration captures the thumbnail but leaves the live
+             * Activity attached for the return animation.  The animation
+             * cleanup parks it after the transition completes. */
+            active->suspend_on_exit = true;
+            if (eos_recent_apps_register_for_suspend(active) != EOS_OK)
+            {
+                active->suspend_on_exit = false;
+                EOS_LOG_W("Application root registration failed; falling back to immediate suspension");
+                app_list_below = false;
+            }
+        }
+
+        if (!app_list_below)
+        {
+            if (eos_recent_apps_suspend_current() == EOS_OK)
+            {
+                eos_activity_t *previous = _activity_ctx.current_activity;
+                if (previous)
+                    _activity_switch_to(previous, false);
+                return EOS_OK;
+            }
+            EOS_LOG_W("Application root suspension failed; falling back to page destroy");
+        }
     }
 
     // If stack is empty, we're at root - cannot go back further
@@ -1724,7 +1770,10 @@ eos_result_t eos_activity_back(void)
 
     /* A child page is a normal navigation pop.  Only the app-root path above
      * enters Recent Apps. */
-    cur_activity->destroy_on_exit = true;
+    if (!cur_activity->suspend_on_exit)
+    {
+        cur_activity->destroy_on_exit = true;
+    }
 
     eos_activity_t *prev = NULL;
     if (eos_stack_get_size(_activity_ctx.activity_stack) == 0)

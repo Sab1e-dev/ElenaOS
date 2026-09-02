@@ -35,6 +35,7 @@ enum
 };
 
 extern const char *eos_sys_app_id_list[EOS_SYS_APP_LAST];
+extern const char *eos_sys_app_icon_list[EOS_SYS_APP_LAST];
 
 /* Public function prototypes ---------------------------------*/
 

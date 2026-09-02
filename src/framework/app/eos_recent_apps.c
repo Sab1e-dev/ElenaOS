@@ -210,7 +210,7 @@ static eos_result_t _suspend_and_register(eos_activity_t *app_root,
      * aspect ratio, so the portrait card displays it without stretching and
      * eos_draw_buf_destroy() can free it with the matching allocator. */
     {
-        lv_draw_buf_t *thumb = eos_activity_take_snapshot_standalone(snapshot_target, false);
+        lv_draw_buf_t *thumb = eos_activity_take_snapshot_standalone(snapshot_target, true);
         if (thumb)
         {
             entry->thumb_buf = thumb;
@@ -277,14 +277,33 @@ static eos_result_t _suspend_and_register(eos_activity_t *app_root,
 
 eos_result_t eos_recent_apps_register_for_suspend(eos_activity_t *app_activity)
 {
+    eos_activity_t *current;
+    eos_activity_t *app_root;
+    uint32_t depth = 1;
+
     if (!s_initialized || !app_activity)
         return EOS_FAILED;
 
     if (!eos_recent_apps_is_suspendable(app_activity))
         return EOS_FAILED;
 
-    /* Compatibility entry point: complete app suspension now. */
-    return eos_recent_apps_suspend_current();
+    current = eos_activity_get_current();
+    if (current != app_activity)
+        return EOS_FAILED;
+
+    app_root = current;
+    while (eos_activity_get_app_substack_next(app_root))
+    {
+        app_root = eos_activity_get_app_substack_next(app_root);
+        depth++;
+    }
+
+    if (eos_activity_get_type(app_root) != EOS_ACTIVITY_TYPE_APP)
+        return EOS_FAILED;
+
+    /* The Activity remains on the main stack until the back transition's
+     * cleanup parks it, so the APP→APP_LIST animation can use the live view. */
+    return _suspend_and_register(app_root, current, current, depth, false);
 }
 
 eos_result_t eos_recent_apps_suspend_current(void)

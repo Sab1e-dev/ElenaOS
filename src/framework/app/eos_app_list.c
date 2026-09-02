@@ -1747,6 +1747,12 @@ static void _app_list_play_direct_transition_anim(eos_anim_group_t *group,
         lv_obj_remove_flag(list_view, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(list_view);
         lv_obj_move_foreground(page_view);
+
+        /* The page view is the outgoing animation layer.  Its header is
+         * already attached to that view by the activity switch, so hide the
+         * real overlay here; the header, when enabled, is part of the page
+         * snapshot and will animate away with the app. */
+        eos_app_header_hide();
     }
 
     int32_t focus_translate_x = 0;
@@ -1830,7 +1836,8 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         focus_icon = eos_bubble_get_icon_obj(bubble_grid, (uint32_t)_app_list_last_click_index);
     }
 
-    bool include_header_in_snapshot = opening;
+    eos_activity_t *snapshot_activity = opening ? to : from;
+    bool include_header_in_snapshot = snapshot_activity && eos_activity_is_app_header_visible(snapshot_activity);
 
     lv_obj_t *list_snapshot = NULL;
     bool focus_icon_hidden_flag = false;
@@ -1861,6 +1868,12 @@ static void _app_list_play_transition_anim(eos_anim_group_t *group,
         }
         EOS_LOG_E("CLOSE ANIM: app_snapshot CREATED from %p", from);
         lv_obj_move_foreground(app_snapshot);
+
+        /* eos_activity_take_snapshot() temporarily restores the header's
+         * previous visible state after capturing it.  Keep only the captured
+         * header in the outgoing snapshot during the close animation; the
+         * live overlay must not remain fixed above it. */
+        eos_app_header_hide();
 
         if (list_view)
         {
