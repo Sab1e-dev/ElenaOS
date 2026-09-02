@@ -41,10 +41,10 @@
 #define _RECENT_CARD_BASE_X _RECENT_DELETE_WIDTH
 #define _RECENT_WRAPPER_WIDTH (_RECENT_CARD_WIDTH + (_RECENT_DELETE_WIDTH * 2))
 #define _RECENT_STACK_ANIM_DURATION 220
-#define _RECENT_BORDER_WIDTH 2
-#define _RECENT_BORDER_COLOR 0x48484A
-#define _RECENT_ICON_SIZE 44
-#define _RECENT_ICON_MARGIN 12
+#define _RECENT_BORDER_WIDTH 3
+#define _RECENT_BORDER_COLOR 0x4A4A4A
+#define _RECENT_ICON_SIZE 64
+#define _RECENT_ICON_FLOAT_OFFSET (_RECENT_BORDER_WIDTH * 2)
 #define _ITEM_CLICK_THRESHOLD 3
 
 /* Typedefs ---------------------------------------------------*/
@@ -346,12 +346,18 @@ static void _size_thumb_timer_cb(lv_timer_t *t)
     if (!img || !lv_obj_is_valid(img))
         return;
 
-    lv_obj_t *card = lv_obj_get_parent(img);
-    if (!card || !lv_obj_is_valid(card))
+    lv_obj_t *thumb_container = lv_obj_get_parent(img);
+    lv_obj_t *card = thumb_container ? lv_obj_get_parent(thumb_container) : NULL;
+    if (!thumb_container || !lv_obj_is_valid(thumb_container) || !card || !lv_obj_is_valid(card))
         return;
 
     lv_obj_update_layout(card);
-    eos_img_set_size(img, (uint32_t)lv_obj_get_content_width(card), (uint32_t)lv_obj_get_content_height(card));
+    lv_obj_set_size(thumb_container, lv_obj_get_content_width(card), lv_obj_get_content_height(card));
+    lv_obj_align(thumb_container, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_update_layout(thumb_container);
+    eos_img_set_size(img,
+                     (uint32_t)lv_obj_get_content_width(thumb_container),
+                     (uint32_t)lv_obj_get_content_height(thumb_container));
 }
 
 static _recent_card_data_t *_create_card(eos_card_stack_t *stack, eos_recent_app_entry_t *entry)
@@ -374,31 +380,42 @@ static _recent_card_data_t *_create_card(eos_card_stack_t *stack, eos_recent_app
     lv_obj_set_style_bg_color(card, lv_color_hex(0x1C1C1E), 0);
     lv_obj_set_style_border_width(card, _RECENT_BORDER_WIDTH, 0);
     lv_obj_set_style_border_color(card, lv_color_hex(_RECENT_BORDER_COLOR), 0);
+    /* Keep the card border behind its children so the floating icon is
+     * visibly above the outline instead of being crossed by it. */
+    lv_obj_set_style_border_post(card, false, 0);
     lv_obj_set_style_pad_all(card, _RECENT_BORDER_WIDTH, 0);
-    lv_obj_set_style_clip_corner(card, true, 0);
+    /* The card itself must not clip the floating icon.  The thumbnail gets
+     * its own rounded clipping container below. */
+    lv_obj_set_style_clip_corner(card, false, 0);
+    lv_obj_add_flag(card, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_user_data(card, data);
     lv_obj_add_event_cb(card, _card_delete_cb, LV_EVENT_DELETE, NULL);
 
     if (entry->thumb_buf)
     {
-        data->thumb_img = lv_image_create(card);
-        lv_image_set_src(data->thumb_img, entry->thumb_buf);
-        lv_obj_remove_flag(data->thumb_img, LV_OBJ_FLAG_CLICKABLE);
-        lv_timer_t *t = lv_timer_create(_size_thumb_timer_cb, 0, data->thumb_img);
-        if (t)
-            lv_timer_set_repeat_count(t, 1);
-    }
-
-    {
-        char icon_path[EOS_FS_PATH_MAX];
-        const void *icon_src = _recent_get_icon_src(entry->app_id, icon_path, sizeof(icon_path));
-        lv_obj_t *icon = eos_circle_image_create(card, icon_src, _RECENT_ICON_SIZE);
-        if (icon)
+        lv_obj_t *thumb_container = lv_obj_create(card);
+        if (thumb_container)
         {
-            lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
-            lv_obj_set_style_bg_color(icon, EOS_COLOR_ICON_BG, 0);
-            lv_obj_align(icon, LV_ALIGN_TOP_LEFT, _RECENT_ICON_MARGIN, _RECENT_ICON_MARGIN);
+            lv_obj_remove_style_all(thumb_container);
+            /* Use percentages so the container gets its final size after the
+             * card is laid out and transformed by the card stack. */
+            lv_obj_set_size(thumb_container, lv_pct(100), lv_pct(100));
+            lv_obj_set_style_radius(thumb_container, EOS_DISPLAY_RADIUS - (_RECENT_BORDER_WIDTH * 2), 0);
+            lv_obj_set_style_clip_corner(thumb_container, true, 0);
+            lv_obj_set_style_bg_opa(thumb_container, LV_OPA_TRANSP, 0);
+            lv_obj_remove_flag(thumb_container, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_align(thumb_container, LV_ALIGN_TOP_LEFT, 0, 0);
+
+            data->thumb_img = lv_image_create(thumb_container);
+            if (data->thumb_img)
+            {
+                lv_image_set_src(data->thumb_img, entry->thumb_buf);
+                lv_obj_remove_flag(data->thumb_img, LV_OBJ_FLAG_CLICKABLE);
+                lv_timer_t *t = lv_timer_create(_size_thumb_timer_cb, 0, data->thumb_img);
+                if (t)
+                    lv_timer_set_repeat_count(t, 1);
+            }
         }
     }
 
@@ -434,6 +451,26 @@ static _recent_card_data_t *_create_card(eos_card_stack_t *stack, eos_recent_app
     }
     eos_slide_widget_set_range(data->slide, _RECENT_CARD_BASE_X, 0);
     eos_slide_widget_set_enabled(data->slide, eos_card_stack_item_is_focused(stack, data->stack_item));
+
+    /* Position the icon only after eos_card_stack_add() has moved the card
+     * into its wrapper.  It remains a card child, so it follows the card's
+     * scale, while the card's overflow-visible setting keeps it uncut. */
+    lv_obj_update_layout(card);
+    {
+        char icon_path[EOS_FS_PATH_MAX];
+        const void *icon_src = _recent_get_icon_src(entry->app_id, icon_path, sizeof(icon_path));
+        lv_obj_t *icon = eos_circle_image_create(card, icon_src, _RECENT_ICON_SIZE);
+        if (icon)
+        {
+            lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
+            lv_obj_set_style_bg_color(icon, EOS_COLOR_ICON_BG, 0);
+            /* Align to the card's content origin with a negative offset so
+             * the circle sits over the outer border instead of inside the
+             * card's rounded clipping region. */
+            lv_obj_align(icon, LV_ALIGN_TOP_LEFT, -_RECENT_ICON_FLOAT_OFFSET, -_RECENT_ICON_FLOAT_OFFSET);
+            lv_obj_move_foreground(icon);
+        }
+    }
 
     lv_obj_t *wrapper = eos_card_stack_item_get_container(data->stack_item);
     lv_obj_t *delete_btn = lv_button_create(wrapper);
