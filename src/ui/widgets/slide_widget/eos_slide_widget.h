@@ -171,6 +171,27 @@ void eos_slide_widget_set_threshold(eos_slide_widget_t *sw, eos_threshold_t thre
 void eos_slide_widget_set_bidirectional(eos_slide_widget_t *sw, bool enable);
 
 /**
+ * @brief Close an open slide when the user swipes in the reverse direction
+ * @param sw Slide widget
+ * @param enable true to settle an open slide back to its base position
+ */
+void eos_slide_widget_set_close_on_reverse(eos_slide_widget_t *sw, bool enable);
+
+/**
+ * @brief Enable or disable touch handling for the slide gesture
+ * @param sw Slide widget
+ * @param enable true to accept slide gestures
+ */
+void eos_slide_widget_set_enabled(eos_slide_widget_t *sw, bool enable);
+
+/**
+ * @brief Set touch displacement damping
+ * @param sw Slide widget
+ * @param factor Permille-like LVGL scale, 256 = direct 1:1 movement
+ */
+void eos_slide_widget_set_drag_factor(eos_slide_widget_t *sw, uint16_t factor);
+
+/**
  * @brief Set whether to move to foreground when pressed
  * @param sw Slide widget
  * @param enable true to move to foreground on press

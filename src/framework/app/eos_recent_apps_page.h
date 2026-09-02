@@ -1,6 +1,6 @@
 /**
  * @file eos_recent_apps_page.h
- * @brief Recent Apps page Activity — card grid for quick app switching
+ * @brief Recent Apps page Activity — stacked cards for quick app switching
  */
 
 #ifndef EOS_RECENT_APPS_PAGE_H

@@ -469,7 +469,15 @@ static lv_obj_t *_find_scrollable_obj(lv_obj_t *root)
             continue;
 
         if (lv_obj_has_flag(child, LV_OBJ_FLAG_SCROLLABLE))
-            return child;
+        {
+            /* Many LVGL leaf widgets inherit SCROLLABLE even though they
+             * have no overflow (for example labels). Do not bind the crown
+             * to those objects; choose an object with real vertical range. */
+            lv_obj_update_layout(child);
+            if ((lv_obj_get_scroll_dir(child) & LV_DIR_VER) != 0
+                && lv_obj_get_scroll_top(child) + lv_obj_get_scroll_bottom(child) > 0)
+                return child;
+        }
 
         lv_obj_t *nested = _find_scrollable_obj(child);
         if (nested)

@@ -22,8 +22,16 @@
 /* Macros and Definitions -------------------------------------*/
 #define _HIGHLIGHT_TOUCH_AREA 0
 #define _SLIDE_ANIM_DURATION 120
+#define _GESTURE_LOCK_DISTANCE 8
 
 /* Private Structures -----------------------------------------*/
+
+typedef enum
+{
+    _SLIDE_GESTURE_UNDECIDED = 0,
+    _SLIDE_GESTURE_MATCHED,
+    _SLIDE_GESTURE_REJECTED,
+} _slide_gesture_axis_t;
 
 struct eos_slide_widget_t
 {
@@ -41,10 +49,16 @@ struct eos_slide_widget_t
     lv_coord_t _target_start;
     lv_coord_t last_touch_displacement;
     bool bidirectional;
+    bool close_on_reverse;
     bool move_foreground_on_pressed;
     bool reversed;
     bool owns_touch_obj;
     bool sync_touch_obj;
+    bool enabled;
+    uint16_t drag_factor;
+    lv_coord_t gesture_start_x;
+    lv_coord_t gesture_start_y;
+    _slide_gesture_axis_t gesture_axis;
     eos_slide_widget_state_t origin_settle_state;
 };
 
@@ -59,6 +73,7 @@ static lv_event_code_t _event_closed = LV_EVENT_LAST;
 /* Private Function Prototypes --------------------------------*/
 static void _sync_touch_obj_position(eos_slide_widget_t *sw, lv_coord_t target_pos);
 static eos_slide_widget_state_t _get_resting_state(const eos_slide_widget_t *sw);
+static bool _gesture_matches_direction(eos_slide_widget_t *sw, lv_coord_t dx, lv_coord_t dy);
 
 /* Function Implementations -----------------------------------*/
 
@@ -175,18 +190,47 @@ static eos_slide_widget_state_t _get_resting_state(const eos_slide_widget_t *sw)
     return sw->reversed ? EOS_SLIDE_WIDGET_STATE_OPEN : EOS_SLIDE_WIDGET_STATE_IDLE;
 }
 
+static bool _gesture_matches_direction(eos_slide_widget_t *sw, lv_coord_t dx, lv_coord_t dy)
+{
+    if (!sw)
+        return false;
+    if (sw->gesture_axis == _SLIDE_GESTURE_REJECTED)
+        return false;
+    if (sw->gesture_axis == _SLIDE_GESTURE_UNDECIDED && abs(dx) + abs(dy) >= _GESTURE_LOCK_DISTANCE)
+    {
+        bool matches = sw->dir == EOS_SLIDE_DIR_HOR ? abs(dx) >= abs(dy) : abs(dy) >= abs(dx);
+        sw->gesture_axis = matches ? _SLIDE_GESTURE_MATCHED : _SLIDE_GESTURE_REJECTED;
+    }
+    return sw->gesture_axis != _SLIDE_GESTURE_REJECTED;
+}
+
+static lv_coord_t _damped_slide_pos(const eos_slide_widget_t *sw, lv_coord_t pos)
+{
+    if (!sw)
+        return pos;
+    lv_coord_t low = sw->base < sw->target ? sw->base : sw->target;
+    lv_coord_t high = sw->base > sw->target ? sw->base : sw->target;
+    if (pos < low)
+        return low + (pos - low) / 3;
+    if (pos > high)
+        return high + (pos - high) / 3;
+    return pos;
+}
+
 /* Touch Event Handlers ---------------------------------------*/
 
 static void _touch_obj_pressed_cb(lv_event_t *e)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(sw);
-    eos_anim_blocker_show();
-    sw->origin_settle_state = _get_resting_state(sw);
-    _set_state(sw, EOS_SLIDE_WIDGET_STATE_DRAGGING, "pressed");
+    sw->origin_settle_state =
+        (sw->state == EOS_SLIDE_WIDGET_STATE_OPEN) ? EOS_SLIDE_WIDGET_STATE_OPEN : _get_resting_state(sw);
 
     lv_point_t p;
     lv_indev_get_point(lv_indev_active(), &p);
+    sw->gesture_start_x = p.x;
+    sw->gesture_start_y = p.y;
+    sw->gesture_axis = _SLIDE_GESTURE_UNDECIDED;
 
     if (sw->dir == EOS_SLIDE_DIR_VER)
     {
@@ -199,6 +243,15 @@ static void _touch_obj_pressed_cb(lv_event_t *e)
         sw->_target_start = lv_obj_get_x(sw->target_obj);
     }
 
+    /* A stack can reject horizontal gestures while it is settling. Keep the
+     * touch origin current, but do not move the target until the page enables
+     * this controller for a settled slot. */
+    if (!sw->enabled)
+        return;
+
+    eos_anim_blocker_show();
+    _set_state(sw, EOS_SLIDE_WIDGET_STATE_DRAGGING, "pressed");
+
     if (sw->move_foreground_on_pressed)
     {
         lv_obj_move_foreground(sw->target_obj);
@@ -210,15 +263,19 @@ static void _touch_obj_pressing_cb(lv_event_t *e)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(sw);
-    EOS_LOG_I("Pressing: [%p]", sw->target_obj);
-    _set_state(sw, EOS_SLIDE_WIDGET_STATE_DRAGGING, "pressing");
+    if (!sw->enabled)
+        return;
     lv_point_t p;
     lv_indev_get_point(lv_indev_active(), &p);
+    if (!_gesture_matches_direction(sw, p.x - sw->gesture_start_x, p.y - sw->gesture_start_y))
+        return;
+    _set_state(sw, EOS_SLIDE_WIDGET_STATE_DRAGGING, "pressing");
 
     lv_coord_t touch_diff = (sw->dir == EOS_SLIDE_DIR_VER) ? (p.y - sw->_indev_start) : (p.x - sw->_indev_start);
+    touch_diff = (lv_coord_t)((int32_t)touch_diff * sw->drag_factor / 256);
 
     lv_coord_t new_pos = sw->_target_start;
-    new_pos += touch_diff;
+    new_pos = _damped_slide_pos(sw, new_pos + touch_diff);
 
     if (sw->dir == EOS_SLIDE_DIR_VER)
     {
@@ -324,6 +381,8 @@ static void _touch_obj_released_cb(lv_event_t *e)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(sw);
+    if (!sw->enabled)
+        return;
 
     lv_coord_t cur;
     if (sw->dir == EOS_SLIDE_DIR_VER)
@@ -337,6 +396,11 @@ static void _touch_obj_released_cb(lv_event_t *e)
 
     lv_point_t p;
     lv_indev_get_point(lv_indev_active(), &p);
+    if (!_gesture_matches_direction(sw, p.x - sw->gesture_start_x, p.y - sw->gesture_start_y))
+    {
+        eos_slide_widget_move(sw, cur, sw->_target_start, _SLIDE_ANIM_DURATION);
+        return;
+    }
     lv_coord_t indev_cur = (sw->dir == EOS_SLIDE_DIR_VER) ? p.y : p.x;
 
     sw->last_touch_displacement = indev_cur - sw->_indev_start;
@@ -367,25 +431,44 @@ static void _touch_obj_released_cb(lv_event_t *e)
         {
             if (sw->bidirectional)
             {
-                transit_state = EOS_SLIDE_WIDGET_STATE_THRESHOLD;
-                settle_state = sw->reversed ? EOS_SLIDE_WIDGET_STATE_IDLE : EOS_SLIDE_WIDGET_STATE_OPEN;
-                EOS_LOG_I("Bidirectional reverse swipe: go to opposite target");
-
-                target = sw->base - abs(move_delta);
+                if (sw->close_on_reverse && sw->origin_settle_state == EOS_SLIDE_WIDGET_STATE_OPEN)
+                {
+                    transit_state = EOS_SLIDE_WIDGET_STATE_REVERTING;
+                    settle_state = EOS_SLIDE_WIDGET_STATE_IDLE;
+                    EOS_LOG_I("Bidirectional reverse swipe: close to base");
+                    target = sw->base;
+                }
+                else
+                {
+                    transit_state = EOS_SLIDE_WIDGET_STATE_THRESHOLD;
+                    settle_state = sw->reversed ? EOS_SLIDE_WIDGET_STATE_IDLE : EOS_SLIDE_WIDGET_STATE_OPEN;
+                    EOS_LOG_I("Bidirectional reverse swipe: go to opposite target");
+                    target = sw->base - abs(move_delta);
+                }
             }
             else
             {
-                transit_state = EOS_SLIDE_WIDGET_STATE_REVERTING;
-                settle_state = _get_resting_state(sw);
-                EOS_LOG_I("Reverse swipe: revert to start position");
-                target = sw->_target_start;
+                if (sw->close_on_reverse && sw->origin_settle_state == EOS_SLIDE_WIDGET_STATE_OPEN)
+                {
+                    transit_state = EOS_SLIDE_WIDGET_STATE_REVERTING;
+                    settle_state = EOS_SLIDE_WIDGET_STATE_IDLE;
+                    EOS_LOG_I("Reverse swipe: close to base");
+                    target = sw->base;
+                }
+                else
+                {
+                    transit_state = EOS_SLIDE_WIDGET_STATE_REVERTING;
+                    settle_state = sw->origin_settle_state;
+                    EOS_LOG_I("Reverse swipe: revert to start position");
+                    target = sw->_target_start;
+                }
             }
         }
     }
     else
     {
         transit_state = EOS_SLIDE_WIDGET_STATE_REVERTING;
-        settle_state = _get_resting_state(sw);
+        settle_state = sw->origin_settle_state;
         EOS_LOG_I("Swipe below threshold: revert to start position");
         target = sw->_target_start;
     }
@@ -465,6 +548,39 @@ void eos_slide_widget_set_bidirectional(eos_slide_widget_t *sw, bool enable)
 {
     EOS_CHECK_PTR_RETURN(sw);
     sw->bidirectional = enable;
+}
+
+void eos_slide_widget_set_close_on_reverse(eos_slide_widget_t *sw, bool enable)
+{
+    EOS_CHECK_PTR_RETURN(sw);
+    sw->close_on_reverse = enable;
+}
+
+void eos_slide_widget_set_enabled(eos_slide_widget_t *sw, bool enable)
+{
+    EOS_CHECK_PTR_RETURN(sw);
+    sw->enabled = enable;
+    if (!enable)
+    {
+        if (sw->target_obj)
+        {
+            if (sw->dir == EOS_SLIDE_DIR_VER)
+                lv_obj_set_y(sw->target_obj, sw->base);
+            else
+                lv_obj_set_x(sw->target_obj, sw->base);
+            _sync_touch_obj_position(sw, sw->base);
+        }
+        sw->state = EOS_SLIDE_WIDGET_STATE_IDLE;
+        sw->settle_state = EOS_SLIDE_WIDGET_STATE_IDLE;
+        sw->gesture_axis = _SLIDE_GESTURE_UNDECIDED;
+        eos_anim_blocker_hide();
+    }
+}
+
+void eos_slide_widget_set_drag_factor(eos_slide_widget_t *sw, uint16_t factor)
+{
+    EOS_CHECK_PTR_RETURN(sw);
+    sw->drag_factor = factor > 256U ? 256U : factor;
 }
 
 void eos_slide_widget_set_move_foreground_on_pressed(eos_slide_widget_t *sw, bool enable)
@@ -705,6 +821,8 @@ static void _slide_widget_init_common(eos_slide_widget_t *sw,
     sw->base = (dir == EOS_SLIDE_DIR_VER) ? lv_obj_get_y(target_obj) : lv_obj_get_x(target_obj);
     sw->target = target;
     sw->bidirectional = false;
+    sw->enabled = true;
+    sw->drag_factor = 256;
     sw->touch_obj = touch_obj;
     sw->sync_touch_obj = false;
 
