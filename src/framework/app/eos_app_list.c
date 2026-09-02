@@ -55,10 +55,12 @@
  * bounding the temporary layer allocation. */
 #define _APP_LIST_DIRECT_ANIM_MIN_SCALE 128
 
-/* Loading screen: poll interval and minimum display time.
- * MIN_MS must be >= ANIM_DURATION so fast apps don't flash. */
+/* Loading screen ------------------------------------------------
+ * The loading overlay is also used as the target of the app-list
+ * transition, so it must exist immediately.  Actual app loading must
+ * not be delayed by a cosmetic minimum display time. */
 #define _APP_LIST_LOADING_TICK_MS 20
-#define _APP_LIST_LOADING_MIN_MS 3000
+#define _APP_LIST_LOADING_SPINNER_DELAY_MS 160
 
 /* Phased loading spinner */
 #define _APP_LIST_LOADING_SPINNER_SIZE 60
@@ -128,8 +130,9 @@ typedef struct
     lv_obj_t *loading_widget; /* Loading placeholder root container */
     eos_loading_spinner_t *loading_spinner; /**< Phased radial loading spinner */
     lv_obj_t *status_label; /* Status text ("Reading app...", etc.) */
-    uint32_t loading_start_ms; /* Tick when loading began (eos_tick_get) */
+    uint32_t loading_work_start_ms; /* Tick when actual loading began */
     bool launch_running; /* Guard against re-entrant JS launch */
+    bool loading_spinner_visible; /* Spinner was started and revealed */
     bool is_resuming; /* True when resuming from recents (skip loading UI) */
     /* Chunked I/O state */
     eos_file_t script_file; /* Open file handle during chunked read */
@@ -180,6 +183,7 @@ static void _app_list_restart_cb(lv_event_t *e);
 static void _app_list_exit_cb(lv_event_t *e);
 static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx);
 static void _app_list_loading_tick(lv_timer_t *t);
+static void _app_list_show_loading_spinner(app_launch_ctx_t *ctx);
 static void _app_list_start_chunked_read(app_launch_ctx_t *ctx);
 static void _app_list_read_chunk_tick(lv_timer_t *t);
 static void _app_list_do_launch_script(app_launch_ctx_t *ctx);
@@ -459,8 +463,8 @@ static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx)
         eos_loading_spinner_set_radii(spinner, 64, 72);
         eos_loading_spinner_set_bar_width(spinner, 6);
         ctx->loading_spinner = spinner;
-        eos_loading_spinner_set_infinite(spinner, true);
-        /* Hidden until transition completes — snapshot shows icon only */
+        /* Keep the spinner stopped until the load exceeds the reveal
+         * threshold.  The transition snapshot shows the icon only. */
         lv_obj_add_flag(spinner->root, LV_OBJ_FLAG_HIDDEN);
     }
     else
@@ -471,14 +475,39 @@ static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx)
     /* No text labels — the icon and spinner convey all loading state */
 
     ctx->loading_widget = loading;
-    ctx->loading_start_ms = eos_tick_get();
     ctx->launch_running = false;
+    ctx->loading_spinner_visible = false;
     ctx->loading_timer = lv_timer_create(_app_list_loading_tick, _APP_LIST_LOADING_TICK_MS, ctx);
+
+    EOS_LOG_I("[APP_LOAD] overlay shown for '%s'", ctx->app_id);
 }
 
 /**
- * @brief Polling timer — waits for transition + min display time,
- *        then switches to chunked I/O reading.
+ * @brief Start and reveal the spinner after loading takes noticeable time.
+ */
+static void _app_list_show_loading_spinner(app_launch_ctx_t *ctx)
+{
+    if (!ctx || ctx->loading_spinner_visible || !ctx->loading_spinner)
+    {
+        return;
+    }
+
+    eos_loading_spinner_t *spinner = ctx->loading_spinner;
+    if (!spinner->root || !lv_obj_is_valid(spinner->root))
+    {
+        return;
+    }
+
+    eos_loading_spinner_set_infinite(spinner, true);
+    lv_obj_remove_flag(spinner->root, LV_OBJ_FLAG_HIDDEN);
+    ctx->loading_spinner_visible = true;
+    EOS_LOG_I("[APP_LOAD] spinner shown for '%s' after %" PRIu32 "ms",
+              ctx->app_id,
+              eos_tick_get() - ctx->loading_work_start_ms);
+}
+
+/**
+ * @brief Polling timer — waits for the transition, then starts I/O.
  */
 static void _app_list_loading_tick(lv_timer_t *t)
 {
@@ -494,36 +523,20 @@ static void _app_list_loading_tick(lv_timer_t *t)
         return;
     }
 
-    /* Transition done — reveal the spinner now.
-     * During the transition the snapshot showed icon-only on black. */
-    if (ctx->loading_spinner && ctx->loading_spinner->root)
-    {
-        lv_obj_remove_flag(ctx->loading_spinner->root, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    /* Enforce minimum display time so fast apps don't flash.
-     * Drive phase 0 (wait) progress by elapsed time: 0-100 → 0-33% visual. */
-    uint32_t elapsed = eos_tick_get() - ctx->loading_start_ms;
-    if (elapsed < _APP_LIST_LOADING_MIN_MS)
-    {
-        uint16_t wait_pct = (uint16_t)((uint64_t)elapsed * 100 / _APP_LIST_LOADING_MIN_MS);
-        if (ctx->loading_spinner)
-        {
-            eos_loading_spinner_set_phase_progress(ctx->loading_spinner, _APP_LIST_LOADING_PHASE_WAIT, wait_pct);
-        }
-        return;
-    }
-
-    /* Both conditions met — stop polling, start chunked I/O */
+    /* The transition snapshot has served its purpose.  Start actual
+     * loading immediately; the spinner is revealed lazily if needed. */
+    ctx->loading_work_start_ms = eos_tick_get();
     ctx->launch_running = true;
     lv_timer_del(t);
     ctx->loading_timer = NULL;
 
-    /* Mark phase 0 complete (visual 33%) */
+    /* Phase 0 is setup and completes as soon as I/O begins. */
     if (ctx->loading_spinner)
     {
         eos_loading_spinner_set_phase_progress(ctx->loading_spinner, _APP_LIST_LOADING_PHASE_WAIT, 100);
     }
+
+    EOS_LOG_I("[APP_LOAD] work start for '%s' after transition", ctx->app_id);
 
     /* Set base_path now (fast, no I/O) so the package is valid for spm_app_run */
     char base_path[EOS_FS_PATH_MAX];
@@ -667,8 +680,20 @@ static void _app_list_read_chunk_tick(lv_timer_t *t)
             eos_loading_spinner_set_phase_progress(ctx->loading_spinner, _APP_LIST_LOADING_PHASE_READ, 100);
         }
 
+        EOS_LOG_I("[APP_LOAD] script read complete for '%s' in %" PRIu32 "ms",
+                  ctx->app_id,
+                  eos_tick_get() - ctx->loading_work_start_ms);
         _app_list_update_loading_status(ctx, "Starting engine...");
         _app_list_do_launch_script(ctx);
+        return;
+    }
+
+    /* Do not show an indeterminate animation for work that has already
+     * completed.  Keep it for genuinely slow I/O only. */
+    if (!ctx->loading_spinner_visible
+        && eos_tick_get() - ctx->loading_work_start_ms >= _APP_LIST_LOADING_SPINNER_DELAY_MS)
+    {
+        _app_list_show_loading_spinner(ctx);
     }
 }
 
@@ -752,12 +777,15 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
     lv_refr_now(NULL);
 
     /* Run the JS — synchronous, blocks the main thread. */
+    uint32_t eval_start_ms = eos_tick_get();
+    EOS_LOG_I("[APP_LOAD] engine start for '%s'", ctx->app_id);
     eos_result_t ret = spm_app_run(&ctx->pkg);
     if (ret != EOS_OK)
     {
         _app_handle_script_run_result(a, ctx, ret);
         return;
     }
+    EOS_LOG_I("[APP_LOAD] engine complete for '%s' in %" PRIu32 "ms", ctx->app_id, eos_tick_get() - eval_start_ms);
 
     /* The app's interface is now built and is rendered on top of the loading
      * overlay from the very next frame.  Reveal the header in that same frame so
@@ -768,40 +796,41 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
         eos_app_header_show(a);
     }
 
-    /* JS eval succeeded. Dim spinner and icon smoothly while keeping
-     * the pure-black background fully opaque. The spinner's dim
-     * animation fires a callback that removes the overlay when done. */
+    /* JS eval succeeded.  Only animate the completion when the spinner was
+     * actually shown.  Fast apps remove the transition overlay immediately. */
     lv_obj_t *loading = ctx->loading_widget;
     if (!loading || !lv_obj_is_valid(loading))
     {
         return;
     }
 
-    /* Animate icon opacity: 100% -> 0% over 400ms */
-    lv_obj_t *icon = lv_obj_get_child(loading, 0);
-    if (icon && lv_obj_is_valid(icon))
+    if (ctx->loading_spinner_visible)
     {
-        lv_anim_t a;
-        lv_anim_init(&a);
-        lv_anim_set_var(&a, icon);
-        lv_anim_set_exec_cb(&a, _loading_dim_exec_cb);
-        lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_anim_set_duration(&a, 400);
-        lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-        lv_anim_start(&a);
-    }
+        /* Animate icon opacity: 100% -> 0% over the spinner's completion
+         * duration.  The spinner callback removes the overlay afterwards. */
+        lv_obj_t *icon = lv_obj_get_child(loading, 0);
+        if (icon && lv_obj_is_valid(icon))
+        {
+            lv_anim_t a;
+            lv_anim_init(&a);
+            lv_anim_set_var(&a, icon);
+            lv_anim_set_exec_cb(&a, _loading_dim_exec_cb);
+            lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
+            lv_anim_set_duration(&a, 400);
+            lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+            lv_anim_start(&a);
+        }
 
-    /* Spinner dim animation with callback to remove overlay */
-    if (ctx->loading_spinner)
-    {
         eos_loading_spinner_set_completed(ctx->loading_spinner, _loading_dim_done_cb, ctx);
+        EOS_LOG_I("[APP_LOAD] completion animation started for '%s'", ctx->app_id);
     }
     else
     {
-        /* No spinner — remove overlay immediately */
+        /* Fast path: no spinner was shown, so there is no cosmetic delay. */
         lv_obj_del(loading);
         ctx->loading_widget = NULL;
         ctx->loading_spinner = NULL;
+        EOS_LOG_I("[APP_LOAD] overlay removed immediately for '%s'", ctx->app_id);
     }
 }
 
