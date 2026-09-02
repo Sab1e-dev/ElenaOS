@@ -1878,6 +1878,11 @@ void eos_settings_enter(void)
     EOS_CHECK_PTR_RETURN(a);
     lv_obj_t *view = eos_activity_get_view(a);
     EOS_CHECK_PTR_RETURN(view);
+    if (eos_activity_set_app_id(a, "sys.settings") != EOS_OK)
+    {
+        eos_activity_destroy(a);
+        return;
+    }
     eos_activity_set_title_id(a, STR_ID_SETTINGS);
     eos_activity_set_app_header_visible(a, true);
 

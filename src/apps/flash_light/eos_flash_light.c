@@ -72,6 +72,8 @@ static const eos_chrome_overlay_t _flash_light_overlay = {
 
 /* Function Implementations -----------------------------------*/
 static void _flash_light_on_destroy(eos_activity_t *a);
+static void _flash_light_on_pause(eos_activity_t *a);
+static void _flash_light_on_resume(eos_activity_t *a);
 static inline void _flash_light_delete(_pressing_user_data_t *ud);
 static void _flash_light_card_pager_timer_cb(lv_timer_t *timer);
 lv_obj_t *eos_flash_light_get_touch_obj(void);
@@ -85,6 +87,8 @@ static void _flash_light_set_indicator_visible_animated(_flash_light_card_pager_
 static const eos_activity_lifecycle_t _flash_light_lifecycle = {
     .on_enter = NULL,
     .on_destroy = _flash_light_on_destroy,
+    .on_pause = _flash_light_on_pause,
+    .on_resume = _flash_light_on_resume,
 };
 
 static void _flash_light_indicator_fade_out_ready_cb(eos_anim_t *a)
@@ -113,8 +117,25 @@ static void _flash_light_on_destroy(eos_activity_t *a)
         eos_free(ctx);
     }
 
-    _flash_light_delete(NULL);
+    if (_flash_light_ud)
+        _flash_light_delete(_flash_light_ud);
     eos_display_restore(_BRIGHTNESS_DURATION);
+}
+
+static void _flash_light_on_pause(eos_activity_t *a)
+{
+    _flash_light_card_pager_ctx_t *ctx = (_flash_light_card_pager_ctx_t *)eos_activity_get_user_data(a);
+    if (ctx && ctx->flash_timer)
+        lv_timer_pause(ctx->flash_timer);
+    eos_display_restore(_BRIGHTNESS_DURATION);
+}
+
+static void _flash_light_on_resume(eos_activity_t *a)
+{
+    _flash_light_card_pager_ctx_t *ctx = (_flash_light_card_pager_ctx_t *)eos_activity_get_user_data(a);
+    if (ctx && ctx->flash_timer && ctx->immersive_mode)
+        lv_timer_resume(ctx->flash_timer);
+    eos_display_set_brightness(EOS_DISPLAY_BRIGHTNESS_MAX, _BRIGHTNESS_DURATION, true);
 }
 
 static inline void _flash_light_delete(_pressing_user_data_t *ud)
@@ -503,6 +524,12 @@ void eos_flash_light_enter(void)
     }
 
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_APP);
+    if (eos_activity_set_app_id(a, "sys.flash_light") != EOS_OK)
+    {
+        eos_activity_destroy(a);
+        eos_free(ctx);
+        return;
+    }
     eos_activity_set_app_header_visible(a, true);
     eos_activity_set_app_header_time_only(a, true);
 

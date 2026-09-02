@@ -2083,6 +2083,11 @@ void eos_test_start(void)
 
     eos_activity_set_title(activity, "ElenixOS Test");
     eos_activity_set_type(activity, EOS_ACTIVITY_TYPE_APP);
+    if (eos_activity_set_app_id(activity, "sys.test") != EOS_OK)
+    {
+        eos_activity_destroy(activity);
+        return;
+    }
 
     lv_obj_t *test_list = lv_list_create(view);
     lv_obj_set_size(test_list, lv_pct(100), lv_pct(100));

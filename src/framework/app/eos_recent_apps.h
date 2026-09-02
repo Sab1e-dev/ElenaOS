@@ -133,9 +133,9 @@ void eos_recent_apps_set_anim_strategy(eos_suspend_anim_strategy_t strategy);
 uint32_t eos_recent_apps_count(void);
 
 /**
- * @brief Check whether the given activity is a suspendable script app
+ * @brief Check whether the given activity belongs to a suspendable app
  * @param activity Activity to check
- * @return true if the activity or its app_root is APP type
+ * @return true if the activity has a stable app identity
  */
 bool eos_recent_apps_is_suspendable(eos_activity_t *activity);
 

@@ -249,16 +249,18 @@ static void _app_on_pause(eos_activity_t *a)
     if (!ctx || !ctx->app_id)
         return;
 
-    /* Only AppRoot handles SPM suspend.
-     * Sub-activities share the realm; their on_pause fires via the
-     * lifecycle callback if set from JS. */
+    /* Only AppRoot handles SPM suspend. Resolve the program by the Activity's
+     * stable ID instead of relying on SPM's global current-program pointer;
+     * the watchface or another app may still be current at this callback. */
     if (eos_activity_get_type(a) == EOS_ACTIVITY_TYPE_APP)
     {
-        /* Suspend the SPM program (pauses sni_ctx, preserves realm) */
-        eos_result_t ret = spm_app_suspend();
-        if (ret != EOS_OK)
+        script_program_t *prog = spm_get_program_by_id_any_state(ctx->app_id);
+        if (prog && prog->state == SCRIPT_PROGRAM_STATE_ACTIVE)
         {
-            EOS_LOG_W("spm_app_suspend failed for '%s': %d", ctx->app_id, ret);
+            /* Suspend the SPM program (pauses sni_ctx, preserves realm). */
+            eos_result_t ret = spm_suspend_program(prog);
+            if (ret != EOS_OK)
+                EOS_LOG_W("spm_suspend_program failed for '%s': %d", ctx->app_id, ret);
         }
     }
 }
@@ -1012,6 +1014,15 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
     lv_obj_t *app_view = eos_activity_get_view(a);
     lv_obj_set_size(app_view, EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT);
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_APP);
+    if (eos_activity_set_app_id(a, app_id) != EOS_OK)
+    {
+        EOS_LOG_E("Failed to bind app identity: %s", app_id);
+        eos_activity_destroy(a);
+        eos_pkg_free(&ctx->pkg);
+        eos_free(ctx->app_id);
+        eos_free(ctx);
+        return EOS_FAILED;
+    }
     eos_activity_set_user_data(a, ctx);
     eos_activity_set_title(a, ctx->pkg.name);
     eos_activity_set_app_header_visible(a, true);
@@ -1152,26 +1163,21 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
     _app_list_set_last_launch_app_id(app_id);
 
     int32_t sys_app_index = _app_list_find_sys_app(app_id);
-    if (sys_app_index >= 0)
-    {
-        snprintf(_app_list_running_system_id, sizeof(_app_list_running_system_id), "%s", app_id);
-        if (eos_sys_app_entry_list[sys_app_index])
-        {
-            eos_sys_app_entry_list[sys_app_index]();
-            return EOS_OK;
-        }
-        return EOS_FAILED;
-    }
-
-    if (!eos_app_list_contains(app_id))
+    if (sys_app_index < 0 && !eos_app_list_contains(app_id))
     {
         EOS_LOG_E("App not found: %s", app_id);
         return EOS_FAILED;
     }
 
-    _app_list_running_system_id[0] = '\0';
+    eos_activity_t *cur = eos_activity_get_current();
+    const char *current_app_id = cur ? eos_activity_get_app_id(cur) : NULL;
+    if (current_app_id && strcmp(current_app_id, app_id) == 0)
+    {
+        EOS_LOG_I("App '%s' is already the foreground app", app_id);
+        return EOS_OK;
+    }
 
-    /* Check if the app is already in the recents list — resume instead of fresh launch */
+    /* Recent entries are shared by native and script applications. */
     eos_recent_app_entry_t *recent_entry = eos_recent_apps_find(app_id);
     if (recent_entry)
     {
@@ -1254,33 +1260,50 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
             EOS_LOG_W("[RECENT_CAPTURE] saved_stack_top is NULL for '%s'", app_id);
         }
 
-        /* If another script app is active, suspend it first */
-        eos_activity_t *cur = eos_activity_get_current();
-        if (cur && eos_recent_apps_is_suspendable(cur))
+        /* If another app is active, suspend its complete navigation stack. */
+        if (cur && current_app_id)
         {
-            eos_recent_apps_suspend_current();
+            if (eos_recent_apps_suspend_current() != EOS_OK)
+            {
+                EOS_LOG_W("Failed to suspend current app before resuming '%s'", app_id);
+                return EOS_FAILED;
+            }
         }
-        return eos_recent_apps_resume_by_id(app_id);
+        eos_result_t resume_ret = eos_recent_apps_resume_by_id(app_id);
+        if (resume_ret == EOS_OK)
+        {
+            if (sys_app_index >= 0)
+                snprintf(_app_list_running_system_id, sizeof(_app_list_running_system_id), "%s", app_id);
+            else
+                _app_list_running_system_id[0] = '\0';
+        }
+        return resume_ret;
     }
 
-    /* If currently inside a script app, suspend it first instead of destroying */
-    eos_activity_t *cur = eos_activity_get_current();
-    if (cur && eos_recent_apps_is_suspendable(cur))
+    /* A fresh app launch also moves the complete current app instance to
+     * Recent Apps before creating the new root Activity. */
+    if (cur && current_app_id)
     {
-        EOS_LOG_I("Suspending current app before launching new app");
-        eos_recent_apps_suspend_current();
-    }
-    else
-    {
-        /* For non-script current (e.g. system app), use the old pop behavior */
-        eos_activity_type_t current_type = eos_activity_get_type(cur);
-        if (current_type == EOS_ACTIVITY_TYPE_APP)
+        EOS_LOG_I("Suspending current app before launching '%s'", app_id);
+        if (eos_recent_apps_suspend_current() != EOS_OK)
         {
-            EOS_LOG_I("Returning to app list before launching new app");
-            _app_list_pop_to_app_list();
+            EOS_LOG_W("Failed to suspend current app before launching '%s'", app_id);
+            return EOS_FAILED;
         }
     }
 
+    if (sys_app_index >= 0)
+    {
+        snprintf(_app_list_running_system_id, sizeof(_app_list_running_system_id), "%s", app_id);
+        if (eos_sys_app_entry_list[sys_app_index])
+        {
+            eos_sys_app_entry_list[sys_app_index]();
+            return EOS_OK;
+        }
+        return EOS_FAILED;
+    }
+
+    _app_list_running_system_id[0] = '\0';
     return _app_list_launch_script_app(app_id);
 }
 

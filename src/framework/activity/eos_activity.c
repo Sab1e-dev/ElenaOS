@@ -74,6 +74,7 @@ struct eos_activity_t
     bool has_started;
     bool suspend_on_exit; /**< Park sub-stack instead of destroying after transition */
     bool suspended; /**< Activity is parked in recents registry */
+    char *app_id; /**< Stable application ID owned by this Activity */
     struct eos_activity_t *app_substack_next; /**< Next activity toward app root */
     struct eos_activity_t *app_root; /**< APP-type root activity of this app */
     struct
@@ -141,6 +142,33 @@ static lv_obj_t *_parking_lot = NULL;
 static bool _suppress_next_transition_anim = false;
 
 /* Function Implementations -----------------------------------*/
+static bool _activity_is_app_owned_type(eos_activity_type_t type)
+{
+    return type == EOS_ACTIVITY_TYPE_APP || type == EOS_ACTIVITY_TYPE_INPUT_PAGE;
+}
+
+static eos_result_t _activity_bind_to_current_app(eos_activity_t *activity)
+{
+    eos_activity_t *current = _activity_ctx.current_activity;
+    eos_activity_t *root;
+    const char *app_id;
+
+    if (!activity || activity->app_id || !_activity_is_app_owned_type(activity->type) || !current)
+        return EOS_OK;
+
+    app_id = eos_activity_get_app_id(current);
+    if (!app_id)
+        return EOS_OK;
+
+    if (eos_activity_set_app_id(activity, app_id) != EOS_OK)
+        return EOS_FAILED;
+
+    root = current->app_root ? current->app_root : current;
+    activity->app_root = root;
+    activity->app_substack_next = current;
+    return EOS_OK;
+}
+
 static const char *_activity_type_to_str(eos_activity_type_t type)
 {
     switch (type)
@@ -233,6 +261,12 @@ static void _activity_run_destroy(eos_activity_t *activity)
             eos_free(activity->title.string);
             activity->title.string = NULL;
         }
+    }
+
+    if (activity->app_id)
+    {
+        eos_free(activity->app_id);
+        activity->app_id = NULL;
     }
 
     /* Clear any dangling context pointers that still reference
@@ -851,6 +885,30 @@ eos_activity_type_t eos_activity_get_type(eos_activity_t *activity)
 {
     EOS_CHECK_PTR_RETURN_VAL(activity, EOS_ACTIVITY_TYPE_NULL);
     return activity->type;
+}
+
+eos_result_t eos_activity_set_app_id(eos_activity_t *activity, const char *app_id)
+{
+    char *copy = NULL;
+
+    EOS_CHECK_PTR_RETURN_VAL(activity, EOS_FAILED);
+
+    if (app_id)
+    {
+        copy = eos_strdup(app_id);
+        if (!copy)
+            return EOS_FAILED;
+    }
+
+    if (activity->app_id)
+        eos_free(activity->app_id);
+    activity->app_id = copy;
+    return EOS_OK;
+}
+
+const char *eos_activity_get_app_id(eos_activity_t *activity)
+{
+    return activity ? activity->app_id : NULL;
 }
 
 eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
@@ -1568,6 +1626,12 @@ void eos_activity_enter(eos_activity_t *activity)
         return;
     }
 
+    if (_activity_bind_to_current_app(activity) != EOS_OK)
+    {
+        EOS_LOG_E("Activity enter failed: cannot bind activity to current app");
+        return;
+    }
+
     // Prevent entering root Activity through normal enter (use replace_root instead)
     if (activity == _activity_ctx.root_activity)
     {
@@ -1620,6 +1684,23 @@ eos_result_t eos_activity_back(void)
         return EOS_FAILED;
     }
 
+    /* Leaving an application's root is an application switch, not a single
+     * page pop.  Park the complete app-owned Activity chain so a later
+     * Recent Apps resume restores the same page.  Child pages continue
+     * through the normal one-page back path below. */
+    eos_activity_t *active = _activity_ctx.current_activity;
+    if (active && eos_activity_get_app_id(active) && eos_activity_get_app_substack_next(active) == NULL)
+    {
+        if (eos_recent_apps_suspend_current() == EOS_OK)
+        {
+            eos_activity_t *previous = _activity_ctx.current_activity;
+            if (previous)
+                _activity_switch_to(previous, false);
+            return EOS_OK;
+        }
+        EOS_LOG_W("Application root suspension failed; falling back to page destroy");
+    }
+
     // If stack is empty, we're at root - cannot go back further
     if (eos_stack_get_size(_activity_ctx.activity_stack) == 0)
     {
@@ -1641,29 +1722,9 @@ eos_result_t eos_activity_back(void)
 
     eos_activity_t *cur_activity = _activity_ctx.current_activity;
 
-    /* If leaving a suspendable APP activity, register it in recents.
-     * Only script apps with a valid launch context are suspendable —
-     * native system apps (Settings, Flashlight) and JS sub-activities
-     * are APP-type but NOT suspendable and must be destroyed instead. */
-    if (eos_activity_get_type(cur_activity) == EOS_ACTIVITY_TYPE_APP && eos_recent_apps_is_suspendable(cur_activity))
-    {
-        EOS_LOG_I("Activity back: APP type detected, registering for suspend");
-        eos_result_t reg_ret = eos_recent_apps_register_for_suspend(cur_activity);
-        EOS_LOG_I("Activity back: register_for_suspend returned %d", reg_ret);
-        if (reg_ret == EOS_OK)
-        {
-            cur_activity->suspend_on_exit = true;
-        }
-        else
-        {
-            EOS_LOG_W("Activity back: suspend registration failed, falling back to destroy");
-            cur_activity->destroy_on_exit = true;
-        }
-    }
-    else
-    {
-        cur_activity->destroy_on_exit = true;
-    }
+    /* A child page is a normal navigation pop.  Only the app-root path above
+     * enters Recent Apps. */
+    cur_activity->destroy_on_exit = true;
 
     eos_activity_t *prev = NULL;
     if (eos_stack_get_size(_activity_ctx.activity_stack) == 0)
@@ -2049,10 +2110,10 @@ eos_activity_t *eos_activity_detach_app_substack(void)
     return current; /* Return the sub-stack top */
 }
 
-void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf)
+eos_result_t eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf)
 {
     if (!substack_top)
-        return;
+        return EOS_FAILED;
 
     /* Walk down to AppRoot to count and find root */
     eos_activity_t *app_root = substack_top;
@@ -2066,13 +2127,13 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_bu
     if (!app_root || app_root->type != EOS_ACTIVITY_TYPE_APP)
     {
         EOS_LOG_W("reattach_app_substack: invalid chain");
-        return;
+        return EOS_FAILED;
     }
 
     /* Build ordered array: [AppRoot ... substack_top] */
     eos_activity_t **ordered = eos_malloc_zeroed((depth + 2) * sizeof(eos_activity_t *));
     if (!ordered)
-        return;
+        return EOS_FAILED;
 
     uint32_t count = 0;
     eos_activity_t *node = substack_top;
@@ -2155,6 +2216,8 @@ void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_bu
               (void *)substack_top,
               _activity_type_to_str(substack_top->type),
               depth + 1);
+
+    return EOS_OK;
 }
 
 /* Accessors --------------------------------------------------*/

@@ -379,6 +379,21 @@ bool eos_activity_is_transition_in_progress(void);
 eos_activity_t *eos_activity_get_bottom(void);
 
 /**
+ * @brief Set the stable application ID owned by an Activity
+ * @param activity Activity pointer
+ * @param app_id Stable application ID, or NULL to clear
+ * @return eos_result_t EOS_OK success, EOS_FAILED on invalid input or allocation failure
+ */
+eos_result_t eos_activity_set_app_id(eos_activity_t *activity, const char *app_id);
+
+/**
+ * @brief Get the stable application ID owned by an Activity
+ * @param activity Activity pointer
+ * @return const char* Application ID, or NULL when unbound
+ */
+const char *eos_activity_get_app_id(eos_activity_t *activity);
+
+/**
  * @brief Check whether an Activity has ever been entered (has_started)
  *
  * Off-stack Activities created by JS scripts (eos_activity_create(NULL))
@@ -443,7 +458,7 @@ eos_activity_t *eos_activity_detach_app_substack(void);
  * @note Pushes activities bottom-up (AppRoot first). Calls on_resume bottom-up.
  *       After call, current_activity is substack_top.
  */
-void eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf);
+eos_result_t eos_activity_reattach_app_substack(eos_activity_t *substack_top, lv_draw_buf_t *snap_buf);
 
 /**
  * @brief Set the suspend_on_exit flag on an activity (park instead of destroy after transition)
