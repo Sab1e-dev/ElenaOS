@@ -855,8 +855,10 @@ static int32_t sni_cb_anim_path_dispatch(const lv_anim_t *a)
 
 sni_context_t *sni_cb_get_context(void)
 {
-    script_program_t *prog = spm_get_active_program();
-    return prog ? prog->sni_ctx : NULL;
+    script_program_t *prog = script_engine_get_current_program();
+    if (!prog || prog->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+        return NULL;
+    return prog->sni_ctx;
 }
 
 void sni_cb_context_cleanup_events(sni_context_t *ctx)

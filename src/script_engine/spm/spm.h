@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 /* Includes ---------------------------------------------------*/
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "jerryscript.h"
@@ -195,6 +196,27 @@ jerry_value_t spm_call(script_program_t *prog,
                        jerry_value_t this_val,
                        const jerry_value_t args_p[],
                        jerry_length_t args_count);
+
+/** @name ESH Console */
+/**@{*/
+/**
+ * @brief Evaluate source in the persistent, isolated ESH Console Realm
+ * @param source UTF-8 JavaScript source
+ * @param source_length Source length in bytes
+ * @param result_buffer Output buffer for a formatted result or error
+ * @param result_buffer_size Output buffer capacity
+ * @param result_is_undefined Set true when the last value is JavaScript
+ *        undefined, rather than the string "undefined"
+ * @return EOS_OK on success, or an error code
+ * @note The Console program is dynamically activated only for this call.
+ *       Its Realm persists between calls, while application programs remain
+ *       separate and are restored as the current program afterward.
+ */
+eos_result_t spm_console_eval(const char *source,
+                              size_t source_length,
+                              char *result_buffer,
+                              size_t result_buffer_size,
+                              bool *result_is_undefined);
 /**@}*/
 
 /** @name Query APIs */

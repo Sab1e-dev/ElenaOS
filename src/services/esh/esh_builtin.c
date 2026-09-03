@@ -1008,6 +1008,12 @@ static int _esh_cmd_help(esh_cmd_ctx_t *ctx, int argc, char *argv[])
     return EOS_OK;
 }
 
+#if EOS_COMPILE_MODE == EOS_DEBUG
+#define ESH_BUILTIN_JS_COMMAND(_) _(js, esh_builtin_cmd_js, "evaluate JavaScript")
+#else
+#define ESH_BUILTIN_JS_COMMAND(_)
+#endif
+
 #define ESH_BUILTIN_COMMANDS(_)                                       \
     _(help, _esh_cmd_help, "list available commands")                 \
     _(version, _esh_cmd_version, "show ElenixOS kernel version")      \
@@ -1044,6 +1050,7 @@ static int _esh_cmd_help(esh_cmd_ctx_t *ctx, int argc, char *argv[])
     _(apps, esh_builtin_cmd_apps, "list installed applications")      \
     _(recent, esh_builtin_cmd_recent, "list recent applications")     \
     _(app, esh_builtin_cmd_app, "inspect or control an application")  \
+    ESH_BUILTIN_JS_COMMAND(_)                                         \
     _(config, esh_builtin_cmd_config, "inspect system configuration") \
     _(state, esh_builtin_cmd_state, "inspect system state")           \
     _(pkg, esh_builtin_cmd_pkg, "manage application packages")        \
@@ -1063,6 +1070,7 @@ ESH_BUILTIN_COMMANDS(_ESH_EXPORT_BUILTIN)
 static const esh_command_t _esh_builtin_commands[] = {ESH_BUILTIN_COMMANDS(_ESH_DEFINE_BUILTIN)};
 #undef _ESH_DEFINE_BUILTIN
 #undef ESH_BUILTIN_COMMANDS
+#undef ESH_BUILTIN_JS_COMMAND
 
 const esh_command_t *_esh_builtin_command_begin(void)
 {

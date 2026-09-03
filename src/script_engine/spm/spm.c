@@ -11,6 +11,7 @@
 #define EOS_LOG_TAG "SPM"
 #include "eos_log.h"
 #include "eos_mem.h"
+#include "eos_version.h"
 #include "eos_event.h"
 #include "eos_dispatcher.h"
 #include "eos_recent_apps.h"
@@ -24,6 +25,7 @@
 /* Variables --------------------------------------------------*/
 
 static script_program_t *s_program_list = NULL;
+static script_program_t *s_console_program = NULL;
 static bool s_initialized = false;
 static spm_error_t s_last_error = {0};
 static bool s_has_last_error = false;
@@ -140,6 +142,8 @@ static void _program_destroy(script_program_t *prog)
         prog->realm = jerry_undefined();
     }
     _script_free(&prog->script);
+    if (prog == s_console_program)
+        s_console_program = NULL;
     eos_free(prog);
 }
 
@@ -206,6 +210,7 @@ eos_result_t spm_init(void)
     if (s_initialized)
         return EOS_OK;
     s_program_list = NULL;
+    s_console_program = NULL;
     s_initialized = true;
     EOS_LOG_I("SPM initialized");
     return EOS_OK;
@@ -344,6 +349,8 @@ eos_result_t spm_suspend_program(script_program_t *prog)
     if (prog->sni_ctx)
         sni_context_set_paused(prog->sni_ctx, true);
     prog->state = SCRIPT_PROGRAM_STATE_SUSPENDED;
+    if (script_engine_get_current_program() == prog)
+        script_engine_set_current_program(NULL);
     EOS_LOG_I("Program %p suspended", (void *)prog);
     return EOS_OK;
 }
@@ -473,12 +480,156 @@ jerry_value_t spm_call(script_program_t *prog,
                        const jerry_value_t args_p[],
                        jerry_length_t args_count)
 {
+    script_program_t *previous;
+    uint32_t saved_generation;
+    jerry_value_t result;
+
     if (!prog || prog->state != SCRIPT_PROGRAM_STATE_ACTIVE)
     {
         EOS_LOG_W("spm_call: program not ACTIVE (state=%d), rejecting", prog ? prog->state : -1);
         return jerry_undefined();
     }
-    return script_engine_call_raw(func, this_val, args_p, args_count);
+
+    previous = script_engine_get_current_program();
+    saved_generation = script_engine_get_gen();
+    if (previous != prog)
+        script_engine_set_current_program(prog);
+
+    result = script_engine_call_raw(func, this_val, args_p, args_count);
+
+    /* A fatal callback recovery destroys all program nodes and clears the
+     * current-program pointer. Never restore a pointer into the old heap. */
+    if (saved_generation == script_engine_get_gen() && previous != prog)
+    {
+        if (previous && previous->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+            script_engine_set_current_program(previous);
+        else
+            script_engine_set_current_program(NULL);
+    }
+    return result;
+}
+
+static const script_pkg_t s_console_package = {
+    .id = "esh",
+    .name = "ESH Console",
+    .type = SCRIPT_TYPE_CONSOLE,
+    .version = "1.0.0",
+    .author = "ElenixOS",
+    .description = "Interactive ESH JavaScript console",
+    .script_str = NULL,
+    .base_path = "/",
+    .permissions = NULL,
+    .permission_count = 0,
+    .min_api_level = 0,
+    .target_api_level = ELENIX_OS_API_LEVEL,
+};
+
+static eos_result_t _spm_console_start(void)
+{
+    script_program_t *previous;
+    eos_result_t status;
+
+    if (s_console_program)
+        return EOS_OK;
+    if (!s_initialized)
+        return EOS_ERR_NOT_INITIALIZED;
+    if (script_engine_get_state() != SCRIPT_ENGINE_STATE_IDLE)
+        return EOS_ERR_INVALID_STATE;
+
+    previous = script_engine_get_current_program();
+    if (!previous || previous->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+        previous = spm_get_active_program();
+
+    s_console_program = eos_malloc_zeroed(sizeof(script_program_t));
+    if (!s_console_program)
+        return EOS_ERR_MEM;
+
+    s_console_program->type = SCRIPT_TYPE_CONSOLE;
+    s_console_program->state = SCRIPT_PROGRAM_STATE_ACTIVE;
+    s_console_program->realm = jerry_undefined();
+    _pkg_clone(&s_console_program->script, &s_console_package);
+    s_console_program->sni_ctx = sni_context_create();
+    if (!s_console_program->sni_ctx)
+    {
+        _script_free(&s_console_program->script);
+        eos_free(s_console_program);
+        s_console_program = NULL;
+        return EOS_ERR_MEM;
+    }
+    s_console_program->sni_ctx->owner = s_console_program;
+    _program_list_add(s_console_program);
+
+    script_engine_set_current_program(s_console_program);
+    status = script_engine_prepare_program_realm(s_console_program);
+    if (status != EOS_OK)
+    {
+        _program_list_remove(s_console_program);
+        s_console_program->state = SCRIPT_PROGRAM_STATE_TERMINATED;
+        _program_destroy(s_console_program);
+        if (previous && previous->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+            script_engine_set_current_program(previous);
+        return status;
+    }
+
+    sni_context_pause_resources(s_console_program->sni_ctx);
+    sni_context_set_paused(s_console_program->sni_ctx, true);
+    s_console_program->state = SCRIPT_PROGRAM_STATE_SUSPENDED;
+    if (previous && previous->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+        script_engine_set_current_program(previous);
+    else
+        script_engine_set_current_program(NULL);
+    EOS_LOG_I("Console program initialized realm=%u", (unsigned)s_console_program->realm);
+    return EOS_OK;
+}
+
+eos_result_t spm_console_eval(const char *source,
+                              size_t source_length,
+                              char *result_buffer,
+                              size_t result_buffer_size,
+                              bool *result_is_undefined)
+{
+    script_program_t *previous;
+    uint32_t saved_generation;
+    eos_result_t status;
+
+    status = _spm_console_start();
+    if (status != EOS_OK)
+        return status;
+    if (!s_console_program || s_console_program->state != SCRIPT_PROGRAM_STATE_SUSPENDED)
+        return EOS_ERR_INVALID_STATE;
+    if (script_engine_get_state() != SCRIPT_ENGINE_STATE_IDLE)
+        return EOS_ERR_INVALID_STATE;
+
+    previous = script_engine_get_current_program();
+    if (!previous || previous->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+        previous = spm_get_active_program();
+
+    sni_context_set_paused(s_console_program->sni_ctx, false);
+    sni_context_resume_resources(s_console_program->sni_ctx, SNI_TIMER_RESUME_SKIP, SNI_ANIM_RESUME_CONTINUE);
+    s_console_program->state = SCRIPT_PROGRAM_STATE_ACTIVE;
+    script_engine_set_current_program(s_console_program);
+    saved_generation = script_engine_get_gen();
+
+    status = script_engine_eval_program(s_console_program,
+                                        source,
+                                        source_length,
+                                        result_buffer,
+                                        result_buffer_size,
+                                        result_is_undefined);
+
+    /* Fatal recovery destroys the Console and all application programs. The
+     * generation check prevents dereferencing the invalid Console pointer. */
+    if (saved_generation != script_engine_get_gen())
+        return status;
+
+    sni_context_pause_resources(s_console_program->sni_ctx);
+    sni_context_set_paused(s_console_program->sni_ctx, true);
+    s_console_program->state = SCRIPT_PROGRAM_STATE_SUSPENDED;
+    if (previous && previous->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+        script_engine_set_current_program(previous);
+    else
+        script_engine_set_current_program(NULL);
+    return status;
 }
 
 /* Query APIs -------------------------------------------------*/
@@ -814,6 +965,7 @@ void spm_handle_engine_reset(void)
 
     s_program_list = NULL;
     s_wf_program = NULL;
+    s_console_program = NULL;
     s_has_last_error = false;
     memset(&s_last_error, 0, sizeof(spm_error_t));
 

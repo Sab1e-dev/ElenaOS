@@ -271,6 +271,8 @@ static const char *_script_type_name(script_pkg_type_t type)
             return "application";
         case SCRIPT_TYPE_WATCHFACE:
             return "watchface";
+        case SCRIPT_TYPE_CONSOLE:
+            return "console";
         default:
             return "unknown";
     }

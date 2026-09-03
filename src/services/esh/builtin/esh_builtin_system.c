@@ -99,6 +99,104 @@ static eos_result_t _write_text(esh_cmd_ctx_t *ctx, const char *text)
     return esh_write(ctx, "\r\n", 2U);
 }
 
+#if EOS_COMPILE_MODE == EOS_DEBUG
+
+static int _esh_js_eval(esh_cmd_ctx_t *ctx, const char *source, size_t source_length)
+{
+    char result[512];
+    bool result_is_undefined = false;
+    eos_result_t status;
+
+    status = spm_console_eval(source, source_length, result, sizeof(result), &result_is_undefined);
+    if (status != EOS_OK)
+    {
+        if (result[0] != '\0')
+            return (int)esh_printf(ctx, "js: %s (error=%d)\r\n", result, status);
+        return (int)esh_printf(ctx, "js: eval failed (error=%d)\r\n", status);
+    }
+
+    /* Match interactive language shells: calls such as console.log() may
+     * produce their own output while returning undefined. Do not echo the
+     * implementation detail as a second, noisy line. A string whose content
+     * is "undefined" is still a meaningful result and must be printed. */
+    if (result_is_undefined)
+        return EOS_OK;
+
+    return (int)_write_text(ctx, result);
+}
+
+static int _esh_js_join_source(char *buffer, size_t buffer_size, int argc, char *argv[], int first)
+{
+    size_t length = 0U;
+    int index;
+
+    if (!buffer || buffer_size == 0U || !argv || first >= argc)
+        return EOS_ERR_INVALID_ARG;
+
+    for (index = first; index < argc; index++)
+    {
+        size_t part_length = strlen(argv[index]);
+        size_t separator = index == first ? 0U : 1U;
+        if (length + separator + part_length + 1U > buffer_size)
+            return EOS_ERR_PATH_TOO_LONG;
+        if (separator != 0U)
+            buffer[length++] = ' ';
+        memcpy(buffer + length, argv[index], part_length);
+        length += part_length;
+    }
+    buffer[length] = '\0';
+    return (int)length;
+}
+
+int esh_builtin_cmd_js(esh_cmd_ctx_t *ctx, int argc, char *argv[])
+{
+    char source[ESH_LINE_MAX];
+    char resolved[EOS_FS_PATH_MAX];
+    char *file_source;
+    eos_file_t file;
+    uint32_t file_size = 0U;
+    int source_length;
+    eos_result_t status;
+
+    if (!ctx || !argv || argc < 2)
+        return (int)esh_printf(ctx, "js: usage: js eval <code>|file <path>\r\n");
+
+    if (strcmp(argv[1], "eval") == 0)
+    {
+        source_length = _esh_js_join_source(source, sizeof(source), argc, argv, 2);
+        if (source_length < 0)
+            return (int)esh_printf(ctx, "js: code is empty or too long\r\n");
+        return _esh_js_eval(ctx, source, (size_t)source_length);
+    }
+
+    if (strcmp(argv[1], "file") != 0 || argc != 3)
+        return (int)esh_printf(ctx, "js: usage: js eval <code>|file <path>\r\n");
+
+    if (!esh_builtin_resolve_path(ctx->esh, argv[2], resolved, sizeof(resolved)))
+        return (int)esh_printf(ctx, "js: path too long: %s\r\n", argv[2]);
+    if (!eos_storage_is_file(resolved))
+        return (int)esh_printf(ctx, "js: no such file: %s\r\n", argv[2]);
+
+    file = eos_storage_file_open_read(resolved);
+    if (file == EOS_FILE_INVALID)
+        return (int)esh_printf(ctx, "js: cannot open: %s\r\n", argv[2]);
+    status = eos_storage_file_size(file, &file_size);
+    eos_storage_file_close(file);
+    if (status != EOS_OK)
+        return (int)esh_printf(ctx, "js: cannot stat: %s\r\n", argv[2]);
+    if (file_size == 0U || file_size > SCRIPT_ENGINE_EVAL_SOURCE_MAX)
+        return (int)esh_printf(ctx, "js: file size must be 1..%u bytes\r\n", SCRIPT_ENGINE_EVAL_SOURCE_MAX);
+
+    file_source = eos_storage_read_file(resolved);
+    if (!file_source)
+        return (int)esh_printf(ctx, "js: cannot read: %s\r\n", argv[2]);
+    status = (eos_result_t)_esh_js_eval(ctx, file_source, file_size);
+    eos_free(file_source);
+    return (int)status;
+}
+
+#endif /* EOS_COMPILE_MODE == EOS_DEBUG */
+
 static int _print_json_item(esh_cmd_ctx_t *ctx, const char *key, cJSON *item)
 {
     char *text;

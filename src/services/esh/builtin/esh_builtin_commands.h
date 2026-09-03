@@ -42,6 +42,7 @@ int esh_builtin_cmd_ble(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_apps(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_recent(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_app(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
+int esh_builtin_cmd_js(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_config(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_state(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_pkg(esh_cmd_ctx_t *ctx, int argc, char *argv[]);

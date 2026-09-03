@@ -58,6 +58,7 @@ typedef struct
 
 static _module_cache_entry_t _module_cache[MODULE_CACHE_MAX];
 static int _module_cache_count = 0;
+static bool _suppress_call_exception_handler = false;
 
 typedef struct
 {
@@ -863,11 +864,12 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
                 else
                     EOS_LOG_D("Script call stopped by request");
             }
-            else
+            else if (!_suppress_call_exception_handler)
             {
                 _script_engine_exception_handler("Jerry Call", result);
-                _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
             }
+            if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
+                _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
         }
 
         if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
@@ -875,6 +877,157 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
     }
 
     return result;
+}
+
+static bool _eval_copy_string(jerry_value_t value, char *buffer, size_t buffer_size)
+{
+    jerry_value_t string_value = value;
+    bool owns_string = false;
+    jerry_size_t length;
+    jerry_size_t copied;
+
+    if (!buffer || buffer_size == 0U)
+        return false;
+
+    if (!jerry_value_is_string(string_value))
+    {
+        string_value = jerry_value_to_string(value);
+        owns_string = true;
+    }
+
+    if (jerry_value_is_exception(string_value))
+    {
+        if (owns_string)
+            jerry_value_free(string_value);
+        buffer[0] = '\0';
+        return false;
+    }
+
+    length = jerry_string_size(string_value, JERRY_ENCODING_UTF8);
+    copied = jerry_string_to_buffer(string_value,
+                                    JERRY_ENCODING_UTF8,
+                                    (jerry_char_t *)buffer,
+                                    (jerry_size_t)(buffer_size - 1U));
+    buffer[copied] = '\0';
+    if (length >= buffer_size && buffer_size > 4U)
+    {
+        buffer[buffer_size - 4U] = '.';
+        buffer[buffer_size - 3U] = '.';
+        buffer[buffer_size - 2U] = '.';
+        buffer[buffer_size - 1U] = '\0';
+    }
+
+    if (owns_string)
+        jerry_value_free(string_value);
+    return true;
+}
+
+eos_result_t script_engine_eval_program(script_program_t *program,
+                                        const char *source,
+                                        size_t source_length,
+                                        char *result_buffer,
+                                        size_t result_buffer_size,
+                                        bool *result_is_undefined)
+{
+    jerry_value_t old_realm;
+    jerry_value_t global;
+    jerry_value_t eval_function;
+    jerry_value_t source_value;
+    jerry_value_t result;
+    uint32_t saved_generation;
+    bool is_exception;
+    bool is_timeout;
+    char value_buffer[256];
+
+    if (!program || !source || !result_buffer || result_buffer_size == 0U || !result_is_undefined)
+        return EOS_ERR_INVALID_ARG;
+    result_buffer[0] = '\0';
+    *result_is_undefined = false;
+    if (source_length == 0U || source_length > SCRIPT_ENGINE_EVAL_SOURCE_MAX)
+        return EOS_ERR_INVALID_ARG;
+    if (!engine_rt.initialized || engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+        return EOS_ERR_INVALID_STATE;
+    if (program->state != SCRIPT_PROGRAM_STATE_ACTIVE || !jerry_value_is_object(program->realm))
+        return EOS_ERR_INVALID_STATE;
+
+    /* The SNI and permission layers currently resolve their owner through
+     * the engine's single current-program slot. Do not silently impersonate
+     * another program from an ESH handler. */
+    if (engine_rt.current_program != program)
+        return EOS_ERR_SCRIPT_ALREADY_RUNNING;
+
+    old_realm = jerry_set_realm(program->realm);
+    if (jerry_value_is_exception(old_realm))
+    {
+        jerry_value_free(old_realm);
+        return EOS_ERR_INVALID_STATE;
+    }
+
+    global = jerry_current_realm();
+    eval_function = jerry_object_get_sz(global, "eval");
+    source_value = jerry_string((const jerry_char_t *)source, (jerry_size_t)source_length, JERRY_ENCODING_UTF8);
+    if (jerry_value_is_exception(eval_function) || !jerry_value_is_function(eval_function)
+        || jerry_value_is_exception(source_value))
+    {
+        jerry_value_free(source_value);
+        jerry_value_free(eval_function);
+        jerry_value_free(global);
+        (void)jerry_set_realm(old_realm);
+        return EOS_ERR_SCRIPT_INVALID_JS;
+    }
+
+    saved_generation = engine_rt.engine_gen;
+    jerry_value_t args[1] = {source_value};
+    _suppress_call_exception_handler = true;
+    result = script_engine_call_raw(eval_function, global, args, 1);
+    _suppress_call_exception_handler = false;
+
+    /* Fatal recovery reinitializes the heap and destroys all programs. No
+     * handle captured before the call may be touched after this point. */
+    if (saved_generation != engine_rt.engine_gen)
+    {
+        snprintf(result_buffer, result_buffer_size, "Engine reset during eval");
+        return EOS_ERR_SCRIPT_EXCEPTION;
+    }
+
+    is_exception = jerry_value_is_exception(result);
+    is_timeout = engine_rt.stop_is_timeout;
+    if (is_exception)
+    {
+        jerry_value_t exception = jerry_exception_value(result, false);
+        if (!_eval_copy_string(exception, value_buffer, sizeof(value_buffer)))
+            snprintf(value_buffer, sizeof(value_buffer), "JavaScript exception");
+        if (strncmp(value_buffer, "Error: ", 7U) == 0)
+            snprintf(result_buffer, result_buffer_size, "%s", value_buffer);
+        else
+            snprintf(result_buffer, result_buffer_size, "Error: %s", value_buffer);
+        jerry_value_free(exception);
+    }
+    else if (jerry_value_is_undefined(result))
+    {
+        *result_is_undefined = true;
+        snprintf(result_buffer, result_buffer_size, "undefined");
+    }
+    else if (!_eval_copy_string(result, result_buffer, result_buffer_size))
+    {
+        snprintf(result_buffer, result_buffer_size, "<unprintable>");
+    }
+
+    jerry_value_free(result);
+    jerry_value_free(source_value);
+    jerry_value_free(eval_function);
+    jerry_value_free(global);
+
+    /* A command exception/timeout must not permanently poison the program's
+     * callback gate. The exception text has already been copied above. */
+    if (engine_rt.state == SCRIPT_ENGINE_STATE_EXCEPTION)
+        _change_state(SCRIPT_ENGINE_STATE_IDLE);
+    engine_rt.pending_stop = false;
+    engine_rt.stop_is_timeout = false;
+
+    (void)jerry_set_realm(old_realm);
+
+    return is_timeout ? EOS_ERR_TIMEOUT : (is_exception ? EOS_ERR_SCRIPT_EXCEPTION : EOS_OK);
 }
 
 /* Timeout ----------------------------------------------------*/
@@ -1305,6 +1458,51 @@ static jerry_value_t _script_engine_create_info(const script_pkg_t *pkg)
     script_engine_set_prop_number(obj, "minApiLevel", pkg->min_api_level);
     script_engine_set_prop_number(obj, "targetApiLevel", pkg->target_api_level);
     return obj;
+}
+
+eos_result_t script_engine_prepare_program_realm(script_program_t *program)
+{
+    jerry_value_t new_realm;
+    jerry_value_t global;
+    jerry_value_t script_info;
+    jerry_value_t key;
+
+    if (!program || !program->sni_ctx)
+        return EOS_ERR_INVALID_ARG;
+    if (!engine_rt.initialized || engine_rt.state != SCRIPT_ENGINE_STATE_IDLE)
+        return EOS_ERR_INVALID_STATE;
+    if (engine_rt.current_program != program)
+        return EOS_ERR_SCRIPT_ALREADY_RUNNING;
+    if (jerry_value_is_object(program->realm))
+        return EOS_ERR_ALREADY_INITIALIZED;
+
+    new_realm = _realm_create();
+    if (jerry_value_is_exception(new_realm))
+    {
+        jerry_value_free(new_realm);
+        return EOS_ERR_SCRIPT_INIT_FAIL;
+    }
+
+    _realm_save_and_switch(new_realm);
+    sni_mount(new_realm);
+    jerry_halt_handler(16, _vm_exec_stop_callback, NULL);
+    jerry_log_set_level(JERRY_LOG_LEVEL_DEBUG);
+
+    global = jerry_current_realm();
+    script_info = _script_engine_create_info(&program->script);
+    key = jerry_string_sz("scriptInfo");
+    jerry_value_free(jerry_object_set(global, key, script_info));
+    jerry_value_free(key);
+    jerry_value_free(script_info);
+    jerry_value_free(global);
+
+    _realm_assign_to_program(program, new_realm);
+
+    /* _realm_restore_and_cleanup restores the boot Realm and releases the
+     * temporary reference created by _realm_create. The program keeps its
+     * independent reference assigned above. */
+    _realm_restore_and_cleanup();
+    return EOS_OK;
 }
 
 eos_result_t script_engine_run(const script_pkg_t *script_package)

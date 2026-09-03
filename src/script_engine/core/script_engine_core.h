@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 /* Includes ---------------------------------------------------*/
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "lvgl.h"
@@ -26,6 +27,11 @@ extern "C" {
 
 #ifndef SNI_CONTEXT_MAX_COUNT
 #define SNI_CONTEXT_MAX_COUNT 2
+#endif
+
+/** @brief Maximum source size accepted by the debug eval entry point */
+#ifndef SCRIPT_ENGINE_EVAL_SOURCE_MAX
+#define SCRIPT_ENGINE_EVAL_SOURCE_MAX 8192U
 #endif
 
 /* Public typedefs --------------------------------------------*/
@@ -46,6 +52,7 @@ typedef enum
     SCRIPT_TYPE_UNKNOWN = 0,
     SCRIPT_TYPE_APPLICATION = 1,
     SCRIPT_TYPE_WATCHFACE = 2,
+    SCRIPT_TYPE_CONSOLE = 3,
 } script_pkg_type_t;
 
 typedef struct
@@ -116,6 +123,15 @@ eos_result_t script_engine_clean_up(void);
 eos_result_t script_engine_run(const script_pkg_t *script_package);
 
 /**
+ * @brief Prepare an empty Realm for an SPM-owned program
+ * @param program Program that owns the Realm and SNI context
+ * @return EOS_OK on success, or an error code
+ * @note The caller must set program as the current program first. This is
+ *       used by the persistent ESH Console program and does not execute JS.
+ */
+eos_result_t script_engine_prepare_program_realm(script_program_t *program);
+
+/**
  * @brief Set/clear the SPM program that Core is working for
  * @param prog Program pointer (SPM-owned, not freed by Core), NULL to clear
  */
@@ -153,6 +169,27 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
                                      jerry_value_t this_val,
                                      const jerry_value_t args_p[],
                                      const jerry_length_t args_count);
+
+/**
+ * @brief Evaluate JavaScript in an already running script program
+ * @param program Target ACTIVE script program
+ * @param source JavaScript source buffer
+ * @param source_length Source length in bytes
+ * @param result_buffer Output buffer for the last value or error text
+ * @param result_buffer_size Output buffer size
+ * @param result_is_undefined Set true when the last value is JavaScript
+ *        undefined, rather than the string "undefined"
+ * @return EOS_OK, a script error, or an invalid-state error
+ * @note This is a synchronous debug entry point. It does not load modules or
+ *       drain the global Promise job queue. The caller must not use it from
+ *       inside another JS callback.
+ */
+eos_result_t script_engine_eval_program(script_program_t *program,
+                                        const char *source,
+                                        size_t source_length,
+                                        char *result_buffer,
+                                        size_t result_buffer_size,
+                                        bool *result_is_undefined);
 /**@}*/
 
 /** @name Property Helpers */
