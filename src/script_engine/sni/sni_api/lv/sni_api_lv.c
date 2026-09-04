@@ -30,9 +30,8 @@ static jerry_value_t lv_api_obj;
 #define SNI_LVGL_API_VERSION_MINOR 5
 #define SNI_LVGL_API_VERSION_PATCH 0
 
-#if LVGL_VERSION_MAJOR != SNI_LVGL_API_VERSION_MAJOR || \
-    LVGL_VERSION_MINOR != SNI_LVGL_API_VERSION_MINOR || \
-    LVGL_VERSION_PATCH != SNI_LVGL_API_VERSION_PATCH
+#if LVGL_VERSION_MAJOR != SNI_LVGL_API_VERSION_MAJOR || LVGL_VERSION_MINOR != SNI_LVGL_API_VERSION_MINOR \
+    || LVGL_VERSION_PATCH != SNI_LVGL_API_VERSION_PATCH
 #error "sni_api_lv.c was generated for a different LVGL version; regenerate lvgl.json and sni_api_lv.c"
 #endif
 
@@ -104,7 +103,8 @@ SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_FLUSH_START == 62, sni_lvgl_api_assert_lv_ev
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_FLUSH_FINISH == 63, sni_lvgl_api_assert_lv_event_flush_finish);
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_FLUSH_WAIT_START == 64, sni_lvgl_api_assert_lv_event_flush_wait_start);
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_FLUSH_WAIT_FINISH == 65, sni_lvgl_api_assert_lv_event_flush_wait_finish);
-SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_UPDATE_LAYOUT_COMPLETED == 66, sni_lvgl_api_assert_lv_event_update_layout_completed);
+SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_UPDATE_LAYOUT_COMPLETED == 66,
+                           sni_lvgl_api_assert_lv_event_update_layout_completed);
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_VSYNC == 67, sni_lvgl_api_assert_lv_event_vsync);
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_VSYNC_REQUEST == 68, sni_lvgl_api_assert_lv_event_vsync_request);
 SNI_LVGL_API_STATIC_ASSERT(LV_EVENT_LAST == 69, sni_lvgl_api_assert_lv_event_last);
@@ -127,7 +127,7 @@ jerry_value_t sni_api_ctor_obj(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -385,7 +385,13 @@ jerry_value_t sni_api_lv_obj_set_grid_cell(const jerry_call_info_t *call_info_p,
     int32_t arg_row_span;
     arg_row_span = sni_tb_js2c_int32(args_p[5]);
 
-    lv_obj_set_grid_cell(self_obj, arg_column_align, arg_col_pos, arg_col_span, arg_row_align, arg_row_pos, arg_row_span);
+    lv_obj_set_grid_cell(self_obj,
+                         arg_column_align,
+                         arg_col_pos,
+                         arg_col_span,
+                         arg_row_align,
+                         arg_row_pos,
+                         arg_row_span);
     return jerry_undefined();
 }
 
@@ -13637,7 +13643,7 @@ jerry_value_t sni_api_lv_obj_null_on_delete(const jerry_call_info_t *call_info_p
     {
         return sni_api_throw_error("Invalid argument type");
     }
-    lv_obj_t * *self_obj;
+    lv_obj_t **self_obj;
     if (!sni_tb_js2c(call_info_p->this_value, SNI_H_LV_OBJ, &self_obj))
     {
         return sni_api_throw_error("Failed to convert argument");
@@ -15186,7 +15192,7 @@ jerry_value_t sni_api_ctor_button(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -15214,7 +15220,7 @@ jerry_value_t sni_api_ctor_label(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -15960,7 +15966,7 @@ jerry_value_t sni_api_ctor_arc(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -16594,7 +16600,7 @@ jerry_value_t sni_api_ctor_bar(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -18901,7 +18907,7 @@ jerry_value_t sni_api_ctor_calendar(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -19381,7 +19387,7 @@ jerry_value_t sni_api_ctor_chart(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -20752,7 +20758,7 @@ jerry_value_t sni_api_ctor_canvas(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -21108,7 +21114,7 @@ jerry_value_t sni_api_ctor_checkbox(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -21243,7 +21249,7 @@ jerry_value_t sni_api_ctor_dropdown(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -22180,7 +22186,7 @@ jerry_value_t sni_api_ctor_image(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -23681,7 +23687,7 @@ jerry_value_t sni_api_ctor_imagebutton(const jerry_call_info_t *call_info_p,
     }
 
     lv_obj_t *arg_parent;
-    if (!sni_tb_js2c_parent(args_p[0], (void**)&arg_parent))
+    if (!sni_tb_js2c_parent(args_p[0], (void **)&arg_parent))
     {
         return sni_api_throw_error("Parent argument is required");
     }
@@ -24111,7 +24117,8 @@ const sni_method_desc_t lv_class_methods_obj[] = {
     {.name = "getStyleTextDecor", .handler = sni_api_lv_obj_get_style_text_decor},
     {.name = "getStyleTextAlign", .handler = sni_api_lv_obj_get_style_text_align},
     {.name = "getStyleTextOutlineStrokeColor", .handler = sni_api_lv_obj_get_style_text_outline_stroke_color},
-    {.name = "getStyleTextOutlineStrokeColorFiltered", .handler = sni_api_lv_obj_get_style_text_outline_stroke_color_filtered},
+    {.name = "getStyleTextOutlineStrokeColorFiltered",
+     .handler = sni_api_lv_obj_get_style_text_outline_stroke_color_filtered},
     {.name = "getStyleTextOutlineStrokeWidth", .handler = sni_api_lv_obj_get_style_text_outline_stroke_width},
     {.name = "getStyleTextOutlineStrokeOpa", .handler = sni_api_lv_obj_get_style_text_outline_stroke_opa},
     {.name = "getStyleBlurRadius", .handler = sni_api_lv_obj_get_style_blur_radius},
@@ -24348,8 +24355,12 @@ const sni_method_desc_t lv_class_static_methods_obj[] = {
 const sni_property_desc_t lv_class_properties_obj[] = {
     {.name = "align", .getter = NULL, .setter = sni_api_prop_set_obj_align},
     {.name = "childCount", .getter = sni_api_prop_get_obj_child_count, .setter = NULL},
-    {.name = "contentHeight", .getter = sni_api_prop_get_obj_content_height, .setter = sni_api_prop_set_obj_content_height},
-    {.name = "contentWidth", .getter = sni_api_prop_get_obj_content_width, .setter = sni_api_prop_set_obj_content_width},
+    {.name = "contentHeight",
+     .getter = sni_api_prop_get_obj_content_height,
+     .setter = sni_api_prop_set_obj_content_height},
+    {.name = "contentWidth",
+     .getter = sni_api_prop_get_obj_content_width,
+     .setter = sni_api_prop_set_obj_content_width},
     {.name = "eventCount", .getter = sni_api_prop_get_obj_event_count, .setter = NULL},
     {.name = "extClickArea", .getter = NULL, .setter = sni_api_prop_set_obj_ext_click_area},
     {.name = "flexFlow", .getter = NULL, .setter = sni_api_prop_set_obj_flex_flow},
@@ -24369,7 +24380,9 @@ const sni_property_desc_t lv_class_properties_obj[] = {
     {.name = "scrollTop", .getter = sni_api_prop_get_obj_scroll_top, .setter = NULL},
     {.name = "scrollX", .getter = sni_api_prop_get_obj_scroll_x, .setter = NULL},
     {.name = "scrollY", .getter = sni_api_prop_get_obj_scroll_y, .setter = NULL},
-    {.name = "scrollbarMode", .getter = sni_api_prop_get_obj_scrollbar_mode, .setter = sni_api_prop_set_obj_scrollbar_mode},
+    {.name = "scrollbarMode",
+     .getter = sni_api_prop_get_obj_scrollbar_mode,
+     .setter = sni_api_prop_set_obj_scrollbar_mode},
     {.name = "selfHeight", .getter = sni_api_prop_get_obj_self_height, .setter = NULL},
     {.name = "selfWidth", .getter = sni_api_prop_get_obj_self_width, .setter = NULL},
     {.name = "state", .getter = sni_api_prop_get_obj_state, .setter = NULL},
@@ -24433,8 +24446,12 @@ const sni_property_desc_t lv_class_properties_label[] = {
     {.name = "longMode", .getter = sni_api_prop_get_label_long_mode, .setter = sni_api_prop_set_label_long_mode},
     {.name = "recolor", .getter = sni_api_prop_get_label_recolor, .setter = sni_api_prop_set_label_recolor},
     {.name = "text", .getter = sni_api_prop_get_label_text, .setter = sni_api_prop_set_label_text},
-    {.name = "textSelectionEnd", .getter = sni_api_prop_get_label_text_selection_end, .setter = sni_api_prop_set_label_text_selection_end},
-    {.name = "textSelectionStart", .getter = sni_api_prop_get_label_text_selection_start, .setter = sni_api_prop_set_label_text_selection_start},
+    {.name = "textSelectionEnd",
+     .getter = sni_api_prop_get_label_text_selection_end,
+     .setter = sni_api_prop_set_label_text_selection_end},
+    {.name = "textSelectionStart",
+     .getter = sni_api_prop_get_label_text_selection_start,
+     .setter = sni_api_prop_set_label_text_selection_start},
     {.name = NULL, .getter = NULL, .setter = NULL},
 };
 
@@ -24667,8 +24684,12 @@ const sni_property_desc_t lv_class_properties_buttonmatrix[] = {
     {.name = "buttonCtrlAll", .getter = NULL, .setter = sni_api_prop_set_buttonmatrix_button_ctrl_all},
     {.name = "ctrlMap", .getter = NULL, .setter = sni_api_lv_buttonmatrix_set_ctrl_map},
     {.name = "map", .getter = NULL, .setter = sni_api_lv_buttonmatrix_set_map},
-    {.name = "oneChecked", .getter = sni_api_prop_get_buttonmatrix_one_checked, .setter = sni_api_prop_set_buttonmatrix_one_checked},
-    {.name = "selectedButton", .getter = sni_api_prop_get_buttonmatrix_selected_button, .setter = sni_api_prop_set_buttonmatrix_selected_button},
+    {.name = "oneChecked",
+     .getter = sni_api_prop_get_buttonmatrix_one_checked,
+     .setter = sni_api_prop_set_buttonmatrix_one_checked},
+    {.name = "selectedButton",
+     .getter = sni_api_prop_get_buttonmatrix_selected_button,
+     .setter = sni_api_prop_set_buttonmatrix_selected_button},
     {.name = NULL, .getter = NULL, .setter = NULL},
 };
 
@@ -24762,12 +24783,16 @@ const sni_method_desc_t lv_class_static_methods_chart[] = {
 
 const sni_property_desc_t lv_class_properties_chart[] = {
     {.name = "firstPointCenterOffset", .getter = sni_api_prop_get_chart_first_point_center_offset, .setter = NULL},
-    {.name = "horDivLineCount", .getter = sni_api_prop_get_chart_hor_div_line_count, .setter = sni_api_prop_set_chart_hor_div_line_count},
+    {.name = "horDivLineCount",
+     .getter = sni_api_prop_get_chart_hor_div_line_count,
+     .setter = sni_api_prop_set_chart_hor_div_line_count},
     {.name = "pointCount", .getter = sni_api_prop_get_chart_point_count, .setter = sni_api_prop_set_chart_point_count},
     {.name = "pressedPoint", .getter = sni_api_prop_get_chart_pressed_point, .setter = NULL},
     {.name = "type", .getter = sni_api_prop_get_chart_type, .setter = sni_api_prop_set_chart_type},
     {.name = "updateMode", .getter = sni_api_prop_get_chart_update_mode, .setter = sni_api_prop_set_chart_update_mode},
-    {.name = "verDivLineCount", .getter = sni_api_prop_get_chart_ver_div_line_count, .setter = sni_api_prop_set_chart_ver_div_line_count},
+    {.name = "verDivLineCount",
+     .getter = sni_api_prop_get_chart_ver_div_line_count,
+     .setter = sni_api_prop_set_chart_ver_div_line_count},
     {.name = NULL, .getter = NULL, .setter = NULL},
 };
 
@@ -24858,7 +24883,9 @@ const sni_property_desc_t lv_class_properties_dropdown[] = {
     {.name = "options", .getter = sni_api_prop_get_dropdown_options, .setter = sni_api_prop_set_dropdown_options},
     {.name = "optionsStatic", .getter = NULL, .setter = sni_api_prop_set_dropdown_options_static},
     {.name = "selected", .getter = sni_api_prop_get_dropdown_selected, .setter = sni_api_prop_set_dropdown_selected},
-    {.name = "selectedHighlight", .getter = sni_api_prop_get_dropdown_selected_highlight, .setter = sni_api_prop_set_dropdown_selected_highlight},
+    {.name = "selectedHighlight",
+     .getter = sni_api_prop_get_dropdown_selected_highlight,
+     .setter = sni_api_prop_set_dropdown_selected_highlight},
     {.name = "symbol", .getter = sni_api_prop_get_dropdown_symbol, .setter = sni_api_prop_set_dropdown_symbol},
     {.name = "text", .getter = sni_api_prop_get_dropdown_text, .setter = sni_api_prop_set_dropdown_text},
     {.name = NULL, .getter = NULL, .setter = NULL},
