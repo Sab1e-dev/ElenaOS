@@ -481,6 +481,7 @@ jerry_value_t spm_call(script_program_t *prog,
                        jerry_length_t args_count)
 {
     script_program_t *previous;
+    jerry_value_t old_realm = jerry_undefined();
     uint32_t saved_generation;
     jerry_value_t result;
 
@@ -495,11 +496,41 @@ jerry_value_t spm_call(script_program_t *prog,
     if (previous != prog)
         script_engine_set_current_program(prog);
 
+    /* A program keeps its own Realm, but callbacks are dispatched by LVGL
+     * while the engine is normally sitting in the boot Realm (or another
+     * program's Realm).  Switching only current_program is insufficient:
+     * SNI conversions and external functions resolve against the current
+     * JerryScript Realm.  Enter the callback owner's Realm for the complete
+     * call and restore it afterwards. */
+    if (!jerry_value_is_object(prog->realm))
+    {
+        if (previous != prog)
+            script_engine_set_current_program(previous);
+        return jerry_undefined();
+    }
+
+    old_realm = jerry_set_realm(prog->realm);
+    if (jerry_value_is_exception(old_realm))
+    {
+        jerry_value_free(old_realm);
+        if (previous != prog)
+            script_engine_set_current_program(previous);
+        return jerry_undefined();
+    }
+
     result = script_engine_call_raw(func, this_val, args_p, args_count);
 
     /* A fatal callback recovery destroys all program nodes and clears the
      * current-program pointer. Never restore a pointer into the old heap. */
-    if (saved_generation == script_engine_get_gen() && previous != prog)
+    if (saved_generation != script_engine_get_gen())
+        return result;
+
+    /* jerry_set_realm() returns a borrowed realm value.  The API explicitly
+     * states that neither the saved value nor the returned value is freed;
+     * freeing either one here can corrupt the Realm reference count. */
+    (void)jerry_set_realm(old_realm);
+
+    if (previous != prog)
     {
         if (previous && previous->state == SCRIPT_PROGRAM_STATE_ACTIVE)
             script_engine_set_current_program(previous);
@@ -910,6 +941,12 @@ void spm_handle_engine_reset(void)
     while (prog)
     {
         script_program_t *next = prog->next;
+
+        /* Mark the instance invalid before touching any of its resources.
+         * The node is freed below, so long-lived ownership is represented by
+         * the engine generation and Activity reset path rather than by this
+         * transient program object. */
+        prog->state = SCRIPT_PROGRAM_STATE_STOPPING;
 
         if (prog->sni_ctx)
         {

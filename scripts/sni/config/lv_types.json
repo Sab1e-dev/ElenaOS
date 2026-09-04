@@ -95,6 +95,10 @@
       "object_type": "int"
     },
     {
+      "name": "lv_blur_quality_t",
+      "object_type": "int"
+    },
+    {
       "name": "lv_border_side_t",
       "object_type": "int"
     },

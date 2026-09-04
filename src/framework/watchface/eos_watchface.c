@@ -44,7 +44,7 @@ static eos_watchface_list_t watchface_list;
 static bool _is_watchface_initialized = false;
 static eos_watchface_instance_t *_current_instance = NULL;
 /* Function Implementations -----------------------------------*/
-static void _switch_to_watchface(const char *watchface_id);
+static eos_result_t _switch_to_watchface(const char *watchface_id);
 
 static void _show_global_ui(void)
 {
@@ -281,9 +281,9 @@ void eos_watchface_long_pressed_handler(lv_event_t *e)
     eos_watchface_list_enter();
 }
 
-static void _switch_to_watchface(const char *watchface_id)
+static eos_result_t _switch_to_watchface(const char *watchface_id)
 {
-    EOS_CHECK_PTR_RETURN(watchface_id);
+    EOS_CHECK_PTR_RETURN_VAL(watchface_id, EOS_FAILED);
 
     EOS_LOG_I("Switching to watchface: %s", watchface_id);
 
@@ -302,7 +302,7 @@ static void _switch_to_watchface(const char *watchface_id)
     if (!new_instance || !new_instance->activity)
     {
         EOS_LOG_E("Failed to create watchface instance: %s", watchface_id);
-        return;
+        return EOS_FAILED;
     }
 
     // Save old instance pointer before replacing
@@ -314,7 +314,7 @@ static void _switch_to_watchface(const char *watchface_id)
     {
         EOS_LOG_E("Failed to replace root activity");
         eos_free(new_instance); // Free new instance on failure
-        return;
+        return ret;
     }
 
     // Update current instance and free old instance (activity already freed by replace_root)
@@ -325,6 +325,8 @@ static void _switch_to_watchface(const char *watchface_id)
     {
         eos_free(old_instance);
     }
+
+    return EOS_OK;
 }
 
 eos_activity_t *eos_watchface_get_activity(void)
@@ -349,7 +351,7 @@ void eos_watchface_switch_to(const char *watchface_id)
     eos_activity_back();
 
     // Replace root activity with new watchface
-    _switch_to_watchface(watchface_id);
+    (void)_switch_to_watchface(watchface_id);
 }
 
 void eos_watchface_check_and_reload(void)
@@ -366,8 +368,25 @@ void eos_watchface_check_and_reload(void)
     if (changed)
     {
         EOS_LOG_D("Watchface changed to %s, reloading", new_wf_id);
-        _switch_to_watchface(new_wf_id);
+        (void)_switch_to_watchface(new_wf_id);
     }
+}
+
+eos_result_t eos_watchface_reload_after_engine_reset(void)
+{
+    if (!_current_instance || !_current_instance->id[0])
+    {
+        return EOS_FAILED;
+    }
+
+    char watchface_id[EOS_WATCHFACE_ID_LEN_MAX];
+    snprintf(watchface_id, sizeof(watchface_id), "%s", _current_instance->id);
+
+    /* Recreate the root Activity as well as the SPM program. Reusing the old
+     * Activity leaves old lifecycle/view state attached after a global engine
+     * reset, even if the new program starts successfully. */
+    EOS_LOG_I("Recreating watchface Activity after script engine reset: %s", watchface_id);
+    return _switch_to_watchface(watchface_id);
 }
 
 eos_result_t eos_watchface_init(void)

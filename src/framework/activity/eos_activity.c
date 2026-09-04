@@ -29,6 +29,7 @@
 #include "eos_app.h"
 #include "eos_service_storage.h"
 #include "eos_app_list.h"
+#include "eos_anim.h"
 /* Macros and Definitions -------------------------------------*/
 #define _ACTIVITY_STACK_INIT_CAPACITY 8
 #define _DEFAULT_TITLE_COLOR EOS_COLOR_BLUE
@@ -74,6 +75,8 @@ struct eos_activity_t
     bool has_started;
     bool suspend_on_exit; /**< Park sub-stack instead of destroying after transition */
     bool suspended; /**< Activity is parked in recents registry */
+    uint32_t script_generation; /**< Script engine generation that owns this Activity */
+    bool needs_reload; /**< Script instance is invalid and must be recreated */
     char *app_id; /**< Stable application ID owned by this Activity */
     struct eos_activity_t *app_substack_next; /**< Next activity toward app root */
     struct eos_activity_t *app_root; /**< APP-type root activity of this app */
@@ -166,6 +169,8 @@ static eos_result_t _activity_bind_to_current_app(eos_activity_t *activity)
     root = current->app_root ? current->app_root : current;
     activity->app_root = root;
     activity->app_substack_next = current;
+    activity->script_generation = current->script_generation;
+    activity->needs_reload = current->needs_reload;
     return EOS_OK;
 }
 
@@ -362,11 +367,19 @@ static void _activity_show(eos_activity_t *activity)
     }
 
     lv_obj_remove_flag(activity->view, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_move_foreground(activity->view);
+    /* The watchface root may itself be an LVGL screen and therefore has no
+     * parent. Screens are already foreground by definition. */
+    if (lv_obj_get_parent(activity->view))
+    {
+        lv_obj_move_foreground(activity->view);
+    }
 
     if (activity->snap_container && lv_obj_is_valid(activity->snap_container))
     {
-        lv_obj_move_foreground(activity->snap_container);
+        if (lv_obj_get_parent(activity->snap_container))
+        {
+            lv_obj_move_foreground(activity->snap_container);
+        }
     }
 }
 
@@ -929,6 +942,34 @@ eos_result_t eos_activity_set_app_id(eos_activity_t *activity, const char *app_i
 const char *eos_activity_get_app_id(eos_activity_t *activity)
 {
     return activity ? activity->app_id : NULL;
+}
+
+void eos_activity_set_script_generation(eos_activity_t *activity, uint32_t generation)
+{
+    if (!activity)
+    {
+        return;
+    }
+    activity->script_generation = generation;
+}
+
+uint32_t eos_activity_get_script_generation(eos_activity_t *activity)
+{
+    return activity ? activity->script_generation : 0;
+}
+
+void eos_activity_set_needs_reload(eos_activity_t *activity, bool needs_reload)
+{
+    if (!activity)
+    {
+        return;
+    }
+    activity->needs_reload = needs_reload;
+}
+
+bool eos_activity_needs_reload(eos_activity_t *activity)
+{
+    return activity ? activity->needs_reload : false;
 }
 
 eos_result_t eos_activity_register_anim_route(eos_activity_type_t from_type,
@@ -1551,6 +1592,8 @@ eos_activity_t *eos_activity_create(const eos_activity_lifecycle_t *lifecycle)
     activity->app_header_time_only_text_color = EOS_COLOR_WHITE;
     activity->destroy_on_exit = false;
     activity->has_started = false;
+    activity->script_generation = 0;
+    activity->needs_reload = false;
     activity->title.color = _DEFAULT_TITLE_COLOR;
     activity->title.type = _TITLE_TYPE_INVALID;
     activity->title.string = NULL;
@@ -1607,6 +1650,8 @@ eos_activity_t *eos_activity_create_root(const eos_activity_lifecycle_t *lifecyc
     activity->app_header_time_only_text_color = EOS_COLOR_WHITE;
     activity->destroy_on_exit = false;
     activity->has_started = false;
+    activity->script_generation = 0;
+    activity->needs_reload = false;
     activity->title.color = _DEFAULT_TITLE_COLOR;
     activity->title.type = _TITLE_TYPE_INVALID;
     activity->title.string = NULL;
@@ -1898,6 +1943,91 @@ eos_activity_t *eos_activity_get_visible(void)
     if (_activity_ctx.visible_activity)
         return _activity_ctx.visible_activity;
     return eos_activity_get_current();
+}
+
+eos_result_t eos_activity_reset_to_root(void)
+{
+    if (!_controller_initialized())
+    {
+        return EOS_FAILED;
+    }
+
+    if (_activity_ctx.transition_in_progress)
+    {
+        EOS_LOG_W("Cannot reset activity stack during a transition");
+        return EOS_FAILED;
+    }
+
+    /* A script engine reset invalidates every script-owned page. Preserve the
+     * native APP_LIST anchor when one exists so a subsequently recreated App
+     * can still return to the list with activity_back(). */
+    eos_activity_t *preserved_app_list = NULL;
+    while (eos_stack_get_size(_activity_ctx.activity_stack) > 0)
+    {
+        eos_activity_t *activity = (eos_activity_t *)eos_stack_pop(_activity_ctx.activity_stack);
+        if (activity)
+        {
+            if (!preserved_app_list && activity->type == EOS_ACTIVITY_TYPE_APP_LIST)
+            {
+                preserved_app_list = activity;
+                eos_activity_set_suspended(activity, false);
+                eos_activity_set_suspend_on_exit(activity, false);
+                continue;
+            }
+
+            /* A parked Activity may still carry its suspended lifecycle state.
+             * Clear it before destruction so reset is independent of how the
+             * Activity was reached. */
+            eos_activity_set_suspended(activity, false);
+            eos_activity_set_suspend_on_exit(activity, false);
+            _activity_run_destroy(activity);
+        }
+    }
+
+    if (preserved_app_list && !eos_stack_push(_activity_ctx.activity_stack, preserved_app_list))
+    {
+        EOS_LOG_E("Failed to preserve APP_LIST Activity during reset");
+        _activity_run_destroy(preserved_app_list);
+        preserved_app_list = NULL;
+    }
+    else if (preserved_app_list)
+    {
+        EOS_LOG_I("Preserved APP_LIST Activity during reset: %p", (void *)preserved_app_list);
+    }
+
+    _activity_ctx.current_activity = _activity_ctx.root_activity;
+    _activity_ctx.visible_activity = _activity_ctx.root_activity;
+    _activity_ctx.previous_activity = NULL;
+    _activity_ctx.transition_in_progress = false;
+    _activity_ctx.active_anim_ctx = NULL;
+    _suppress_next_transition_anim = false;
+
+    /* A fatal engine reset can happen while a transition has already shown
+     * the input blocker. The transition context is discarded above, so its
+     * normal completion callback will never hide the blocker. Reset it here
+     * together with the Activity controller state. */
+    eos_anim_blocker_hide();
+
+    if (_activity_ctx.root_activity)
+    {
+        if (_activity_ctx.root_activity->view && lv_obj_is_valid(_activity_ctx.root_activity->view)
+            && lv_obj_get_parent(_activity_ctx.root_activity->view) != _activity_ctx.root_screen)
+        {
+            lv_obj_set_parent(_activity_ctx.root_activity->view, _activity_ctx.root_screen);
+        }
+        _activity_show(_activity_ctx.root_activity);
+        if (_activity_ctx.root_activity->is_app_header_visible)
+        {
+            eos_app_header_show(_activity_ctx.root_activity);
+        }
+        else
+        {
+            eos_app_header_hide();
+        }
+    }
+
+    EOS_LOG_W("Activity stack reset to root");
+    return _activity_ctx.root_activity ? EOS_OK : EOS_FAILED;
 }
 
 eos_activity_t *eos_activity_get_previous(void)

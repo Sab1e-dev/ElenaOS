@@ -200,6 +200,13 @@ static void sni_cb_event_free_ctx(sni_event_callback_ctx_t *ctx)
 static void sni_cb_event_dispatch(lv_event_t *e)
 {
     sni_event_callback_ctx_t *ctx = (sni_event_callback_ctx_t *)lv_event_get_user_data(e);
+    script_program_t *owner_program;
+    script_program_t *previous_program;
+    jerry_value_t previous_realm;
+    uint32_t saved_gen;
+    jerry_value_t event_obj;
+    jerry_value_t ret;
+
     if (!ctx || !ctx->alive)
     {
         return;
@@ -211,7 +218,11 @@ static void sni_cb_event_dispatch(lv_event_t *e)
         return;
     }
 
-    if (sni_context_is_paused(ctx->owner_ctx))
+    /* Event contexts outlive the JS call which created them.  Never resolve
+     * their owner through the engine's global current-program cursor: that
+     * cursor is cleared while an app is suspended and is temporarily changed
+     * by other callback/console entry points. */
+    if (ctx->engine_gen != script_engine_get_gen())
     {
         return;
     }
@@ -221,27 +232,57 @@ static void sni_cb_event_dispatch(lv_event_t *e)
         return;
     }
 
-    if (ctx->owner_ctx->owner->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+    owner_program = ctx->owner_ctx->owner;
+
+    if (sni_context_is_paused(ctx->owner_ctx))
     {
         return;
     }
 
-    /* Capture engine generation BEFORE spm_call so we can detect
-     * fatal recovery / re-entrant destruction after the call returns. */
-    uint32_t saved_gen = script_engine_get_gen();
+    if (owner_program->state != SCRIPT_PROGRAM_STATE_ACTIVE)
+    {
+        return;
+    }
+
+    /* SNI conversion must happen in the callback owner's Realm as well as the
+     * JS function call.  spm_call() switches Realm for jerry_call(), but the
+     * event object and its target are constructed before spm_call(). */
+    previous_program = script_engine_get_current_program();
+    if (previous_program != owner_program)
+        script_engine_set_current_program(owner_program);
+
+    previous_realm = jerry_set_realm(owner_program->realm);
+    if (jerry_value_is_exception(previous_realm))
+    {
+        EOS_LOG_E("Event dispatch skipped: failed to enter owner Realm");
+        jerry_value_free(previous_realm);
+        if (previous_program != owner_program)
+            script_engine_set_current_program(previous_program);
+        return;
+    }
 
     lv_event_t *event_ptr = e;
-    jerry_value_t event_obj = sni_tb_c2js(&event_ptr, SNI_H_LV_EVENT);
+    event_obj = sni_tb_c2js(&event_ptr, SNI_H_LV_EVENT);
     sni_cb_event_prepare_js_event(event_obj, e, ctx->js_user_data);
 
     jerry_value_t args[1] = {event_obj};
-    jerry_value_t ret = spm_call(ctx->owner_ctx->owner, ctx->js_cb, jerry_undefined(), args, 1);
+    saved_gen = script_engine_get_gen();
+    ret = spm_call(owner_program, ctx->js_cb, jerry_undefined(), args, 1);
 
     /* If a fatal recovery happened inside spm_call, return immediately
      * — all local jerry_value_t variables belong to the old heap. */
-    if (sni_cb_detect_recovery(saved_gen, ctx->owner_ctx))
+    if (saved_gen != script_engine_get_gen())
     {
         return;
+    }
+
+    (void)jerry_set_realm(previous_realm);
+    if (previous_program != owner_program)
+    {
+        if (previous_program && previous_program->state == SCRIPT_PROGRAM_STATE_ACTIVE)
+            script_engine_set_current_program(previous_program);
+        else
+            script_engine_set_current_program(NULL);
     }
 
     if (jerry_value_is_error(ret) || jerry_value_is_exception(ret))
@@ -390,6 +431,14 @@ bool sni_cb_event_add(lv_obj_t *obj,
     ctx->js_cb = jerry_value_copy(js_cb);
     ctx->js_user_data = jerry_value_copy(js_user_data);
     ctx->owner_ctx = sni_cb_get_context();
+    if (!ctx->owner_ctx || !ctx->owner_ctx->owner)
+    {
+        EOS_LOG_W("Event callback registration rejected: no active owner program");
+        jerry_value_free(ctx->js_cb);
+        jerry_value_free(ctx->js_user_data);
+        eos_free(ctx);
+        return false;
+    }
     ctx->alive = true;
     ctx->engine_gen = script_engine_get_gen();
 

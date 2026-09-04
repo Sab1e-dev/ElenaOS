@@ -115,6 +115,12 @@ eos_activity_t *eos_watchface_get_activity(void);
 void eos_watchface_check_and_reload(void);
 
 /**
+ * @brief Recreate the current watchface Activity after a script engine reset
+ * @return EOS_OK when the current watchface is recreated
+ */
+eos_result_t eos_watchface_reload_after_engine_reset(void);
+
+/**
  * @brief Switch to a specific watchface by ID
  * @param watchface_id Target watchface ID to switch to
  * @note This function will replace the root activity with the new watchface instance

@@ -601,6 +601,17 @@ def parse_numeric_constant(value_text: str) -> Optional[Tuple[str, str]]:
             break
         text = inner
 
+    # Parse hexadecimal literals before stripping suffixes. A-F are valid
+    # hexadecimal digits, so a blanket rstrip("...Ff") would turn values
+    # such as 0x0000F into 0x0000.
+    hex_match = re.fullmatch(r"[-+]?0[xX][0-9a-fA-F]+[uUlL]*", text)
+    if hex_match:
+        hex_text = re.sub(r"[uUlL]+$", "", text)
+        numeric_value = int(hex_text, 16)
+        if 0 <= numeric_value <= 0xFFFFFFFF and numeric_value > 0x7FFFFFFF:
+            numeric_value -= 0x100000000
+        return ("int", str(numeric_value))
+
     text = text.rstrip("UuLlFf")
 
     if re.fullmatch(r"[-+]?0x[0-9a-fA-F]+", text):
@@ -622,6 +633,69 @@ def parse_string_constant(value_text: str) -> Optional[str]:
     if match:
         return match.group(0)
     return None
+
+
+def load_lvgl_version(lvgl_data: Dict[str, Any]) -> Tuple[int, int, int]:
+    """Load the exact LVGL version captured when lvgl.json was generated."""
+    version = lvgl_data.get("_lvgl_version")
+    if not isinstance(version, dict):
+        raise SystemExit(
+            "[Error] lvgl.json has no _lvgl_version metadata; regenerate it with LVGL's gen_json.py"
+        )
+
+    components: List[int] = []
+    for component in ("major", "minor", "patch"):
+        value = version.get(component)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise SystemExit(f"[Error] lvgl.json has invalid LVGL version component: {component}")
+        components.append(value)
+
+    return components[0], components[1], components[2]
+
+
+def render_lvgl_compatibility_guard(
+    lvgl_version: Tuple[int, int, int], lvgl_data: Dict[str, Any]
+) -> str:
+    """Render compile-time guards for the generated LVGL descriptor."""
+    major, minor, patch = lvgl_version
+    lines = [
+        "/* Compile-time compatibility guard generated from lvgl.json. */",
+        f"#define SNI_LVGL_API_VERSION_MAJOR {major}",
+        f"#define SNI_LVGL_API_VERSION_MINOR {minor}",
+        f"#define SNI_LVGL_API_VERSION_PATCH {patch}",
+        "",
+        "#if LVGL_VERSION_MAJOR != SNI_LVGL_API_VERSION_MAJOR || \\",
+        "    LVGL_VERSION_MINOR != SNI_LVGL_API_VERSION_MINOR || \\",
+        "    LVGL_VERSION_PATCH != SNI_LVGL_API_VERSION_PATCH",
+        '#error "sni_api_lv.c was generated for a different LVGL version; regenerate lvgl.json and sni_api_lv.c"',
+        "#endif",
+        "",
+        "/* The event enum is ABI-sensitive even when the semantic version is unchanged. */",
+        "#define SNI_LVGL_API_STATIC_ASSERT(expr, name) typedef char name[(expr) ? 1 : -1]",
+    ]
+
+    event_members: List[Tuple[str, str]] = []
+    for enum in lvgl_data.get("enums", []):
+        if enum.get("name") != "lv_event_code_t":
+            continue
+        for member in enum.get("members", []):
+            name = str(member.get("name", "")).strip()
+            number = parse_numeric_constant(str(member.get("value", "")))
+            if name and number is not None and number[0] == "int":
+                event_members.append((name, number[1]))
+        break
+
+    for name, value in event_members:
+        assert_name = f"sni_lvgl_api_assert_{name.lower()}"
+        lines.append(f"SNI_LVGL_API_STATIC_ASSERT({name} == {value}, {assert_name});")
+
+    lines.extend(
+        [
+            "#undef SNI_LVGL_API_STATIC_ASSERT",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def collect_constants(
@@ -2108,6 +2182,7 @@ def main() -> None:
 
     api_table_data = load_json(api_table_path, required=["classes"])
     lvgl_data = load_json(lvgl_json_path, required=["functions", "enums", "macros"])
+    lvgl_version = load_lvgl_version(lvgl_data)
     lv_types_data = load_json(lv_types_path, required=["types"])
 
     filters = parse_api_filters(api_table_data)
@@ -2313,6 +2388,8 @@ def main() -> None:
 
     generated = (
         HEADER_TEXT.format(date=datetime.date.today().isoformat())
+        + "\n"
+        + render_lvgl_compatibility_guard(lvgl_version, lvgl_data)
         + "\n"
         + table_text
         + "\n"

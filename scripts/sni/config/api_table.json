@@ -157,7 +157,6 @@
         "LV_BUTTONMATRIX_CTRL_POPOVER",
         "LV_BUTTONMATRIX_CTRL_RESERVED_1",
         "LV_BUTTONMATRIX_CTRL_RESERVED_2",
-        "LV_BUTTONMATRIX_CTRL_RESERVED_3",
         "LV_BUTTONMATRIX_CTRL_CUSTOM_1",
         "LV_BUTTONMATRIX_CTRL_CUSTOM_2"
       ]
@@ -313,7 +312,18 @@
         "lv_obj_init_draw_*_dsc",
         "lv_calendar_get_highlighted_dates",
         "lv_calendar_get_showed_date",
-        "lv_calendar_get_today_date"
+        "lv_calendar_get_today_date",
+        "lv_label_set_text_vfmt",
+        "lv_obj_add_play_timeline_event",
+        "lv_obj_add_screen_create_event",
+        "lv_obj_add_subject_increment_event",
+        "lv_obj_get_transform",
+        "lv_obj_get_style_image_colorkey",
+        "lv_obj_set_style_image_colorkey",
+        "lv_obj_set_subject_increment_event_max_value",
+        "lv_obj_set_subject_increment_event_min_value",
+        "lv_obj_set_subject_increment_event_rollover",
+        "lv_obj_set_transform"
       ]
     },
     "constant": {

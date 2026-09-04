@@ -47,7 +47,10 @@
  * _module_resolve_cb is called once per import site even for the same
  * file. Without caching each call creates a new module instance with
  * independent variable scopes — breaking ES module guarantees.
- * The cache is keyed by canonical file path and cleared at engine stop. */
+ * The cache is keyed by canonical file path and cleared at every Realm
+ * boundary. A module value belongs to the Realm in which it was parsed;
+ * reusing it from another program would otherwise leak the old Realm's
+ * exports into the new program. */
 #define MODULE_CACHE_MAX 64
 
 typedef struct
@@ -868,8 +871,12 @@ jerry_value_t script_engine_call_raw(jerry_value_t func,
             {
                 _script_engine_exception_handler("Jerry Call", result);
             }
+            /* A callback exception is already reported above, but it must
+             * not poison the shared engine state.  SPM keeps the owning
+             * program gate separate from this execution-window state; leave
+             * the engine IDLE so the next independent LVGL callback can run. */
             if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
-                _change_state(SCRIPT_ENGINE_STATE_EXCEPTION);
+                _change_state(SCRIPT_ENGINE_STATE_IDLE);
         }
 
         if (engine_rt.state == SCRIPT_ENGINE_STATE_RUNNING)
@@ -1305,24 +1312,25 @@ static void _process_module_queue(void)
 
 static void _cleanup_module_queue(void)
 {
-    if (!_module_queue)
-        return;
-    while (eos_cqueue_get_size(_module_queue) > 0)
+    if (_module_queue)
     {
-        _module_task_t *task = (_module_task_t *)eos_cqueue_dequeue(_module_queue);
-        if (task)
+        while (eos_cqueue_get_size(_module_queue) > 0)
         {
-            jerry_value_free(task->specifier);
-            jerry_value_free(task->user_value);
-            jerry_value_free(task->promise);
-            eos_free(task);
+            _module_task_t *task = (_module_task_t *)eos_cqueue_dequeue(_module_queue);
+            if (task)
+            {
+                jerry_value_free(task->specifier);
+                jerry_value_free(task->user_value);
+                jerry_value_free(task->promise);
+                eos_free(task);
+            }
         }
+        eos_cqueue_destroy(_module_queue);
+        _module_queue = NULL;
     }
-    eos_cqueue_destroy(_module_queue);
-    _module_queue = NULL;
 
-    /* Clear the module resolve cache so the next program / engine
-     * restart starts with a clean slate. */
+    /* Clear the cache even when there was no queue. A link failure or a fatal
+     * callback can leave cached modules without pending import tasks. */
     _module_cache_clear();
 }
 
@@ -1531,6 +1539,12 @@ eos_result_t script_engine_run(const script_pkg_t *script_package)
 
     /* Clear stale error info from previous program runs before starting fresh */
     _clear_error_info();
+
+    /* Module values are Realm-owned. Programs are isolated by creating a
+     * fresh Realm, so the cache must never survive from a previous program.
+     * This also removes entries left behind when the previous program had no
+     * pending module queue. */
+    _module_cache_clear();
 
     _pkg_clone_into(&engine_rt.owned_script, script_package);
     script_program_t *prog = _get_prog();

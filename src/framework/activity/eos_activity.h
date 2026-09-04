@@ -355,6 +355,15 @@ void eos_activity_back_cb(lv_event_t *e);
 eos_activity_t *eos_activity_get_current(void);
 
 /**
+ * @brief Reset the navigation stack after a script engine reset
+ * @return EOS_OK when the controller is restored to the root activity
+ * @note Destroys all non-root activities synchronously except a native
+ *       APP_LIST anchor, when present. Lifecycle callbacks are still allowed,
+ *       but they must be safe after the script engine has been reinitialized.
+ */
+eos_result_t eos_activity_reset_to_root(void);
+
+/**
  * @brief Get current completed display Activity
  * @return eos_activity_t* Completed display Activity, returns NULL on failure
  */
@@ -392,6 +401,34 @@ eos_result_t eos_activity_set_app_id(eos_activity_t *activity, const char *app_i
  * @return const char* Application ID, or NULL when unbound
  */
 const char *eos_activity_get_app_id(eos_activity_t *activity);
+
+/**
+ * @brief Set the script engine generation associated with an Activity
+ * @param activity Activity to update
+ * @param generation Engine generation captured when the script instance was created
+ */
+void eos_activity_set_script_generation(eos_activity_t *activity, uint32_t generation);
+
+/**
+ * @brief Get the script engine generation associated with an Activity
+ * @param activity Activity to query
+ * @return Engine generation, or 0 for an unbound/native Activity
+ */
+uint32_t eos_activity_get_script_generation(eos_activity_t *activity);
+
+/**
+ * @brief Mark an Activity as requiring a fresh script instance
+ * @param activity Activity to mark
+ * @param needs_reload Whether the next launch should recreate the script instance
+ */
+void eos_activity_set_needs_reload(eos_activity_t *activity, bool needs_reload);
+
+/**
+ * @brief Check whether an Activity requires a fresh script instance
+ * @param activity Activity to query
+ * @return true when the Activity must not be resumed
+ */
+bool eos_activity_needs_reload(eos_activity_t *activity);
 
 /**
  * @brief Check whether an Activity has ever been entered (has_started)

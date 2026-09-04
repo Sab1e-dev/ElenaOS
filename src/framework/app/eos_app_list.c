@@ -179,6 +179,7 @@ static void _transition_anim_start(_transition_anim_ctx_t *ctx, uint32_t duratio
 static int32_t _app_list_find_sys_app(const char *app_id);
 static eos_result_t _app_list_build_manifest(const char *app_id, script_pkg_t *pkg);
 static eos_result_t _app_list_launch_script_app(const char *app_id);
+static bool _app_list_is_loading_activity(eos_activity_t *activity);
 static void _app_list_restart_cb(lv_event_t *e);
 static void _app_list_exit_cb(lv_event_t *e);
 static void _app_list_show_loading(eos_activity_t *a, app_launch_ctx_t *ctx);
@@ -787,6 +788,7 @@ static void _app_list_do_launch_script(app_launch_ctx_t *ctx)
         _app_handle_script_run_result(a, ctx, ret);
         return;
     }
+    eos_activity_set_needs_reload(a, false);
     EOS_LOG_I("[APP_LOAD] engine complete for '%s' in %" PRIu32 "ms", ctx->app_id, eos_tick_get() - eval_start_ms);
 
     /* The app's interface is now built and is rendered on top of the loading
@@ -1011,6 +1013,8 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
         return EOS_FAILED;
     }
 
+    eos_activity_set_script_generation(a, script_engine_get_gen());
+
     lv_obj_t *app_view = eos_activity_get_view(a);
     lv_obj_set_size(app_view, EOS_DISPLAY_WIDTH, EOS_DISPLAY_HEIGHT);
     eos_activity_set_type(a, EOS_ACTIVITY_TYPE_APP);
@@ -1033,6 +1037,24 @@ static eos_result_t _app_list_launch_script_app(const char *app_id)
      * plays the zoom animation, then defers JS load to Phase B. */
     eos_activity_enter(a);
     return EOS_OK;
+}
+
+static bool _app_list_is_loading_activity(eos_activity_t *activity)
+{
+    app_launch_ctx_t *ctx;
+
+    if (!activity || eos_activity_get_type(activity) != EOS_ACTIVITY_TYPE_APP)
+        return false;
+
+    ctx = (app_launch_ctx_t *)eos_activity_get_user_data(activity);
+    if (!ctx || ctx->magic != _APP_LAUNCH_CTX_MAGIC)
+        return false;
+
+    /* Before the script is read, pkg.script_str is still NULL. The engine
+     * phase is synchronous and cannot be interleaved with another ESH command,
+     * so this is the only state that can leave a competing loader visible to
+     * the main loop. */
+    return ctx->pkg.script_str == NULL;
 }
 
 const char *eos_app_list_get_app_id(eos_activity_t *activity)
@@ -1078,17 +1100,34 @@ const char *eos_app_list_get_running_system_id(void)
 
 eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activity)
 {
-    LV_UNUSED(app_id);
     EOS_CHECK_PTR_RETURN_VAL(activity, EOS_FAILED);
 
+    /* An application may have pushed input/settings pages above its AppRoot.
+     * Restarting those pages in place would pass a non-app launch context to
+     * the script loader. Always restart the owning AppRoot instead. */
+    eos_activity_t *app_root = eos_activity_get_app_root(activity);
+    if (app_root)
+        activity = app_root;
+
     app_launch_ctx_t *ctx = (app_launch_ctx_t *)eos_activity_get_user_data(activity);
-    if (!ctx || !ctx->app_id || !ctx->pkg.script_str)
+    if (!ctx || !ctx->app_id || !ctx->pkg.script_str || (app_id && strcmp(app_id, ctx->app_id) != 0))
     {
         EOS_LOG_E("Restart in-place failed: invalid launch context");
         return EOS_FAILED;
     }
 
     EOS_LOG_I("Restarting app in-place: %s", ctx->app_id);
+
+    /* Stop the old program before removing its widgets. This is required for
+     * an explicit restart of a healthy app as well as for a fault-panel
+     * restart; otherwise the old event/timer resources remain registered and
+     * spm_app_run() creates a second program for the same app ID. */
+    eos_result_t stop_ret = spm_app_stop_by_id(ctx->app_id);
+    if (stop_ret != EOS_OK)
+    {
+        EOS_LOG_E("Failed to stop app before restart: %s (%d)", ctx->app_id, stop_ret);
+        return stop_ret;
+    }
 
     /* Clear fault panel reference BEFORE cleaning view.
      * lv_obj_clean will delete the panel's container widget, which triggers
@@ -1107,8 +1146,16 @@ eos_result_t eos_app_restart_in_place(const char *app_id, eos_activity_t *activi
         lv_obj_clean(view);
     }
 
-    /* Re-run the app script on the same activity */
-    return spm_app_run(&ctx->pkg);
+    /* Re-run the app script on the same activity. Keep Activity metadata in
+     * sync with the new program so a later app start/resume cannot mistake
+     * this instance for a stale one. */
+    eos_result_t run_ret = spm_app_run(&ctx->pkg);
+    if (run_ret == EOS_OK)
+    {
+        eos_activity_set_script_generation(activity, script_engine_get_gen());
+        eos_activity_set_needs_reload(activity, false);
+    }
+    return run_ret;
 }
 
 /**
@@ -1171,10 +1218,32 @@ eos_result_t eos_app_launch_immediately(const char *app_id)
 
     eos_activity_t *cur = eos_activity_get_current();
     const char *current_app_id = cur ? eos_activity_get_app_id(cur) : NULL;
+    if (cur && _app_list_is_loading_activity(cur))
+    {
+        EOS_LOG_W("Cannot launch '%s': application '%s' is still loading",
+                  app_id,
+                  current_app_id ? current_app_id : "unknown");
+        return EOS_ERR_INVALID_STATE;
+    }
+
     if (current_app_id && strcmp(current_app_id, app_id) == 0)
     {
-        EOS_LOG_I("App '%s' is already the foreground app", app_id);
-        return EOS_OK;
+        script_program_t *current_program = spm_get_program_by_id_any_state(app_id);
+        bool current_instance_valid =
+            eos_activity_get_script_generation(cur) == script_engine_get_gen() && !eos_activity_needs_reload(cur);
+
+        if (current_program || current_instance_valid)
+        {
+            EOS_LOG_I("App '%s' is already the foreground app", app_id);
+            return EOS_OK;
+        }
+
+        EOS_LOG_W("App '%s' has a stale Activity without a live script program; resetting navigation", app_id);
+        if (eos_activity_reset_to_root() != EOS_OK)
+        {
+            EOS_LOG_E("Failed to reset stale Activity for '%s'", app_id);
+            return EOS_FAILED;
+        }
     }
 
     /* Recent entries are shared by native and script applications. */

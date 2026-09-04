@@ -31,6 +31,7 @@
 #include "eos_service_permission.h"
 #include "eos_fault_panel.h"
 #include "eos_font.h"
+#include "eos_watchface.h"
 #include "sni_callback_runtime.h"
 #include "spm.h"
 #include "eos_version.h"
@@ -825,6 +826,23 @@ static void _app_exit_cb(lv_event_t *e)
     }
 }
 
+static void _capture_foreground_script_app_id(char *app_id, size_t app_id_size)
+{
+    eos_activity_t *current = eos_activity_get_current();
+    const char *current_app_id;
+
+    if (!app_id || app_id_size == 0 || !current || eos_activity_get_type(current) != EOS_ACTIVITY_TYPE_APP)
+    {
+        return;
+    }
+
+    current_app_id = eos_activity_get_app_id(current);
+    if (current_app_id && current_app_id[0])
+    {
+        snprintf(app_id, app_id_size, "%s", current_app_id);
+    }
+}
+
 static void _on_script_fatal(eos_event_t *event)
 {
     (void)event;
@@ -836,6 +854,52 @@ static void _on_script_fatal(eos_event_t *event)
     }
 
     EOS_LOG_W("Handling script fatal: type=%d id=%s", crash->script_type, crash->script_id);
+
+    if (crash->script_type == SCRIPT_TYPE_CONSOLE)
+    {
+        char foreground_app_id[SPM_CRASH_ID_MAX] = {0};
+
+        /* Preserve the foreground script app identity before its Activity is
+         * destroyed. The Console crash context only identifies "esh". */
+        _capture_foreground_script_app_id(foreground_app_id, sizeof(foreground_app_id));
+
+        /* A fatal error in the shared JerryScript heap destroys every SPM
+         * program. The current Activity metadata survives that reset, so
+         * remove the stale app stack before any later app command can see it
+         * as the foreground application. */
+        if (eos_activity_reset_to_root() != EOS_OK)
+        {
+            EOS_LOG_E("Failed to reset Activity stack after Console engine crash");
+            spm_clear_crash_state();
+            return;
+        }
+
+        /* The JS watchface also lost its program during the global reset.
+         * Recreate its Activity and program now that the engine has been
+         * initialized again. */
+        if (eos_watchface_reload_after_engine_reset() != EOS_OK)
+        {
+            EOS_LOG_E("Failed to reload watchface after Console engine crash");
+            spm_clear_crash_state();
+            return;
+        }
+
+        spm_clear_crash_state();
+
+        /* Restore the app that was visible before the global reset. This is a
+         * fresh Activity and a fresh SPM program; no stale JS handles are
+         * resumed. Native/system apps have no script app_id and remain on the
+         * recreated watchface. */
+        if (foreground_app_id[0])
+        {
+            EOS_LOG_I("Recreating foreground app after Console engine crash: %s", foreground_app_id);
+            if (eos_app_launch_immediately(foreground_app_id) != EOS_OK)
+            {
+                EOS_LOG_E("Failed to recreate foreground app: %s", foreground_app_id);
+            }
+        }
+        return;
+    }
 
     if (crash->script_type == SCRIPT_TYPE_APPLICATION)
     {
