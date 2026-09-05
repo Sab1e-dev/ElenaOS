@@ -29,6 +29,12 @@ void eos_dispatcher_init(void);
  * @param user_data User data
  * @note Can be called from any thread or ISR, returns as quickly as possible.
  */
+bool eos_dispatcher_try_call(eos_dispatcher_cb_t cb, void *user_data);
+/**
+ * @brief Add a callback to the callback queue and ignore a full-queue result
+ * @param cb Callback function
+ * @param user_data Callback user data
+ */
 void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data);
 /**
  * @brief Main handler, called periodically in GUI thread loop to execute all callbacks

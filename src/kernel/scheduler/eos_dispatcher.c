@@ -72,14 +72,17 @@ static int _queue_expand(void)
     return 0;
 }
 
-void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
+bool eos_dispatcher_try_call(eos_dispatcher_cb_t cb, void *user_data)
 {
 #if EOS_COMPILE_MODE == EOS_DEBUG
     if (!async_initialized)
-        return;
+        return false;
 #endif /* EOS_COMPILE_MODE */
     if (!cb)
-        return;
+        return false;
+
+    if (!s_queue || s_capacity < 2)
+        return false;
 
     eos_critical_ctx_t ctx = eos_critical_enter();
 
@@ -90,7 +93,7 @@ void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
         {
             EOS_LOG_E("DISPATCHER QUEUE FULL: callback DROPPED! cb=%p user_data=%p", cb, user_data);
             eos_critical_leave(ctx);
-            return;
+            return false;
         }
         next = (s_tail + 1) % s_capacity;
     }
@@ -100,6 +103,12 @@ void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
     s_tail = next;
 
     eos_critical_leave(ctx);
+    return true;
+}
+
+void eos_dispatcher_call(eos_dispatcher_cb_t cb, void *user_data)
+{
+    (void)eos_dispatcher_try_call(cb, user_data);
 }
 
 void eos_dispatch_tick(void)

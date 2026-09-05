@@ -33,6 +33,7 @@ int esh_builtin_cmd_battery(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_power(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_display(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_touch(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
+int esh_builtin_cmd_ui(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_time(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_vibrator(esh_cmd_ctx_t *ctx, int argc, char *argv[]);
 int esh_builtin_cmd_audio(esh_cmd_ctx_t *ctx, int argc, char *argv[]);

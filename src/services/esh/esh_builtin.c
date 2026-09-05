@@ -943,7 +943,7 @@ static int _esh_cmd_ymodem(esh_cmd_ctx_t *ctx, int argc, char *argv[])
 
     if (argc != 3 || (strcmp(argv[1], "send") != 0 && strcmp(argv[1], "recv") != 0))
     {
-        return (int)esh_printf(ctx, "ymodem: usage: ymodem send <file> | ymodem recv <file>\r\n");
+        return (int)esh_printf(ctx, "ymodem: usage: ymodem send <file|dir> | ymodem recv <file|existing-dir>\r\n");
     }
 
     if (!_esh_resolve_path(ctx->esh, argv[2], resolved, sizeof(resolved)))
@@ -1014,52 +1014,53 @@ static int _esh_cmd_help(esh_cmd_ctx_t *ctx, int argc, char *argv[])
 #define ESH_BUILTIN_JS_COMMAND(_)
 #endif
 
-#define ESH_BUILTIN_COMMANDS(_)                                       \
-    _(help, _esh_cmd_help, "list available commands")                 \
-    _(version, _esh_cmd_version, "show ElenixOS kernel version")      \
-    _(pwd, _esh_cmd_pwd, "print the current directory")               \
-    _(cd, _esh_cmd_cd, "change the current directory")                \
-    _(ls, _esh_cmd_ls, "list files and directories")                  \
-    _(echo, _esh_cmd_echo, "write arguments to the terminal")         \
-    _(cat, _esh_cmd_cat, "print file contents")                       \
-    _(clear, _esh_cmd_clear, "clear the terminal")                    \
-    _(stat, _esh_cmd_stat, "show file information")                   \
-    _(cp, _esh_cmd_cp, "copy files")                                  \
-    _(mv, _esh_cmd_mv, "move or rename files")                        \
-    _(touch, _esh_cmd_touch, "create empty files")                    \
-    _(df, _esh_cmd_df, "show file system space")                      \
-    _(free, _esh_cmd_free, "show memory usage")                       \
-    _(uptime, _esh_cmd_uptime, "show system uptime")                  \
-    _(hexdump, _esh_cmd_hexdump, "display file contents in hex")      \
-    _(mkdir, _esh_cmd_mkdir, "create directories")                    \
-    _(rm, _esh_cmd_rm, "remove files or directories")                 \
-    _(ymodem, _esh_cmd_ymodem, "send or receive a file with YMODEM")  \
-    _(log, esh_builtin_cmd_log, "view and configure system logs")     \
-    _(mem, esh_builtin_cmd_mem, "show memory and runtime heaps")      \
-    _(stack, esh_builtin_cmd_stack, "show stack diagnostics")         \
-    _(crashlog, esh_builtin_cmd_crashlog, "show last script crash")   \
-    _(sensor, esh_builtin_cmd_sensor, "diagnose sensors")             \
-    _(battery, esh_builtin_cmd_battery, "show battery diagnostics")   \
-    _(power, esh_builtin_cmd_power, "show power diagnostics")         \
-    _(display, esh_builtin_cmd_display, "show display diagnostics")   \
-    _(touchdiag, esh_builtin_cmd_touch, "diagnose touch input")       \
-    _(time, esh_builtin_cmd_time, "show system time")                 \
-    _(vibrator, esh_builtin_cmd_vibrator, "test the vibrator")        \
-    _(audio, esh_builtin_cmd_audio, "diagnose audio devices")         \
-    _(ble, esh_builtin_cmd_ble, "show or control Bluetooth")          \
-    _(apps, esh_builtin_cmd_apps, "list installed applications")      \
-    _(recent, esh_builtin_cmd_recent, "list recent applications")     \
-    _(app, esh_builtin_cmd_app, "inspect or control an application")  \
-    ESH_BUILTIN_JS_COMMAND(_)                                         \
-    _(config, esh_builtin_cmd_config, "inspect system configuration") \
-    _(state, esh_builtin_cmd_state, "inspect system state")           \
-    _(pkg, esh_builtin_cmd_pkg, "manage application packages")        \
-    _(find, esh_builtin_cmd_find, "find files recursively")           \
-    _(grep, esh_builtin_cmd_grep, "search text in a file")            \
-    _(head, esh_builtin_cmd_head, "show the beginning of a file")     \
-    _(tail, esh_builtin_cmd_tail, "show the end of a file")           \
-    _(wc, esh_builtin_cmd_wc, "count file contents")                  \
-    _(crc32, esh_builtin_cmd_crc32, "calculate a CRC32 checksum")     \
+#define ESH_BUILTIN_COMMANDS(_)                                                    \
+    _(help, _esh_cmd_help, "list available commands")                              \
+    _(version, _esh_cmd_version, "show ElenixOS kernel version")                   \
+    _(pwd, _esh_cmd_pwd, "print the current directory")                            \
+    _(cd, _esh_cmd_cd, "change the current directory")                             \
+    _(ls, _esh_cmd_ls, "list files and directories")                               \
+    _(echo, _esh_cmd_echo, "write arguments to the terminal")                      \
+    _(cat, _esh_cmd_cat, "print file contents")                                    \
+    _(clear, _esh_cmd_clear, "clear the terminal")                                 \
+    _(stat, _esh_cmd_stat, "show file information")                                \
+    _(cp, _esh_cmd_cp, "copy files")                                               \
+    _(mv, _esh_cmd_mv, "move or rename files")                                     \
+    _(touch, _esh_cmd_touch, "create empty files")                                 \
+    _(df, _esh_cmd_df, "show file system space")                                   \
+    _(free, _esh_cmd_free, "show memory usage")                                    \
+    _(uptime, _esh_cmd_uptime, "show system uptime")                               \
+    _(hexdump, _esh_cmd_hexdump, "display file contents in hex")                   \
+    _(mkdir, _esh_cmd_mkdir, "create directories")                                 \
+    _(rm, _esh_cmd_rm, "remove files or directories")                              \
+    _(ymodem, _esh_cmd_ymodem, "send or receive files/directories with YMODEM")    \
+    _(log, esh_builtin_cmd_log, "view and configure system logs")                  \
+    _(mem, esh_builtin_cmd_mem, "show memory and runtime heaps")                   \
+    _(stack, esh_builtin_cmd_stack, "show stack diagnostics")                      \
+    _(crashlog, esh_builtin_cmd_crashlog, "show last script crash")                \
+    _(sensor, esh_builtin_cmd_sensor, "diagnose sensors")                          \
+    _(battery, esh_builtin_cmd_battery, "show battery diagnostics")                \
+    _(power, esh_builtin_cmd_power, "show power diagnostics")                      \
+    _(display, esh_builtin_cmd_display, "show display diagnostics")                \
+    _(touchdiag, esh_builtin_cmd_touch, "diagnose touch input")                    \
+    _(ui, esh_builtin_cmd_ui, "inject touch input through the LVGL pointer indev") \
+    _(time, esh_builtin_cmd_time, "show system time")                              \
+    _(vibrator, esh_builtin_cmd_vibrator, "test the vibrator")                     \
+    _(audio, esh_builtin_cmd_audio, "diagnose audio devices")                      \
+    _(ble, esh_builtin_cmd_ble, "show or control Bluetooth")                       \
+    _(apps, esh_builtin_cmd_apps, "list installed applications")                   \
+    _(recent, esh_builtin_cmd_recent, "list recent applications")                  \
+    _(app, esh_builtin_cmd_app, "inspect or control an application")               \
+    ESH_BUILTIN_JS_COMMAND(_)                                                      \
+    _(config, esh_builtin_cmd_config, "inspect system configuration")              \
+    _(state, esh_builtin_cmd_state, "inspect system state")                        \
+    _(pkg, esh_builtin_cmd_pkg, "manage application packages")                     \
+    _(find, esh_builtin_cmd_find, "find files recursively")                        \
+    _(grep, esh_builtin_cmd_grep, "search text in a file")                         \
+    _(head, esh_builtin_cmd_head, "show the beginning of a file")                  \
+    _(tail, esh_builtin_cmd_tail, "show the end of a file")                        \
+    _(wc, esh_builtin_cmd_wc, "count file contents")                               \
+    _(crc32, esh_builtin_cmd_crc32, "calculate a CRC32 checksum")                  \
     _(sha256, esh_builtin_cmd_sha256, "calculate a SHA256 checksum")
 
 #define _ESH_EXPORT_BUILTIN(name, handler, description) ESH_CMD_EXPORT(name, handler, description);

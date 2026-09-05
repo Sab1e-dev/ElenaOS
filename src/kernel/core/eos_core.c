@@ -41,6 +41,7 @@
 #include "eos_service_sensor.h"
 #include "eos_service_cache.h"
 #include "eos_dispatcher.h"
+#include "eos_esh_service.h"
 #include "eos_anim.h"
 #include "eos_control_center.h"
 #include "eos_recent_apps.h"
@@ -265,6 +266,7 @@ uint32_t eos_main_loop(void)
         return 0;
     }
     eos_dispatch_tick();
+    eos_esh_service_poll();
     uint32_t d = lv_timer_handler();
 
     eos_developer_options_update();
