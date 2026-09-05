@@ -8,6 +8,7 @@
 
 /* Includes ---------------------------------------------------*/
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2275,7 +2276,14 @@ static bool _app_list_store_icon_path(uint32_t index, const char *icon_path)
     if (index >= _app_list_icon_paths_count)
     {
         uint32_t old_count = _app_list_icon_paths_count;
-        uint32_t new_count = index + 1U;
+        uint32_t new_count;
+        if (index == UINT32_MAX || index + 1U > SIZE_MAX / sizeof(*_app_list_icon_paths))
+        {
+            eos_free(path_copy);
+            EOS_LOG_W("Icon path table size overflow for slot %" PRIu32, index);
+            return false;
+        }
+        new_count = index + 1U;
         char **paths = eos_realloc(_app_list_icon_paths, new_count * sizeof(*paths));
         if (!paths)
         {

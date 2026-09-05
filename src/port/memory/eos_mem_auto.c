@@ -38,8 +38,12 @@ typedef struct
 
 void *eos_malloc_core(size_t size)
 {
-    size_t total = size + sizeof(eos_mem_header_t);
+    size_t total;
     eos_mem_header_t *hdr;
+
+    if (size > SIZE_MAX - sizeof(eos_mem_header_t))
+        return NULL;
+    total = size + sizeof(eos_mem_header_t);
 
     if (size < EOS_MEM_POOL_ALLOC_THRESHOLD)
         hdr = EOS_MEM_ALLOC_FAST(total);
@@ -60,8 +64,12 @@ void *eos_malloc_core(size_t size)
 
 void *eos_malloc_zeroed_core(size_t size)
 {
-    size_t total = size + sizeof(eos_mem_header_t);
+    size_t total;
     eos_mem_header_t *hdr;
+
+    if (size > SIZE_MAX - sizeof(eos_mem_header_t))
+        return NULL;
+    total = size + sizeof(eos_mem_header_t);
 
     if (size < EOS_MEM_POOL_ALLOC_THRESHOLD)
         hdr = EOS_MEM_CALLOC_FAST(1, total);
@@ -109,8 +117,12 @@ void *eos_realloc_core(void *ptr, size_t new_size)
               original_type == EOS_MEM_POOL_FAST ? "EOS_MEM_POOL_FAST" : "EOS_MEM_POOL_LARGE");
 
     // Always realloc in the original memory pool
-    size_t total = new_size + sizeof(eos_mem_header_t);
+    size_t total;
     eos_mem_header_t *new_hdr;
+
+    if (new_size > SIZE_MAX - sizeof(eos_mem_header_t))
+        return NULL;
+    total = new_size + sizeof(eos_mem_header_t);
 
     if (original_type == EOS_MEM_POOL_FAST)
     {

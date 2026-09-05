@@ -307,9 +307,23 @@ const char *eos_app_list_get_existing_id(const char *id)
  */
 void _eos_app_list_init(eos_app_list_t *list, size_t capacity)
 {
+    if (!list)
+        return;
+
+    if (capacity > SIZE_MAX / sizeof(char *))
+    {
+        list->data = NULL;
+        list->size = 0U;
+        list->capacity = 0U;
+        EOS_LOG_E("application list capacity overflow: capacity=%lu", (unsigned long)capacity);
+        return;
+    }
+
     list->data = eos_malloc(capacity * sizeof(char *));
     list->size = 0;
-    list->capacity = capacity;
+    list->capacity = list->data ? capacity : 0U;
+    if (!list->data)
+        EOS_LOG_E("application list allocation failed, capacity=%lu", (unsigned long)capacity);
 }
 
 /**
@@ -317,12 +331,38 @@ void _eos_app_list_init(eos_app_list_t *list, size_t capacity)
  */
 void _eos_app_list_add(eos_app_list_t *list, const char *id)
 {
+    char *copy;
+
+    if (!list || !id)
+        return;
+
     if (list->size == list->capacity)
     {
-        list->capacity *= 2;
-        list->data = eos_realloc(list->data, list->capacity * sizeof(char *));
+        size_t new_capacity = list->capacity > 0U ? list->capacity * 2U : 1U;
+        char **new_data;
+
+        if (new_capacity < list->capacity || new_capacity > SIZE_MAX / sizeof(char *))
+        {
+            EOS_LOG_E("application list capacity overflow");
+            return;
+        }
+        new_data = eos_realloc(list->data, new_capacity * sizeof(char *));
+        if (!new_data)
+        {
+            EOS_LOG_E("application list realloc failed, capacity=%lu", (unsigned long)new_capacity);
+            return;
+        }
+        list->data = new_data;
+        list->capacity = new_capacity;
     }
-    list->data[list->size] = eos_strdup(id); // Copy string
+
+    copy = eos_strdup(id);
+    if (!copy)
+    {
+        EOS_LOG_E("application list string allocation failed");
+        return;
+    }
+    list->data[list->size] = copy;
     list->size++;
 }
 

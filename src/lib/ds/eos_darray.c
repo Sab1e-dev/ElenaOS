@@ -30,7 +30,11 @@ struct eos_darray_t
 
 static bool _darray_expand(eos_darray_t *arr)
 {
+    if (arr->capacity > SIZE_MAX / _CAPACITY_GROWTH)
+        return false;
     size_t new_capacity = arr->capacity * _CAPACITY_GROWTH;
+    if (new_capacity > SIZE_MAX / sizeof(void *))
+        return false;
     void **new_buffer = eos_malloc_zeroed(new_capacity * sizeof(void *));
     if (!new_buffer)
         return false;
@@ -54,6 +58,8 @@ static bool _darray_shrink(eos_darray_t *arr)
     if (new_capacity < arr->min_capacity)
         new_capacity = arr->min_capacity;
 
+    if (new_capacity > SIZE_MAX / sizeof(void *))
+        return false;
     void **new_buffer = eos_malloc_zeroed(new_capacity * sizeof(void *));
     if (!new_buffer)
         return false;
@@ -75,6 +81,11 @@ eos_darray_t *eos_darray_create(size_t init_capacity)
     if (!arr)
         return NULL;
 
+    if (init_capacity > SIZE_MAX / sizeof(void *))
+    {
+        eos_free(arr);
+        return NULL;
+    }
     arr->buffer = eos_malloc_zeroed(init_capacity * sizeof(void *));
     if (!arr->buffer)
     {

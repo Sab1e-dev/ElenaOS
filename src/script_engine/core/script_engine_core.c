@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <limits.h>
 #include <setjmp.h>
 #define EOS_LOG_TAG "ScriptEngine"
 #include "eos_log.h"
@@ -134,7 +136,19 @@ static void _track_main_module(jerry_value_t module)
 
     if (_tracked_module_count >= _tracked_module_capacity)
     {
-        int new_cap = _tracked_module_capacity > 0 ? _tracked_module_capacity * 2 : TRACKED_MODULES_INIT_CAPACITY;
+        int new_cap;
+        if (_tracked_module_capacity > 0)
+        {
+            if (_tracked_module_capacity > INT_MAX / 2)
+                return;
+            new_cap = _tracked_module_capacity * 2;
+        }
+        else
+        {
+            new_cap = TRACKED_MODULES_INIT_CAPACITY;
+        }
+        if ((size_t)new_cap > SIZE_MAX / sizeof(jerry_value_t))
+            return;
         jerry_value_t *new_arr = eos_realloc(_tracked_modules, new_cap * sizeof(jerry_value_t));
         if (!new_arr)
             return;

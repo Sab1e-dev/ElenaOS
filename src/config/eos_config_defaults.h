@@ -52,6 +52,10 @@
 
 /* Memory -----------------------------------------------------*/
 
+#ifndef EOS_MEM_MAX_REGIONS
+#define EOS_MEM_MAX_REGIONS 16U
+#endif
+
 #ifndef EOS_MEM_ALLOC_PROVIDER
 #define EOS_MEM_ALLOC_PROVIDER EOS_MEM_PROVIDER_STDLIB_CLIB
 #endif
@@ -84,6 +88,9 @@
 #define EOS_MEM_TRACK_ENABLE 1
 #endif
 
+/* Kept for configuration compatibility with older ports. The current
+ * tracker stores metadata in each allocation and does not have a fixed-size
+ * allocation table, so this value no longer limits the number of blocks. */
 #ifndef EOS_MEM_TRACK_TABLE_SIZE
 #define EOS_MEM_TRACK_TABLE_SIZE 4096
 #endif
