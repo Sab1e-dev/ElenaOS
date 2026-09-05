@@ -201,7 +201,18 @@ void eos_swipe_panel_set_dir(eos_swipe_panel_t *sp, const eos_swipe_dir_t dir)
 void eos_swipe_panel_delete(eos_swipe_panel_t *sp)
 {
     EOS_CHECK_PTR_RETURN(sp);
+
+    /* The slide widget owns animation callbacks whose user data points at
+     * both the widget and this panel.  Destroy it first so deleting the
+     * target object cannot leave a live callback behind. */
+    if (sp->sw)
+    {
+        eos_slide_widget_delete(sp->sw);
+        sp->sw = NULL;
+    }
+
     lv_obj_delete_async(sp->swipe_obj);
+    sp->swipe_obj = NULL;
     eos_free(sp);
 }
 

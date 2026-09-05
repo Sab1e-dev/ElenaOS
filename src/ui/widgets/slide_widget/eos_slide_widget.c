@@ -309,6 +309,7 @@ static void _touch_obj_pressing_cb(lv_event_t *e)
 static void _slide_widget_anim_completed_cb(lv_anim_t *a)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)lv_anim_get_user_data(a);
+    EOS_LOG_I("Slide animation completed callback sw=%p", sw);
     EOS_CHECK_PTR_RETURN(sw);
     eos_slide_widget_state_t transit_state = sw->state;
     eos_slide_widget_state_t settle_state = sw->settle_state;
@@ -750,7 +751,11 @@ static void _slide_widget_delete_cb(lv_event_t *e)
 {
     eos_slide_widget_t *sw = (eos_slide_widget_t *)lv_event_get_user_data(e);
     EOS_CHECK_PTR_RETURN(sw);
-    EOS_LOG_I("Deleting slide widget for target obj %p", lv_event_get_target(e));
+
+    /* The animation variable is the slide-widget itself, not the LVGL
+     * target object.  Deleting the target therefore does not cancel the
+     * animation automatically.  Stop it before releasing the widget. */
+    lv_anim_delete(sw, NULL);
 
     if (sw->touch_obj && sw->owns_touch_obj)
     {
@@ -769,6 +774,10 @@ void eos_slide_widget_delete(eos_slide_widget_t *sw)
 {
     EOS_CHECK_PTR_RETURN(sw);
     EOS_LOG_I("Manually destroying slide widget %p", sw);
+
+    /* Cancel callbacks which still hold sw as their animation variable or
+     * user data before any of the widget-owned objects are released. */
+    lv_anim_delete(sw, NULL);
 
     if (sw->target_obj)
     {

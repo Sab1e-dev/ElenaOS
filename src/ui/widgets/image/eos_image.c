@@ -218,7 +218,10 @@ lv_obj_t *eos_icon_glyph_image_create(lv_obj_t *parent, const void *icon_src, lv
     lv_obj_remove_flag(img, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(img, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_user_data(img, ctx);
-    lv_obj_add_event_cb(img, _icon_glyph_delete_cb, LV_EVENT_DELETE, NULL);
+    /* The delete callback owns the draw buffer and context.  Pass the
+     * context through the event descriptor; lv_event_get_user_data() reads
+     * this value, not lv_obj_set_user_data(img, ...). */
+    lv_obj_add_event_cb(img, _icon_glyph_delete_cb, LV_EVENT_DELETE, ctx);
 
     return img;
 }

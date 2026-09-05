@@ -158,16 +158,26 @@ lv_draw_buf_t *eos_draw_buf_create(uint32_t w, uint32_t h, lv_color_format_t cf,
     if (stride == 0)
         stride = lv_draw_buf_width_to_stride(w, cf);
 
+    if (stride == 0 || h > (UINT32_MAX - (LV_DRAW_BUF_ALIGN - 1U)) / stride)
+        return NULL;
     uint32_t data_size = h * stride;
     if (data_size == 0)
         return NULL;
-    void *data_buf = eos_cache_buf_alloc(data_size);
+    /* The cache allocator returns a raw allocation, not a GPU-aligned
+     * pixel pointer. Keep both addresses so destruction frees the allocation. */
+    void *data_buf = eos_cache_buf_alloc(data_size + LV_DRAW_BUF_ALIGN - 1U);
     if (!data_buf)
     {
         EOS_LOG_E("NULL pointer at %s:%d, at function: %s", __FILE__, __LINE__, __func__);
         return NULL;
     }
-    memset(data_buf, 0, data_size);
+    void *aligned_data = lv_draw_buf_align(data_buf, cf);
+    if (!aligned_data)
+    {
+        eos_cache_buf_free(data_buf);
+        return NULL;
+    }
+    memset(aligned_data, 0, data_size);
     lv_draw_buf_t *draw_buf = eos_malloc_zeroed(sizeof(lv_draw_buf_t));
     if (!draw_buf)
     {
@@ -176,21 +186,22 @@ lv_draw_buf_t *eos_draw_buf_create(uint32_t w, uint32_t h, lv_color_format_t cf,
         return NULL;
     }
 
-    if (lv_draw_buf_init(draw_buf, w, h, cf, stride, data_buf, data_size) != LV_RESULT_OK)
+    if (lv_draw_buf_init(draw_buf, w, h, cf, stride, aligned_data, data_size) != LV_RESULT_OK)
     {
         EOS_LOG_E("Init draw buf failed");
         eos_cache_buf_free(data_buf);
         eos_free(draw_buf);
         return NULL;
     }
+    draw_buf->unaligned_data = data_buf;
     return draw_buf;
 }
 
 void eos_draw_buf_destroy(lv_draw_buf_t *draw_buf)
 {
     EOS_CHECK_PTR_RETURN(draw_buf);
-    if (draw_buf->data)
-        eos_cache_buf_free(draw_buf->data);
+    if (draw_buf->unaligned_data)
+        eos_cache_buf_free(draw_buf->unaligned_data);
     eos_free(draw_buf);
 }
 
